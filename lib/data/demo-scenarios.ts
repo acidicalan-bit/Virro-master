@@ -3,7 +3,7 @@ import type { DemoScenario } from "@/lib/types/demo-scenario";
 export const demoScenarios: DemoScenario[] = [
   {
     id: "scenario-ambiguous-story",
-    title: "Ambiguous User Story",
+    title: "Retrabajo por historia de usuario ambigua antes de sprint planning",
     rawInput: "As a user, I want a better checkout so that purchasing is easier. It should work for enterprise customers soon.",
     context: "A growth initiative is entering sprint planning without actor boundaries, measurable outcome or failure behavior.",
     sourceRole: "Growth Product Manager",
@@ -18,7 +18,7 @@ export const demoScenarios: DemoScenario[] = [
   },
   {
     id: "scenario-qa-automation-matrix",
-    title: "Incomplete QA Automation Matrix",
+    title: "QA Automation recibe cobertura sin prioridad, datos ni definición de terminado",
     rawInput: "QA finished the checkout cases. Automation can take the important ones and add them to regression before release.",
     context: "Manual QA is handing coverage to QA Automation without priority rules, data setup or stable ownership.",
     sourceRole: "QA Lead",
@@ -33,7 +33,7 @@ export const demoScenarios: DemoScenario[] = [
   },
   {
     id: "scenario-weak-ai-instruction",
-    title: "Weak AI Instruction",
+    title: "IA responde genérico por falta de contexto operativo",
     rawInput: "Review the customer feedback and create a useful summary for leadership. Make it insightful and actionable.",
     context: "An operations team wants AI assistance but has not supplied business context, source authority or decision boundaries.",
     sourceRole: "Customer Operations Manager",
@@ -48,7 +48,7 @@ export const demoScenarios: DemoScenario[] = [
   },
   {
     id: "scenario-confusing-process",
-    title: "Confusing Internal Process",
+    title: "Escalaciones críticas se frenan porque nadie entiende el proceso completo",
     rawInput: "When a customer issue is serious, support sends it to the right team. If needed, leadership is informed and someone follows up.",
     context: "A support escalation process exists informally across Slack and team knowledge.",
     sourceRole: "Support Operations Lead",
@@ -63,7 +63,7 @@ export const demoScenarios: DemoScenario[] = [
   },
   {
     id: "scenario-developer-onboarding",
-    title: "New Developer Onboarding",
+    title: "Nuevo developer tarda semanas en entender cómo hacer un cambio seguro",
     rawInput: "The new developer should read the wiki, get access to the repos and shadow the team. After a few weeks they can start taking tickets.",
     context: "Platform engineering relies on tribal knowledge to transfer system and role context.",
     sourceRole: "Engineering Manager",
@@ -78,7 +78,7 @@ export const demoScenarios: DemoScenario[] = [
   },
   {
     id: "scenario-consulting-brief",
-    title: "Client-to-Consulting Brief",
+    title: "Brief cliente-consultora ambiguo expande alcance y retrasa decisiones",
     rawInput: "The client wants a modern customer portal. We should improve the experience, integrate the main systems and deliver recommendations this quarter.",
     context: "A software consultancy is beginning discovery from a broad commercial conversation.",
     sourceRole: "Client Sponsor",
@@ -93,7 +93,7 @@ export const demoScenarios: DemoScenario[] = [
   },
   {
     id: "scenario-technical-docs",
-    title: "Confusing Technical Documentation",
+    title: "Confluence existe, pero el equipo no entiende cómo actuar",
     rawInput: "Billing v3 uses the new event pipeline. Consumers should migrate using the sample and operations can roll back if there are issues.",
     context: "An architecture page documents the intended direction but omits consumer boundaries and operational recovery criteria.",
     sourceRole: "Platform Architect",
@@ -108,7 +108,7 @@ export const demoScenarios: DemoScenario[] = [
   },
   {
     id: "scenario-talent-role",
-    title: "QA Automation Senior Role Misunderstood",
+    title: "Vacante técnica mal entendida que llena el pipeline de candidatos incorrectos",
     rawInput: "The client needs a Senior QA Automation profile. Filter candidates with Selenium or Cypress and strong testing experience.",
     context: "The role request omits autonomy, test architecture ownership, API/performance scope, CI/CD expectations, domain and client communication requirements.",
     sourceRole: "Client Hiring Manager",
@@ -123,7 +123,7 @@ export const demoScenarios: DemoScenario[] = [
   },
   {
     id: "scenario-candidate-handoff",
-    title: "Candidate Presented with Incomplete Context",
+    title: "Candidato correcto parece débil por un handoff sin contexto operativo",
     rawInput: "The candidate has five years in QA Automation, uses Cypress and Selenium, and passed our technical screen. Please interview them.",
     context: "The client handoff does not explain project type, real autonomy, ownership, collaboration with developers, limitations or interview evidence.",
     sourceRole: "Staffing Consultant",
@@ -138,7 +138,7 @@ export const demoScenarios: DemoScenario[] = [
   },
   {
     id: "scenario-critical-flow",
-    title: "Unclassified Cross-Team Meaning Loss",
+    title: "Equipos reconstruyen contexto en cada handoff y nadie sabe qué significa terminado",
     rawInput: "Work keeps moving between areas, but every new team spends days rebuilding context and nobody agrees what complete means.",
     context: "The client can describe time and execution loss but does not yet know which Virro pack best explains the flow.",
     sourceRole: "Operations Sponsor",
