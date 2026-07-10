@@ -20,8 +20,9 @@ Open `http://localhost:3000`.
 - `lib/domain/` — domain factories, validation, aggregation and relationship helpers
 - `lib/services/` — replaceable analysis and scoring services
 - `lib/types/` — typed contracts for workspaces, teams, role cards, workflows, events, analyses and reports
+- `services/analysis/` — mock Analysis Engine, probabilistic scoring and pack-specific analyzers
 - `prisma/` — SQLite-ready enterprise domain model for local persistence
 
-The current `analysisEngine` uses a deterministic `MockAnalysisService` and does not require an external AI provider. Implement `AnalysisService` to connect a provider later without coupling the UI to it. Supporting services isolate scoring, reports, demo scenarios and pack definitions.
+The current `analysisEngine` uses a deterministic `MockAnalysisEngine` and does not require an external AI provider. It receives an `UnderstandingEvent`, routes it to a pack analyzer and returns a consistent `AnalysisResult`. The engine boundary can be replaced later without coupling the Inbox to an LLM provider.
 
 Production domain: [virro.app](https://www.virro.app/)

@@ -1,4 +1,2 @@
-import { MockAnalysisService, type AnalysisService } from "@/lib/services/analysis";
-
-/** Stable application-facing contract. Replace the implementation, not consumers. */
-export const analysisEngine: AnalysisService = new MockAnalysisService();
+/** Compatibility export. New code should import from services/analysis/analysisEngine. */
+export { analysisEngine, MockAnalysisEngine, type AnalysisEngine } from "@/services/analysis/analysisEngine";

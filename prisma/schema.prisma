@@ -93,11 +93,15 @@ model AnalysisResult {
   id                 String             @id @default(cuid())
   eventId            String
   summary            String
+  probableIntent     String
+  targetReceiver     String
   meaningLossRisk    Float
   missingInformation Json
   assumptions        Json
+  risks              Json
   criticalQuestions  Json
   recommendedActions Json
+  recommendedOutput  String
   generatedArtifacts Json
   scores              Json
   event               UnderstandingEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)

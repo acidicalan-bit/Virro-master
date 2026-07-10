@@ -83,14 +83,18 @@ export function analysisOutcomeToResult(
   return {
     eventId: event.id,
     summary: `${outcome.inferredIntent}. Intended receiver: ${outcome.likelyReceiver}.`,
+    probableIntent: outcome.inferredIntent,
+    targetReceiver: outcome.likelyReceiver,
     meaningLossRisk: outcome.scores.meaningLossRisk,
     missingInformation: outcome.missingContext,
     assumptions: outcome.ambiguities,
+    risks: outcome.riskSignals,
     criticalQuestions: outcome.criticalQuestions,
     recommendedActions: [
       "Resolve the highest-impact missing context",
       `Prepare the recommended ${event.recommendedOutput.replaceAll("-", " ")}`,
     ],
+    recommendedOutput: event.recommendedOutput,
     generatedArtifacts: [],
     scores: outcome.scores,
   };

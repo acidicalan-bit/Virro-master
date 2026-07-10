@@ -12,9 +12,10 @@ import {
   ShieldCheck,
   Sparkles,
 } from "lucide-react";
-import { analysisEngine } from "@/lib/services/analysis-engine";
+import { analysisEngine } from "@/services/analysis/analysisEngine";
+import { EMPTY_SCORES } from "@/services/analysis/scoringEngine";
 import { recommendedOutputByPack } from "@/lib/services/pack-analyzers";
-import { analysisOutcomeToResult, createUnderstandingEvent } from "@/lib/domain/understanding-event";
+import { createUnderstandingEvent, statusFromScores } from "@/lib/domain/understanding-event";
 import { teams, workspace } from "@/lib/data/seed";
 import type {
   AnalysisResult,
@@ -51,7 +52,6 @@ export function InboxWorkbench() {
   const [loading, setLoading] = useState(false);
   const [createdEvent, setCreatedEvent] = useState<UnderstandingEvent | null>(null);
   const [result, setResult] = useState<AnalysisResult | null>(null);
-  const [likelyReceiver, setLikelyReceiver] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   async function analyze(event: FormEvent<HTMLFormElement>) {
@@ -68,14 +68,7 @@ export function InboxWorkbench() {
       const packType = value("packType") as PackId;
       const expectedReceiver = value("expectedReceiver");
 
-      const outcome = await analysisEngine.analyze(rawInput, packType, {
-        expectedReceiver,
-        sourceRole: value("sourceRole"),
-        targetRole: value("targetRole"),
-        targetTeam: value("targetTeam"),
-      });
-
-      const understandingEvent = createUnderstandingEvent({
+      const pendingEvent = createUnderstandingEvent({
         workspaceId: workspace.id,
         title: value("title"),
         rawInput,
@@ -85,28 +78,26 @@ export function InboxWorkbench() {
         targetTeam: value("targetTeam"),
         expectedReceiver,
         packType,
-        probableIntent: outcome.inferredIntent,
-        missingContext: outcome.missingContext,
-        risks: outcome.riskSignals,
-        criticalQuestions: outcome.criticalQuestions,
+        probableIntent: "Pending pack analysis",
+        missingContext: [],
+        risks: [],
+        criticalQuestions: [],
         recommendedOutput: recommendedOutputByPack[packType],
-        scores: outcome.scores,
+        scores: EMPTY_SCORES,
       });
 
-      const analysisResult: AnalysisResult = {
-        id: `AR-${crypto.randomUUID().slice(0, 8).toUpperCase()}`,
-        ...analysisOutcomeToResult(understandingEvent, outcome),
-        generatedArtifacts: [
-          {
-            id: `OA-${crypto.randomUUID().slice(0, 8).toUpperCase()}`,
-            type: understandingEvent.recommendedOutput,
-            title: `${understandingEvent.title} — ${formatOutput(understandingEvent.recommendedOutput)}`,
-            status: "draft",
-          },
-        ],
+      const analysisResult = await analysisEngine.analyze(pendingEvent);
+      const understandingEvent: UnderstandingEvent = {
+        ...pendingEvent,
+        probableIntent: analysisResult.probableIntent,
+        missingContext: analysisResult.missingInformation,
+        risks: analysisResult.risks,
+        criticalQuestions: analysisResult.criticalQuestions,
+        recommendedOutput: analysisResult.recommendedOutput,
+        scores: analysisResult.scores,
+        status: statusFromScores(analysisResult.scores),
       };
 
-      setLikelyReceiver(outcome.likelyReceiver);
       setCreatedEvent(understandingEvent);
       setResult(analysisResult);
     } catch {
@@ -206,7 +197,7 @@ export function InboxWorkbench() {
           {!result && !loading && <EmptyResult />}
           {loading && <LoadingResult />}
           {result && createdEvent && (
-            <AnalysisPanel event={createdEvent} result={result} likelyReceiver={likelyReceiver} />
+            <AnalysisPanel event={createdEvent} result={result} />
           )}
         </article>
       </section>
@@ -261,7 +252,7 @@ function LoadingResult() {
   );
 }
 
-function AnalysisPanel({ event, result, likelyReceiver }: { event: UnderstandingEvent; result: AnalysisResult; likelyReceiver: string }) {
+function AnalysisPanel({ event, result }: { event: UnderstandingEvent; result: AnalysisResult }) {
   return (
     <div>
       <div className="flex items-start justify-between gap-4">
@@ -279,8 +270,8 @@ function AnalysisPanel({ event, result, likelyReceiver }: { event: Understanding
       </div>
 
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
-        <ResultFact label="Probable intent" value={event.probableIntent} />
-        <ResultFact label="Expected receiver" value={likelyReceiver} />
+        <ResultFact label="Probable intent" value={result.probableIntent} />
+        <ResultFact label="Target receiver" value={result.targetReceiver} />
       </div>
 
       <ResultList title="Missing information" icon={<CircleAlert size={14} />} items={result.missingInformation} empty="No material context gap detected." />

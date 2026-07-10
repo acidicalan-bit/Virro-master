@@ -130,11 +130,15 @@ export interface AnalysisResult {
   id: EntityId;
   eventId: EntityId;
   summary: string;
+  probableIntent: string;
+  targetReceiver: string;
   meaningLossRisk: number;
   missingInformation: string[];
   assumptions: string[];
+  risks: string[];
   criticalQuestions: string[];
   recommendedActions: string[];
+  recommendedOutput: RecommendedOutputType;
   generatedArtifacts: GeneratedArtifact[];
   scores: UnderstandingScores;
 }
