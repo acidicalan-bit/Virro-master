@@ -4,8 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Bell, ChevronDown, Menu, Moon, Search, Sun, X } from "lucide-react";
-import { modules } from "@/lib/config/modules";
-import { localizeModule } from "@/lib/config/modules";
+import { localizeModule, modules } from "@/lib/config/modules";
 import { events } from "@/lib/data/seed";
 import { buildWorkspaceStats } from "@/lib/domain/understanding-event";
 import { useLanguage } from "@/components/i18n/language-provider";
@@ -82,7 +81,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </button>
           <div className="ml-auto flex items-center gap-1.5">
             <button className="hidden items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--panel-soft)] px-3 py-2 text-xs text-[var(--subtle)] transition hover:text-[var(--text)] md:flex"><Search size={15} /> {t("Search events", "Buscar eventos")} <kbd className="ml-6 text-[10px]">⌘ K</kbd></button>
-            <div className="hidden overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--panel-soft)] sm:flex" aria-label={t("Language selector", "Selector de idioma")}><button onClick={() => setLocale("es")} className={`px-2.5 py-2 text-[10px] font-semibold ${locale === "es" ? "bg-teal-400/15 text-teal-200" : "text-[var(--subtle)]"}`}>ES</button><button onClick={() => setLocale("en")} className={`px-2.5 py-2 text-[10px] font-semibold ${locale === "en" ? "bg-teal-400/15 text-teal-200" : "text-[var(--subtle)]"}`}>EN</button></div>
+            <div className="flex overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--panel-soft)]" aria-label={t("Language selector", "Selector de idioma")}><button aria-pressed={locale === "es"} onClick={() => setLocale("es")} className={`px-2.5 py-2 text-[10px] font-semibold ${locale === "es" ? "bg-teal-400/15 text-teal-200" : "text-[var(--subtle)]"}`}>ES</button><button aria-pressed={locale === "en"} onClick={() => setLocale("en")} className={`px-2.5 py-2 text-[10px] font-semibold ${locale === "en" ? "bg-teal-400/15 text-teal-200" : "text-[var(--subtle)]"}`}>EN</button></div>
             <button aria-label={t("Toggle theme", "Cambiar tema")} onClick={() => setDark((value) => !value)} className="grid size-9 place-items-center rounded-lg text-[var(--muted)] hover:bg-[var(--hover)]">{dark ? <Sun size={17} /> : <Moon size={17} />}</button>
             <button aria-label={t("Notifications", "Notificaciones")} className="relative grid size-9 place-items-center rounded-lg text-[var(--muted)] hover:bg-[var(--hover)]"><Bell size={17} /><span className="absolute right-2 top-2 size-1.5 rounded-full bg-teal-300" /></button>
             <div className="ml-1 grid size-8 place-items-center rounded-full bg-gradient-to-br from-indigo-400 to-fuchsia-400 text-[10px] font-bold text-white">MC</div>
