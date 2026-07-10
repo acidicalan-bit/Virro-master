@@ -25,6 +25,7 @@ import type {
 } from "@/lib/types/understanding";
 import { ScoreRing } from "@/components/ui/score-ring";
 import { StatusPill } from "@/components/ui/status-pill";
+import { redactSensitiveData } from "@/lib/security/sensitive-data";
 
 const inputTypes: { value: InputType; label: string }[] = [
   { value: "user-story", label: "User Story" },
@@ -53,20 +54,27 @@ export function InboxWorkbench() {
   const [createdEvent, setCreatedEvent] = useState<UnderstandingEvent | null>(null);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [redactionNotice, setRedactionNotice] = useState<string | null>(null);
 
   async function analyze(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setLoading(true);
     setError(null);
+    setRedactionNotice(null);
     setCreatedEvent(null);
     setResult(null);
 
     try {
       const form = new FormData(event.currentTarget);
       const value = (name: string) => String(form.get(name) ?? "").trim();
-      const rawInput = value("rawInput");
+      const redaction = redactSensitiveData(value("rawInput"));
+      const rawInput = redaction.sanitized;
       const packType = value("packType") as PackId;
       const expectedReceiver = value("expectedReceiver");
+
+      if (redaction.redactionCount > 0) {
+        setRedactionNotice(`${redaction.redactionCount} sensitive fragment${redaction.redactionCount === 1 ? " was" : "s were"} redacted before analysis: ${redaction.detectedTypes.join(", ")}.`);
+      }
 
       const pendingEvent = createUnderstandingEvent({
         workspaceId: workspace.id,
@@ -183,6 +191,7 @@ export function InboxWorkbench() {
           </div>
 
           {error && <p className="mt-4 rounded-lg border border-rose-400/20 bg-rose-400/[.07] px-3 py-2 text-xs text-rose-300">{error}</p>}
+          {redactionNotice && <p className="mt-4 rounded-lg border border-sky-400/20 bg-sky-400/[.07] px-3 py-2 text-xs text-sky-300">{redactionNotice}</p>}
 
           <div className="mt-5 flex flex-col gap-3 border-t border-[var(--border)] pt-5 sm:flex-row sm:items-center sm:justify-between">
             <p className="max-w-sm text-[10px] leading-4 text-[var(--subtle)]">Analysis uses a local deterministic service. Scores are estimates, not guarantees.</p>

@@ -5,19 +5,32 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Bell, ChevronDown, Menu, Moon, Search, Sun, X } from "lucide-react";
 import { modules } from "@/lib/config/modules";
+import { events } from "@/lib/data/seed";
+import { buildWorkspaceStats } from "@/lib/domain/understanding-event";
+
+const shellStats = buildWorkspaceStats(events);
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [dark, setDark] = useState(true);
+  const [isDesktop, setIsDesktop] = useState(false);
 
   useEffect(() => {
     document.documentElement.dataset.theme = dark ? "dark" : "light";
   }, [dark]);
 
+  useEffect(() => {
+    const media = window.matchMedia("(min-width: 1024px)");
+    const updateViewport = () => setIsDesktop(media.matches);
+    updateViewport();
+    media.addEventListener("change", updateViewport);
+    return () => media.removeEventListener("change", updateViewport);
+  }, []);
+
   return (
     <div className="min-h-screen bg-[var(--app-bg)] text-[var(--text)]">
-      <aside className={`fixed inset-y-0 left-0 z-40 flex w-[272px] flex-col border-r border-[var(--border)] bg-[var(--sidebar)] transition-transform lg:translate-x-0 ${open ? "translate-x-0" : "-translate-x-full"}`}>
+      <aside aria-hidden={!isDesktop && !open} inert={!isDesktop && !open} className={`fixed inset-y-0 left-0 z-40 flex w-[272px] flex-col border-r border-[var(--border)] bg-[var(--sidebar)] transition-transform lg:translate-x-0 ${open ? "translate-x-0" : "-translate-x-full"}`}>
         <div className="flex h-[76px] items-center justify-between border-b border-[var(--border)] px-5">
           <Link href="/" className="flex items-center gap-3" onClick={() => setOpen(false)}>
             <div className="grid size-9 place-items-center rounded-xl bg-gradient-to-br from-teal-300 to-cyan-500 text-sm font-black text-slate-950 shadow-[0_0_30px_rgba(45,212,191,.18)]">V</div>
@@ -38,7 +51,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   <Link href={module.href} onClick={() => setOpen(false)} className={`group flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] transition ${active ? "bg-[var(--active)] font-medium text-[var(--text)] shadow-sm" : "text-[var(--muted)] hover:bg-[var(--hover)] hover:text-[var(--text)]"}`}>
                     <Icon size={17} strokeWidth={active ? 2 : 1.7} className={active ? "text-teal-300" : "text-[var(--subtle)] group-hover:text-[var(--muted)]"} />
                     <span>{module.label}</span>
-                    {module.id === "inbox" && <span className="ml-auto rounded-full bg-teal-400/10 px-2 py-0.5 text-[10px] font-semibold text-teal-300">12</span>}
+                    {module.id === "inbox" && <span className="ml-auto rounded-full bg-teal-400/10 px-2 py-0.5 text-[10px] font-semibold text-teal-300">{events.length}</span>}
                   </Link>
                 </div>
               );
@@ -47,9 +60,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </nav>
         <div className="border-t border-[var(--border)] p-3">
           <div className="rounded-xl border border-[var(--border)] bg-[var(--panel-soft)] p-3">
-            <div className="flex items-center justify-between text-xs"><span className="text-[var(--muted)]">Workspace health</span><span className="font-semibold text-teal-300">74</span></div>
-            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[var(--ring-track)]"><div className="h-full w-[74%] rounded-full bg-gradient-to-r from-cyan-400 to-teal-300" /></div>
-            <p className="mt-2 text-[10px] leading-relaxed text-[var(--subtle)]">Estimated from 128 active understanding signals.</p>
+            <div className="flex items-center justify-between text-xs"><span className="text-[var(--muted)]">Workspace health</span><span className="font-semibold text-teal-300">{shellStats.virroScore}</span></div>
+            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[var(--ring-track)]"><div className="h-full rounded-full bg-gradient-to-r from-cyan-400 to-teal-300" style={{ width: `${shellStats.virroScore}%` }} /></div>
+            <p className="mt-2 text-[10px] leading-relaxed text-[var(--subtle)]">Estimated from {events.length} active Understanding Events.</p>
           </div>
         </div>
       </aside>
