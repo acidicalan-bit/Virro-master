@@ -8,6 +8,7 @@ import { processAnalyzer } from "@/services/analysis/packAnalyzers/processAnalyz
 import { onboardingAnalyzer } from "@/services/analysis/packAnalyzers/onboardingAnalyzer";
 import { consultingAnalyzer } from "@/services/analysis/packAnalyzers/consultingAnalyzer";
 import { technicalDocumentationAnalyzer } from "@/services/analysis/packAnalyzers/technicalDocumentationAnalyzer";
+import { talentStaffingAnalyzer } from "@/services/analysis/packAnalyzers/talentStaffingAnalyzer";
 
 const analyzers: Record<PackType, PackAnalyzer> = {
   "product-delivery": productDeliveryAnalyzer,
@@ -16,6 +17,7 @@ const analyzers: Record<PackType, PackAnalyzer> = {
   "process-understanding": processAnalyzer,
   onboarding: onboardingAnalyzer,
   "consulting-delivery": consultingAnalyzer,
+  "talent-staffing": talentStaffingAnalyzer,
   "technical-documentation": technicalDocumentationAnalyzer,
 };
 
