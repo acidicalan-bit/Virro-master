@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { ArrowRight, ArrowUpRight, CircleAlert, Clock3, Plus, ShieldCheck, Sparkles } from "lucide-react";
 import { mockEvents, workspaceStats } from "@/lib/data/mock-events";
+import { eventSourceLabel, formatRelativeTime } from "@/lib/domain/understanding-event";
 import { ScoreRing } from "@/components/ui/score-ring";
 import { StatusPill } from "@/components/ui/status-pill";
 
 const metrics = [
   { label: "Virro Score", value: workspaceStats.virroScore, suffix: "/100", change: "+4.2%", icon: Sparkles, tone: "teal" },
-  { label: "Open events", value: workspaceStats.openEvents, suffix: "", change: "12 need context", icon: Clock3, tone: "blue" },
+  { label: "Open events", value: workspaceStats.openEvents, suffix: "", change: `${workspaceStats.needsContext} need context`, icon: Clock3, tone: "blue" },
   { label: "Meaning loss risk", value: workspaceStats.atRisk, suffix: " events", change: "−2 this week", icon: CircleAlert, tone: "rose" },
   { label: "Ready for action", value: workspaceStats.readyForAction, suffix: "%", change: "+8.1%", icon: ShieldCheck, tone: "violet" },
 ];
@@ -36,7 +37,7 @@ export function Dashboard() {
           <div className="overflow-x-auto">
             <table className="w-full min-w-[760px] text-left">
               <thead><tr className="border-b border-[var(--border)] text-[10px] uppercase tracking-[0.12em] text-[var(--subtle)]"><th className="px-5 py-3 font-medium">Event</th><th className="px-4 py-3 font-medium">Team</th><th className="px-4 py-3 font-medium">Status</th><th className="px-4 py-3 font-medium">Virro</th><th className="px-5 py-3 font-medium">Received</th></tr></thead>
-              <tbody>{mockEvents.map((event) => <tr key={event.id} className="border-b border-[var(--border)] last:border-0 hover:bg-[var(--hover)]"><td className="px-5 py-3.5"><p className="text-xs font-medium">{event.title}</p><p className="mt-1 text-[10px] text-[var(--subtle)]">{event.id} · {event.source}</p></td><td className="px-4 py-3.5 text-xs text-[var(--muted)]">{event.team}</td><td className="px-4 py-3.5"><StatusPill status={event.status} /></td><td className="px-4 py-3.5"><div className="flex items-center gap-2"><span className="text-xs font-semibold">{event.scores.virroScore}</span><div className="h-1 w-12 overflow-hidden rounded-full bg-[var(--ring-track)]"><div className="h-full rounded-full bg-teal-300" style={{ width: `${event.scores.virroScore}%` }} /></div></div></td><td className="px-5 py-3.5 text-[11px] text-[var(--subtle)]">{event.createdAt}</td></tr>)}</tbody>
+              <tbody>{mockEvents.map((event) => <tr key={event.id} className="border-b border-[var(--border)] last:border-0 hover:bg-[var(--hover)]"><td className="px-5 py-3.5"><p className="text-xs font-medium">{event.title}</p><p className="mt-1 text-[10px] text-[var(--subtle)]">{event.id} · {eventSourceLabel(event)}</p></td><td className="px-4 py-3.5 text-xs text-[var(--muted)]">{event.targetTeam}</td><td className="px-4 py-3.5"><StatusPill status={event.status} /></td><td className="px-4 py-3.5"><div className="flex items-center gap-2"><span className="text-xs font-semibold">{event.scores.virroScore}</span><div className="h-1 w-12 overflow-hidden rounded-full bg-[var(--ring-track)]"><div className="h-full rounded-full bg-teal-300" style={{ width: `${event.scores.virroScore}%` }} /></div></div></td><td className="px-5 py-3.5 text-[11px] text-[var(--subtle)]">{formatRelativeTime(event.createdAt)}</td></tr>)}</tbody>
             </table>
           </div>
         </article>

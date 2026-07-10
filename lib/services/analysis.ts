@@ -1,12 +1,12 @@
 import { estimateScores } from "@/lib/services/scoring";
-import type { AnalysisResult, PackId } from "@/lib/types/understanding";
+import type { AnalysisOutcome, PackId } from "@/lib/types/understanding";
 
 export interface AnalysisService {
-  analyze(input: string, pack: PackId): Promise<AnalysisResult>;
+  analyze(input: string, pack: PackId): Promise<AnalysisOutcome>;
 }
 
 export class MockAnalysisService implements AnalysisService {
-  async analyze(input: string, pack: PackId): Promise<AnalysisResult> {
+  async analyze(input: string, pack: PackId): Promise<AnalysisOutcome> {
     await new Promise((resolve) => setTimeout(resolve, 550));
     const hasOwner = /owner|responsable|equipo|team|dueño/i.test(input);
     const hasOutcome = /result|resultado|objetivo|goal|success|éxito/i.test(input);

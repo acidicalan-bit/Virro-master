@@ -1,22 +1,32 @@
-import type { UnderstandingEvent } from "@/lib/types/understanding";
-
-export interface ExecutiveReport {
-  generatedAt: string;
-  eventCount: number;
-  estimatedVirroScore: number;
-  primaryRisks: string[];
-}
+import type { Report, UnderstandingEvent } from "@/lib/types/understanding";
+import { buildWorkspaceStats } from "@/lib/domain/understanding-event";
 
 export const reportBuilder = {
-  buildExecutiveReport(events: UnderstandingEvent[]): ExecutiveReport {
-    const estimatedVirroScore = events.length
-      ? Math.round(events.reduce((total, event) => total + event.scores.virroScore, 0) / events.length)
-      : 0;
+  buildExecutiveReport(
+    workspaceId: string,
+    events: UnderstandingEvent[],
+    createdAt = new Date().toISOString(),
+  ): Report {
+    const stats = buildWorkspaceStats(events);
+    const primaryRisks = [...new Set(events.flatMap((event) => event.risks))].slice(0, 5);
+    const missingContext = [...new Set(events.flatMap((event) => event.missingContext))].slice(0, 5);
+
     return {
-      generatedAt: new Date().toISOString(),
-      eventCount: events.length,
-      estimatedVirroScore,
-      primaryRisks: [...new Set(events.flatMap((event) => event.missingContext))].slice(0, 5),
+      id: `report-${crypto.randomUUID().slice(0, 8)}`,
+      workspaceId,
+      reportType: "executive",
+      title: "Executive Operational Understanding Report",
+      summary: `The estimated Virro Score is ${stats.virroScore}. ${stats.atRisk} events are currently at risk and ${stats.readyForAction}% are ready for action.`,
+      findings: [
+        ...primaryRisks.map((risk) => `Risk: ${risk}`),
+        ...missingContext.map((context) => `Missing context: ${context}`),
+      ],
+      recommendations: [
+        "Resolve the highest-impact missing context before the next cross-team handoff.",
+        "Assign explicit ownership to events with elevated meaning loss risk.",
+        "Review probabilistic readiness signals with the accountable teams.",
+      ],
+      createdAt,
     };
   },
 };

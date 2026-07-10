@@ -6,50 +6,114 @@ datasource db {
   provider = "sqlite"
 }
 
-model Workspace {
-  id        String               @id @default(cuid())
-  name      String
-  slug      String               @unique
-  teams     Team[]
-  events    UnderstandingEvent[]
-  createdAt DateTime             @default(now())
-  updatedAt DateTime             @updatedAt
+model CompanyWorkspace {
+  id          String               @id @default(cuid())
+  name        String
+  industry    String
+  description String
+  tools       Json
+  teams       Team[]
+  roleCards   RoleCard[]
+  workflows   Workflow[]
+  events      UnderstandingEvent[]
+  reports     Report[]
+  createdAt   DateTime             @default(now())
 }
 
 model Team {
-  id          String    @id @default(cuid())
-  name        String
-  workspaceId String
-  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  roles       Role[]
+  id               String           @id @default(cuid())
+  workspaceId      String
+  name             String
+  description      String
+  responsibilities Json
+  workspace        CompanyWorkspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  roleCards        RoleCard[]
 
   @@unique([workspaceId, name])
+  @@index([workspaceId])
 }
 
-model Role {
-  id     String @id @default(cuid())
-  name   String
-  teamId String
-  team   Team   @relation(fields: [teamId], references: [id], onDelete: Cascade)
+model RoleCard {
+  id                       String           @id @default(cuid())
+  workspaceId              String
+  teamId                   String
+  roleName                 String
+  needsToUnderstand        Json
+  commonMisunderstandings  Json
+  requiredInputs           Json
+  expectedOutputs          Json
+  blockingQuestions        Json
+  workspace                CompanyWorkspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  team                     Team             @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, roleName])
+  @@index([workspaceId])
+}
+
+model Workflow {
+  id          String           @id @default(cuid())
+  workspaceId String
+  name        String
+  sourceTeam  String
+  targetTeam  String
+  description String
+  commonRisks Json
+  workspace   CompanyWorkspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
 }
 
 model UnderstandingEvent {
-  id                String    @id @default(cuid())
-  externalId        String    @unique
+  id                String           @id @default(cuid())
+  workspaceId       String
   title             String
   rawInput          String
-  source            String
+  inputType         String
+  sourceRole        String
+  targetRole        String
+  targetTeam        String
+  packType          String
+  probableIntent    String
+  missingContext    Json
+  risks             Json
+  criticalQuestions Json
+  recommendedOutput String
   status            String
-  analysisPack      String
-  intent            String?
-  likelyReceiver    String?
-  missingContext    Json?
-  criticalQuestions Json?
-  scores            Json?
-  workspaceId       String
-  workspace         Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  scores            Json
+  createdAt         DateTime         @default(now())
+  workspace         CompanyWorkspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  analysisResults   AnalysisResult[]
 
   @@index([workspaceId, status])
+  @@index([workspaceId, packType])
+}
+
+model AnalysisResult {
+  id                 String             @id @default(cuid())
+  eventId            String
+  summary            String
+  meaningLossRisk    Float
+  missingInformation Json
+  assumptions        Json
+  criticalQuestions  Json
+  recommendedActions Json
+  generatedArtifacts Json
+  scores              Json
+  event               UnderstandingEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([eventId])
+}
+
+model Report {
+  id              String           @id @default(cuid())
+  workspaceId     String
+  reportType      String
+  title           String
+  summary         String
+  findings        Json
+  recommendations Json
+  createdAt       DateTime         @default(now())
+  workspace       CompanyWorkspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, reportType])
 }

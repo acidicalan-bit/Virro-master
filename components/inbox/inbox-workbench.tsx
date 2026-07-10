@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import { ArrowRight, CheckCircle2, CircleAlert, FileText, LoaderCircle, Plus, Sparkles } from "lucide-react";
 import { analysisEngine } from "@/lib/services/analysis-engine";
-import type { AnalysisResult, PackId } from "@/lib/types/understanding";
+import type { AnalysisOutcome, PackId } from "@/lib/types/understanding";
 import { ScoreRing } from "@/components/ui/score-ring";
 
 const packs: { value: PackId; label: string }[] = [
@@ -14,7 +14,7 @@ export function InboxWorkbench() {
   const [input, setInput] = useState("");
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const [pack, setPack] = useState<PackId>("product-delivery");
-  const [result, setResult] = useState<AnalysisResult | null>(null);
+  const [result, setResult] = useState<AnalysisOutcome | null>(null);
   const [loading, setLoading] = useState(false);
 
   async function analyze() {
