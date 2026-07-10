@@ -10,7 +10,10 @@ export type InputType =
   | "handoff"
   | "technical-documentation"
   | "onboarding-material"
-  | "consulting-brief";
+  | "consulting-brief"
+  | "talent-requirement"
+  | "candidate-handoff"
+  | "critical-flow";
 
 export type PackType =
   | "product-delivery"
@@ -19,6 +22,7 @@ export type PackType =
   | "process-understanding"
   | "onboarding"
   | "consulting-delivery"
+  | "talent-staffing"
   | "technical-documentation";
 
 /** Backwards-compatible name used by the analysis pack registry. */
@@ -37,6 +41,9 @@ export type RecommendedOutputType =
   | "technical-understanding-map"
   | "onboarding-card"
   | "consulting-delivery-brief"
+  | "role-understanding-pack"
+  | "candidate-handoff-pack"
+  | "audit-recommendation"
   | "executive-report";
 
 export type ReportType =
