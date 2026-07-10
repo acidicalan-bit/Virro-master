@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
 import {
   ArrowRight,
   Bot,
@@ -17,11 +18,19 @@ import { mockEvents } from "@/lib/data/mock-events";
 import { buildDashboardInsights } from "@/lib/services/dashboard-insights";
 import { localizeModule, moduleMap } from "@/lib/config/modules";
 import { useLanguage } from "@/components/i18n/language-provider";
-
-const insights = buildDashboardInsights(mockEvents);
+import { listStoredAssistantEvidence, subscribeAssistantEvents } from "@/lib/services/assistant-event-store";
+import type { UnderstandingEvent } from "@/lib/types/understanding";
 
 export function Dashboard() {
   const { locale, t } = useLanguage();
+  const [assistantEvents, setAssistantEvents] = useState<UnderstandingEvent[]>([]);
+  useEffect(() => {
+    const sync = () => setAssistantEvents(listStoredAssistantEvidence().map((item) => item.event));
+    const timer = window.setTimeout(sync, 0);
+    const unsubscribe = subscribeAssistantEvents(sync);
+    return () => { window.clearTimeout(timer); unsubscribe(); };
+  }, []);
+  const insights = useMemo(() => buildDashboardInsights([...assistantEvents, ...mockEvents]), [assistantEvents]);
   const metrics = [
     { label: t("Total Understanding Events", "Total de Understanding Events"), detail: t("Events where information needed to be understood before someone could act.", "Eventos donde una información necesitó ser entendida para poder actuar."), value: insights.metrics.totalEvents, suffix: "", icon: Braces, tone: "blue" },
     { label: t("Average DoU Score", "DoU Score promedio"), detail: t("Estimated average degree of operational understanding across analyzed events.", "Estimación del grado de entendimiento operativo promedio en los eventos analizados."), value: insights.metrics.averageDoU, suffix: "/100", icon: Sparkles, tone: "teal" },
@@ -65,6 +74,8 @@ export function Dashboard() {
           </article>
         ))}
       </section>
+
+      {assistantEvents.length > 0 && <section className="rounded-xl border border-indigo-400/15 bg-indigo-400/[.04] p-4"><p className="text-[9px] font-semibold uppercase tracking-[.12em] text-indigo-300">{t("Assistant evidence connected", "Evidencia del asistente conectada")}</p><p className="mt-2 text-xs text-[var(--muted)]">{t(`${assistantEvents.length} saved assistant event(s) now contribute to dashboard risk, readiness and understanding debt estimates.`, `${assistantEvents.length} evento(s) guardado(s) por el asistente ahora alimentan las estimaciones de riesgo, readiness y deuda de entendimiento del dashboard.`)}</p></section>}
 
       <section className="grid gap-4 xl:grid-cols-[1.15fr_.85fr]">
         <article className="panel p-5">
