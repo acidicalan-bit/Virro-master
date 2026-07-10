@@ -2,13 +2,15 @@ export type EntityId = string;
 export type ISODateString = string;
 
 export type InputType =
-  | "message"
-  | "requirement"
-  | "handoff"
-  | "process-note"
-  | "technical-document"
+  | "user-story"
+  | "bug"
+  | "meeting-notes"
   | "ai-instruction"
-  | "knowledge-fragment";
+  | "process"
+  | "handoff"
+  | "technical-documentation"
+  | "onboarding-material"
+  | "consulting-brief";
 
 export type PackType =
   | "product-delivery"
@@ -105,6 +107,7 @@ export interface UnderstandingEvent {
   sourceRole: string;
   targetRole: string;
   targetTeam: string;
+  expectedReceiver: string;
   packType: PackType;
   probableIntent: string;
   missingContext: string[];

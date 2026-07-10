@@ -4,7 +4,7 @@ const clamp = (value: number) => Math.max(0, Math.min(100, Math.round(value)));
 
 export function estimateScores(input: string): UnderstandingScores {
   const words = input.trim().split(/\s+/).filter(Boolean);
-  const hasOwner = /owner|responsable|equipo|team|dueño/i.test(input);
+  const hasOwner = /owner|owns|owned by|accountable|responsable|equipo|team|dueño/i.test(input);
   const hasConstraint = /must|debe|cannot|no puede|constraint|límite/i.test(input);
   const hasOutcome = /result|resultado|objetivo|goal|success|éxito/i.test(input);
   const hasQuestion = input.includes("?");

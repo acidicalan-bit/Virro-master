@@ -53,6 +53,22 @@ button, select { cursor: pointer; }
 .metric-rose { background: rgba(251,113,133,.1); color: #fda4af; }
 .metric-violet { background: rgba(167,139,250,.1); color: #c4b5fd; }
 
+.field-control {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--input);
+  padding: 0 12px;
+  color: var(--text);
+  font-size: 12px;
+  outline: none;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.field-control::placeholder { color: var(--subtle); }
+.field-control:focus { border-color: rgba(45, 212, 191, .5); box-shadow: 0 0 0 4px rgba(45, 212, 191, .055); }
+
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--subtle) 35%, transparent); border-radius: 99px; }
 ::selection { background: rgba(94,234,212,.24); }

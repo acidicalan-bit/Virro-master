@@ -51,6 +51,7 @@ export function validateUnderstandingEvent(event: UnderstandingEvent): string[] 
   if (!event.sourceRole.trim()) issues.push("sourceRole is required.");
   if (!event.targetRole.trim()) issues.push("targetRole is required.");
   if (!event.targetTeam.trim()) issues.push("targetTeam is required.");
+  if (!event.expectedReceiver.trim()) issues.push("expectedReceiver is required.");
   for (const [name, value] of Object.entries(event.scores)) {
     if (!Number.isFinite(value) || value < 0 || value > 100) issues.push(`${name} must be between 0 and 100.`);
   }

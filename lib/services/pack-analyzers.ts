@@ -1,4 +1,4 @@
-import type { PackId } from "@/lib/types/understanding";
+import type { PackId, RecommendedOutputType } from "@/lib/types/understanding";
 
 export interface PackDefinition {
   id: PackId;
@@ -14,4 +14,14 @@ export const packAnalyzers: Record<PackId, PackDefinition> = {
   onboarding: { id: "onboarding", outputTypes: ["Onboarding Card", "Context Pack"], focusSignals: ["role context", "learning sequence", "readiness"] },
   "consulting-delivery": { id: "consulting-delivery", outputTypes: ["Consulting Delivery Brief", "Executive Report"], focusSignals: ["client intent", "evidence", "decision trace"] },
   "technical-documentation": { id: "technical-documentation", outputTypes: ["Technical Understanding Map", "Architecture Gap Report"], focusSignals: ["system boundaries", "decision rationale", "operational risk"] },
+};
+
+export const recommendedOutputByPack: Record<PackId, RecommendedOutputType> = {
+  "product-delivery": "acceptance-criteria",
+  "ai-understanding": "context-pack",
+  "handoff-intelligence": "handoff-brief",
+  "process-understanding": "process-map",
+  onboarding: "onboarding-card",
+  "consulting-delivery": "consulting-delivery-brief",
+  "technical-documentation": "technical-understanding-map",
 };
