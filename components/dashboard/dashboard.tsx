@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import {
   ArrowRight,
@@ -13,95 +15,96 @@ import {
 } from "lucide-react";
 import { mockEvents } from "@/lib/data/mock-events";
 import { buildDashboardInsights } from "@/lib/services/dashboard-insights";
+import { localizeModule, moduleMap } from "@/lib/config/modules";
+import { useLanguage } from "@/components/i18n/language-provider";
 
 const insights = buildDashboardInsights(mockEvents);
 
-const metrics = [
-  { label: "Total Understanding Events", value: insights.metrics.totalEvents, suffix: "", icon: Braces, tone: "blue" },
-  { label: "Average DoU Score", value: insights.metrics.averageDoU, suffix: "/100", icon: Sparkles, tone: "teal" },
-  { label: "Meaning Loss Risk promedio", value: insights.metrics.averageMeaningLossRisk, suffix: "/100", icon: CircleAlert, tone: "rose" },
-  { label: "Handoffs at risk", value: insights.metrics.handoffsAtRisk, suffix: "", icon: Handshake, tone: "violet" },
-  { label: "AI Understanding Debt", value: insights.metrics.aiUnderstandingDebt, suffix: "/100", icon: Bot, tone: "rose" },
-  { label: "Technical Understanding Readiness", value: insights.metrics.technicalReadiness, suffix: "%", icon: ShieldCheck, tone: "blue" },
-  { label: "Onboarding Readiness", value: insights.metrics.onboardingReadiness, suffix: "%", icon: UsersRound, tone: "teal" },
-];
-
 export function Dashboard() {
+  const { locale, t } = useLanguage();
+  const metrics = [
+    { label: t("Total Understanding Events", "Total de Understanding Events"), detail: t("Events where information needed to be understood before someone could act.", "Eventos donde una información necesitó ser entendida para poder actuar."), value: insights.metrics.totalEvents, suffix: "", icon: Braces, tone: "blue" },
+    { label: t("Average DoU Score", "DoU Score promedio"), detail: t("Estimated average degree of operational understanding across analyzed events.", "Estimación del grado de entendimiento operativo promedio en los eventos analizados."), value: insights.metrics.averageDoU, suffix: "/100", icon: Sparkles, tone: "teal" },
+    { label: t("Average Meaning Loss Risk", "Riesgo promedio de Meaning Loss"), detail: t("Estimated risk that original intent is interpreted differently by the next receiver.", "Riesgo estimado de que la intención original se pierda o sea interpretada de forma distinta."), value: insights.metrics.averageMeaningLossRisk, suffix: "/100", icon: CircleAlert, tone: "rose" },
+    { label: t("Handoffs at risk", "Handoffs en riesgo"), detail: t("Transfers that may not be ready for the next team to execute.", "Entregas entre áreas que podrían no estar listas para que el siguiente equipo ejecute."), value: insights.metrics.handoffsAtRisk, suffix: "", icon: Handshake, tone: "violet" },
+    { label: "AI Understanding Debt", detail: t("Debt caused by context or instructions that AI may not understand correctly.", "Deuda causada por instrucciones, contexto o procesos que la IA podría no entender correctamente."), value: insights.metrics.aiUnderstandingDebt, suffix: "/100", icon: Bot, tone: "rose" },
+    { label: t("Technical Understanding Readiness", "Readiness de documentación técnica"), detail: t("How ready technical documentation is for another team to understand, test, maintain or modify a system.", "Qué tan lista está la documentación técnica para que otro equipo pueda entender, probar, mantener o modificar un sistema."), value: insights.metrics.technicalReadiness, suffix: "%", icon: ShieldCheck, tone: "blue" },
+    { label: t("Onboarding Readiness", "Readiness de onboarding"), detail: t("How prepared the context is for a new member, consultant or provider.", "Qué tan preparado está el contexto para que un nuevo miembro, consultora o proveedor pueda incorporarse con claridad."), value: insights.metrics.onboardingReadiness, suffix: "%", icon: UsersRound, tone: "teal" },
+  ];
+
   return (
     <div className="space-y-6">
       <section className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div>
-          <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-teal-300">05 · Executive Dashboard</p>
-          <h1 className="text-2xl font-semibold tracking-[-0.035em] md:text-[30px]">Where operational understanding is being lost.</h1>
-          <p className="mt-2 max-w-3xl text-sm text-[var(--muted)]">A decision view of risk concentration, readiness, understanding debt and the next corrective action.</p>
+          <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-teal-300">05 · {t("Executive Dashboard", "Tablero ejecutivo")}</p>
+          <h1 className="text-2xl font-semibold tracking-[-0.035em] md:text-[30px]">{t("Where operational understanding is being lost.", "Dónde se está perdiendo entendimiento operativo.")}</h1>
+          <p className="mt-2 max-w-3xl text-sm text-[var(--muted)]">{t("A decision view of risk concentration, readiness, understanding debt and the next corrective action.", "Vista ejecutiva de concentración de riesgo, readiness, deuda de entendimiento y próximas acciones correctivas.")}</p>
         </div>
         <div className="flex gap-2">
-          <Link href="/demo-scenarios" className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--panel)] px-4 text-xs font-medium"><PackagePlus size={14} /> Demo scenarios</Link>
-          <Link href="/inbox" className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-teal-300 px-4 text-xs font-semibold text-slate-950">New event <ArrowRight size={14} /></Link>
+          <Link href="/demo-scenarios" className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--panel)] px-4 text-xs font-medium"><PackagePlus size={14} /> {t("Demo scenarios", "Escenarios demo")}</Link>
+          <Link href="/inbox" className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-teal-300 px-4 text-xs font-semibold text-slate-950">{t("New event", "Nuevo evento")} <ArrowRight size={14} /></Link>
         </div>
       </section>
 
+      <section className="rounded-xl border border-teal-400/15 bg-teal-400/[.045] p-4">
+        <h2 className="text-xs font-semibold text-teal-200">{t("What you are seeing", "Qué estás viendo")}</h2>
+        <p className="mt-1.5 max-w-4xl text-xs leading-5 text-[var(--muted)]">{t("This dashboard shows where an organization may be accumulating understanding debt. Each event represents a moment where information must be understood so a team, consultant, tool or AI can act. Virro estimates risk, readiness and missing context to help decide what to correct first.", "Este tablero muestra dónde una empresa podría estar acumulando deuda de entendimiento. Cada evento representa un momento donde una información necesita ser entendida para que un equipo, consultora, herramienta o IA pueda actuar. Virro estima riesgos, readiness y contexto faltante para ayudar a decidir qué corregir primero.")}</p>
+      </section>
+
       <div className="flex items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--panel-soft)] px-3 py-2 text-[10px] text-[var(--subtle)]">
-        <CircleAlert size={13} /> Scores are probabilistic estimates of operational risk and readiness—not guarantees or personal evaluations.
+        <CircleAlert size={13} /> {t("Scores are probabilistic estimates of operational risk and readiness—not guarantees or personal evaluations.", "Los scores son estimaciones probabilísticas de riesgo operativo y readiness. No son garantías ni evaluaciones personales.")}
       </div>
 
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {metrics.map(({ label, value, suffix, icon: Icon, tone }) => (
-          <article key={label} className="panel p-4">
+        {metrics.map(({ label, detail, value, suffix, icon: Icon, tone }) => (
+          <article key={label} className="panel p-4" title={detail}>
             <div className={`grid size-8 place-items-center rounded-lg metric-${tone}`}><Icon size={16} /></div>
             <p className="mt-4 min-h-8 text-[11px] leading-4 text-[var(--muted)]">{label}</p>
             <div className="mt-1 flex items-baseline gap-1"><span className="text-3xl font-semibold tracking-[-0.04em]">{value}</span><span className="text-[10px] text-[var(--subtle)]">{suffix}</span></div>
+            <p className="mt-2 text-[9px] leading-4 text-[var(--subtle)]">{detail}</p>
           </article>
         ))}
       </section>
 
       <section className="grid gap-4 xl:grid-cols-[1.15fr_.85fr]">
         <article className="panel p-5">
-          <div className="flex items-center justify-between"><div><h2 className="text-sm font-semibold">Risk by understanding area</h2><p className="mt-1 text-[11px] text-[var(--subtle)]">Average Meaning Loss Risk by active pack</p></div><span className="text-[9px] uppercase tracking-[.12em] text-[var(--subtle)]">Higher = more exposed</span></div>
+          <div className="flex items-center justify-between"><div><h2 className="text-sm font-semibold">{t("Risk by understanding area", "Riesgo por área de entendimiento")}</h2><p className="mt-1 text-[11px] text-[var(--subtle)]">{t("Average Meaning Loss Risk by active pack", "Riesgo promedio de Meaning Loss por pack activo")}</p></div><span className="text-[9px] uppercase tracking-[.12em] text-[var(--subtle)]">{t("Higher = more exposed", "Mayor = más expuesto")}</span></div>
           <div className="mt-6 space-y-4">
-            {insights.areaRisk.map((area) => (
-              <div key={area.pack}>
-                <div className="mb-2 flex items-center justify-between text-xs"><span className="text-[var(--muted)]">{area.label}</span><span className="font-semibold">{area.risk}</span></div>
-                <div className="h-2 overflow-hidden rounded-full bg-[var(--ring-track)]"><div className={`h-full rounded-full ${area.risk >= 55 ? "bg-rose-400" : area.risk >= 35 ? "bg-amber-300" : "bg-teal-300"}`} style={{ width: `${area.risk}%` }} /></div>
-              </div>
-            ))}
+            {insights.areaRisk.map((area) => {
+              const areaModule = moduleMap.get(area.pack);
+              return <div key={area.pack}><div className="mb-2 flex items-center justify-between text-xs"><span className="text-[var(--muted)]">{areaModule ? localizeModule(areaModule, locale).label : area.label}</span><span className="font-semibold">{area.risk}</span></div><div className="h-2 overflow-hidden rounded-full bg-[var(--ring-track)]"><div className={`h-full rounded-full ${area.risk >= 55 ? "bg-rose-400" : area.risk >= 35 ? "bg-amber-300" : "bg-teal-300"}`} style={{ width: `${area.risk}%` }} /></div></div>;
+            })}
           </div>
         </article>
 
         <article className="panel p-5">
-          <div className="flex items-center gap-2"><FileWarning size={16} className="text-rose-300" /><h2 className="text-sm font-semibold">Top Understanding Risks</h2></div>
+          <div className="flex items-center gap-2"><FileWarning size={16} className="text-rose-300" /><h2 className="text-sm font-semibold">{t("Top Understanding Risks", "Principales riesgos de entendimiento")}</h2></div>
           <div className="mt-4 space-y-2">
-            {insights.topRisks.map((item, index) => <div key={item.risk} className="flex items-start gap-3 rounded-xl border border-[var(--border)] bg-[var(--panel-soft)] p-3"><span className="grid size-6 shrink-0 place-items-center rounded-md bg-rose-400/[.08] text-[10px] font-semibold text-rose-300">{index + 1}</span><div><p className="text-xs leading-5">{item.risk}</p><p className="mt-0.5 text-[9px] text-[var(--subtle)]">Observed in {item.count} active event{item.count === 1 ? "" : "s"}</p></div></div>)}
+            {insights.topRisks.map((item, index) => <div key={item.risk} className="flex items-start gap-3 rounded-xl border border-[var(--border)] bg-[var(--panel-soft)] p-3"><span className="grid size-6 shrink-0 place-items-center rounded-md bg-rose-400/[.08] text-[10px] font-semibold text-rose-300">{index + 1}</span><div><p className="text-xs leading-5">{item.risk}</p><p className="mt-0.5 text-[9px] text-[var(--subtle)]">{t(`Observed in ${item.count} active event${item.count === 1 ? "" : "s"}`, `Observado en ${item.count} evento${item.count === 1 ? "" : "s"} activo${item.count === 1 ? "" : "s"}`)}</p></div></div>)}
           </div>
         </article>
       </section>
 
       <section className="panel overflow-hidden">
-        <div className="border-b border-[var(--border)] px-5 py-4"><h2 className="text-sm font-semibold">Understanding Debt Backlog</h2><p className="mt-1 text-[11px] text-[var(--subtle)]">Missing context ranked by current operational exposure</p></div>
-        <div className="overflow-x-auto"><table className="w-full min-w-[720px] text-left"><thead><tr className="border-b border-[var(--border)] text-[9px] uppercase tracking-[.12em] text-[var(--subtle)]"><th className="px-5 py-3 font-medium">Context debt</th><th className="px-4 py-3 font-medium">Priority</th><th className="px-4 py-3 font-medium">Exposure</th><th className="px-4 py-3 font-medium">Affected events</th><th className="px-5 py-3 font-medium">First move</th></tr></thead><tbody>{insights.backlog.slice(0, 6).map((item) => <tr key={item.gap} className="border-b border-[var(--border)] last:border-0"><td className="px-5 py-3 text-xs font-medium">{item.gap}</td><td className="px-4 py-3"><span className={`rounded-full border px-2 py-1 text-[9px] ${item.priority === "Critical" ? "border-rose-400/20 bg-rose-400/[.08] text-rose-300" : "border-amber-400/20 bg-amber-400/[.08] text-amber-300"}`}>{item.priority}</span></td><td className="px-4 py-3 text-xs">{item.exposure}/100</td><td className="px-4 py-3 text-[10px] text-[var(--muted)]">{item.events.join(", ")}</td><td className="px-5 py-3 text-[10px] text-[var(--muted)]">Assign owner and answer the blocking question</td></tr>)}</tbody></table></div>
+        <div className="border-b border-[var(--border)] px-5 py-4"><h2 className="text-sm font-semibold">{t("Understanding Debt Backlog", "Backlog de deuda de entendimiento")}</h2><p className="mt-1 text-[11px] text-[var(--subtle)]">{t("Missing context ranked by current operational exposure", "Contexto faltante priorizado por exposición operativa actual")}</p></div>
+        <div className="overflow-x-auto"><table className="w-full min-w-[720px] text-left"><thead><tr className="border-b border-[var(--border)] text-[9px] uppercase tracking-[.12em] text-[var(--subtle)]"><th className="px-5 py-3 font-medium">{t("Context debt", "Deuda de contexto")}</th><th className="px-4 py-3 font-medium">{t("Priority", "Prioridad")}</th><th className="px-4 py-3 font-medium">{t("Exposure", "Exposición")}</th><th className="px-4 py-3 font-medium">{t("Affected events", "Eventos afectados")}</th><th className="px-5 py-3 font-medium">{t("First move", "Primer paso")}</th></tr></thead><tbody>{insights.backlog.slice(0, 6).map((item) => <tr key={item.gap} className="border-b border-[var(--border)] last:border-0"><td className="px-5 py-3 text-xs font-medium">{item.gap}</td><td className="px-4 py-3"><span className={`rounded-full border px-2 py-1 text-[9px] ${item.priority === "Critical" ? "border-rose-400/20 bg-rose-400/[.08] text-rose-300" : "border-amber-400/20 bg-amber-400/[.08] text-amber-300"}`}>{item.priority === "Critical" ? t("Critical", "Crítica") : item.priority === "High" ? t("High", "Alta") : t("Medium", "Media")}</span></td><td className="px-4 py-3 text-xs">{item.exposure}/100</td><td className="px-4 py-3 text-[10px] text-[var(--muted)]">{item.events.join(", ")}</td><td className="px-5 py-3 text-[10px] text-[var(--muted)]">{t("Assign an owner and answer the blocking question", "Asignar responsable y responder la pregunta bloqueante")}</td></tr>)}</tbody></table></div>
       </section>
 
       <section className="grid gap-4 lg:grid-cols-2">
-        <article className="panel p-5">
-          <div className="flex items-center gap-2"><Handshake size={16} className="text-amber-300" /><h2 className="text-sm font-semibold">Handoffs not ready</h2></div>
-          <div className="mt-4 space-y-3">{insights.handoffsAtRisk.length ? insights.handoffsAtRisk.map((event) => <div key={event.id} className="rounded-xl border border-[var(--border)] bg-[var(--panel-soft)] p-4"><div className="flex items-center justify-between"><p className="text-xs font-medium">{event.title}</p><span className="text-xs font-semibold text-amber-300">{event.scores.handoffReadiness}/100</span></div><p className="mt-2 text-[10px] text-[var(--subtle)]">{event.sourceRole} → {event.targetRole} · Missing: {event.missingContext.join(", ")}</p></div>) : <p className="text-xs text-emerald-300">No active handoff is currently below the readiness threshold.</p>}</div>
-        </article>
-
-        <article className="panel p-5">
-          <div className="flex items-center gap-2"><ShieldCheck size={16} className="text-teal-300" /><h2 className="text-sm font-semibold">Recommended Next Actions</h2></div>
-          <div className="mt-4 space-y-3">{insights.recommendedActions.map((action, index) => <div key={action} className="flex items-start gap-3"><span className="grid size-6 shrink-0 place-items-center rounded-full bg-teal-400/10 text-[10px] font-semibold text-teal-300">{index + 1}</span><p className="pt-0.5 text-xs leading-5 text-[var(--muted)]">{action}</p></div>)}</div>
-        </article>
+        <article className="panel p-5"><div className="flex items-center gap-2"><Handshake size={16} className="text-amber-300" /><h2 className="text-sm font-semibold">{t("Handoffs not ready", "Handoffs no listos")}</h2></div><div className="mt-4 space-y-3">{insights.handoffsAtRisk.length ? insights.handoffsAtRisk.map((event) => <div key={event.id} className="rounded-xl border border-[var(--border)] bg-[var(--panel-soft)] p-4"><div className="flex items-center justify-between"><p className="text-xs font-medium">{event.title}</p><span className="text-xs font-semibold text-amber-300">{event.scores.handoffReadiness}/100</span></div><p className="mt-2 text-[10px] text-[var(--subtle)]">{event.sourceRole} → {event.targetRole} · {t("Missing", "Falta")}: {event.missingContext.join(", ")}</p></div>) : <p className="text-xs text-emerald-300">{t("No active handoff is currently below the readiness threshold.", "Ningún handoff activo está por debajo del umbral de readiness.")}</p>}</div></article>
+        <article className="panel p-5"><div className="flex items-center gap-2"><ShieldCheck size={16} className="text-teal-300" /><h2 className="text-sm font-semibold">{t("Recommended Next Actions", "Próximas acciones recomendadas")}</h2></div><div className="mt-4 space-y-3">{insights.recommendedActions.map((action, index) => <div key={action} className="flex items-start gap-3"><span className="grid size-6 shrink-0 place-items-center rounded-full bg-teal-400/10 text-[10px] font-semibold text-teal-300">{index + 1}</span><p className="pt-0.5 text-xs leading-5 text-[var(--muted)]">{action}</p></div>)}</div></article>
       </section>
 
       <section className="grid gap-3 md:grid-cols-3">
-        <AnswerCard question="¿Dónde está perdiendo entendimiento la empresa?" answer={insights.answers.losingUnderstanding} />
-        <AnswerCard question="¿Qué área tiene más riesgo?" answer={insights.answers.highestRiskArea} />
-        <AnswerCard question="¿Qué deberíamos corregir primero?" answer={insights.answers.firstCorrection} />
+        <AnswerCard question={t("Where is the company losing operational understanding?", "¿Dónde está perdiendo entendimiento la empresa?")} answer={insights.answers.losingUnderstanding} />
+        <AnswerCard question={t("Which area has the highest risk?", "¿Qué área tiene más riesgo?")} answer={insights.answers.highestRiskArea} />
+        <AnswerCard question={t("What should we correct first?", "¿Qué deberíamos corregir primero?")} answer={insights.answers.firstCorrection} />
       </section>
     </div>
   );
 }
 
 function AnswerCard({ question, answer }: { question: string; answer: string }) {
-  return <article className="rounded-xl border border-teal-400/15 bg-teal-400/[.045] p-4"><p className="text-[10px] font-semibold uppercase tracking-[.1em] text-teal-300">Executive answer</p><h3 className="mt-2 text-xs font-semibold">{question}</h3><p className="mt-2 text-[11px] leading-5 text-[var(--muted)]">{answer}</p></article>;
+  const { t } = useLanguage();
+  return <article className="rounded-xl border border-teal-400/15 bg-teal-400/[.045] p-4"><p className="text-[10px] font-semibold uppercase tracking-[.1em] text-teal-300">{t("Executive answer", "Respuesta ejecutiva")}</p><h3 className="mt-2 text-xs font-semibold">{question}</h3><p className="mt-2 text-[11px] leading-5 text-[var(--muted)]">{answer}</p></article>;
 }

@@ -15,6 +15,7 @@ import {
   UsersRound,
   type LucideIcon,
 } from "lucide-react";
+import type { Locale } from "@/lib/i18n/locale";
 
 export interface VirroModule {
   id: string;
@@ -45,3 +46,24 @@ export const modules: VirroModule[] = [
 ];
 
 export const moduleMap = new Map(modules.map((module) => [module.id, module]));
+
+const spanishModuleCopy: Record<string, Pick<VirroModule, "label" | "eyebrow" | "description" | "capabilities">> = {
+  dashboard: { label: "Tablero ejecutivo", eyebrow: "Vista ejecutiva", description: "Entendimiento operativo en todo el workspace.", capabilities: ["Postura de riesgo", "Señales de readiness", "Tendencias de equipos"] },
+  inbox: { label: "Bandeja de entendimiento", eyebrow: "Captura", description: "Convierte inputs dispersos en Understanding Events trazables.", capabilities: ["Input manual", "Captura de fuente", "Clasificación inicial"] },
+  "demo-scenarios": { label: "Escenarios demo", eyebrow: "Demostración comercial", description: "Ejecuta escenarios precargados sin datos del cliente.", capabilities: ["Siete escenarios", "Análisis mock", "Outputs operativos"] },
+  events: { label: "Eventos", eyebrow: "Registro de eventos", description: "Revisa cada punto donde la información debe convertirse en acción.", capabilities: ["Línea de tiempo", "Responsabilidad", "Seguimiento de readiness"] },
+  "product-delivery": { label: "Entrega de producto", eyebrow: "Pack de análisis", description: "Convierte intención de producto en artefactos listos para ejecución.", capabilities: ["Estructura de historias", "Criterios de aceptación", "Matrices QA", "Reproducción de bugs"] },
+  "ai-understanding": { label: "Entendimiento para IA", eyebrow: "Pack de análisis", description: "Mide si el contexto es suficiente para una ejecución asistida por IA confiable.", capabilities: ["Integridad de contexto", "Límites de instrucción", "Deuda de entendimiento con IA"] },
+  "handoff-intelligence": { label: "Inteligencia de handoffs", eyebrow: "Pack de análisis", description: "Reduce la pérdida de significado entre personas, equipos y herramientas.", capabilities: ["Ajuste al receptor", "Mapa de dependencias", "Readiness de handoff"] },
+  "process-understanding": { label: "Entendimiento de procesos", eyebrow: "Pack de análisis", description: "Expone decisiones, brechas y dependencias operativas.", capabilities: ["Mapas de proceso", "Lógica de decisión", "Brechas de control"] },
+  onboarding: { label: "Onboarding", eyebrow: "Transferencia de entendimiento", description: "Hace utilizable el conocimiento de roles y procesos para nuevos miembros.", capabilities: ["Context Packs", "Rutas de entendimiento", "Readiness de onboarding"] },
+  "consulting-delivery": { label: "Entrega para consultoras", eyebrow: "Pack de análisis", description: "Convierte discovery en una entrega al cliente alineada y auditable.", capabilities: ["Síntesis de discovery", "Registros de decisión", "Reportes ejecutivos"] },
+  "technical-documentation": { label: "Documentación técnica", eyebrow: "Entendimiento técnico", description: "Valida si la arquitectura y documentación permiten actuar con seguridad.", capabilities: ["Mapas de entendimiento técnico", "Brechas de arquitectura", "Readiness técnico"] },
+  reports: { label: "Reportes", eyebrow: "Reportes ejecutivos", description: "Empaqueta señales probabilísticas para decisiones y gobernanza.", capabilities: ["Reportes ejecutivos", "Exportes de tendencias", "Resúmenes de riesgo"] },
+  "privacy-trust": { label: "Privacidad y confianza", eyebrow: "Gobernanza", description: "Hace visibles y gobernables los límites de datos, retención y análisis.", capabilities: ["Límites de datos", "Controles de retención", "Transparencia de análisis"] },
+  settings: { label: "Configuración", eyebrow: "Modelo de workspace", description: "Define equipos, roles, flujos y herramientas conectadas.", capabilities: ["Workspace", "Equipos y roles", "Política de scoring"] },
+};
+
+export function localizeModule(module: VirroModule, locale: Locale): VirroModule {
+  return locale === "es" ? { ...module, ...spanishModuleCopy[module.id] } : module;
+}

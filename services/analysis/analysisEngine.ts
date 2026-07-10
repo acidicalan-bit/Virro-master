@@ -1,4 +1,5 @@
 import type { AnalysisResult, PackType, UnderstandingEvent } from "@/lib/types/understanding";
+import type { Locale } from "@/lib/i18n/locale";
 import type { PackAnalyzer } from "@/services/analysis/types";
 import { productDeliveryAnalyzer } from "@/services/analysis/packAnalyzers/productDeliveryAnalyzer";
 import { aiUnderstandingAnalyzer } from "@/services/analysis/packAnalyzers/aiUnderstandingAnalyzer";
@@ -19,11 +20,11 @@ const analyzers: Record<PackType, PackAnalyzer> = {
 };
 
 export interface AnalysisEngine {
-  analyze(event: UnderstandingEvent): Promise<AnalysisResult>;
+  analyze(event: UnderstandingEvent, locale?: Locale): Promise<AnalysisResult>;
 }
 
 export class MockAnalysisEngine implements AnalysisEngine {
-  async analyze(event: UnderstandingEvent): Promise<AnalysisResult> {
+  async analyze(event: UnderstandingEvent, locale: Locale = "en"): Promise<AnalysisResult> {
     await new Promise((resolve) => setTimeout(resolve, 450));
     const packResult = analyzers[event.packType](event);
 
@@ -32,7 +33,11 @@ export class MockAnalysisEngine implements AnalysisEngine {
       eventId: event.id,
       ...packResult,
       meaningLossRisk: packResult.scores.meaningLossRisk,
-      assumptions: [
+      assumptions: locale === "es" ? [
+        "El input original enviado es la fuente de verdad actual.",
+        `El receptor esperado representa a ${event.targetRole} en ${event.targetTeam}.`,
+        "Este motor mock no evaluó evidencia adicional del workspace.",
+      ] : [
         "The submitted raw input is the current source of truth.",
         `The expected receiver represents ${event.targetRole} in ${event.targetTeam}.`,
         "No additional workspace evidence was evaluated by this mock engine.",
