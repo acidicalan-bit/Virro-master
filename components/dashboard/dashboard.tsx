@@ -7,6 +7,7 @@ import {
   Bot,
   Braces,
   CircleAlert,
+  Database,
   FileWarning,
   Handshake,
   PackagePlus,
@@ -44,6 +45,7 @@ export function Dashboard() {
 
   return (
     <div className="space-y-6">
+      <div className="flex flex-col gap-2 rounded-xl border border-sky-400/15 bg-sky-400/[.045] px-4 py-3 sm:flex-row sm:items-center"><span className="inline-flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[.11em] text-sky-300"><Database size={13} />{t("Demo workspace · Simulated data", "Demo workspace · Datos simulados")}</span><span className="text-[10px] leading-4 text-[var(--muted)]">{t("Aperture Systems is a fictional workspace used to demonstrate how Virro analyzes Understanding Events.", "Aperture Systems es un workspace ficticio para mostrar cómo Virro analiza Understanding Events.")}</span></div>
       <section className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div>
           <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-teal-300">05 · {t("Executive Dashboard", "Tablero ejecutivo")}</p>

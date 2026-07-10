@@ -76,7 +76,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <button aria-label={t("Open navigation", "Abrir navegación")} className="rounded-lg p-2 text-[var(--muted)] lg:hidden" onClick={() => setOpen(true)}><Menu size={20} /></button>
           <button className="flex min-w-0 items-center gap-2 text-left">
             <div className="hidden size-7 place-items-center rounded-lg border border-[var(--border)] bg-[var(--panel)] text-[10px] font-bold text-teal-300 sm:grid">AP</div>
-            <div className="min-w-0"><p className="truncate text-sm font-medium">Aperture Systems</p><p className="hidden text-[10px] text-[var(--subtle)] sm:block">{t("Enterprise workspace", "Workspace enterprise")}</p></div>
+            <div className="min-w-0"><p className="truncate text-sm font-medium">Aperture Systems</p><p className="hidden text-[10px] text-sky-300 sm:block">{t("Demo workspace · Simulated data", "Demo workspace · Datos simulados")}</p></div>
             <ChevronDown size={14} className="text-[var(--subtle)]" />
           </button>
           <div className="ml-auto flex items-center gap-1.5">
