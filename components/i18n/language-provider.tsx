@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { DEFAULT_LOCALE, localize, type Locale } from "@/lib/i18n/locale";
 
 interface LanguageContextValue {
@@ -12,14 +12,21 @@ interface LanguageContextValue {
 const LanguageContext = createContext<LanguageContextValue | null>(null);
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const [locale, setLocale] = useState<Locale>(() => {
-    if (typeof window === "undefined") return DEFAULT_LOCALE;
-    const saved = window.localStorage.getItem("virro-locale");
-    return saved === "es" || saved === "en" ? saved : DEFAULT_LOCALE;
-  });
+  const [locale, setLocale] = useState<Locale>(DEFAULT_LOCALE);
+  const initialized = useRef(false);
 
   useEffect(() => {
-    window.localStorage.setItem("virro-locale", locale);
+    const timer = window.setTimeout(() => {
+      const saved = window.localStorage.getItem("virro-locale");
+      initialized.current = true;
+      if (saved === "es" || saved === "en") setLocale(saved);
+      else window.localStorage.setItem("virro-locale", DEFAULT_LOCALE);
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    if (initialized.current) window.localStorage.setItem("virro-locale", locale);
     document.documentElement.lang = locale;
   }, [locale]);
 
