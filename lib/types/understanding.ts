@@ -40,12 +40,15 @@ export type RecommendedOutputType =
   | "executive-report";
 
 export type ReportType =
-  | "executive"
-  | "readiness"
-  | "meaning-loss-risk"
-  | "technical-understanding"
-  | "onboarding"
-  | "workspace-health";
+  | "meaning-loss-audit"
+  | "product-delivery-understanding"
+  | "ai-understanding-audit"
+  | "handoff-readiness"
+  | "process-understanding"
+  | "onboarding-understanding"
+  | "consulting-delivery"
+  | "technical-documentation-understanding"
+  | "executive-virro-score";
 
 export interface UnderstandingScores {
   degreeOfUnderstanding: number;
@@ -163,6 +166,15 @@ export interface Report {
   findings: string[];
   recommendations: string[];
   createdAt: ISODateString;
+}
+
+export interface EnterpriseReport extends Report {
+  whatWasAnalyzed: string[];
+  scores: Partial<UnderstandingScores>;
+  missingContext: string[];
+  criticalQuestions: string[];
+  understandingDebtBacklog: string[];
+  suggestedNextPilot: string;
 }
 
 export interface VirroSeedData {

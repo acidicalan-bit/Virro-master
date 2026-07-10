@@ -1,32 +1,72 @@
-import type { Report, UnderstandingEvent } from "@/lib/types/understanding";
+import type {
+  EnterpriseReport,
+  PackType,
+  ReportType,
+  UnderstandingEvent,
+  UnderstandingScores,
+} from "@/lib/types/understanding";
 import { buildWorkspaceStats } from "@/lib/domain/understanding-event";
 
+export const reportDefinitions: Array<{ type: ReportType; label: string; pack?: PackType }> = [
+  { type: "meaning-loss-audit", label: "Meaning Loss Audit Report" },
+  { type: "product-delivery-understanding", label: "Product Delivery Understanding Report", pack: "product-delivery" },
+  { type: "ai-understanding-audit", label: "AI Understanding Audit", pack: "ai-understanding" },
+  { type: "handoff-readiness", label: "Handoff Readiness Report", pack: "handoff-intelligence" },
+  { type: "process-understanding", label: "Process Understanding Report", pack: "process-understanding" },
+  { type: "onboarding-understanding", label: "Onboarding Understanding Report", pack: "onboarding" },
+  { type: "consulting-delivery", label: "Consulting Delivery Report", pack: "consulting-delivery" },
+  { type: "technical-documentation-understanding", label: "Technical Documentation Understanding Report", pack: "technical-documentation" },
+  { type: "executive-virro-score", label: "Executive Virro Score Report" },
+];
+
+const average = (events: UnderstandingEvent[], key: keyof UnderstandingScores) => events.length
+  ? Math.round(events.reduce((total, event) => total + event.scores[key], 0) / events.length)
+  : 0;
+
 export const reportBuilder = {
-  buildExecutiveReport(
-    workspaceId: string,
-    events: UnderstandingEvent[],
-    createdAt = new Date().toISOString(),
-  ): Report {
-    const stats = buildWorkspaceStats(events);
-    const primaryRisks = [...new Set(events.flatMap((event) => event.risks))].slice(0, 5);
-    const missingContext = [...new Set(events.flatMap((event) => event.missingContext))].slice(0, 5);
+  buildReport(workspaceId: string, events: UnderstandingEvent[], reportType: ReportType, createdAt = new Date().toISOString()): EnterpriseReport {
+    const definition = reportDefinitions.find((item) => item.type === reportType) ?? reportDefinitions[8];
+    const scopedEvents = definition.pack ? events.filter((event) => event.packType === definition.pack) : events;
+    const analyzed = scopedEvents.length ? scopedEvents : events;
+    const stats = buildWorkspaceStats(analyzed);
+    const risks = [...new Set(analyzed.flatMap((event) => event.risks))];
+    const missingContext = [...new Set(analyzed.flatMap((event) => event.missingContext))];
+    const criticalQuestions = [...new Set(analyzed.flatMap((event) => event.criticalQuestions))];
 
     return {
-      id: `report-${crypto.randomUUID().slice(0, 8)}`,
+      id: `VR-${crypto.randomUUID().slice(0, 8).toUpperCase()}`,
       workspaceId,
-      reportType: "executive",
-      title: "Executive Operational Understanding Report",
-      summary: `The estimated Virro Score is ${stats.virroScore}. ${stats.atRisk} events are currently at risk and ${stats.readyForAction}% are ready for action.`,
-      findings: [
-        ...primaryRisks.map((risk) => `Risk: ${risk}`),
-        ...missingContext.map((context) => `Missing context: ${context}`),
-      ],
+      reportType,
+      title: definition.label,
+      summary: `${analyzed.length} Understanding Event${analyzed.length === 1 ? " was" : "s were"} analyzed. The estimated Virro Score is ${stats.virroScore}/100, with average Meaning Loss Risk of ${average(analyzed, "meaningLossRisk")}/100. ${missingContext.length} context gaps require operational review.`,
+      findings: risks.slice(0, 6),
       recommendations: [
-        "Resolve the highest-impact missing context before the next cross-team handoff.",
-        "Assign explicit ownership to events with elevated meaning loss risk.",
-        "Review probabilistic readiness signals with the accountable teams.",
+        missingContext[0] ? `Resolve ${missingContext[0].toLowerCase()} before the next operational handoff.` : "Maintain the current context validation practice.",
+        "Assign an accountable owner to each high-exposure understanding debt item.",
+        "Re-run the relevant Analysis Pack after blocking questions are answered.",
       ],
+      whatWasAnalyzed: analyzed.map((event) => `${event.id} · ${event.title} · ${event.packType}`),
+      scores: {
+        degreeOfUnderstanding: average(analyzed, "degreeOfUnderstanding"),
+        meaningLossRisk: average(analyzed, "meaningLossRisk"),
+        handoffReadiness: average(analyzed, "handoffReadiness"),
+        automationReadiness: average(analyzed, "automationReadiness"),
+        aiUnderstandingDebt: average(analyzed, "aiUnderstandingDebt"),
+        technicalReadiness: average(analyzed, "technicalReadiness"),
+        onboardingReadiness: average(analyzed, "onboardingReadiness"),
+        virroScore: stats.virroScore,
+      },
+      missingContext: missingContext.slice(0, 8),
+      criticalQuestions: criticalQuestions.slice(0, 8),
+      understandingDebtBacklog: missingContext.map((gap, index) => `${index < 2 ? "High" : "Medium"} · ${gap}`).slice(0, 8),
+      suggestedNextPilot: definition.pack
+        ? `Run a 2-week ${definition.label.replace(" Report", "")} pilot with the accountable team and compare readiness before and after context resolution.`
+        : "Select the highest-risk area and run a focused 2-week understanding pilot across one live cross-team workflow.",
       createdAt,
     };
+  },
+
+  buildExecutiveReport(workspaceId: string, events: UnderstandingEvent[], createdAt = new Date().toISOString()) {
+    return this.buildReport(workspaceId, events, "executive-virro-score", createdAt);
   },
 };

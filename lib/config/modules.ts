@@ -8,6 +8,7 @@ import {
   Handshake,
   Inbox,
   LockKeyhole,
+  LibraryBig,
   Network,
   PackageCheck,
   Settings,
@@ -29,6 +30,7 @@ export interface VirroModule {
 export const modules: VirroModule[] = [
   { id: "dashboard", label: "Dashboard", href: "/", icon: ChartNoAxesCombined, eyebrow: "Executive overview", description: "Operational understanding across the workspace.", capabilities: ["Risk posture", "Readiness signals", "Team trends"] },
   { id: "inbox", label: "Understanding Inbox", href: "/inbox", icon: Inbox, eyebrow: "Capture", description: "Turn scattered inputs into traceable Understanding Events.", capabilities: ["Manual input", "Source capture", "Initial classification"] },
+  { id: "demo-scenarios", label: "Demo Scenarios", href: "/demo-scenarios", icon: LibraryBig, eyebrow: "Sales enablement", description: "Run preloaded understanding scenarios without client data.", capabilities: ["Seven scenarios", "Live mock analysis", "Generated outputs"] },
   { id: "events", label: "Events", href: "/events", icon: ClipboardList, eyebrow: "Event registry", description: "Review every point where information must become action.", capabilities: ["Event timeline", "Ownership", "Readiness tracking"], showInNavigation: false },
   { id: "product-delivery", label: "Product Delivery", href: "/product-delivery", icon: PackageCheck, eyebrow: "Analysis pack", description: "Convert product intent into delivery-ready operational artifacts.", capabilities: ["Story structuring", "Acceptance criteria", "QA matrices", "Defect reproduction"] },
   { id: "ai-understanding", label: "AI Understanding", href: "/ai-understanding", icon: Bot, eyebrow: "Analysis pack", description: "Measure whether context is sufficient for reliable AI-assisted execution.", capabilities: ["Context integrity", "Instruction boundaries", "AI understanding debt"] },

@@ -217,7 +217,7 @@ const reports: Report[] = [
   {
     id: "report_workspace_july",
     workspaceId,
-    reportType: "workspace-health",
+    reportType: "executive-virro-score",
     title: "Operational Understanding — July",
     summary: "Cross-team readiness is improving, while technical decision rationale remains the primary understanding gap.",
     findings: ["One of four active events is ready for action", "Rollback ownership is the highest technical risk"],

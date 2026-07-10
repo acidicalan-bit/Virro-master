@@ -1,0 +1,35 @@
+"use client";
+
+import { useState } from "react";
+import { FileBarChart, FileDown, LoaderCircle, ShieldCheck, Sparkles } from "lucide-react";
+import { events, workspace } from "@/lib/data/seed";
+import { reportBuilder, reportDefinitions } from "@/lib/services/report-builder";
+import type { EnterpriseReport, ReportType } from "@/lib/types/understanding";
+
+export function ReportBuilder() {
+  const [type, setType] = useState<ReportType>("executive-virro-score");
+  const [report, setReport] = useState<EnterpriseReport | null>(null);
+  const [building, setBuilding] = useState(false);
+
+  function generate() {
+    setBuilding(true);
+    window.setTimeout(() => {
+      setReport(reportBuilder.buildReport(workspace.id, events, type));
+      setBuilding(false);
+    }, 350);
+  }
+
+  return <div className="space-y-6"><section><p className="mb-2 text-[11px] font-semibold uppercase tracking-[.16em] text-teal-300">14 · Report Builder</p><h1 className="text-2xl font-semibold tracking-[-.035em] md:text-[30px]">Executive understanding reports, ready for decisions.</h1><p className="mt-2 max-w-3xl text-sm text-[var(--muted)]">Generate a structured enterprise document from Understanding Events, risk estimates and unresolved context—not a conversational response.</p></section>
+    <section className="grid items-start gap-4 xl:grid-cols-[.42fr_1.58fr]"><aside className="panel p-5"><div className="flex items-center gap-2"><FileBarChart size={16} className="text-teal-300" /><h2 className="text-sm font-semibold">Report configuration</h2></div><label className="mt-5 block"><span className="mb-2 block text-[10px] font-medium text-[var(--muted)]">Report type</span><select value={type} onChange={(event) => setType(event.target.value as ReportType)} className="field-control">{reportDefinitions.map((definition) => <option key={definition.type} value={definition.type}>{definition.label}</option>)}</select></label><div className="mt-4 rounded-xl border border-[var(--border)] bg-[var(--panel-soft)] p-3"><p className="text-[9px] uppercase tracking-[.1em] text-[var(--subtle)]">Workspace scope</p><p className="mt-1.5 text-xs font-medium">{workspace.name}</p><p className="mt-1 text-[10px] text-[var(--muted)]">{events.length} active Understanding Events</p></div><button onClick={generate} disabled={building} className="mt-4 inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-teal-300 px-4 text-xs font-semibold text-slate-950 disabled:opacity-60">{building ? <LoaderCircle size={14} className="animate-spin" /> : <Sparkles size={14} />}{building ? "Building report…" : "Generate Report"}</button>{report && <button onClick={() => window.print()} className="mt-2 inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-[var(--border)] text-xs font-medium"><FileDown size={14} /> Print / Export</button>}<p className="mt-4 text-[9px] leading-4 text-[var(--subtle)]">Scores in exported reports remain identified as probabilistic estimates.</p></aside>
+      {!report ? <article className="panel grid min-h-[720px] place-items-center p-8 text-center"><div><div className="mx-auto grid size-14 place-items-center rounded-2xl border border-[var(--border)] bg-[var(--panel-soft)] text-[var(--subtle)]"><FileBarChart size={22} /></div><h2 className="mt-4 text-sm font-semibold">Executive document preview</h2><p className="mx-auto mt-2 max-w-sm text-xs leading-5 text-[var(--subtle)]">Choose one of nine report types and generate a visual report from the current workspace evidence.</p></div></article> : <ReportDocument report={report} />}
+    </section>
+  </div>;
+}
+
+function ReportDocument({ report }: { report: EnterpriseReport }) {
+  const scores = Object.entries(report.scores).filter(([, value]) => value !== undefined).slice(0, 6);
+  return <article className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--panel)] shadow-[0_25px_80px_rgba(0,0,0,.18)] print:border-0"><header className="border-b border-[var(--border)] bg-[var(--panel-soft)] px-6 py-6 md:px-8"><div className="flex items-start justify-between gap-4"><div><p className="text-[9px] font-semibold uppercase tracking-[.16em] text-teal-300">Virro Enterprise Report</p><h2 className="mt-2 text-xl font-semibold tracking-[-.03em]">{report.title}</h2><p className="mt-1 text-[10px] text-[var(--subtle)]">{report.id} · {new Date(report.createdAt).toLocaleDateString()} · {workspace.name}</p></div><div className="grid size-10 place-items-center rounded-xl bg-gradient-to-br from-teal-300 to-cyan-500 text-sm font-black text-slate-950">V</div></div></header><div className="space-y-7 p-6 md:p-8"><ReportSection number="01" title="Executive Summary"><p className="text-xs leading-6 text-[var(--muted)]">{report.summary}</p></ReportSection><ReportSection number="02" title="What was analyzed"><BulletList items={report.whatWasAnalyzed} /></ReportSection><ReportSection number="03" title="Scores"><div className="grid grid-cols-2 gap-2 sm:grid-cols-3">{scores.map(([label, value]) => <div key={label} className="rounded-xl border border-[var(--border)] bg-[var(--panel-soft)] p-3"><p className="text-xl font-semibold">{value}</p><p className="mt-1 text-[9px] capitalize text-[var(--subtle)]">{label.replace(/([A-Z])/g, " $1")}</p></div>)}</div><p className="mt-3 flex items-center gap-2 text-[9px] text-[var(--subtle)]"><ShieldCheck size={11} />All scores are estimates of operational readiness and risk.</p></ReportSection><div className="grid gap-6 lg:grid-cols-2"><ReportSection number="04" title="Key risks"><BulletList items={report.findings} /></ReportSection><ReportSection number="05" title="Missing context"><BulletList items={report.missingContext} /></ReportSection></div><div className="grid gap-6 lg:grid-cols-2"><ReportSection number="06" title="Critical questions"><BulletList items={report.criticalQuestions} /></ReportSection><ReportSection number="07" title="Recommended actions"><BulletList items={report.recommendations} /></ReportSection></div><ReportSection number="08" title="Understanding Debt Backlog"><BulletList items={report.understandingDebtBacklog} /></ReportSection><ReportSection number="09" title="Suggested next pilot or expansion"><div className="rounded-xl border border-teal-400/15 bg-teal-400/[.045] p-4 text-xs leading-6 text-[var(--muted)]">{report.suggestedNextPilot}</div></ReportSection></div></article>;
+}
+
+function ReportSection({ number, title, children }: { number: string; title: string; children: React.ReactNode }) { return <section><div className="mb-3 flex items-center gap-2"><span className="text-[9px] font-semibold text-teal-300">{number}</span><h3 className="text-xs font-semibold uppercase tracking-[.08em]">{title}</h3></div>{children}</section>; }
+function BulletList({ items }: { items: string[] }) { return <div className="space-y-2">{items.length ? items.map((item) => <div key={item} className="flex items-start gap-2 text-[10px] leading-5 text-[var(--muted)]"><span className="mt-2 size-1 shrink-0 rounded-full bg-teal-300" />{item}</div>) : <p className="text-[10px] text-emerald-300">No material finding.</p>}</div>; }

@@ -1,5 +1,6 @@
 import { virroSeed } from "@/lib/data/seed";
 import { buildWorkspaceStats } from "@/lib/domain/understanding-event";
+import { demoScenarios } from "@/lib/data/demo-scenarios";
 
 export const demoScenarioService = {
   getWorkspace: () => virroSeed.workspace,
@@ -11,4 +12,6 @@ export const demoScenarioService = {
   getUnderstandingEvent: (id: string) => virroSeed.events.find((event) => event.id === id),
   listAnalysisResults: () => virroSeed.analysisResults,
   listReports: () => virroSeed.reports,
+  listDemoScenarios: () => demoScenarios,
+  getDemoScenario: (id: string) => demoScenarios.find((scenario) => scenario.id === id),
 };

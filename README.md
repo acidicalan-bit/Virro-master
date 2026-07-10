@@ -21,6 +21,8 @@ Open `http://localhost:3000`.
 - `lib/services/` — replaceable analysis and scoring services
 - `lib/types/` — typed contracts for workspaces, teams, role cards, workflows, events, analyses and reports
 - `services/analysis/` — mock Analysis Engine, probabilistic scoring and pack-specific analyzers
+
+The application includes an executive dashboard, seven executable demo scenarios, seven visual Analysis Pack modules, a nine-type Report Builder and explicit Privacy & Trust modes.
 - `prisma/` — SQLite-ready enterprise domain model for local persistence
 
 The current `analysisEngine` uses a deterministic `MockAnalysisEngine` and does not require an external AI provider. It receives an `UnderstandingEvent`, routes it to a pack analyzer and returns a consistent `AnalysisResult`. The engine boundary can be replaced later without coupling the Inbox to an LLM provider.

@@ -28,13 +28,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <nav className="flex-1 overflow-y-auto px-3 py-4">
           <p className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--subtle)]">Understanding system</p>
           <div className="space-y-0.5">
-            {modules.filter((module) => module.showInNavigation !== false).map((module, index) => {
+            {modules.filter((module) => module.showInNavigation !== false).map((module) => {
               const active = module.href === "/" ? pathname === "/" : pathname.startsWith(module.href);
               const Icon = module.icon;
               return (
                 <div key={module.id}>
-                  {index === 3 && <p className="mb-2 mt-5 px-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--subtle)]">Analysis packs</p>}
-                  {index === 10 && <div className="my-3 border-t border-[var(--border)]" />}
+                  {module.id === "product-delivery" && <p className="mb-2 mt-5 px-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--subtle)]">Analysis packs</p>}
+                  {module.id === "reports" && <div className="my-3 border-t border-[var(--border)]" />}
                   <Link href={module.href} onClick={() => setOpen(false)} className={`group flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] transition ${active ? "bg-[var(--active)] font-medium text-[var(--text)] shadow-sm" : "text-[var(--muted)] hover:bg-[var(--hover)] hover:text-[var(--text)]"}`}>
                     <Icon size={17} strokeWidth={active ? 2 : 1.7} className={active ? "text-teal-300" : "text-[var(--subtle)] group-hover:text-[var(--muted)]"} />
                     <span>{module.label}</span>
