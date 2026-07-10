@@ -13,6 +13,7 @@ import {
   PackageCheck,
   Settings,
   UsersRound,
+  UserSearch,
   type LucideIcon,
 } from "lucide-react";
 import type { Locale } from "@/lib/i18n/locale";
@@ -39,6 +40,7 @@ export const modules: VirroModule[] = [
   { id: "process-understanding", label: "Process Understanding", href: "/process-understanding", icon: Network, eyebrow: "Analysis pack", description: "Expose decision points, gaps and operational dependencies.", capabilities: ["Process maps", "Decision logic", "Control gaps"] },
   { id: "onboarding", label: "Onboarding", href: "/onboarding", icon: UsersRound, eyebrow: "Knowledge transfer", description: "Make role and process knowledge usable by new team members.", capabilities: ["Context packs", "Learning paths", "Onboarding readiness"] },
   { id: "consulting-delivery", label: "Consulting Delivery", href: "/consulting-delivery", icon: Boxes, eyebrow: "Analysis pack", description: "Turn discovery into aligned, auditable client delivery.", capabilities: ["Discovery synthesis", "Decision records", "Executive reporting"] },
+  { id: "talent-staffing", label: "Talent & Staffing", href: "/talent-staffing", icon: UserSearch, eyebrow: "Talent understanding", description: "Align client need, staffing interpretation, candidate context and receiver expectations.", capabilities: ["Role understanding", "Screening readiness", "Candidate handoffs"] },
   { id: "technical-documentation", label: "Technical Documentation", href: "/technical-documentation", icon: FileCode2, eyebrow: "Technical understanding", description: "Assess whether architecture and documentation enable safe action.", capabilities: ["Technical understanding maps", "Architecture gaps", "Technical readiness"] },
   { id: "reports", label: "Reports", href: "/reports", icon: FileChartColumn, eyebrow: "Executive reporting", description: "Package probabilistic signals for decisions and governance.", capabilities: ["Executive reports", "Trend exports", "Risk summaries"] },
   { id: "privacy-trust", label: "Privacy & Trust", href: "/privacy-trust", icon: LockKeyhole, eyebrow: "Governance", description: "Make data boundaries, retention and analysis behavior visible and governable.", capabilities: ["Data boundaries", "Retention controls", "Analysis transparency"] },
@@ -58,6 +60,7 @@ const spanishModuleCopy: Record<string, Pick<VirroModule, "label" | "eyebrow" | 
   "process-understanding": { label: "Entendimiento de procesos", eyebrow: "Pack de análisis", description: "Expone decisiones, brechas y dependencias operativas.", capabilities: ["Mapas de proceso", "Lógica de decisión", "Brechas de control"] },
   onboarding: { label: "Onboarding", eyebrow: "Transferencia de entendimiento", description: "Hace utilizable el conocimiento de roles y procesos para nuevos miembros.", capabilities: ["Context Packs", "Rutas de entendimiento", "Readiness de onboarding"] },
   "consulting-delivery": { label: "Entrega para consultoras", eyebrow: "Pack de análisis", description: "Convierte discovery en una entrega al cliente alineada y auditable.", capabilities: ["Síntesis de discovery", "Registros de decisión", "Reportes ejecutivos"] },
+  "talent-staffing": { label: "Talento y staffing", eyebrow: "Entendimiento de talento", description: "Alinea necesidad del cliente, interpretación de consultora, contexto del candidato y expectativa del receptor.", capabilities: ["Entendimiento del rol", "Readiness de screening", "Handoffs de candidato"] },
   "technical-documentation": { label: "Documentación técnica", eyebrow: "Entendimiento técnico", description: "Valida si la arquitectura y documentación permiten actuar con seguridad.", capabilities: ["Mapas de entendimiento técnico", "Brechas de arquitectura", "Readiness técnico"] },
   reports: { label: "Reportes", eyebrow: "Reportes ejecutivos", description: "Empaqueta señales probabilísticas para decisiones y gobernanza.", capabilities: ["Reportes ejecutivos", "Exportes de tendencias", "Resúmenes de riesgo"] },
   "privacy-trust": { label: "Privacidad y confianza", eyebrow: "Gobernanza", description: "Hace visibles y gobernables los límites de datos, retención y análisis.", capabilities: ["Límites de datos", "Controles de retención", "Transparencia de análisis"] },

@@ -13,6 +13,7 @@ export const packAnalyzers: Record<PackId, PackDefinition> = {
   "process-understanding": { id: "process-understanding", outputTypes: ["Process Map", "Decision Map"], focusSignals: ["sequence", "decision rights", "exceptions"] },
   onboarding: { id: "onboarding", outputTypes: ["Onboarding Card", "Context Pack"], focusSignals: ["role context", "learning sequence", "readiness"] },
   "consulting-delivery": { id: "consulting-delivery", outputTypes: ["Consulting Delivery Brief", "Executive Report"], focusSignals: ["client intent", "evidence", "decision trace"] },
+  "talent-staffing": { id: "talent-staffing", outputTypes: ["Role Understanding Pack", "Candidate Handoff Pack"], focusSignals: ["role outcome", "screening readiness", "candidate context"] },
   "technical-documentation": { id: "technical-documentation", outputTypes: ["Technical Understanding Map", "Architecture Gap Report"], focusSignals: ["system boundaries", "decision rationale", "operational risk"] },
 };
 
@@ -23,5 +24,6 @@ export const recommendedOutputByPack: Record<PackId, RecommendedOutputType> = {
   "process-understanding": "process-map",
   onboarding: "onboarding-card",
   "consulting-delivery": "consulting-delivery-brief",
+  "talent-staffing": "role-understanding-pack",
   "technical-documentation": "technical-understanding-map",
 };

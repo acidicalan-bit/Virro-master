@@ -16,6 +16,7 @@ export interface DemoScenario {
   targetReceiver: string;
   inputType: InputType;
   packType: PackType;
+  assistantMode?: "new-event" | "critical-flow-discovery";
   expectedAnalysis: {
     probableIntent: string;
     missingInformation: string[];

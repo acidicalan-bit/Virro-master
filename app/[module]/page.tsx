@@ -11,6 +11,7 @@ import { ConsultingDeliveryPack } from "@/components/packs/consulting-delivery-p
 import { TechnicalDocumentationPack } from "@/components/packs/technical-documentation-pack";
 import { ReportBuilder } from "@/components/reports/report-builder";
 import { PrivacyTrust } from "@/components/privacy/privacy-trust";
+import { TalentStaffingPack } from "@/components/packs/talent-staffing-pack";
 
 export function generateStaticParams() {
   return [...moduleMap.keys()].filter((id) => id !== "dashboard" && id !== "inbox").map((module) => ({ module }));
@@ -27,8 +28,9 @@ export default async function ModulePage({ params }: { params: Promise<{ module:
   if (moduleId === "process-understanding") return <ProcessUnderstandingPack />;
   if (moduleId === "onboarding") return <OnboardingPack />;
   if (moduleId === "consulting-delivery") return <ConsultingDeliveryPack />;
+  if (moduleId === "talent-staffing") return <TalentStaffingPack />;
   if (moduleId === "technical-documentation") return <TechnicalDocumentationPack />;
   if (moduleId === "reports") return <ReportBuilder />;
   if (moduleId === "privacy-trust") return <PrivacyTrust />;
-  return <ModuleOverview module={moduleDefinition} />;
+  return <ModuleOverview moduleId={moduleDefinition.id} />;
 }

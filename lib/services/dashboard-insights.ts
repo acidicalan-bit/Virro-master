@@ -11,6 +11,7 @@ const packLabels: Record<PackType, string> = {
   "process-understanding": "Process Understanding",
   onboarding: "Onboarding",
   "consulting-delivery": "Consulting Delivery",
+  "talent-staffing": "Talent & Staffing",
   "technical-documentation": "Technical Documentation",
 };
 
