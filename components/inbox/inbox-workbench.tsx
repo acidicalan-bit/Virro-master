@@ -89,11 +89,18 @@ export function InboxWorkbench() {
       <ModeCard active={mode === "critical-flow-discovery"} onClick={() => selectMode("critical-flow-discovery")} icon={<Radar size={18} />} title={t("Diagnose critical flow", "Diagnosticar flujo crítico")} description={t("Describe where your team loses clarity, time, context or execution. Virro will recommend the most probable pack and audit.", "Describe un flujo donde tu equipo pierde claridad, tiempo, contexto o ejecución. Virro intentará detectar qué pérdida de entendimiento podría estar ocurriendo.")} />
     </section>
 
-    <div className="grid gap-2 rounded-xl border border-[var(--border)] bg-[var(--panel-soft)] p-2 sm:grid-cols-4">
-      <FlowStep number="01" label={t("Intake", "Input")} active />
-      <FlowStep number="02" label={t("Classify", "Clasificar")} active={Boolean(result) || loading} />
-      <FlowStep number="03" label={t("Analyze", "Analizar")} active={Boolean(result)} />
-      <FlowStep number="04" label={t("Human confirmation", "Confirmación humana")} active={Boolean(result)} />
+    <div className="grid gap-2 rounded-xl border border-[var(--border)] bg-[var(--panel-soft)] p-2 sm:grid-cols-5">
+      <FlowStep number="01" label={t("Describe pain or input", "Describe dolor o input")} active />
+      <FlowStep number="02" label={t("Virro classifies", "Virro clasifica")} active={Boolean(result) || loading} />
+      <FlowStep number="03" label={t("Virro explains why", "Virro explica por qué")} active={Boolean(result)} />
+      <FlowStep number="04" label={t("Up to 3 questions", "Máximo 3 preguntas")} active={Boolean(result)} />
+      <FlowStep number="05" label={t("Evidence and recommendation", "Evidencia y recomendación")} active={Boolean(result)} />
+    </div>
+
+    <div className="grid gap-2 rounded-xl border border-teal-400/15 bg-teal-400/[.035] p-3 text-[10px] leading-5 text-[var(--muted)] md:grid-cols-3">
+      <p><ShieldCheck size={12} className="mr-2 inline text-teal-300" />{t("Virro does not evaluate people. It evaluates understanding risks in operational information.", "Virro no evalúa personas. Evalúa riesgos de entendimiento en información operativa.")}</p>
+      <p><Sparkles size={12} className="mr-2 inline text-teal-300" />{t("Scores are probabilistic estimates, not guarantees.", "Los scores son estimaciones probabilísticas, no garantías.")}</p>
+      <p><FileCheck2 size={12} className="mr-2 inline text-teal-300" />{t("Virro does not retain raw private text by default.", "Virro no guarda texto privado crudo por defecto.")}</p>
     </div>
 
     <section className="grid items-start gap-4 xl:grid-cols-[.9fr_1.1fr]">

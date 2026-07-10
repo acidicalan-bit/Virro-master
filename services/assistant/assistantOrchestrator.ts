@@ -18,12 +18,12 @@ const inputTypeByPack: Record<PackType, InputType> = {
 export const assistantOrchestrator = {
   async analyze(input: AssistantInput, locale: Locale = "es"): Promise<AssistantResult> {
     const startedAt = new Date().toISOString();
-    const classification = classifyEvent(input);
+    const classification = classifyEvent(input, locale);
     const routedPack: PackType = classification.pack === "critical-flow-discovery" ? "process-understanding" : classification.pack;
     const receiver = input.expectedReceiver?.trim() || (locale === "es" ? "Equipo receptor por confirmar" : "Receiver team to be confirmed");
-    const { missingContext, meaningLossRisks } = analyzeMeaningLoss(classification.pack, receiver);
-    const criticalQuestions = buildCriticalQuestions(missingContext);
-    const outputRecommendation = generateOutputRecommendation(classification.pack);
+    const { missingContext, meaningLossRisks } = analyzeMeaningLoss(classification.pack, receiver, locale);
+    const criticalQuestions = buildCriticalQuestions(missingContext, locale);
+    const outputRecommendation = generateOutputRecommendation(classification.pack, locale);
     const pendingEvent = createUnderstandingEvent({
       workspaceId: input.workspaceId,
       title: input.title.trim(),
@@ -53,16 +53,16 @@ export const assistantOrchestrator = {
       humanValidationRequired: true,
       rawInputRetained: false,
       steps: [
-        { loop: "intake", status: "completed", evidence: "One operational input captured for the current session.", createdAt: startedAt },
+        { loop: "intake", status: "completed", evidence: locale === "es" ? "Se capturó un input operativo para la sesión actual." : "One operational input captured for the current session.", createdAt: startedAt },
         { loop: "classification", status: "completed", evidence: `${classification.pack} · ${classification.confidence}/100 · ${classification.reason}`, createdAt: now },
-        { loop: "clarification", status: "completed", evidence: `${criticalQuestions.length} critical questions generated; maximum is 3.`, createdAt: now },
-        { loop: "analysis", status: "completed", evidence: `${meaningLossRisks.length} meaning-loss risks and ${missingContext.length} context gaps detected.`, createdAt: now },
-        { loop: "scoring", status: "completed", evidence: `Estimated Virro Score ${analysis.scores.virroScore}/100.`, createdAt: now },
+        { loop: "clarification", status: "completed", evidence: locale === "es" ? `${criticalQuestions.length} preguntas críticas generadas; el máximo es 3.` : `${criticalQuestions.length} critical questions generated; maximum is 3.`, createdAt: now },
+        { loop: "analysis", status: "completed", evidence: locale === "es" ? `${meaningLossRisks.length} riesgos de Meaning Loss y ${missingContext.length} brechas de contexto detectadas.` : `${meaningLossRisks.length} meaning-loss risks and ${missingContext.length} context gaps detected.`, createdAt: now },
+        { loop: "scoring", status: "completed", evidence: locale === "es" ? `Virro Score estimado: ${analysis.scores.virroScore}/100.` : `Estimated Virro Score ${analysis.scores.virroScore}/100.`, createdAt: now },
         { loop: "output", status: "completed", evidence: outputRecommendation.title, createdAt: now },
-        { loop: "self-check", status: "completed", evidence: `${selfCheck.length} Virro category safeguards passed.`, createdAt: now },
-        { loop: "human-confirmation", status: "awaiting-human", evidence: "Save, adjust or discard before the event enters the mock workspace store.", createdAt: now },
+        { loop: "self-check", status: "completed", evidence: locale === "es" ? `${selfCheck.length} salvaguardas de categoría Virro superadas.` : `${selfCheck.length} Virro category safeguards passed.`, createdAt: now },
+        { loop: "human-confirmation", status: "awaiting-human", evidence: locale === "es" ? "Guarda, ajusta o descarta antes de que el evento entre al store mock del workspace." : "Save, adjust or discard before the event enters the mock workspace store.", createdAt: now },
       ],
     };
-    return { event, analysis, classification, meaningLossRisks, missingContext, criticalQuestions, outputRecommendation, auditOpportunity: buildAuditOpportunity(classification.pack, input.rawInput.trim(), classification.confidence), scores: analysis.scores, trace, selfCheck };
+    return { event, analysis, classification, meaningLossRisks, missingContext, criticalQuestions, outputRecommendation, auditOpportunity: buildAuditOpportunity(classification.pack, input.rawInput.trim(), classification.confidence, locale), scores: analysis.scores, trace, selfCheck };
   },
 };

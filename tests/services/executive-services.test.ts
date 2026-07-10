@@ -24,4 +24,11 @@ describe("executive services", () => {
       expect(report.suggestedNextPilot).toBeTruthy();
     }
   });
+
+  it("builds the executive narrative in Spanish when requested", () => {
+    const report = reportBuilder.buildReport(workspace.id, events, "executive-virro-score", "2026-07-10T00:00:00.000Z", "es");
+    expect(report.summary).toContain("Se analizaron");
+    expect(report.recommendations[1]).toContain("responsable");
+    expect(report.suggestedNextPilot).toContain("piloto de entendimiento");
+  });
 });

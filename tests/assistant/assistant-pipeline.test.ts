@@ -18,4 +18,13 @@ describe("Virro Understanding Assistant pipeline", () => {
     expect(result.classification.pack).toBe("critical-flow-discovery");
     expect(result.auditOpportunity.recommendedAudit).toContain("Meaning Loss Audit");
   });
+
+  it("returns Spanish operational evidence when the locale is Spanish", async () => {
+    const result = await assistantOrchestrator.analyze({ mode: "new-event", workspaceId: "test", title: "Historia ambigua", rawInput: "La historia de usuario no tiene criterios y QA no sabe qué validar.", selectedPack: "product-delivery" }, "es");
+    expect(result.classification.reason).toContain("seleccionó");
+    expect(result.meaningLossRisks[0].title).toBe("El receptor reconstruye la intención");
+    expect(result.criticalQuestions[0].question).toMatch(/^¿Qué evidencia/);
+    expect(result.trace.steps[0].evidence).toContain("input operativo");
+    expect(result.trace.rawInputRetained).toBe(false);
+  });
 });
