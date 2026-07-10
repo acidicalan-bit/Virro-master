@@ -45,7 +45,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="space-y-0.5">
             {modules.filter((module) => module.showInNavigation !== false).map((module) => {
               const localizedModule = localizeModule(module, locale);
-              const active = module.href === "/" ? pathname === "/" : pathname.startsWith(module.href);
+              const active = module.id === "dashboard" ? pathname === "/app" : pathname.startsWith(module.href);
               const Icon = module.icon;
               return (
                 <div key={module.id}>

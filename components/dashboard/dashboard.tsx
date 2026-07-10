@@ -51,8 +51,8 @@ export function Dashboard() {
           <p className="mt-2 max-w-3xl text-sm text-[var(--muted)]">{t("A decision view of risk concentration, readiness, understanding debt and the next corrective action.", "Vista ejecutiva de concentración de riesgo, readiness, deuda de entendimiento y próximas acciones correctivas.")}</p>
         </div>
         <div className="flex gap-2">
-          <Link href="/demo-scenarios" className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--panel)] px-4 text-xs font-medium"><PackagePlus size={14} /> {t("Demo scenarios", "Escenarios demo")}</Link>
-          <Link href="/inbox" className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-teal-300 px-4 text-xs font-semibold text-slate-950">{t("New event", "Nuevo evento")} <ArrowRight size={14} /></Link>
+          <Link href="/app/demo-scenarios" className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--panel)] px-4 text-xs font-medium"><PackagePlus size={14} /> {t("Demo scenarios", "Escenarios demo")}</Link>
+          <Link href="/app/inbox" className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-teal-300 px-4 text-xs font-semibold text-slate-950">{t("New event", "Nuevo evento")} <ArrowRight size={14} /></Link>
         </div>
       </section>
 

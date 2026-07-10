@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-import { AppShell } from "@/components/layout/app-shell";
 import { LanguageProvider } from "@/components/i18n/language-provider";
 import "./globals.css";
 
@@ -12,5 +11,5 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="es" data-theme="dark" suppressHydrationWarning><body className={inter.variable}><LanguageProvider><AppShell>{children}</AppShell></LanguageProvider></body></html>;
+  return <html lang="es" data-theme="dark" suppressHydrationWarning><body className={inter.variable}><LanguageProvider>{children}</LanguageProvider></body></html>;
 }

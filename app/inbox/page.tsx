@@ -1,3 +1,3 @@
-import { InboxWorkbench } from "@/components/inbox/inbox-workbench";
+import { redirect } from "next/navigation";
 
-export default function InboxPage() { return <InboxWorkbench />; }
+export default function InboxPage() { redirect("/app/inbox"); }
