@@ -42,4 +42,19 @@ describe("pack analyzers", () => {
       }
     });
   }
+
+  it("keeps demo scenarios framed as Spanish business pain cases", () => {
+    expect(demoScenarios.map((scenario) => scenario.title)).toEqual([
+      "Retrabajo por historia de usuario ambigua antes de sprint planning",
+      "Matriz QA incompleta que no está lista para automatización",
+      "IA responde genérico por falta de contexto operativo",
+      "Proceso interno confuso que nadie puede transferir bien",
+      "Nuevo developer tarda semanas en entender el contexto del equipo",
+      "Brief cliente-consultora ambiguo que genera entregables fuera de expectativa",
+      "Confluence existe, pero el equipo no entiende cómo actuar",
+      "Vacante técnica mal entendida que llena el pipeline de candidatos incorrectos",
+      "Candidato presentado sin contexto suficiente para que el cliente lo evalúe bien",
+      "Pérdida de entendimiento entre áreas sin flujo claramente clasificado",
+    ]);
+  });
 });
