@@ -4,13 +4,13 @@ import Link from "next/link";
 import { ArrowRight, CheckCircle2, FileBarChart, Layers3, Radar, ShieldCheck } from "lucide-react";
 import { useLanguage } from "@/components/i18n/language-provider";
 
-const inputs = ["Mensaje", "Ticket", "Documento", "Diseño", "Proceso", "Reporte", "Handoff", "IA"];
+const inputs = ["Junta", "Pantalla", "Ticket", "Documento", "Call", "Diseño", "CRM", "BI", "IA"];
 const filters = ["Contexto", "Criterio", "Claridad", "Receptor", "Riesgo", "Readiness"];
-const outputs = ["Understanding Event", "Readiness Score", "Handoff Pack", "Context Pack", "Executive Report"];
+const outputs = ["Understanding Event", "Readiness Gate", "Output Bundle", "Pack recomendado", "Executive Report"];
 
 export function HeroUnderstandingFilter() {
   const { locale, t } = useLanguage();
-  const inputLabels = locale === "es" ? inputs : ["Message", "Ticket", "Document", "Design", "Process", "Report", "Handoff", "AI"];
+  const inputLabels = locale === "es" ? inputs : ["Meeting", "Screen", "Ticket", "Document", "Call", "Design", "CRM", "BI", "AI"];
   return <section id="plataforma" className="landing-hero relative min-h-[940px] scroll-mt-24 overflow-hidden px-5 pb-24 pt-36 md:px-8 md:pt-44">
     <div className="hero-glow hero-glow-one" /><div className="hero-glow hero-glow-two" /><div className="hero-grid-fade" />
     <div className="relative mx-auto grid max-w-[1380px] gap-14 xl:grid-cols-[.88fr_1.12fr] xl:items-center">

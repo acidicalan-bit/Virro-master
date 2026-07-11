@@ -32,9 +32,10 @@ export function PublicNavbar() {
 
   const anchors = [
     ["#plataforma", t("Platform", "Plataforma")],
-    ["#donde-entra", t("Where it fits", "Dónde entra")],
-    ["#ai-understanding", "AI Understanding"],
-    ["#auditoria", t("Audit", "Auditoría")],
+    ["#capacidades", t("System", "Sistema")],
+    ["#donde-entra", t("Use cases", "Casos de uso")],
+    ["#enterprise-map", t("Living map", "Mapa vivo")],
+    ["#auditoria", t("Pilot", "Piloto")],
     ["#confianza", t("Trust", "Confianza")],
     ["#demo", "Demo"],
   ];

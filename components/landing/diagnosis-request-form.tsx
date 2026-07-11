@@ -10,10 +10,16 @@ const flowOptions = [
   "AI Understanding",
   "Handoff Intelligence",
   "Technical Documentation",
+  "Design & Experience",
+  "Data Request",
+  "Sales-to-Delivery",
+  "Support Signal",
+  "Marketing Understanding",
+  "Finance / Procurement",
+  "Legal / Security / Compliance",
   "Talent & Staffing",
-  "Consulting Delivery",
+  "Knowledge Continuity",
   "Process Understanding",
-  "Onboarding",
   "No estoy seguro",
 ];
 

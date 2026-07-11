@@ -1,0 +1,30 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { describe, expect, it } from "vitest";
+
+const root = process.cwd();
+
+describe("Virro enterprise category experience", () => {
+  it("exposes the complete operating-understanding capability chain", () => {
+    const source = readFileSync(join(root, "components/landing/platform-capabilities.tsx"), "utf8");
+    for (const capability of ["Understanding Capture", "Understanding Event", "Readiness Gate", "Output Bundles", "Living Understanding Map", "Knowledge Continuity", "Privacy Shield"]) {
+      expect(source).toContain(capability);
+    }
+  });
+
+  it("includes twelve transversal demo flows", () => {
+    const source = readFileSync(join(root, "components/landing/transversal-demo.tsx"), "utf8");
+    for (const id of ["meeting", "product", "design", "support", "sales", "marketing", "data", "process", "finance", "policy", "ai", "continuity"]) {
+      expect(source).toContain(`id: "${id}"`);
+    }
+  });
+
+  it("provides visible and structured AI-discovery content", () => {
+    const capabilities = readFileSync(join(root, "components/landing/platform-capabilities.tsx"), "utf8");
+    const layout = readFileSync(join(root, "app/layout.tsx"), "utf8");
+    expect(capabilities).toContain("FAQ");
+    expect(capabilities).toContain("Operational glossary");
+    expect(layout).toContain('"@type": "FAQPage"');
+    expect(layout).toContain('"@type": "SoftwareApplication"');
+  });
+});
