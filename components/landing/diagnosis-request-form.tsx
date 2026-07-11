@@ -1,7 +1,8 @@
 "use client";
 
 import { type FormEvent, useState } from "react";
-import { CheckCircle2, Send, ShieldCheck } from "lucide-react";
+import { Mail, ShieldCheck } from "lucide-react";
+import { buildDiagnosisMailto } from "@/lib/conversion/diagnosis-mailto";
 
 const flowOptions = [
   "Product Delivery",
@@ -20,8 +21,17 @@ export function DiagnosisRequestForm() {
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    event.currentTarget.reset();
+    const data = new FormData(event.currentTarget);
+    const mailto = buildDiagnosisMailto({
+      name: String(data.get("name") ?? ""),
+      company: String(data.get("company") ?? ""),
+      role: String(data.get("role") ?? ""),
+      email: String(data.get("email") ?? ""),
+      flow: String(data.get("flow") ?? ""),
+      context: String(data.get("context") ?? ""),
+    });
     setSubmitted(true);
+    window.location.assign(mailto);
   }
 
   return <section id="solicitar-diagnostico" className="scroll-mt-24 px-5 py-20 md:px-8 md:py-28">
@@ -29,7 +39,7 @@ export function DiagnosisRequestForm() {
       <div>
         <p className="text-[10px] font-semibold uppercase tracking-[.16em] text-teal-300">Meaning Loss Audit</p>
         <h2 className="mt-4 text-3xl font-semibold tracking-[-.045em] md:text-4xl">Solicitar diagnóstico</h2>
-        <p className="mt-5 max-w-xl text-sm leading-7 text-[var(--muted)]">Comparte el flujo que hoy pierde claridad, contexto o capacidad de ejecución. Esta demo registra la solicitud únicamente en la sesión visual y no envía información a servicios externos.</p>
+        <p className="mt-5 max-w-xl text-sm leading-7 text-[var(--muted)]">Comparte el flujo que hoy pierde claridad, contexto o capacidad de ejecución. Prepararemos un correo con la información para que puedas revisarlo y enviarlo desde tu cliente de correo.</p>
         <div className="mt-7 space-y-3 text-[11px] leading-5 text-[var(--muted)]">
           <p className="flex gap-3"><ShieldCheck size={15} className="mt-0.5 shrink-0 text-teal-300" />Virro no evalúa personas. Evalúa riesgos de entendimiento en información operativa.</p>
           <p className="flex gap-3"><ShieldCheck size={15} className="mt-0.5 shrink-0 text-teal-300" />Los scores son estimaciones probabilísticas, no garantías.</p>
@@ -45,9 +55,9 @@ export function DiagnosisRequestForm() {
           <FormField label="Flujo a diagnosticar" className="sm:col-span-2"><select name="flow" required defaultValue="" className="field-control"><option value="" disabled>Selecciona un flujo</option>{flowOptions.map((option) => <option key={option} value={option}>{option}</option>)}</select></FormField>
           <FormField label="Descripción breve" className="sm:col-span-2"><textarea name="context" required minLength={12} maxLength={1200} placeholder="Describe dónde se está perdiendo claridad, contexto o capacidad de ejecución." className="field-control min-h-32 resize-y py-3 leading-6" /></FormField>
         </div>
-        <button type="submit" className="brand-primary-button mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl px-5 text-xs font-semibold"><Send size={14} />Enviar solicitud</button>
-        <p className="mt-4 flex items-start gap-2 text-[10px] leading-5 text-[var(--subtle)]"><ShieldCheck size={13} className="mt-0.5 shrink-0 text-teal-300" />No compartas información sensible. Para pilotos reales se definen reglas de privacidad y alcance antes de analizar eventos.</p>
-        {submitted && <div role="status" className="mt-4 flex items-start gap-3 rounded-xl border border-emerald-400/20 bg-emerald-400/[.07] p-4 text-[11px] leading-5 text-emerald-200"><CheckCircle2 size={16} className="mt-0.5 shrink-0" /><span>Gracias. Tu solicitud quedó registrada como demo. Conecta este formulario a email/CRM en la siguiente fase.</span></div>}
+        <button type="submit" className="brand-primary-button mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl px-5 text-xs font-semibold"><Mail size={14} />Solicitar diagnóstico por correo</button>
+        <p className="mt-4 flex items-start gap-2 text-[10px] leading-5 text-[var(--subtle)]"><ShieldCheck size={13} className="mt-0.5 shrink-0 text-teal-300" />No compartas información sensible. Antes de analizar eventos reales se definen reglas de privacidad, alcance y confidencialidad.</p>
+        {submitted && <div role="status" className="mt-4 flex items-start gap-3 rounded-xl border border-sky-400/20 bg-sky-400/[.07] p-4 text-[11px] leading-5 text-sky-200"><Mail size={16} className="mt-0.5 shrink-0" /><span>Abriremos tu cliente de correo con la información preparada para solicitar el diagnóstico. El envío sólo ocurre cuando tú lo confirmas.</span></div>}
       </form>
     </div>
   </section>;
