@@ -102,6 +102,7 @@ export function InboxWorkbench() {
       <p><ShieldCheck size={12} className="mr-2 inline text-teal-300" />{t("Virro does not evaluate people. It evaluates understanding risks in operational information.", "Virro no evalúa personas. Evalúa riesgos de entendimiento en información operativa.")}</p>
       <p><Sparkles size={12} className="mr-2 inline text-teal-300" />{t("Scores are probabilistic estimates, not guarantees.", "Los scores son estimaciones probabilísticas, no garantías.")}</p>
       <p><FileCheck2 size={12} className="mr-2 inline text-teal-300" />{t("Virro is not designed to monitor employees.", "Virro no está diseñado para vigilar empleados.")}</p>
+      <p className="border-t border-teal-300/10 pt-2 md:col-span-2 xl:col-span-4"><ShieldCheck size={12} className="mr-2 inline text-teal-300" />{t("Virro does not retain raw private text by default.", "Virro no guarda texto privado crudo por defecto.")}</p>
     </div>
 
     <section className="grid items-start gap-4 xl:grid-cols-[.9fr_1.1fr]">

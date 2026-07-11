@@ -11,11 +11,11 @@ export function PrivacyTrust() {
   const [mode, setMode] = useState<TrustMode>("private");
   const principles = [
     t("Virro must be more trustworthy than intelligent.", "Virro debe ser más confiable que inteligente."),
-    t("Do not retain private conversations or unnecessary raw messages by default.", "No guardar conversaciones privadas ni mensajes crudos innecesarios por defecto."),
+    t("Virro does not retain raw private text or unnecessary messages by default.", "Virro no guarda texto privado crudo por defecto ni mensajes innecesarios."),
     t("Store anonymized patterns only with permission.", "Guardar patrones anonimizados solo con permiso."),
-    t("Never use Virro to monitor employees or evaluate personal performance.", "No usar Virro para vigilar empleados ni evaluar desempeño personal."),
-    t("Detect understanding loss without blaming people or teams.", "Detectar pérdida de entendimiento sin culpar personas o equipos."),
-    t("Scores estimate operational risk; they are not guarantees or personal evaluations.", "Los scores estiman riesgo operativo; no son garantías ni evaluaciones personales."),
+    t("Virro is not designed to monitor employees or evaluate personal performance.", "Virro no está diseñado para vigilar empleados ni evaluar desempeño personal."),
+    t("Virro does not evaluate people. It evaluates understanding risks in operational information.", "Virro no evalúa personas. Evalúa riesgos de entendimiento en información operativa."),
+    t("Scores are probabilistic estimates, not guarantees or personal evaluations.", "Los scores son estimaciones probabilísticas, no garantías ni evaluaciones personales."),
   ];
   const current = mode === "private" ? {
     label: t("Private Mode", "Modo privado"),
