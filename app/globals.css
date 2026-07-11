@@ -46,7 +46,7 @@ button, a, select { -webkit-tap-highlight-color: transparent; }
 button, select { cursor: pointer; }
 
 .landing-header { background: var(--header); }
-.brand-lockup { background: #ffffff; }
+.virro-brand { background: transparent; }
 
 .public-landing .brand-accent { color: var(--brand-blue); }
 .public-landing .brand-accent-coral { color: var(--brand-coral); }

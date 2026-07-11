@@ -131,8 +131,9 @@ export function PublicLanding() {
     <div className="public-landing min-h-screen overflow-hidden bg-[var(--app-bg)] text-[var(--text)]">
       <header className="landing-header sticky top-0 z-30 border-b border-white/[.06] backdrop-blur-xl">
         <div className="mx-auto flex h-[72px] max-w-7xl items-center gap-6 px-5 md:px-8">
-          <Link href="/" className="brand-lockup flex shrink-0 items-center rounded-lg px-2 py-1" aria-label="Virro, inicio">
-            <Image src="/brand/virro-logo.svg" alt="Virro" width={110} height={31} priority className="h-auto w-[92px] sm:w-[110px]" />
+          <Link href="/" className="virro-brand flex shrink-0 items-center gap-2" aria-label="Virro, inicio">
+            <Image src="/brand/virro-icon.svg" alt="" width={31} height={25} priority className="h-auto w-[29px] object-contain" />
+            <span className="text-lg font-semibold tracking-[-.045em]">Virro</span>
           </Link>
           <nav className="ml-auto hidden items-center gap-6 text-[11px] text-[var(--muted)] lg:flex" aria-label="Navegación pública">
             <a href="#categoria" className="transition hover:text-[var(--text)]">Categoría</a>
@@ -141,9 +142,7 @@ export function PublicLanding() {
             <a href="#audit" className="transition hover:text-[var(--text)]">Meaning Loss Audit</a>
           </nav>
           <ThemeToggle />
-          <Link href="/app" className="inline-flex h-9 items-center gap-2 rounded-lg border border-white/10 bg-white/[.035] px-3 text-[10px] font-medium transition hover:border-white/20 hover:bg-white/[.06] lg:ml-2">
-            Ver demo enterprise <ArrowRight size={13} />
-          </Link>
+          <a href="#audit" className="brand-primary-button inline-flex h-9 items-center gap-2 rounded-lg px-3 text-[10px] font-semibold transition lg:ml-2">Diagnosticar flujo <ArrowRight size={13} /></a>
         </div>
       </header>
 
@@ -306,7 +305,7 @@ export function PublicLanding() {
 
       <footer className="border-t border-white/[.055] px-5 py-8 md:px-8">
         <div className="mx-auto flex max-w-7xl flex-col gap-4 text-[10px] text-[var(--subtle)] sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-3"><span className="brand-lockup rounded-lg px-2 py-1"><Image src="/brand/virro-logo.svg" alt="Virro" width={96} height={27} className="h-auto w-24" /></span><span>Operating Understanding Layer</span></div>
+          <div className="flex items-center gap-3"><span className="virro-brand flex items-center gap-2"><Image src="/brand/virro-icon.svg" alt="" width={26} height={21} className="h-auto w-6 object-contain" /><span className="text-sm font-semibold tracking-[-.035em] text-[var(--text)]">Virro</span></span><span>Operating Understanding Layer</span></div>
           <div className="flex flex-wrap gap-4"><Link href="/app/privacy-trust">Privacidad y confianza</Link><Link href="/app/reports">Reporte ejecutivo</Link><Link href="/app">Demo enterprise</Link></div>
         </div>
       </footer>

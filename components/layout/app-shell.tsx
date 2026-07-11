@@ -32,7 +32,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <aside aria-hidden={!isDesktop && !open} inert={!isDesktop && !open} className={`fixed inset-y-0 left-0 z-40 flex w-[272px] flex-col border-r border-[var(--border)] bg-[var(--sidebar)] transition-transform lg:translate-x-0 ${open ? "translate-x-0" : "-translate-x-full"}`}>
         <div className="flex h-[76px] items-center justify-between border-b border-[var(--border)] px-5">
           <Link href="/" className="flex items-center gap-3" onClick={() => setOpen(false)}>
-            <div className="grid size-9 place-items-center rounded-xl border border-[var(--border)] bg-white p-1.5"><Image src="/brand/virro-icon.svg" alt="" width={28} height={24} className="h-auto w-full" /></div>
+            <div className="grid size-9 place-items-center rounded-xl border border-[var(--border)] bg-[var(--panel-soft)] p-1.5"><Image src="/brand/virro-icon.svg" alt="" width={28} height={24} className="h-auto w-full object-contain" /></div>
             <div><p className="text-[17px] font-semibold tracking-[-0.03em]">Virro</p><p className="text-[10px] font-medium uppercase tracking-[0.18em] text-[var(--subtle)]">Enterprise</p></div>
           </Link>
           <button aria-label={t("Close navigation", "Cerrar navegación")} className="rounded-lg p-2 text-[var(--muted)] lg:hidden" onClick={() => setOpen(false)}><X size={18} /></button>
