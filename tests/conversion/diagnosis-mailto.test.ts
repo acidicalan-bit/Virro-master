@@ -8,6 +8,8 @@ describe("diagnosis mailto", () => {
       company: "Aperture Systems",
       role: "CTO",
       email: "maria@example.com",
+      area: "Producto y QA",
+      tools: "Jira, Slack y Figma",
       flow: "Handoff Intelligence",
       context: "Producto y QA interpretan distinto el alcance.",
     });
@@ -15,6 +17,7 @@ describe("diagnosis mailto", () => {
     expect(href.startsWith(`mailto:${DIAGNOSIS_EMAIL}?`)).toBe(true);
     expect(decodeURIComponent(href)).toContain("Solicitud Meaning Loss Audit · Aperture Systems");
     expect(decodeURIComponent(href)).toContain("Flujo a diagnosticar: Handoff Intelligence");
+    expect(decodeURIComponent(href)).toContain("Herramientas principales: Jira, Slack y Figma");
     expect(decodeURIComponent(href)).toContain("antes de analizar eventos reales definiremos privacidad");
   });
 
@@ -24,6 +27,8 @@ describe("diagnosis mailto", () => {
       company: "Virro\nBcc: other@example.com",
       role: "Founder",
       email: "alan@example.com",
+      area: "Delivery",
+      tools: "Jira",
       flow: "Product Delivery",
       context: "Necesitamos revisar un flujo crítico.",
     });

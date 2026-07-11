@@ -5,6 +5,8 @@ export type DiagnosisRequest = {
   company: string;
   role: string;
   email: string;
+  area: string;
+  tools: string;
   flow: string;
   context: string;
 };
@@ -25,6 +27,8 @@ export function buildDiagnosisMailto(request: DiagnosisRequest) {
     `Empresa: ${company}`,
     `Rol: ${singleLine(request.role)}`,
     `Email de contacto: ${singleLine(request.email)}`,
+    `Área con mayor pérdida de claridad: ${singleLine(request.area)}`,
+    `Herramientas principales: ${singleLine(request.tools)}`,
     `Flujo a diagnosticar: ${singleLine(request.flow)}`,
     "",
     "Descripción breve:",
