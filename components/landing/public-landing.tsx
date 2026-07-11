@@ -22,6 +22,8 @@ import {
   UsersRound,
 } from "lucide-react";
 import { DiagnosisRequestForm } from "@/components/landing/diagnosis-request-form";
+import { AnimatedConnectorLine, FloatingLayer, RevealOnScroll, StaggerGroup } from "@/components/landing/motion/motion-primitives";
+import { ProductWalkthrough } from "@/components/landing/product-walkthrough";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 
 const understandingFlow = [
@@ -141,7 +143,7 @@ const reportProofRows = [
 export function PublicLanding() {
   return (
     <div className="public-landing min-h-screen overflow-hidden bg-[var(--app-bg)] text-[var(--text)]">
-      <header className="landing-header sticky top-0 z-30 border-b border-white/[.06] backdrop-blur-xl">
+      <header className="landing-header motion-navbar sticky top-0 z-30 border-b border-white/[.06] backdrop-blur-xl">
         <div className="mx-auto flex h-[72px] max-w-7xl items-center gap-6 px-5 md:px-8">
           <Link href="/" className="virro-brand flex shrink-0 items-center gap-2" aria-label="Virro, inicio">
             <Image src="/brand/virro-icon.svg" alt="" width={31} height={25} priority className="h-auto w-[29px] object-contain" />
@@ -164,18 +166,18 @@ export function PublicLanding() {
           <div className="pointer-events-none absolute right-[-8%] top-[12%] h-[460px] w-[460px] rounded-full bg-[radial-gradient(circle,rgba(56,189,248,.07),transparent_68%)]" />
           <Image src="/brand/virro-icon.svg" alt="" width={520} height={420} aria-hidden className="hero-watermark pointer-events-none absolute -right-24 top-8 h-auto w-[430px] object-contain" />
           <div className="relative mx-auto grid max-w-7xl gap-14 lg:grid-cols-[1.02fr_.98fr] lg:items-center">
-            <div>
-              <div className="inline-flex items-center gap-2 rounded-full border border-teal-400/15 bg-teal-400/[.05] px-3 py-1.5 text-[9px] font-semibold uppercase tracking-[.16em] text-teal-200">
+            <div className="hero-copy-scene">
+              <div className="hero-scene-item inline-flex items-center gap-2 rounded-full border border-teal-400/15 bg-teal-400/[.05] px-3 py-1.5 text-[9px] font-semibold uppercase tracking-[.16em] text-teal-200">
                 <Layers3 size={12} /> Operating Understanding Layer
               </div>
-              <h1 className="mt-7 max-w-4xl text-[2.65rem] font-semibold leading-[1.02] tracking-[-.058em] sm:text-6xl lg:text-[4.4rem]">
+              <h1 className="hero-scene-item mt-7 max-w-4xl text-[2.65rem] font-semibold leading-[1.02] tracking-[-.058em] sm:text-6xl lg:text-[4.4rem]">
                 The Operating Understanding Layer for Modern Organizations.
               </h1>
-              <p className="mt-6 text-base font-medium tracking-[-.02em] text-teal-100 md:text-lg">La capa de entendimiento operativo para organizaciones modernas.</p>
-              <p className="mt-5 max-w-2xl text-sm leading-7 text-[var(--muted)] md:text-[15px]">
+              <p className="hero-scene-item mt-6 text-base font-medium tracking-[-.02em] text-teal-100 md:text-lg">La capa de entendimiento operativo para organizaciones modernas.</p>
+              <p className="hero-scene-item mt-5 max-w-2xl text-sm leading-7 text-[var(--muted)] md:text-[15px]">
                 Virro es la infraestructura invisible que ayuda a que personas, equipos, herramientas e IA entiendan mejor la comunicación digital antes de convertirla en trabajo, decisión o automatización.
               </p>
-              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <div className="hero-scene-item mt-8 flex flex-col gap-3 sm:flex-row">
                 <a href="#audit" className="brand-primary-button inline-flex h-12 items-center justify-center gap-2 rounded-xl px-6 text-sm font-semibold shadow-[0_20px_60px_rgba(9,105,255,.18)] transition">
                   Diagnosticar un flujo crítico <ArrowRight size={15} />
                 </a>
@@ -183,15 +185,15 @@ export function PublicLanding() {
                   Ver demo enterprise
                 </Link>
               </div>
-              <p className="mt-5 flex max-w-2xl items-start gap-2 text-[10px] leading-5 text-[var(--subtle)]">
+              <p className="hero-scene-item mt-5 flex max-w-2xl items-start gap-2 text-[10px] leading-5 text-[var(--subtle)]">
                 <ShieldCheck size={13} className="mt-0.5 shrink-0 text-teal-300" />
                 Scores estimados · No son garantías · No evalúan personas
               </p>
-              <div className="mt-7 grid max-w-xl grid-cols-3 gap-2">
+              <div className="hero-scene-item mt-7 grid max-w-xl grid-cols-3 gap-2">
                 {["Detecta pérdida", "Expone contexto", "Prioriza acción"].map((item, index) => <div key={item} className="hero-signal rounded-xl border border-white/[.07] p-3"><span className="text-[8px] font-semibold text-[var(--brand-blue)]">0{index + 1}</span><p className="mt-1 text-[9px] font-medium leading-4 text-[var(--muted)]">{item}</p></div>)}
               </div>
             </div>
-            <HeroProductPreview />
+            <div className="hero-product-scene"><FloatingLayer><HeroProductPreview /></FloatingLayer></div>
           </div>
         </section>
 
@@ -201,7 +203,7 @@ export function PublicLanding() {
               <p>Cuando la comunicación digital se degrada entre personas, equipos, herramientas e IA, la operación acumula fricción, costo y <strong className="font-medium text-[var(--text)]">Deuda de Entendimiento Colectivo</strong>.</p>
               <p>Virro ayuda a detectar esa pérdida antes de que se convierta en retrabajo, errores, mala ejecución, documentación inútil, mala contratación o desperdicio con IA.</p>
             </SectionIntro>
-            <div className="mt-10 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <StaggerGroup className="mt-10 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
               {problemCards.map(({ title, text, icon: Icon }) => (
                 <article key={title} className="premium-card rounded-2xl border border-white/[.07] bg-[var(--panel)] p-5 shadow-[0_18px_55px_rgba(0,0,0,.08)]">
                   <span className="grid size-9 place-items-center rounded-xl border border-white/[.06] bg-white/[.025] text-rose-300"><Icon size={17} /></span>
@@ -209,7 +211,7 @@ export function PublicLanding() {
                   <p className="mt-2 text-[11px] leading-5 text-[var(--muted)]">{text}</p>
                 </article>
               ))}
-            </div>
+            </StaggerGroup>
           </div>
         </section>
 
@@ -243,11 +245,7 @@ export function PublicLanding() {
                 <Link href="/app/reports" className="inline-flex h-10 items-center gap-2 rounded-lg border border-teal-400/15 bg-teal-400/[.05] px-4 text-[10px] font-semibold text-teal-200 transition hover:bg-teal-400/[.08]">Ver reporte ejecutivo <ArrowRight size={12} /></Link>
               </div>
             </div>
-            <div className="mt-10 grid gap-4 lg:grid-cols-3">
-              <ProductPreviewCard kind="dashboard" title="Tablero ejecutivo" text="Dónde se concentra la pérdida de entendimiento, por área, riesgo y readiness." href="/app" />
-              <ProductPreviewCard kind="assistant" title="Asistente de Entendimiento" text="Convierte información ambigua en un Understanding Event auditable." href="/app/inbox" />
-              <ProductPreviewCard kind="report" title="Reporte ejecutivo" text="Resume riesgos, contexto faltante, scores estimados y recomendaciones de siguiente acción." href="/app/reports" />
-            </div>
+            <ProductWalkthrough />
           </div>
         </section>
 
@@ -277,22 +275,22 @@ export function PublicLanding() {
         <section id="audit" className="scroll-mt-24 px-5 py-20 md:px-8 md:py-28">
           <div className="mx-auto max-w-7xl overflow-hidden rounded-[28px] border border-teal-400/15 bg-[linear-gradient(135deg,rgba(45,212,191,.075),rgba(56,189,248,.02)_52%,rgba(255,255,255,.018))] shadow-[0_35px_110px_rgba(0,0,0,.16)]">
             <div className="grid gap-8 p-6 md:p-10 lg:grid-cols-[.78fr_1.22fr] lg:p-14">
-              <div>
+              <RevealOnScroll>
                 <div className="inline-flex items-center gap-2 rounded-full border border-teal-400/15 bg-teal-400/[.06] px-3 py-1.5 text-[9px] font-semibold uppercase tracking-[.14em] text-teal-200"><Braces size={12} /> Oferta inicial</div>
                 <h2 className="mt-6 text-3xl font-semibold tracking-[-.045em] md:text-5xl">Meaning Loss Audit</h2>
                 <p className="mt-3 text-sm font-medium text-teal-100">Diagnóstico de pérdida de entendimiento en un flujo crítico.</p>
                 <p className="mt-5 max-w-xl text-xs leading-6 text-[var(--muted)]">Revisamos de 3 a 5 Understanding Events para detectar señales de pérdida, contexto faltante, preguntas críticas y la siguiente acción que conviene validar.</p>
                 <div className="mt-5 inline-flex items-center gap-2 rounded-xl border border-sky-400/15 bg-sky-400/[.05] px-3 py-2 text-[10px] font-medium text-sky-200"><CheckCircle2 size={13} /> Duración estimada: 1 a 2 semanas</div>
                 <a href="#solicitar-diagnostico" className="brand-primary-button mt-7 inline-flex h-11 items-center gap-2 rounded-xl px-5 text-xs font-semibold transition">Solicitar diagnóstico <ArrowRight size={14} /></a>
-                <p className="mt-4 max-w-md text-[10px] leading-5 text-[var(--subtle)]">No necesitas saber qué pack elegir. Empieza describiendo el flujo donde hoy se pierde claridad.</p>
-              </div>
-              <div>
+                <p className="mt-4 max-w-md text-[10px] leading-5 text-[var(--subtle)]">Abriremos tu correo con la solicitud preparada. No necesitas saber qué pack elegir.</p>
+              </RevealOnScroll>
+              <RevealOnScroll delay={120}>
                 <p className="text-[10px] font-semibold uppercase tracking-[.14em] text-[var(--brand-blue)]">Cómo empieza un Meaning Loss Audit</p>
-                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <div className="relative mt-4"><AnimatedConnectorLine className="audit-progress-line absolute left-1/2 top-1/2 hidden h-px w-[72%] -translate-x-1/2 sm:block" /><StaggerGroup className="relative grid gap-3 sm:grid-cols-2">
                   {auditSteps.map(({ title, text, icon: Icon }, index) => <article key={title} className="audit-step rounded-2xl border border-white/[.07] p-4"><div className="flex items-center justify-between"><span className="grid size-8 place-items-center rounded-lg bg-sky-400/[.07] text-sky-300"><Icon size={15} /></span><span className="text-[9px] font-semibold text-[var(--subtle)]">0{index + 1}</span></div><h3 className="mt-4 text-xs font-semibold">{title}</h3><p className="mt-2 text-[10px] leading-5 text-[var(--muted)]">{text}</p></article>)}
-                </div>
+                </StaggerGroup></div>
                 <div className="mt-4 rounded-2xl border border-white/[.07] bg-black/10 p-4"><p className="text-[9px] font-semibold uppercase tracking-[.12em] text-[var(--subtle)]">Qué recibe el cliente</p><div className="mt-3 flex flex-wrap gap-2">{auditDeliverables.map((item) => <span key={item} className="rounded-full border border-white/[.07] bg-white/[.025] px-3 py-1.5 text-[9px] text-[var(--muted)]">{item}</span>)}</div></div>
-              </div>
+              </RevealOnScroll>
             </div>
             <div className="grid gap-3 border-t border-teal-300/10 bg-black/10 px-6 py-4 text-[9px] leading-4 text-[var(--subtle)] md:grid-cols-3 md:px-10 lg:px-14">
               <p className="flex items-start gap-2"><ShieldCheck size={12} className="mt-0.5 shrink-0 text-teal-300" />Virro no evalúa personas. Evalúa riesgos de entendimiento en información operativa.</p>
@@ -338,21 +336,21 @@ function ReportValueProof() {
   return (
     <section id="reporte-ejecutivo" className="report-proof scroll-mt-20 border-y border-white/[.055] px-5 py-20 md:px-8 md:py-28">
       <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[.78fr_1.22fr] lg:items-center">
-        <div>
+        <RevealOnScroll>
           <p className="text-[9px] font-semibold uppercase tracking-[.16em] text-[var(--brand-coral)]">Entregable para decisión</p>
           <h2 className="mt-4 text-3xl font-semibold tracking-[-.045em] md:text-4xl">El entregable: claridad ejecutiva sobre dónde se pierde entendimiento.</h2>
           <p className="mt-5 max-w-xl text-sm leading-7 text-[var(--muted)]">Virro convierte eventos analizados en un reporte ejecutivo con riesgos, contexto faltante, scores estimados y acciones recomendadas.</p>
           <p className="mt-5 flex max-w-xl items-start gap-2 text-[10px] leading-5 text-[var(--subtle)]"><ShieldCheck size={13} className="mt-0.5 shrink-0 text-[var(--brand-blue)]" />Los reportes no evalúan personas. Evalúan riesgos de entendimiento en información operativa.</p>
           <Link href="/app/reports" className="mt-7 inline-flex h-11 items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--panel)] px-5 text-xs font-semibold transition hover:-translate-y-0.5 hover:border-sky-400/25">Ver reporte ejecutivo <ArrowRight size={14} /></Link>
-        </div>
+        </RevealOnScroll>
 
-        <div className="visual-dark overflow-hidden rounded-[26px] border border-white/[.09] bg-[#0b1019] text-[#f2f5f7] shadow-[0_38px_110px_rgba(0,0,0,.28)]">
+        <RevealOnScroll delay={160} className="report-sheet-scene visual-dark overflow-hidden rounded-[26px] border border-white/[.09] bg-[#0b1019] text-[#f2f5f7] shadow-[0_38px_110px_rgba(0,0,0,.28)]">
           <div className="flex items-center justify-between border-b border-white/[.07] px-5 py-4 md:px-6"><div className="flex items-center gap-3"><span className="grid size-8 place-items-center rounded-lg border border-white/[.08] bg-white/[.04]"><Image src="/brand/virro-icon.svg" alt="" width={22} height={18} className="h-auto w-5 object-contain" /></span><div><p className="text-[9px] font-semibold uppercase tracking-[.12em] text-sky-300">Virro Enterprise Report</p><p className="mt-0.5 text-xs font-semibold">Meaning Loss Audit</p></div></div><span className="rounded-full border border-white/[.08] bg-white/[.03] px-2.5 py-1 text-[8px] text-[var(--muted)]">Demo · Datos simulados</span></div>
           <div className="grid gap-px bg-white/[.06] sm:grid-cols-2">
-            {reportProofRows.map(([label, value], index) => <div key={label} className="bg-[#0b1019] p-5 md:p-6"><div className="flex items-center justify-between"><p className="text-[8px] font-semibold uppercase tracking-[.12em] text-[var(--subtle)]">{label}</p><span className="text-[8px] text-sky-300">0{index + 1}</span></div><p className={`mt-3 text-[11px] font-medium leading-5 ${label === "Riesgo principal" ? "text-rose-300" : label === "Score estimado" ? "text-sky-300" : ""}`}>{value}</p></div>)}
+            {reportProofRows.map(([label, value], index) => <div key={label} className="report-proof-row bg-[#0b1019] p-5 md:p-6"><div className="flex items-center justify-between"><p className="text-[8px] font-semibold uppercase tracking-[.12em] text-[var(--subtle)]">{label}</p><span className="text-[8px] text-sky-300">0{index + 1}</span></div><p className={`mt-3 text-[11px] font-medium leading-5 ${label === "Riesgo principal" ? "text-rose-300" : label === "Score estimado" ? "text-sky-300" : ""}`}>{value}</p></div>)}
           </div>
           <div className="flex items-start gap-3 border-t border-sky-400/10 bg-sky-400/[.035] px-5 py-4 text-[9px] leading-5 text-[var(--muted)] md:px-6"><FileBarChart size={14} className="mt-0.5 shrink-0 text-sky-300" />Reporte listo para compartir con liderazgo y convertir hallazgos en una decisión de audit, piloto o corrección.</div>
-        </div>
+        </RevealOnScroll>
       </div>
     </section>
   );
@@ -436,23 +434,20 @@ function ArchitectureDiagram() {
         <SectionIntro eyebrow="Arquitectura organizacional" title="Dónde vive Virro dentro de la operación moderna.">
           <p>Virro no reemplaza tus herramientas. Vive entre la comunicación digital y la ejecución para ayudar a que la información llegue mejor entendida.</p>
         </SectionIntro>
-        <div className="mt-10 rounded-[28px] border border-white/[.07] bg-[var(--panel)] p-4 shadow-[0_28px_90px_rgba(0,0,0,.15)] md:p-7">
-          <div className="rounded-2xl border border-white/[.06] bg-white/[.018] p-4 md:p-5">
+        <div className="architecture-scene mt-10 rounded-[28px] border border-white/[.07] bg-[var(--panel)] p-4 shadow-[0_28px_90px_rgba(0,0,0,.15)] md:p-7">
+          <StaggerGroup className="rounded-2xl border border-white/[.06] bg-white/[.018] p-4 md:p-5">
             <p className="text-[9px] font-semibold uppercase tracking-[.14em] text-[var(--subtle)]">Capa superior · Interactores</p>
             <div className="mt-4 grid gap-3 md:grid-cols-3">
-              {interactors.map(({ title, items, icon: Icon }) => <div key={title} className="rounded-xl border border-white/[.06] bg-black/10 p-4"><div className="flex items-center gap-2"><Icon size={14} className="text-cyan-300" /><p className="text-xs font-semibold">{title}</p></div><div className="mt-3 flex flex-wrap gap-1.5">{items.map((item) => <span key={item} className="rounded-md border border-white/[.06] bg-white/[.025] px-2 py-1 text-[8px] text-[var(--muted)]">{item}</span>)}</div></div>)}
+              {interactors.map(({ title, items, icon: Icon }) => <div key={title} className="architecture-interactor rounded-xl border border-white/[.06] bg-black/10 p-4"><div className="flex items-center gap-2"><Icon size={14} className="text-cyan-300" /><p className="text-xs font-semibold">{title}</p></div><div className="mt-3 flex flex-wrap gap-1.5">{items.map((item) => <span key={item} className="rounded-md border border-white/[.06] bg-white/[.025] px-2 py-1 text-[8px] text-[var(--muted)]">{item}</span>)}</div></div>)}
             </div>
-          </div>
+          </StaggerGroup>
           <LayerConnector />
-          <div className="architecture-core rounded-2xl border p-5 md:p-7">
-            <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start"><div><p className="text-[9px] font-semibold uppercase tracking-[.14em] text-teal-300">Capa intermedia</p><h3 className="mt-2 text-xl font-semibold tracking-[-.03em]">Virro — Operating Understanding Layer</h3><p className="mt-3 max-w-3xl text-xs leading-6 text-[var(--muted)]">La capa que procesa, aclara, clasifica, estructura y valida si la información está lista para que otra persona, equipo, herramienta o IA pueda actuar.</p></div><span className="grid size-11 shrink-0 place-items-center rounded-xl bg-teal-300 text-slate-950"><Layers3 size={19} /></span></div>
-            <div className="mt-5 flex flex-wrap gap-2">{layerFunctions.map((item) => <span key={item} className="rounded-lg border border-teal-300/15 bg-black/10 px-3 py-2 text-[9px] text-teal-100">{item}</span>)}</div>
-          </div>
+          <RevealOnScroll delay={120}><div className="architecture-core rounded-2xl border p-5 md:p-7"><div className="flex flex-col justify-between gap-4 md:flex-row md:items-start"><div><p className="text-[9px] font-semibold uppercase tracking-[.14em] text-teal-300">Capa intermedia</p><h3 className="mt-2 text-xl font-semibold tracking-[-.03em]">Virro — Operating Understanding Layer</h3><p className="mt-3 max-w-3xl text-xs leading-6 text-[var(--muted)]">La capa que procesa, aclara, clasifica, estructura y valida si la información está lista para que otra persona, equipo, herramienta o IA pueda actuar.</p></div><span className="grid size-11 shrink-0 place-items-center rounded-xl bg-teal-300 text-slate-950"><Layers3 size={19} /></span></div><div className="mt-5 flex flex-wrap gap-2">{layerFunctions.map((item) => <span key={item} className="rounded-lg border border-teal-300/15 bg-black/10 px-3 py-2 text-[9px] text-teal-100">{item}</span>)}</div></div></RevealOnScroll>
           <LayerConnector />
-          <div className="rounded-2xl border border-white/[.06] bg-white/[.018] p-4 md:p-5">
+          <StaggerGroup delay={220} className="rounded-2xl border border-white/[.06] bg-white/[.018] p-4 md:p-5">
             <p className="text-[9px] font-semibold uppercase tracking-[.14em] text-[var(--subtle)]">Capa inferior · Resultados operativos</p>
-            <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{operationalOutcomes.map((item) => <div key={item} className="flex items-center gap-2 rounded-xl border border-white/[.06] bg-black/10 px-3 py-3 text-[10px] text-[var(--muted)]"><CheckCircle2 size={12} className="shrink-0 text-teal-300" />{item}</div>)}</div>
-          </div>
+            <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{operationalOutcomes.map((item) => <div key={item} className="architecture-result flex items-center gap-2 rounded-xl border border-white/[.06] bg-black/10 px-3 py-3 text-[10px] text-[var(--muted)]"><CheckCircle2 size={12} className="shrink-0 text-teal-300" />{item}</div>)}</div>
+          </StaggerGroup>
         </div>
       </div>
     </section>
@@ -460,27 +455,5 @@ function ArchitectureDiagram() {
 }
 
 function LayerConnector() {
-  return <div className="flex h-12 items-center justify-center"><div className="h-7 w-px bg-gradient-to-b from-white/[.04] to-teal-300/40" /><ArrowDown size={14} className="-ml-[7px] mt-8 text-teal-300" /></div>;
-}
-
-function ProductPreviewCard({ kind, title, text, href }: { kind: "dashboard" | "assistant" | "report"; title: string; text: string; href: string }) {
-  return (
-    <article className="group overflow-hidden rounded-2xl border border-white/[.075] bg-[var(--panel)] shadow-[0_24px_75px_rgba(0,0,0,.12)] transition duration-300 hover:-translate-y-1 hover:border-white/[.13]">
-      <div className="border-b border-white/[.06] bg-[var(--panel-soft)] p-3">
-        <div className="flex items-center justify-between"><span className="text-[8px] font-semibold uppercase tracking-[.12em] text-[var(--subtle)]">Demo preview · Datos simulados</span><span className="size-1.5 rounded-full bg-teal-300" /></div>
-        <div className="visual-dark text-[#f2f5f7]"><ProductMiniature kind={kind} /></div>
-      </div>
-      <div className="p-5">
-        <h3 className="text-sm font-semibold">{title}</h3>
-        <p className="mt-2 text-[11px] leading-5 text-[var(--muted)]">{text}</p>
-        <Link href={href} className="mt-4 inline-flex items-center gap-2 text-[10px] font-semibold text-teal-300">Abrir en demo <ArrowRight size={12} className="transition group-hover:translate-x-0.5" /></Link>
-      </div>
-    </article>
-  );
-}
-
-function ProductMiniature({ kind }: { kind: "dashboard" | "assistant" | "report" }) {
-  if (kind === "dashboard") return <div className="mt-3 grid h-40 grid-cols-[.3fr_.7fr] gap-2 rounded-xl border border-white/[.06] bg-[#090d13] p-3"><div className="space-y-2 border-r border-white/[.05] pr-2">{["Dashboard", "Inbox", "Packs", "Reports"].map((item, index) => <div key={item} className={`rounded px-2 py-1.5 text-[7px] ${index === 0 ? "bg-teal-400/[.08] text-teal-200" : "text-[var(--subtle)]"}`}>{item}</div>)}</div><div><div className="grid grid-cols-3 gap-1.5">{["68", "34", "1"].map((value, index) => <div key={value} className="rounded-md border border-white/[.05] p-2"><p className={`text-sm font-semibold ${index === 1 ? "text-rose-300" : "text-teal-300"}`}>{value}</p><div className="mt-1 h-1 rounded bg-white/[.05]" /></div>)}</div><div className="mt-2 h-[70px] rounded-md border border-white/[.05] p-2"><div className="space-y-2"><RiskBar label="Technical" value={61} tone="rose" /><RiskBar label="Handoff" value={38} tone="amber" /></div></div></div></div>;
-  if (kind === "assistant") return <div className="mt-3 h-40 rounded-xl border border-white/[.06] bg-[#090d13] p-3"><div className="flex gap-1">{[1,2,3,4,5].map((step) => <span key={step} className={`h-1.5 flex-1 rounded-full ${step < 4 ? "bg-teal-300/60" : "bg-white/[.06]"}`} />)}</div><div className="mt-3 grid grid-cols-2 gap-2"><div className="rounded-md border border-white/[.05] p-2"><p className="text-[7px] text-[var(--subtle)]">Pack recomendado</p><p className="mt-1 text-[9px] font-semibold text-indigo-300">Handoff Intelligence</p></div><div className="rounded-md border border-white/[.05] p-2"><p className="text-[7px] text-[var(--subtle)]">Meaning Loss</p><p className="mt-1 text-[9px] font-semibold text-rose-300">63 / 100</p></div></div><div className="mt-2 rounded-md border border-white/[.05] p-2"><p className="text-[7px] text-[var(--subtle)]">Preguntas críticas</p><div className="mt-1.5 space-y-1">{["Receptor final", "Acción esperada", "Contexto no asumible"].map((item) => <div key={item} className="flex items-center gap-1.5 text-[7px] text-[var(--muted)]"><span className="size-1 rounded-full bg-teal-300" />{item}</div>)}</div></div></div>;
-  return <div className="mt-3 h-40 rounded-xl border border-white/[.06] bg-[#090d13] p-3"><div className="flex items-center justify-between border-b border-white/[.05] pb-2"><div><p className="text-[7px] text-teal-300">VIRRO ENTERPRISE REPORT</p><p className="mt-1 text-[9px] font-semibold">Meaning Loss Audit</p></div><span className="grid size-6 place-items-center rounded bg-teal-300 text-[8px] font-black text-slate-950">V</span></div><div className="mt-2 grid grid-cols-3 gap-1.5">{["Resumen", "Riesgos", "Scores"].map((item, index) => <div key={item} className="rounded border border-white/[.05] p-2"><p className="text-[7px] text-[var(--subtle)]">0{index + 1}</p><p className="mt-1 text-[8px]">{item}</p></div>)}</div><div className="mt-2 rounded border border-teal-400/10 bg-teal-400/[.03] p-2"><p className="text-[7px] text-teal-300">Siguiente acción</p><div className="mt-1 h-1.5 w-4/5 rounded bg-white/[.06]" /><div className="mt-1 h-1.5 w-3/5 rounded bg-white/[.06]" /></div></div>;
+  return <RevealOnScroll className="relative flex h-12 items-center justify-center"><AnimatedConnectorLine className="h-8 w-px" /><ArrowDown size={14} className="absolute bottom-0 text-teal-300" /></RevealOnScroll>;
 }
