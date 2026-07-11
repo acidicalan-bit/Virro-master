@@ -39,7 +39,7 @@ export function DiagnosisRequestForm() {
       <div>
         <p className="text-[10px] font-semibold uppercase tracking-[.16em] text-teal-300">Meaning Loss Audit</p>
         <h2 className="mt-4 text-3xl font-semibold tracking-[-.045em] md:text-4xl">Solicitar diagnóstico</h2>
-        <p className="mt-5 max-w-xl text-sm leading-7 text-[var(--muted)]">Comparte el flujo que hoy pierde claridad, contexto o capacidad de ejecución. Prepararemos un correo con la información para que puedas revisarlo y enviarlo desde tu cliente de correo.</p>
+        <p className="mt-5 max-w-xl text-sm leading-7 text-[var(--muted)]">Comparte el flujo que hoy pierde claridad, contexto o capacidad de ejecución. Prepararemos un correo dirigido a <span className="font-medium text-[var(--text)]">contacto@virro.app</span> para que puedas revisarlo y enviarlo desde tu cliente de correo.</p>
         <div className="mt-7 space-y-3 text-[11px] leading-5 text-[var(--muted)]">
           <p className="flex gap-3"><ShieldCheck size={15} className="mt-0.5 shrink-0 text-teal-300" />Virro no evalúa personas. Evalúa riesgos de entendimiento en información operativa.</p>
           <p className="flex gap-3"><ShieldCheck size={15} className="mt-0.5 shrink-0 text-teal-300" />Los scores son estimaciones probabilísticas, no garantías.</p>

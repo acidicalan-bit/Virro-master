@@ -97,33 +97,45 @@ const buyerRoles = [
   "COO",
 ];
 
-const auditInputs = [
-  "Tickets e historias",
-  "Handoffs",
-  "Documentación",
-  "Instrucciones para IA",
-  "Vacantes y briefs",
-  "Procesos o reportes",
-];
-
 const auditDeliverables = [
-  "Riesgos de Meaning Loss",
+  "Riesgos principales",
   "Contexto faltante",
   "Preguntas críticas",
   "Scores estimados",
-  "Recomendación de pack o piloto",
+  "Recomendación de siguiente acción",
   "Reporte ejecutivo",
 ];
 
-const auditAreas = [
-  "Product Delivery",
-  "AI Understanding",
-  "Technical Documentation",
-  "Talent & Staffing",
-  "Consulting Delivery",
-  "Process Understanding",
-  "Onboarding",
-  "Handoff Intelligence",
+const auditSteps = [
+  {
+    title: "Seleccionamos un flujo crítico",
+    text: "Producto, IA, documentación, staffing, consultoras, handoffs, procesos u onboarding.",
+    icon: Network,
+  },
+  {
+    title: "Revisamos 3 a 5 Understanding Events",
+    text: "Tickets, briefs, documentos, instrucciones para IA, vacantes, handoffs o procesos.",
+    icon: Inbox,
+  },
+  {
+    title: "Detectamos pérdida de entendimiento",
+    text: "Meaning Loss, contexto faltante, preguntas críticas y riesgos operativos.",
+    icon: CircleAlert,
+  },
+  {
+    title: "Entregamos reporte ejecutivo",
+    text: "Scores estimados, prioridades de corrección y recomendación de piloto.",
+    icon: FileBarChart,
+  },
+];
+
+const reportProofRows = [
+  ["Flujo analizado", "Product → Development"],
+  ["Eventos revisados", "3–5 Understanding Events"],
+  ["Riesgo principal", "Ownership de rollback no definido"],
+  ["Preguntas críticas", "Receptor, decisión y límites pendientes"],
+  ["Score estimado", "Handoff Readiness · 48 / 100"],
+  ["Recomendación", "Piloto de Handoff Intelligence"],
 ];
 
 export function PublicLanding() {
@@ -147,9 +159,10 @@ export function PublicLanding() {
       </header>
 
       <main>
-        <section id="categoria" className="relative px-5 pb-24 pt-16 md:px-8 md:pb-32 md:pt-24">
+        <section id="categoria" className="landing-hero relative px-5 pb-24 pt-16 md:px-8 md:pb-32 md:pt-24">
           <div className="pointer-events-none absolute left-[12%] top-0 h-[540px] w-[540px] rounded-full bg-[radial-gradient(circle,rgba(45,212,191,.10),transparent_68%)]" />
           <div className="pointer-events-none absolute right-[-8%] top-[12%] h-[460px] w-[460px] rounded-full bg-[radial-gradient(circle,rgba(56,189,248,.07),transparent_68%)]" />
+          <Image src="/brand/virro-icon.svg" alt="" width={520} height={420} aria-hidden className="hero-watermark pointer-events-none absolute -right-24 top-8 h-auto w-[430px] object-contain" />
           <div className="relative mx-auto grid max-w-7xl gap-14 lg:grid-cols-[1.02fr_.98fr] lg:items-center">
             <div>
               <div className="inline-flex items-center gap-2 rounded-full border border-teal-400/15 bg-teal-400/[.05] px-3 py-1.5 text-[9px] font-semibold uppercase tracking-[.16em] text-teal-200">
@@ -174,6 +187,9 @@ export function PublicLanding() {
                 <ShieldCheck size={13} className="mt-0.5 shrink-0 text-teal-300" />
                 Scores estimados · No son garantías · No evalúan personas
               </p>
+              <div className="mt-7 grid max-w-xl grid-cols-3 gap-2">
+                {["Detecta pérdida", "Expone contexto", "Prioriza acción"].map((item, index) => <div key={item} className="hero-signal rounded-xl border border-white/[.07] p-3"><span className="text-[8px] font-semibold text-[var(--brand-blue)]">0{index + 1}</span><p className="mt-1 text-[9px] font-medium leading-4 text-[var(--muted)]">{item}</p></div>)}
+              </div>
             </div>
             <HeroProductPreview />
           </div>
@@ -187,7 +203,7 @@ export function PublicLanding() {
             </SectionIntro>
             <div className="mt-10 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
               {problemCards.map(({ title, text, icon: Icon }) => (
-                <article key={title} className="rounded-2xl border border-white/[.07] bg-[var(--panel)] p-5 shadow-[0_18px_55px_rgba(0,0,0,.08)]">
+                <article key={title} className="premium-card rounded-2xl border border-white/[.07] bg-[var(--panel)] p-5 shadow-[0_18px_55px_rgba(0,0,0,.08)]">
                   <span className="grid size-9 place-items-center rounded-xl border border-white/[.06] bg-white/[.025] text-rose-300"><Icon size={17} /></span>
                   <h3 className="mt-4 text-sm font-semibold tracking-[-.02em]">{title}</h3>
                   <p className="mt-2 text-[11px] leading-5 text-[var(--muted)]">{text}</p>
@@ -235,6 +251,8 @@ export function PublicLanding() {
           </div>
         </section>
 
+        <ReportValueProof />
+
         <section className="border-y border-white/[.055] bg-white/[.018] px-5 py-20 md:px-8 md:py-28">
           <div className="mx-auto max-w-7xl">
             <SectionIntro eyebrow="Credibilidad sin claims artificiales" title="Diseñado para flujos donde el entendimiento operativo es crítico.">
@@ -242,7 +260,7 @@ export function PublicLanding() {
             </SectionIntro>
             <div className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {credibilityFlows.map(({ title, text, icon: Icon }) => (
-                <article key={title} className="rounded-2xl border border-white/[.07] bg-[var(--panel)] p-5">
+                <article key={title} className="premium-card rounded-2xl border border-white/[.07] bg-[var(--panel)] p-5">
                   <div className="flex items-center gap-3"><span className="grid size-8 place-items-center rounded-lg bg-teal-400/[.07] text-teal-300"><Icon size={15} /></span><h3 className="text-sm font-semibold">{title}</h3></div>
                   <p className="mt-3 text-[11px] leading-5 text-[var(--muted)]">{text}</p>
                 </article>
@@ -264,13 +282,16 @@ export function PublicLanding() {
                 <h2 className="mt-6 text-3xl font-semibold tracking-[-.045em] md:text-5xl">Meaning Loss Audit</h2>
                 <p className="mt-3 text-sm font-medium text-teal-100">Diagnóstico de pérdida de entendimiento en un flujo crítico.</p>
                 <p className="mt-5 max-w-xl text-xs leading-6 text-[var(--muted)]">Revisamos de 3 a 5 Understanding Events para detectar señales de pérdida, contexto faltante, preguntas críticas y la siguiente acción que conviene validar.</p>
+                <div className="mt-5 inline-flex items-center gap-2 rounded-xl border border-sky-400/15 bg-sky-400/[.05] px-3 py-2 text-[10px] font-medium text-sky-200"><CheckCircle2 size={13} /> Duración estimada: 1 a 2 semanas</div>
                 <a href="#solicitar-diagnostico" className="brand-primary-button mt-7 inline-flex h-11 items-center gap-2 rounded-xl px-5 text-xs font-semibold transition">Solicitar diagnóstico <ArrowRight size={14} /></a>
                 <p className="mt-4 max-w-md text-[10px] leading-5 text-[var(--subtle)]">No necesitas saber qué pack elegir. Empieza describiendo el flujo donde hoy se pierde claridad.</p>
               </div>
-              <div className="grid gap-3 md:grid-cols-3">
-                <AuditColumn title="Qué analizamos" items={auditInputs} />
-                <AuditColumn title="Qué entregamos" items={auditDeliverables} />
-                <AuditColumn title="Por dónde puede entrar" items={auditAreas} />
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-[.14em] text-[var(--brand-blue)]">Cómo empieza un Meaning Loss Audit</p>
+                <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  {auditSteps.map(({ title, text, icon: Icon }, index) => <article key={title} className="audit-step rounded-2xl border border-white/[.07] p-4"><div className="flex items-center justify-between"><span className="grid size-8 place-items-center rounded-lg bg-sky-400/[.07] text-sky-300"><Icon size={15} /></span><span className="text-[9px] font-semibold text-[var(--subtle)]">0{index + 1}</span></div><h3 className="mt-4 text-xs font-semibold">{title}</h3><p className="mt-2 text-[10px] leading-5 text-[var(--muted)]">{text}</p></article>)}
+                </div>
+                <div className="mt-4 rounded-2xl border border-white/[.07] bg-black/10 p-4"><p className="text-[9px] font-semibold uppercase tracking-[.12em] text-[var(--subtle)]">Qué recibe el cliente</p><div className="mt-3 flex flex-wrap gap-2">{auditDeliverables.map((item) => <span key={item} className="rounded-full border border-white/[.07] bg-white/[.025] px-3 py-1.5 text-[9px] text-[var(--muted)]">{item}</span>)}</div></div>
               </div>
             </div>
             <div className="grid gap-3 border-t border-teal-300/10 bg-black/10 px-6 py-4 text-[9px] leading-4 text-[var(--subtle)] md:grid-cols-3 md:px-10 lg:px-14">
@@ -313,6 +334,30 @@ export function PublicLanding() {
   );
 }
 
+function ReportValueProof() {
+  return (
+    <section id="reporte-ejecutivo" className="report-proof scroll-mt-20 border-y border-white/[.055] px-5 py-20 md:px-8 md:py-28">
+      <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[.78fr_1.22fr] lg:items-center">
+        <div>
+          <p className="text-[9px] font-semibold uppercase tracking-[.16em] text-[var(--brand-coral)]">Entregable para decisión</p>
+          <h2 className="mt-4 text-3xl font-semibold tracking-[-.045em] md:text-4xl">El entregable: claridad ejecutiva sobre dónde se pierde entendimiento.</h2>
+          <p className="mt-5 max-w-xl text-sm leading-7 text-[var(--muted)]">Virro convierte eventos analizados en un reporte ejecutivo con riesgos, contexto faltante, scores estimados y acciones recomendadas.</p>
+          <p className="mt-5 flex max-w-xl items-start gap-2 text-[10px] leading-5 text-[var(--subtle)]"><ShieldCheck size={13} className="mt-0.5 shrink-0 text-[var(--brand-blue)]" />Los reportes no evalúan personas. Evalúan riesgos de entendimiento en información operativa.</p>
+          <Link href="/app/reports" className="mt-7 inline-flex h-11 items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--panel)] px-5 text-xs font-semibold transition hover:-translate-y-0.5 hover:border-sky-400/25">Ver reporte ejecutivo <ArrowRight size={14} /></Link>
+        </div>
+
+        <div className="visual-dark overflow-hidden rounded-[26px] border border-white/[.09] bg-[#0b1019] text-[#f2f5f7] shadow-[0_38px_110px_rgba(0,0,0,.28)]">
+          <div className="flex items-center justify-between border-b border-white/[.07] px-5 py-4 md:px-6"><div className="flex items-center gap-3"><span className="grid size-8 place-items-center rounded-lg border border-white/[.08] bg-white/[.04]"><Image src="/brand/virro-icon.svg" alt="" width={22} height={18} className="h-auto w-5 object-contain" /></span><div><p className="text-[9px] font-semibold uppercase tracking-[.12em] text-sky-300">Virro Enterprise Report</p><p className="mt-0.5 text-xs font-semibold">Meaning Loss Audit</p></div></div><span className="rounded-full border border-white/[.08] bg-white/[.03] px-2.5 py-1 text-[8px] text-[var(--muted)]">Demo · Datos simulados</span></div>
+          <div className="grid gap-px bg-white/[.06] sm:grid-cols-2">
+            {reportProofRows.map(([label, value], index) => <div key={label} className="bg-[#0b1019] p-5 md:p-6"><div className="flex items-center justify-between"><p className="text-[8px] font-semibold uppercase tracking-[.12em] text-[var(--subtle)]">{label}</p><span className="text-[8px] text-sky-300">0{index + 1}</span></div><p className={`mt-3 text-[11px] font-medium leading-5 ${label === "Riesgo principal" ? "text-rose-300" : label === "Score estimado" ? "text-sky-300" : ""}`}>{value}</p></div>)}
+          </div>
+          <div className="flex items-start gap-3 border-t border-sky-400/10 bg-sky-400/[.035] px-5 py-4 text-[9px] leading-5 text-[var(--muted)] md:px-6"><FileBarChart size={14} className="mt-0.5 shrink-0 text-sky-300" />Reporte listo para compartir con liderazgo y convertir hallazgos en una decisión de audit, piloto o corrección.</div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function SectionIntro({ eyebrow, title, tone = "teal", children }: { eyebrow: string; title: string; tone?: "teal" | "rose"; children: React.ReactNode }) {
   return (
     <div className="max-w-3xl">
@@ -328,7 +373,7 @@ function HeroProductPreview() {
     <div className="relative mx-auto w-full max-w-[610px] lg:mx-0">
       <div className="visual-dark rounded-[24px] border border-white/[.09] bg-[linear-gradient(145deg,rgba(18,24,33,.98),rgba(10,14,20,.98))] p-3 text-[#f2f5f7] shadow-[0_40px_120px_rgba(0,0,0,.34)] sm:p-4">
         <div className="flex items-center justify-between border-b border-white/[.06] px-2 pb-3">
-          <div className="flex items-center gap-2"><span className="grid size-6 place-items-center rounded-lg bg-teal-300 text-[9px] font-black text-slate-950">V</span><span className="text-[10px] font-semibold">Aperture Systems</span></div>
+          <div className="flex items-center gap-2"><span className="grid size-6 place-items-center rounded-lg border border-white/[.08] bg-white/[.04] p-1"><Image src="/brand/virro-icon.svg" alt="" width={18} height={15} className="h-auto w-full object-contain" /></span><span className="text-[10px] font-semibold">Aperture Systems</span></div>
           <span className="rounded-full border border-sky-400/15 bg-sky-400/[.05] px-2.5 py-1 text-[8px] font-semibold text-sky-200">Demo preview · Datos simulados</span>
         </div>
         <div className="mt-3 grid gap-2 sm:grid-cols-3">
@@ -438,8 +483,4 @@ function ProductMiniature({ kind }: { kind: "dashboard" | "assistant" | "report"
   if (kind === "dashboard") return <div className="mt-3 grid h-40 grid-cols-[.3fr_.7fr] gap-2 rounded-xl border border-white/[.06] bg-[#090d13] p-3"><div className="space-y-2 border-r border-white/[.05] pr-2">{["Dashboard", "Inbox", "Packs", "Reports"].map((item, index) => <div key={item} className={`rounded px-2 py-1.5 text-[7px] ${index === 0 ? "bg-teal-400/[.08] text-teal-200" : "text-[var(--subtle)]"}`}>{item}</div>)}</div><div><div className="grid grid-cols-3 gap-1.5">{["68", "34", "1"].map((value, index) => <div key={value} className="rounded-md border border-white/[.05] p-2"><p className={`text-sm font-semibold ${index === 1 ? "text-rose-300" : "text-teal-300"}`}>{value}</p><div className="mt-1 h-1 rounded bg-white/[.05]" /></div>)}</div><div className="mt-2 h-[70px] rounded-md border border-white/[.05] p-2"><div className="space-y-2"><RiskBar label="Technical" value={61} tone="rose" /><RiskBar label="Handoff" value={38} tone="amber" /></div></div></div></div>;
   if (kind === "assistant") return <div className="mt-3 h-40 rounded-xl border border-white/[.06] bg-[#090d13] p-3"><div className="flex gap-1">{[1,2,3,4,5].map((step) => <span key={step} className={`h-1.5 flex-1 rounded-full ${step < 4 ? "bg-teal-300/60" : "bg-white/[.06]"}`} />)}</div><div className="mt-3 grid grid-cols-2 gap-2"><div className="rounded-md border border-white/[.05] p-2"><p className="text-[7px] text-[var(--subtle)]">Pack recomendado</p><p className="mt-1 text-[9px] font-semibold text-indigo-300">Handoff Intelligence</p></div><div className="rounded-md border border-white/[.05] p-2"><p className="text-[7px] text-[var(--subtle)]">Meaning Loss</p><p className="mt-1 text-[9px] font-semibold text-rose-300">63 / 100</p></div></div><div className="mt-2 rounded-md border border-white/[.05] p-2"><p className="text-[7px] text-[var(--subtle)]">Preguntas críticas</p><div className="mt-1.5 space-y-1">{["Receptor final", "Acción esperada", "Contexto no asumible"].map((item) => <div key={item} className="flex items-center gap-1.5 text-[7px] text-[var(--muted)]"><span className="size-1 rounded-full bg-teal-300" />{item}</div>)}</div></div></div>;
   return <div className="mt-3 h-40 rounded-xl border border-white/[.06] bg-[#090d13] p-3"><div className="flex items-center justify-between border-b border-white/[.05] pb-2"><div><p className="text-[7px] text-teal-300">VIRRO ENTERPRISE REPORT</p><p className="mt-1 text-[9px] font-semibold">Meaning Loss Audit</p></div><span className="grid size-6 place-items-center rounded bg-teal-300 text-[8px] font-black text-slate-950">V</span></div><div className="mt-2 grid grid-cols-3 gap-1.5">{["Resumen", "Riesgos", "Scores"].map((item, index) => <div key={item} className="rounded border border-white/[.05] p-2"><p className="text-[7px] text-[var(--subtle)]">0{index + 1}</p><p className="mt-1 text-[8px]">{item}</p></div>)}</div><div className="mt-2 rounded border border-teal-400/10 bg-teal-400/[.03] p-2"><p className="text-[7px] text-teal-300">Siguiente acción</p><div className="mt-1 h-1.5 w-4/5 rounded bg-white/[.06]" /><div className="mt-1 h-1.5 w-3/5 rounded bg-white/[.06]" /></div></div>;
-}
-
-function AuditColumn({ title, items }: { title: string; items: string[] }) {
-  return <article className="rounded-2xl border border-white/[.07] bg-black/10 p-4"><h3 className="text-[9px] font-semibold uppercase tracking-[.12em] text-teal-200">{title}</h3><div className="mt-4 space-y-2.5">{items.map((item) => <div key={item} className="flex items-start gap-2 text-[9px] leading-4 text-[var(--muted)]"><CheckCircle2 size={11} className="mt-0.5 shrink-0 text-teal-300" />{item}</div>)}</div></article>;
 }
