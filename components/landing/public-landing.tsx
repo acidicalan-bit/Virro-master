@@ -1,459 +1,58 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
-import {
-  ArrowDown,
-  ArrowRight,
-  Bot,
-  Boxes,
-  Braces,
-  ChartNoAxesCombined,
-  CheckCircle2,
-  CircleAlert,
-  FileBarChart,
-  FileCode2,
-  Handshake,
-  Inbox,
-  Layers3,
-  LockKeyhole,
-  Network,
-  PackageCheck,
-  ShieldCheck,
-  UserSearch,
-  UsersRound,
-} from "lucide-react";
+import { ArrowRight, Braces, CheckCircle2, CircleAlert, FileBarChart, Inbox, LockKeyhole, Network, ShieldCheck } from "lucide-react";
+import { ArchitectureOrbit } from "@/components/landing/architecture-orbit";
 import { DiagnosisRequestForm } from "@/components/landing/diagnosis-request-form";
-import { AnimatedConnectorLine, FloatingLayer, RevealOnScroll, StaggerGroup } from "@/components/landing/motion/motion-primitives";
+import { RevealOnScroll, StaggerGroup } from "@/components/landing/motion/motion-primitives";
 import { ProductWalkthrough } from "@/components/landing/product-walkthrough";
-import { ThemeToggle } from "@/components/theme/theme-toggle";
-
-const understandingFlow = [
-  "Información ambigua",
-  "Understanding Event",
-  "Meaning Loss Risk",
-  "Preguntas críticas",
-  "Scores estimados",
-  "Output operativo",
-  "Reporte ejecutivo",
-];
-
-const problemCards = [
-  {
-    title: "Humanos interpretando distinto",
-    text: "La misma información puede convertirse en acciones distintas según rol, contexto o receptor.",
-    icon: UsersRound,
-  },
-  {
-    title: "Herramientas con datos, no claridad",
-    text: "Jira, Confluence o Slack pueden almacenar información sin transferir entendimiento operativo.",
-    icon: Boxes,
-  },
-  {
-    title: "IA con contexto incompleto",
-    text: "La IA responde mejor cuando recibe intención, contexto, restricciones y criterios claros.",
-    icon: Bot,
-  },
-  {
-    title: "Deuda de Entendimiento Colectivo",
-    text: "Cuando la información avanza sin estar entendida, la organización acumula fricción invisible.",
-    icon: Network,
-  },
-];
-
-const layerFunctions = [
-  "Detecta intención",
-  "Clasifica Understanding Events",
-  "Identifica Meaning Loss",
-  "Propone preguntas críticas",
-  "Estima readiness",
-  "Genera outputs operativos",
-  "Alimenta reports",
-];
-
-const operationalOutcomes = [
-  "Más claridad antes de ejecutar",
-  "Menos pérdida de entendimiento",
-  "Menos fricción entre equipos",
-  "Menos desperdicio de contexto con IA",
-  "Mejores handoffs",
-  "Mejor transferencia hacia acción",
-];
-
-const credibilityFlows = [
-  { title: "Product Delivery", text: "Historias, criterios, bugs y handoffs que deben llegar listos para ejecución.", icon: PackageCheck },
-  { title: "AI Adoption", text: "Contexto operativo y límites para reducir outputs genéricos o supuestos débiles.", icon: Bot },
-  { title: "Technical Documentation", text: "Arquitectura y runbooks que otro equipo necesita entender para actuar.", icon: FileCode2 },
-  { title: "Talent & Staffing", text: "Necesidades de rol y candidatos que deben conservar contexto entre receptores.", icon: UserSearch },
-  { title: "Consulting Delivery", text: "Briefs y decisiones que no deberían degradarse antes de llegar al equipo ejecutor.", icon: Handshake },
-  { title: "Operations & Process", text: "Procesos, excepciones y ownership que deben transferirse o automatizarse.", icon: Network },
-];
-
-const buyerRoles = [
-  "CTO",
-  "CPO",
-  "Head of QA",
-  "Head of AI",
-  "VP Engineering",
-  "Delivery Director",
-  "Founder de consultora",
-  "Talent / Staffing Director",
-  "COO",
-];
-
-const auditDeliverables = [
-  "Riesgos principales",
-  "Contexto faltante",
-  "Preguntas críticas",
-  "Scores estimados",
-  "Recomendación de siguiente acción",
-  "Reporte ejecutivo",
-];
-
-const auditSteps = [
-  {
-    title: "Seleccionamos un flujo crítico",
-    text: "Producto, IA, documentación, staffing, consultoras, handoffs, procesos u onboarding.",
-    icon: Network,
-  },
-  {
-    title: "Revisamos 3 a 5 Understanding Events",
-    text: "Tickets, briefs, documentos, instrucciones para IA, vacantes, handoffs o procesos.",
-    icon: Inbox,
-  },
-  {
-    title: "Detectamos pérdida de entendimiento",
-    text: "Meaning Loss, contexto faltante, preguntas críticas y riesgos operativos.",
-    icon: CircleAlert,
-  },
-  {
-    title: "Entregamos reporte ejecutivo",
-    text: "Scores estimados, prioridades de corrección y recomendación de piloto.",
-    icon: FileBarChart,
-  },
-];
-
-const reportProofRows = [
-  ["Flujo analizado", "Product → Development"],
-  ["Eventos revisados", "3–5 Understanding Events"],
-  ["Riesgo principal", "Ownership de rollback no definido"],
-  ["Preguntas críticas", "Receptor, decisión y límites pendientes"],
-  ["Score estimado", "Handoff Readiness · 48 / 100"],
-  ["Recomendación", "Piloto de Handoff Intelligence"],
-];
+import { PublicNavbar } from "@/components/landing/public-navbar";
+import { SolutionPanels } from "@/components/landing/solution-panels";
+import { useLanguage } from "@/components/i18n/language-provider";
 
 export function PublicLanding() {
-  return (
-    <div className="public-landing min-h-screen overflow-hidden bg-[var(--app-bg)] text-[var(--text)]">
-      <header className="landing-header motion-navbar sticky top-0 z-30 border-b border-white/[.06] backdrop-blur-xl">
-        <div className="mx-auto flex h-[72px] max-w-7xl items-center gap-6 px-5 md:px-8">
-          <Link href="/" className="virro-brand flex shrink-0 items-center gap-2" aria-label="Virro, inicio">
-            <Image src="/brand/virro-icon.svg" alt="" width={31} height={25} priority className="h-auto w-[29px] object-contain" />
-            <span className="text-lg font-semibold tracking-[-.045em]">Virro</span>
-          </Link>
-          <nav className="ml-auto hidden items-center gap-6 text-[11px] text-[var(--muted)] lg:flex" aria-label="Navegación pública">
-            <a href="#categoria" className="transition hover:text-[var(--text)]">Categoría</a>
-            <a href="#arquitectura" className="transition hover:text-[var(--text)]">Arquitectura</a>
-            <a href="#producto" className="transition hover:text-[var(--text)]">Producto</a>
-            <a href="#audit" className="transition hover:text-[var(--text)]">Meaning Loss Audit</a>
-          </nav>
-          <ThemeToggle />
-          <a href="#audit" className="brand-primary-button inline-flex h-9 items-center gap-2 rounded-lg px-3 text-[10px] font-semibold transition lg:ml-2">Diagnosticar flujo <ArrowRight size={13} /></a>
-        </div>
-      </header>
-
-      <main>
-        <section id="categoria" className="landing-hero relative px-5 pb-24 pt-16 md:px-8 md:pb-32 md:pt-24">
-          <div className="pointer-events-none absolute left-[12%] top-0 h-[540px] w-[540px] rounded-full bg-[radial-gradient(circle,rgba(45,212,191,.10),transparent_68%)]" />
-          <div className="pointer-events-none absolute right-[-8%] top-[12%] h-[460px] w-[460px] rounded-full bg-[radial-gradient(circle,rgba(56,189,248,.07),transparent_68%)]" />
-          <Image src="/brand/virro-icon.svg" alt="" width={520} height={420} aria-hidden className="hero-watermark pointer-events-none absolute -right-24 top-8 h-auto w-[430px] object-contain" />
-          <div className="relative mx-auto grid max-w-7xl gap-14 lg:grid-cols-[1.02fr_.98fr] lg:items-center">
-            <div className="hero-copy-scene">
-              <div className="hero-scene-item inline-flex items-center gap-2 rounded-full border border-teal-400/15 bg-teal-400/[.05] px-3 py-1.5 text-[9px] font-semibold uppercase tracking-[.16em] text-teal-200">
-                <Layers3 size={12} /> Operating Understanding Layer
-              </div>
-              <h1 className="hero-scene-item mt-7 max-w-4xl text-[2.65rem] font-semibold leading-[1.02] tracking-[-.058em] sm:text-6xl lg:text-[4.4rem]">
-                The Operating Understanding Layer for Modern Organizations.
-              </h1>
-              <p className="hero-scene-item mt-6 text-base font-medium tracking-[-.02em] text-teal-100 md:text-lg">La capa de entendimiento operativo para organizaciones modernas.</p>
-              <p className="hero-scene-item mt-5 max-w-2xl text-sm leading-7 text-[var(--muted)] md:text-[15px]">
-                Virro es la infraestructura invisible que ayuda a que personas, equipos, herramientas e IA entiendan mejor la comunicación digital antes de convertirla en trabajo, decisión o automatización.
-              </p>
-              <div className="hero-scene-item mt-8 flex flex-col gap-3 sm:flex-row">
-                <a href="#audit" className="brand-primary-button inline-flex h-12 items-center justify-center gap-2 rounded-xl px-6 text-sm font-semibold shadow-[0_20px_60px_rgba(9,105,255,.18)] transition">
-                  Diagnosticar un flujo crítico <ArrowRight size={15} />
-                </a>
-                <Link href="/app" className="inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[.035] px-6 text-sm font-medium transition hover:border-white/20 hover:bg-white/[.06]">
-                  Ver demo enterprise
-                </Link>
-              </div>
-              <p className="hero-scene-item mt-5 flex max-w-2xl items-start gap-2 text-[10px] leading-5 text-[var(--subtle)]">
-                <ShieldCheck size={13} className="mt-0.5 shrink-0 text-teal-300" />
-                Scores estimados · No son garantías · No evalúan personas
-              </p>
-              <div className="hero-scene-item mt-7 grid max-w-xl grid-cols-3 gap-2">
-                {["Detecta pérdida", "Expone contexto", "Prioriza acción"].map((item, index) => <div key={item} className="hero-signal rounded-xl border border-white/[.07] p-3"><span className="text-[8px] font-semibold text-[var(--brand-blue)]">0{index + 1}</span><p className="mt-1 text-[9px] font-medium leading-4 text-[var(--muted)]">{item}</p></div>)}
-              </div>
-            </div>
-            <div className="hero-product-scene"><FloatingLayer><HeroProductPreview /></FloatingLayer></div>
-          </div>
-        </section>
-
-        <section id="problema" className="border-y border-white/[.055] bg-white/[.018] px-5 py-20 md:px-8 md:py-28">
-          <div className="mx-auto max-w-7xl">
-            <SectionIntro eyebrow="El costo invisible" title="La información puede existir y aun así no estar entendida." tone="rose">
-              <p>Cuando la comunicación digital se degrada entre personas, equipos, herramientas e IA, la operación acumula fricción, costo y <strong className="font-medium text-[var(--text)]">Deuda de Entendimiento Colectivo</strong>.</p>
-              <p>Virro ayuda a detectar esa pérdida antes de que se convierta en retrabajo, errores, mala ejecución, documentación inútil, mala contratación o desperdicio con IA.</p>
-            </SectionIntro>
-            <StaggerGroup className="mt-10 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-              {problemCards.map(({ title, text, icon: Icon }) => (
-                <article key={title} className="premium-card rounded-2xl border border-white/[.07] bg-[var(--panel)] p-5 shadow-[0_18px_55px_rgba(0,0,0,.08)]">
-                  <span className="grid size-9 place-items-center rounded-xl border border-white/[.06] bg-white/[.025] text-rose-300"><Icon size={17} /></span>
-                  <h3 className="mt-4 text-sm font-semibold tracking-[-.02em]">{title}</h3>
-                  <p className="mt-2 text-[11px] leading-5 text-[var(--muted)]">{text}</p>
-                </article>
-              ))}
-            </StaggerGroup>
-          </div>
-        </section>
-
-        <section id="como-funciona" className="px-5 py-20 md:px-8 md:py-24">
-          <div className="mx-auto max-w-7xl">
-            <SectionIntro eyebrow="Cómo funciona" title="De información ambigua a evidencia para decidir.">
-              <p>Virro convierte cada punto donde una información necesita ser entendida en un evento observable, analizable y revisable por personas.</p>
-            </SectionIntro>
-            <div className="mt-9 grid gap-2 sm:grid-cols-2 lg:grid-cols-7">
-              {understandingFlow.map((item, index) => (
-                <div key={item} className="relative rounded-xl border border-white/[.07] bg-[var(--panel-soft)] p-4">
-                  <span className="text-[9px] font-semibold text-teal-300">0{index + 1}</span>
-                  <p className="mt-2 text-[10px] font-medium leading-4">{item}</p>
-                  {index < understandingFlow.length - 1 && <ArrowRight size={12} className="absolute -right-[7px] top-1/2 z-10 hidden -translate-y-1/2 text-[var(--subtle)] lg:block" />}
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <ArchitectureDiagram />
-
-        <section id="producto" className="px-5 py-20 md:px-8 md:py-28">
-          <div className="mx-auto max-w-7xl">
-            <div className="flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
-              <SectionIntro eyebrow="Producto visible" title="Cómo se ve Virro en acción.">
-                <p>Un workspace demo muestra cómo Virro transforma información ambigua en Understanding Events, riesgos, preguntas críticas, scores y reportes ejecutivos.</p>
-              </SectionIntro>
-              <div className="flex flex-wrap gap-2">
-                <Link href="/app/demo-scenarios" className="inline-flex h-10 items-center gap-2 rounded-lg border border-white/10 bg-white/[.025] px-4 text-[10px] font-semibold transition hover:border-white/20">Explorar escenarios demo <ArrowRight size={12} /></Link>
-                <Link href="/app/reports" className="inline-flex h-10 items-center gap-2 rounded-lg border border-teal-400/15 bg-teal-400/[.05] px-4 text-[10px] font-semibold text-teal-200 transition hover:bg-teal-400/[.08]">Ver reporte ejecutivo <ArrowRight size={12} /></Link>
-              </div>
-            </div>
-            <ProductWalkthrough />
-          </div>
-        </section>
-
-        <ReportValueProof />
-
-        <section className="border-y border-white/[.055] bg-white/[.018] px-5 py-20 md:px-8 md:py-28">
-          <div className="mx-auto max-w-7xl">
-            <SectionIntro eyebrow="Credibilidad sin claims artificiales" title="Diseñado para flujos donde el entendimiento operativo es crítico.">
-              <p>Virro no reemplaza las herramientas existentes. Ayuda a revisar si la información que circula entre ellas conserva suficiente contexto para que el siguiente receptor pueda actuar.</p>
-            </SectionIntro>
-            <div className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {credibilityFlows.map(({ title, text, icon: Icon }) => (
-                <article key={title} className="premium-card rounded-2xl border border-white/[.07] bg-[var(--panel)] p-5">
-                  <div className="flex items-center gap-3"><span className="grid size-8 place-items-center rounded-lg bg-teal-400/[.07] text-teal-300"><Icon size={15} /></span><h3 className="text-sm font-semibold">{title}</h3></div>
-                  <p className="mt-3 text-[11px] leading-5 text-[var(--muted)]">{text}</p>
-                </article>
-              ))}
-            </div>
-            <div className="mt-8 rounded-2xl border border-white/[.07] bg-[var(--panel-soft)] p-5 md:p-6">
-              <p className="text-[9px] font-semibold uppercase tracking-[.14em] text-[var(--subtle)]">Perfiles para los que fue diseñado</p>
-              <div className="mt-4 flex flex-wrap gap-2">{buyerRoles.map((role) => <span key={role} className="rounded-full border border-white/[.08] bg-white/[.025] px-3 py-1.5 text-[9px] text-[var(--muted)]">{role}</span>)}</div>
-              <p className="mt-5 border-t border-white/[.06] pt-4 text-[10px] leading-5 text-[var(--subtle)]">Virro está siendo construido para pilotos, feedback privado y diagnósticos de flujo crítico. No usamos logos ni métricas de clientes sin autorización.</p>
-            </div>
-          </div>
-        </section>
-
-        <section id="audit" className="scroll-mt-24 px-5 py-20 md:px-8 md:py-28">
-          <div className="mx-auto max-w-7xl overflow-hidden rounded-[28px] border border-teal-400/15 bg-[linear-gradient(135deg,rgba(45,212,191,.075),rgba(56,189,248,.02)_52%,rgba(255,255,255,.018))] shadow-[0_35px_110px_rgba(0,0,0,.16)]">
-            <div className="grid gap-8 p-6 md:p-10 lg:grid-cols-[.78fr_1.22fr] lg:p-14">
-              <RevealOnScroll>
-                <div className="inline-flex items-center gap-2 rounded-full border border-teal-400/15 bg-teal-400/[.06] px-3 py-1.5 text-[9px] font-semibold uppercase tracking-[.14em] text-teal-200"><Braces size={12} /> Oferta inicial</div>
-                <h2 className="mt-6 text-3xl font-semibold tracking-[-.045em] md:text-5xl">Meaning Loss Audit</h2>
-                <p className="mt-3 text-sm font-medium text-teal-100">Diagnóstico de pérdida de entendimiento en un flujo crítico.</p>
-                <p className="mt-5 max-w-xl text-xs leading-6 text-[var(--muted)]">Revisamos de 3 a 5 Understanding Events para detectar señales de pérdida, contexto faltante, preguntas críticas y la siguiente acción que conviene validar.</p>
-                <div className="mt-5 inline-flex items-center gap-2 rounded-xl border border-sky-400/15 bg-sky-400/[.05] px-3 py-2 text-[10px] font-medium text-sky-200"><CheckCircle2 size={13} /> Duración estimada: 1 a 2 semanas</div>
-                <a href="#solicitar-diagnostico" className="brand-primary-button mt-7 inline-flex h-11 items-center gap-2 rounded-xl px-5 text-xs font-semibold transition">Solicitar diagnóstico <ArrowRight size={14} /></a>
-                <p className="mt-4 max-w-md text-[10px] leading-5 text-[var(--subtle)]">Abriremos tu correo con la solicitud preparada. No necesitas saber qué pack elegir.</p>
-              </RevealOnScroll>
-              <RevealOnScroll delay={120}>
-                <p className="text-[10px] font-semibold uppercase tracking-[.14em] text-[var(--brand-blue)]">Cómo empieza un Meaning Loss Audit</p>
-                <div className="relative mt-4"><AnimatedConnectorLine className="audit-progress-line absolute left-1/2 top-1/2 hidden h-px w-[72%] -translate-x-1/2 sm:block" /><StaggerGroup className="relative grid gap-3 sm:grid-cols-2">
-                  {auditSteps.map(({ title, text, icon: Icon }, index) => <article key={title} className="audit-step rounded-2xl border border-white/[.07] p-4"><div className="flex items-center justify-between"><span className="grid size-8 place-items-center rounded-lg bg-sky-400/[.07] text-sky-300"><Icon size={15} /></span><span className="text-[9px] font-semibold text-[var(--subtle)]">0{index + 1}</span></div><h3 className="mt-4 text-xs font-semibold">{title}</h3><p className="mt-2 text-[10px] leading-5 text-[var(--muted)]">{text}</p></article>)}
-                </StaggerGroup></div>
-                <div className="mt-4 rounded-2xl border border-white/[.07] bg-black/10 p-4"><p className="text-[9px] font-semibold uppercase tracking-[.12em] text-[var(--subtle)]">Qué recibe el cliente</p><div className="mt-3 flex flex-wrap gap-2">{auditDeliverables.map((item) => <span key={item} className="rounded-full border border-white/[.07] bg-white/[.025] px-3 py-1.5 text-[9px] text-[var(--muted)]">{item}</span>)}</div></div>
-              </RevealOnScroll>
-            </div>
-            <div className="grid gap-3 border-t border-teal-300/10 bg-black/10 px-6 py-4 text-[9px] leading-4 text-[var(--subtle)] md:grid-cols-3 md:px-10 lg:px-14">
-              <p className="flex items-start gap-2"><ShieldCheck size={12} className="mt-0.5 shrink-0 text-teal-300" />Virro no evalúa personas. Evalúa riesgos de entendimiento en información operativa.</p>
-              <p className="flex items-start gap-2"><CircleAlert size={12} className="mt-0.5 shrink-0 text-teal-300" />Los scores son estimaciones probabilísticas, no garantías.</p>
-              <p className="flex items-start gap-2"><LockKeyhole size={12} className="mt-0.5 shrink-0 text-teal-300" />No compartas información sensible antes de definir privacidad y alcance.</p>
-            </div>
-          </div>
-        </section>
-
-        <DiagnosisRequestForm />
-
-        <section className="border-y border-white/[.055] bg-white/[.018] px-5 py-14 md:px-8">
-          <div className="mx-auto flex max-w-7xl flex-col gap-5 md:flex-row md:items-center">
-            <span className="grid size-11 shrink-0 place-items-center rounded-2xl border border-teal-400/15 bg-teal-400/[.05] text-teal-300"><ShieldCheck size={20} /></span>
-            <div>
-              <h2 className="text-xl font-semibold tracking-[-.03em]">Virro debe ser más confiable que inteligente.</h2>
-              <p className="mt-2 max-w-4xl text-xs leading-6 text-[var(--muted)]">Virro no guarda texto privado crudo por defecto. No está diseñado para vigilar empleados ni evaluar desempeño personal. Los scores son estimaciones probabilísticas para apoyar criterio humano.</p>
-            </div>
-          </div>
-        </section>
-
-        <section className="px-5 py-20 text-center md:px-8 md:py-28">
-          <div className="mx-auto max-w-3xl">
-            <p className="text-[9px] font-semibold uppercase tracking-[.16em] text-teal-300">Operating Understanding Layer</p>
-            <h2 className="mt-4 text-3xl font-semibold tracking-[-.045em] md:text-5xl">Empieza por un flujo donde hoy se pierde claridad.</h2>
-            <p className="mx-auto mt-5 max-w-2xl text-sm leading-6 text-[var(--muted)]">Virro puede ayudar a convertir ese dolor en evidencia, preguntas críticas y una primera recomendación operativa.</p>
-            <a href="#audit" className="brand-primary-button mt-7 inline-flex h-12 items-center gap-2 rounded-xl px-6 text-sm font-semibold transition">Diagnosticar un flujo crítico <ArrowRight size={15} /></a>
-          </div>
-        </section>
-      </main>
-
-      <footer className="border-t border-white/[.055] px-5 py-8 md:px-8">
-        <div className="mx-auto flex max-w-7xl flex-col gap-4 text-[10px] text-[var(--subtle)] sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-3"><span className="virro-brand flex items-center gap-2"><Image src="/brand/virro-icon.svg" alt="" width={26} height={21} className="h-auto w-6 object-contain" /><span className="text-sm font-semibold tracking-[-.035em] text-[var(--text)]">Virro</span></span><span>Operating Understanding Layer</span></div>
-          <div className="flex flex-wrap gap-4"><Link href="/app/privacy-trust">Privacidad y confianza</Link><Link href="/app/reports">Reporte ejecutivo</Link><Link href="/app">Demo enterprise</Link></div>
-        </div>
-      </footer>
-    </div>
-  );
-}
-
-function ReportValueProof() {
-  return (
-    <section id="reporte-ejecutivo" className="report-proof scroll-mt-20 border-y border-white/[.055] px-5 py-20 md:px-8 md:py-28">
-      <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[.78fr_1.22fr] lg:items-center">
-        <RevealOnScroll>
-          <p className="text-[9px] font-semibold uppercase tracking-[.16em] text-[var(--brand-coral)]">Entregable para decisión</p>
-          <h2 className="mt-4 text-3xl font-semibold tracking-[-.045em] md:text-4xl">El entregable: claridad ejecutiva sobre dónde se pierde entendimiento.</h2>
-          <p className="mt-5 max-w-xl text-sm leading-7 text-[var(--muted)]">Virro convierte eventos analizados en un reporte ejecutivo con riesgos, contexto faltante, scores estimados y acciones recomendadas.</p>
-          <p className="mt-5 flex max-w-xl items-start gap-2 text-[10px] leading-5 text-[var(--subtle)]"><ShieldCheck size={13} className="mt-0.5 shrink-0 text-[var(--brand-blue)]" />Los reportes no evalúan personas. Evalúan riesgos de entendimiento en información operativa.</p>
-          <Link href="/app/reports" className="mt-7 inline-flex h-11 items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--panel)] px-5 text-xs font-semibold transition hover:-translate-y-0.5 hover:border-sky-400/25">Ver reporte ejecutivo <ArrowRight size={14} /></Link>
-        </RevealOnScroll>
-
-        <RevealOnScroll delay={160} className="report-sheet-scene visual-dark overflow-hidden rounded-[26px] border border-white/[.09] bg-[#0b1019] text-[#f2f5f7] shadow-[0_38px_110px_rgba(0,0,0,.28)]">
-          <div className="flex items-center justify-between border-b border-white/[.07] px-5 py-4 md:px-6"><div className="flex items-center gap-3"><span className="grid size-8 place-items-center rounded-lg border border-white/[.08] bg-white/[.04]"><Image src="/brand/virro-icon.svg" alt="" width={22} height={18} className="h-auto w-5 object-contain" /></span><div><p className="text-[9px] font-semibold uppercase tracking-[.12em] text-sky-300">Virro Enterprise Report</p><p className="mt-0.5 text-xs font-semibold">Meaning Loss Audit</p></div></div><span className="rounded-full border border-white/[.08] bg-white/[.03] px-2.5 py-1 text-[8px] text-[var(--muted)]">Demo · Datos simulados</span></div>
-          <div className="grid gap-px bg-white/[.06] sm:grid-cols-2">
-            {reportProofRows.map(([label, value], index) => <div key={label} className="report-proof-row bg-[#0b1019] p-5 md:p-6"><div className="flex items-center justify-between"><p className="text-[8px] font-semibold uppercase tracking-[.12em] text-[var(--subtle)]">{label}</p><span className="text-[8px] text-sky-300">0{index + 1}</span></div><p className={`mt-3 text-[11px] font-medium leading-5 ${label === "Riesgo principal" ? "text-rose-300" : label === "Score estimado" ? "text-sky-300" : ""}`}>{value}</p></div>)}
-          </div>
-          <div className="flex items-start gap-3 border-t border-sky-400/10 bg-sky-400/[.035] px-5 py-4 text-[9px] leading-5 text-[var(--muted)] md:px-6"><FileBarChart size={14} className="mt-0.5 shrink-0 text-sky-300" />Reporte listo para compartir con liderazgo y convertir hallazgos en una decisión de audit, piloto o corrección.</div>
-        </RevealOnScroll>
-      </div>
-    </section>
-  );
-}
-
-function SectionIntro({ eyebrow, title, tone = "teal", children }: { eyebrow: string; title: string; tone?: "teal" | "rose"; children: React.ReactNode }) {
-  return (
-    <div className="max-w-3xl">
-      <p className={`text-[9px] font-semibold uppercase tracking-[.16em] ${tone === "rose" ? "text-rose-300" : "text-teal-300"}`}>{eyebrow}</p>
-      <h2 className="mt-4 text-3xl font-semibold tracking-[-.045em] md:text-4xl">{title}</h2>
-      <div className="mt-5 space-y-3 text-sm leading-7 text-[var(--muted)]">{children}</div>
-    </div>
-  );
-}
-
-function HeroProductPreview() {
-  return (
-    <div className="relative mx-auto w-full max-w-[610px] lg:mx-0">
-      <div className="visual-dark rounded-[24px] border border-white/[.09] bg-[linear-gradient(145deg,rgba(18,24,33,.98),rgba(10,14,20,.98))] p-3 text-[#f2f5f7] shadow-[0_40px_120px_rgba(0,0,0,.34)] sm:p-4">
-        <div className="flex items-center justify-between border-b border-white/[.06] px-2 pb-3">
-          <div className="flex items-center gap-2"><span className="grid size-6 place-items-center rounded-lg border border-white/[.08] bg-white/[.04] p-1"><Image src="/brand/virro-icon.svg" alt="" width={18} height={15} className="h-auto w-full object-contain" /></span><span className="text-[10px] font-semibold">Aperture Systems</span></div>
-          <span className="rounded-full border border-sky-400/15 bg-sky-400/[.05] px-2.5 py-1 text-[8px] font-semibold text-sky-200">Demo preview · Datos simulados</span>
-        </div>
-        <div className="mt-3 grid gap-2 sm:grid-cols-3">
-          <PreviewMetric label="DoU Score" value="68" tone="teal" />
-          <PreviewMetric label="Meaning Loss" value="34" tone="rose" />
-          <PreviewMetric label="Handoffs en riesgo" value="1" tone="amber" />
-        </div>
-        <div className="mt-3 grid gap-2 sm:grid-cols-[1.1fr_.9fr]">
-          <div className="rounded-xl border border-white/[.06] bg-white/[.02] p-4">
-            <div className="flex items-center justify-between"><p className="text-[9px] font-semibold">Riesgo por área</p><ChartNoAxesCombined size={13} className="text-teal-300" /></div>
-            <div className="mt-4 space-y-3">
-              <RiskBar label="Documentación técnica" value={61} tone="rose" />
-              <RiskBar label="Handoff Intelligence" value={38} tone="amber" />
-              <RiskBar label="Product Delivery" value={24} tone="teal" />
-            </div>
-          </div>
-          <div className="rounded-xl border border-white/[.06] bg-white/[.02] p-4">
-            <p className="text-[9px] font-semibold">Siguiente acción</p>
-            <div className="mt-3 rounded-lg border border-teal-400/15 bg-teal-400/[.045] p-3">
-              <p className="text-[8px] uppercase tracking-[.1em] text-teal-300">UE-2479</p>
-              <p className="mt-2 text-[10px] font-medium leading-4">Resolver ownership de rollback antes de migrar consumidores.</p>
-            </div>
-            <div className="mt-2 flex items-center gap-2 text-[8px] text-[var(--subtle)]"><ShieldCheck size={10} className="text-teal-300" /> Estimación · requiere validación humana</div>
-          </div>
-        </div>
-      </div>
-      <div className="absolute -bottom-7 -left-4 hidden w-48 rounded-xl border border-indigo-400/15 bg-[#111620] p-3 shadow-[0_20px_60px_rgba(0,0,0,.32)] sm:block">
-        <div className="flex items-center gap-2"><Inbox size={12} className="text-indigo-300" /><p className="text-[8px] font-semibold uppercase tracking-[.1em] text-indigo-300">Understanding Event</p></div>
-        <p className="mt-2 text-[10px] font-medium">Handoff no listo para QA</p>
-        <p className="mt-1 text-[8px] text-[var(--subtle)]">3 preguntas críticas detectadas</p>
-      </div>
-      <div className="absolute -right-3 -top-6 hidden w-44 rounded-xl border border-teal-400/15 bg-[#111620] p-3 shadow-[0_20px_60px_rgba(0,0,0,.32)] md:block">
-        <div className="flex items-center gap-2"><FileBarChart size={12} className="text-teal-300" /><p className="text-[8px] font-semibold uppercase tracking-[.1em] text-teal-300">Executive Report</p></div>
-        <p className="mt-2 text-[10px] font-medium">Meaning Loss Audit</p>
-        <p className="mt-1 text-[8px] text-[var(--subtle)]">Riesgos · contexto · siguiente acción</p>
-      </div>
-    </div>
-  );
-}
-
-function PreviewMetric({ label, value, tone }: { label: string; value: string; tone: "teal" | "rose" | "amber" }) {
-  const colors = { teal: "text-teal-300", rose: "text-rose-300", amber: "text-amber-300" };
-  return <div className="rounded-xl border border-white/[.06] bg-white/[.02] p-3"><p className="text-[8px] text-[var(--subtle)]">{label}</p><p className={`mt-1 text-2xl font-semibold tracking-[-.04em] ${colors[tone]}`}>{value}<span className="ml-1 text-[8px] font-normal text-[var(--subtle)]">{label === "Handoffs en riesgo" ? "" : "/100"}</span></p></div>;
-}
-
-function RiskBar({ label, value, tone }: { label: string; value: number; tone: "teal" | "rose" | "amber" }) {
-  const colors = { teal: "bg-teal-300", rose: "bg-rose-400", amber: "bg-amber-300" };
-  return <div><div className="flex justify-between gap-2 text-[8px] text-[var(--muted)]"><span>{label}</span><span>{value}</span></div><div className="mt-1.5 h-1 overflow-hidden rounded-full bg-white/[.06]"><div className={`h-full rounded-full ${colors[tone]}`} style={{ width: `${value}%` }} /></div></div>;
-}
-
-function ArchitectureDiagram() {
-  const interactors = [
-    { title: "Personas", items: ["Producto", "Dev", "QA", "Arquitectura", "Operaciones", "Staffing"], icon: UsersRound },
-    { title: "Herramientas", items: ["Jira", "Confluence", "Slack", "Docs", "ATS", "CRM"], icon: Boxes },
-    { title: "IA", items: ["ChatGPT", "Copilot", "Gemini", "Agentes internos", "Automatizaciones"], icon: Bot },
+  const { t } = useLanguage();
+  const problemCards = [
+    [t("Different interpretations", "Interpretaciones distintas"), t("The same information becomes different actions depending on role, context or receiver.", "La misma información se convierte en acciones distintas según el rol, contexto o receptor.")],
+    [t("Context trapped in tools", "Contexto atrapado en herramientas"), t("Tickets and documents store data without ensuring operational understanding.", "Tickets y documentos almacenan datos sin asegurar entendimiento operativo.")],
+    [t("AI operating on assumptions", "IA operando con supuestos"), t("Generic output appears when intent, constraints and authoritative context are incomplete.", "Los resultados genéricos aparecen cuando intención, restricciones y contexto autorizado están incompletos.")],
   ];
-  return (
-    <section id="arquitectura" className="brand-architecture border-y border-white/[.055] bg-white/[.018] px-5 py-20 md:px-8 md:py-28">
-      <div className="mx-auto max-w-7xl">
-        <SectionIntro eyebrow="Arquitectura organizacional" title="Dónde vive Virro dentro de la operación moderna.">
-          <p>Virro no reemplaza tus herramientas. Vive entre la comunicación digital y la ejecución para ayudar a que la información llegue mejor entendida.</p>
-        </SectionIntro>
-        <div className="architecture-scene mt-10 rounded-[28px] border border-white/[.07] bg-[var(--panel)] p-4 shadow-[0_28px_90px_rgba(0,0,0,.15)] md:p-7">
-          <StaggerGroup className="rounded-2xl border border-white/[.06] bg-white/[.018] p-4 md:p-5">
-            <p className="text-[9px] font-semibold uppercase tracking-[.14em] text-[var(--subtle)]">Capa superior · Interactores</p>
-            <div className="mt-4 grid gap-3 md:grid-cols-3">
-              {interactors.map(({ title, items, icon: Icon }) => <div key={title} className="architecture-interactor rounded-xl border border-white/[.06] bg-black/10 p-4"><div className="flex items-center gap-2"><Icon size={14} className="text-cyan-300" /><p className="text-xs font-semibold">{title}</p></div><div className="mt-3 flex flex-wrap gap-1.5">{items.map((item) => <span key={item} className="rounded-md border border-white/[.06] bg-white/[.025] px-2 py-1 text-[8px] text-[var(--muted)]">{item}</span>)}</div></div>)}
-            </div>
-          </StaggerGroup>
-          <LayerConnector />
-          <RevealOnScroll delay={120}><div className="architecture-core rounded-2xl border p-5 md:p-7"><div className="flex flex-col justify-between gap-4 md:flex-row md:items-start"><div><p className="text-[9px] font-semibold uppercase tracking-[.14em] text-teal-300">Capa intermedia</p><h3 className="mt-2 text-xl font-semibold tracking-[-.03em]">Virro — Operating Understanding Layer</h3><p className="mt-3 max-w-3xl text-xs leading-6 text-[var(--muted)]">La capa que procesa, aclara, clasifica, estructura y valida si la información está lista para que otra persona, equipo, herramienta o IA pueda actuar.</p></div><span className="grid size-11 shrink-0 place-items-center rounded-xl bg-teal-300 text-slate-950"><Layers3 size={19} /></span></div><div className="mt-5 flex flex-wrap gap-2">{layerFunctions.map((item) => <span key={item} className="rounded-lg border border-teal-300/15 bg-black/10 px-3 py-2 text-[9px] text-teal-100">{item}</span>)}</div></div></RevealOnScroll>
-          <LayerConnector />
-          <StaggerGroup delay={220} className="rounded-2xl border border-white/[.06] bg-white/[.018] p-4 md:p-5">
-            <p className="text-[9px] font-semibold uppercase tracking-[.14em] text-[var(--subtle)]">Capa inferior · Resultados operativos</p>
-            <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{operationalOutcomes.map((item) => <div key={item} className="architecture-result flex items-center gap-2 rounded-xl border border-white/[.06] bg-black/10 px-3 py-3 text-[10px] text-[var(--muted)]"><CheckCircle2 size={12} className="shrink-0 text-teal-300" />{item}</div>)}</div>
-          </StaggerGroup>
-        </div>
-      </div>
-    </section>
-  );
+  const auditSteps = [
+    [t("Select a critical flow", "Seleccionamos un flujo crítico"), t("Product, AI, documentation, staffing, consulting, handoffs, processes or onboarding.", "Producto, IA, documentación, staffing, consultoras, handoffs, procesos u onboarding."), Network],
+    [t("Review 3 to 5 Understanding Events", "Revisamos 3 a 5 Understanding Events"), t("Tickets, briefs, documents, AI instructions, roles, handoffs or processes.", "Tickets, briefs, documentos, instrucciones para IA, vacantes, handoffs o procesos."), Inbox],
+    [t("Detect meaning loss risk", "Detectamos riesgo de pérdida de significado"), t("Missing context, interpretation risks, assumptions and critical questions.", "Contexto faltante, riesgos de interpretación, supuestos y preguntas críticas."), CircleAlert],
+    [t("Deliver an executive report", "Entregamos un reporte ejecutivo"), t("Estimated scores, correction priorities and a pilot recommendation.", "Scores estimados, prioridades de corrección y recomendación de piloto."), FileBarChart],
+  ] as const;
+  const reportRows = [
+    [t("Analyzed flow", "Flujo analizado"), "Product → Development"],
+    [t("Reviewed events", "Eventos revisados"), "3–5 Understanding Events"],
+    [t("Primary risk", "Riesgo principal"), t("Rollback ownership is undefined", "Ownership de rollback no definido")],
+    [t("Critical questions", "Preguntas críticas"), t("Receiver, decision and boundaries pending validation", "Receptor, decisión y límites pendientes de validar")],
+    [t("Estimated score", "Score estimado"), "Handoff Readiness · 48/100"],
+    [t("Recommendation", "Recomendación"), t("Handoff Intelligence pilot", "Piloto de Handoff Intelligence")],
+  ];
+
+  return <div className="public-landing min-h-screen overflow-hidden bg-[var(--app-bg)] text-[var(--text)]"><PublicNavbar /><main>
+    <section id="categoria" className="landing-hero relative px-5 pb-24 pt-36 md:px-8 md:pb-36 md:pt-44"><div className="hero-glow hero-glow-one" /><div className="hero-glow hero-glow-two" /><Image src="/brand/virro-icon.svg" alt="" width={640} height={520} aria-hidden className="hero-watermark pointer-events-none absolute -right-28 top-24 h-auto w-[520px] object-contain" /><div className="relative mx-auto grid max-w-7xl gap-16 lg:grid-cols-[1.05fr_.95fr] lg:items-center"><div className="hero-copy-scene"><div className="hero-scene-item inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--panel)] px-3 py-1.5 text-[9px] font-semibold uppercase tracking-[.17em] text-[var(--brand-blue)]"><Braces size={12} /> Operating Understanding Layer</div><h1 className="hero-scene-item mt-7 max-w-4xl text-[2.75rem] font-semibold leading-[.99] tracking-[-.062em] sm:text-6xl lg:text-[4.9rem]">{t("The Operating Understanding Layer for Modern Organizations.", "La capa de entendimiento operativo para organizaciones modernas.")}</h1><p className="hero-scene-item mt-7 max-w-2xl text-sm leading-7 text-[var(--muted)] md:text-base">{t("Virro makes interpretation risk, missing context and readiness visible before digital information becomes work, a decision or automation.", "Virro hace visibles el riesgo de interpretación, el contexto faltante y el readiness antes de que la información digital se convierta en trabajo, decisión o automatización.")}</p><div className="hero-scene-item mt-9 flex flex-col gap-3 sm:flex-row"><a href="#solicitar-diagnostico" className="brand-primary-button inline-flex h-12 items-center justify-center gap-2 rounded-full px-6 text-sm font-semibold shadow-[0_20px_60px_rgba(9,105,255,.22)]">{t("Diagnose a critical flow", "Diagnosticar un flujo crítico")} <ArrowRight size={15} /></a><Link href="/app" className="inline-flex h-12 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--panel)] px-6 text-sm font-medium transition hover:-translate-y-0.5 hover:shadow-lg">{t("View enterprise demo", "Ver demo enterprise")}</Link></div><p className="hero-scene-item mt-5 flex items-center gap-2 text-[10px] text-[var(--subtle)]"><ShieldCheck size={13} className="text-[var(--brand-blue)]" /> {t("Estimated scores · No guarantees · No people evaluation", "Scores estimados · No son garantías · No evalúan personas")}</p></div><HeroPreview t={t} /></div></section>
+
+    <section className="thesis-section border-y border-[var(--border)] px-5 py-24 md:px-8 md:py-32"><div className="mx-auto max-w-7xl"><RevealOnScroll><p className="text-[10px] font-semibold uppercase tracking-[.18em] text-[var(--brand-coral)]">{t("The invisible operational cost", "El costo operativo invisible")}</p><h2 className="mt-5 max-w-5xl text-4xl font-semibold leading-[1.03] tracking-[-.052em] md:text-6xl">{t("Information can exist, be documented and still not be understood.", "La información puede existir, estar documentada y aun así no estar entendida.")}</h2><p className="mt-6 max-w-3xl text-sm leading-7 text-[var(--muted)]">{t("Virro examines the transfer—not the person—to reveal where meaning can distort before it becomes rework, risk or a weak automation.", "Virro examina la transferencia —no a la persona— para revelar dónde puede distorsionarse el significado antes de convertirse en retrabajo, riesgo o una automatización débil.")}</p></RevealOnScroll><StaggerGroup className="mt-12 grid gap-4 md:grid-cols-3">{problemCards.map(([title, text], index) => <article key={title} className="premium-card min-h-[220px] rounded-[24px] border border-[var(--border)] bg-[var(--panel)] p-6"><span className="text-[9px] font-semibold text-[var(--brand-coral)]">0{index + 1}</span><h3 className="mt-8 text-xl font-semibold tracking-[-.035em]">{title}</h3><p className="mt-3 text-xs leading-6 text-[var(--muted)]">{text}</p></article>)}</StaggerGroup></div></section>
+
+    <ArchitectureOrbit />
+
+    <section id="producto" className="scroll-mt-24 px-5 py-24 md:px-8 md:py-36"><div className="mx-auto max-w-7xl"><div className="grid gap-6 lg:grid-cols-[.9fr_1.1fr] lg:items-end"><div><p className="text-[10px] font-semibold uppercase tracking-[.18em] text-[var(--brand-blue)]">{t("Product walkthrough", "Recorrido del producto")}</p><h2 className="mt-5 text-4xl font-semibold tracking-[-.052em] md:text-6xl">{t("From scattered input to executive clarity.", "Del input disperso a claridad ejecutiva.")}</h2></div><p className="max-w-xl text-sm leading-7 text-[var(--muted)] lg:justify-self-end">{t("Explore the complete operating loop with simulated data. Every result remains traceable, estimated and ready for human validation.", "Explora el ciclo operativo completo con datos simulados. Cada resultado permanece trazable, estimado y listo para validación humana.")}</p></div><ProductWalkthrough /></div></section>
+
+    <SolutionPanels />
+
+    <section id="audit" className="scroll-mt-24 px-5 py-24 md:px-8 md:py-36"><div className="mx-auto max-w-7xl overflow-hidden rounded-[32px] border border-[var(--border)] bg-[var(--panel)] shadow-[0_40px_130px_rgba(0,0,0,.18)]"><div className="grid lg:grid-cols-[.76fr_1.24fr]"><div className="audit-offer-panel p-7 md:p-12 lg:p-14"><p className="text-[10px] font-semibold uppercase tracking-[.17em] text-[var(--brand-blue)]">{t("Start here", "Empieza aquí")}</p><h2 className="mt-5 text-4xl font-semibold tracking-[-.052em] md:text-6xl">Meaning Loss Audit</h2><p className="mt-5 max-w-xl text-sm leading-7 text-[var(--muted)]">{t("A focused diagnosis of one critical flow to identify where operational meaning can distort before execution.", "Un diagnóstico enfocado en un flujo crítico para identificar dónde puede distorsionarse el significado operativo antes de ejecutar.")}</p><div className="mt-7 inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--panel-soft)] px-4 py-2 text-[10px] font-medium"><CheckCircle2 size={13} className="text-[var(--brand-blue)]" /> {t("Estimated duration: 1 to 2 weeks", "Duración estimada: 1 a 2 semanas")}</div><a href="#solicitar-diagnostico" className="brand-primary-button mt-8 inline-flex h-12 items-center gap-2 rounded-full px-6 text-xs font-semibold">{t("Request a diagnosis", "Solicitar diagnóstico")} <ArrowRight size={14} /></a></div><div className="border-t border-[var(--border)] p-6 md:p-10 lg:border-l lg:border-t-0"><p className="text-[10px] font-semibold uppercase tracking-[.15em] text-[var(--subtle)]">{t("How the audit starts", "Cómo empieza el audit")}</p><div className="mt-5 grid gap-3 sm:grid-cols-2">{auditSteps.map(([title, text, Icon], index) => <article key={title} className="audit-step rounded-2xl border border-[var(--border)] bg-[var(--panel-soft)] p-5"><div className="flex items-center justify-between"><span className="grid size-9 place-items-center rounded-xl bg-[color-mix(in_srgb,var(--brand-blue)_9%,transparent)] text-[var(--brand-blue)]"><Icon size={16} /></span><span className="text-[9px] font-semibold text-[var(--subtle)]">0{index + 1}</span></div><h3 className="mt-5 text-xs font-semibold">{title}</h3><p className="mt-2 text-[10px] leading-5 text-[var(--muted)]">{text}</p></article>)}</div></div></div><div className="grid gap-3 border-t border-[var(--border)] bg-[var(--panel-soft)] px-7 py-5 text-[9px] leading-4 text-[var(--subtle)] md:grid-cols-3 md:px-12"><p>{t("No people evaluation. The audit examines operational information.", "No evalúa personas. El audit examina información operativa.")}</p><p>{t("Scores are probabilistic estimates, not guarantees.", "Los scores son estimaciones probabilísticas, no garantías.")}</p><p>{t("Privacy and scope are defined before reviewing real events.", "La privacidad y el alcance se definen antes de revisar eventos reales.")}</p></div></div></section>
+
+    <section id="reporte-ejecutivo" className="report-proof scroll-mt-24 border-y border-[var(--border)] px-5 py-24 md:px-8 md:py-36"><div className="mx-auto grid max-w-7xl gap-12 lg:grid-cols-[.78fr_1.22fr] lg:items-center"><div><p className="text-[10px] font-semibold uppercase tracking-[.18em] text-[var(--brand-blue)]">{t("Customer value proof", "Prueba de valor para el cliente")}</p><h2 className="mt-5 text-4xl font-semibold leading-[1.04] tracking-[-.052em] md:text-6xl">{t("Executive clarity on where meaning is lost.", "Claridad ejecutiva sobre dónde se pierde significado.")}</h2><p className="mt-6 text-sm leading-7 text-[var(--muted)]">{t("Virro turns reviewed events into an executive report with interpretation risks, missing context, estimated scores and recommended actions.", "Virro convierte eventos revisados en un reporte ejecutivo con riesgos de interpretación, contexto faltante, scores estimados y acciones recomendadas.")}</p><Link href="/app/reports" className="mt-8 inline-flex h-11 items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--panel)] px-5 text-xs font-semibold">{t("View executive report", "Ver reporte ejecutivo")} <ArrowRight size={13} /></Link></div><div className="report-sheet overflow-hidden rounded-[26px] border border-[var(--border)] bg-[var(--panel)] shadow-[0_34px_110px_rgba(0,0,0,.16)]"><div className="flex items-center justify-between border-b border-[var(--border)] p-6"><div><p className="text-[9px] font-semibold uppercase tracking-[.15em] text-[var(--brand-blue)]">Virro Enterprise Report</p><p className="mt-2 text-lg font-semibold">Meaning Loss Audit</p></div><FileBarChart size={21} className="text-[var(--brand-blue)]" /></div><div className="grid sm:grid-cols-2">{reportRows.map(([label, value]) => <div key={label} className="border-b border-r border-[var(--border)] p-5"><p className="text-[8px] uppercase tracking-[.12em] text-[var(--subtle)]">{label}</p><p className="mt-3 text-[10px] font-medium leading-5">{value}</p></div>)}</div><p className="p-5 text-[9px] leading-5 text-[var(--subtle)]">{t("Reports do not evaluate people. They estimate interpretation risk in operational information.", "Los reportes no evalúan personas. Estiman riesgos de interpretación en información operativa.")}</p></div></div></section>
+
+    <section id="trust" className="scroll-mt-24 px-5 py-24 md:px-8 md:py-32"><div className="mx-auto grid max-w-7xl gap-8 rounded-[30px] border border-[var(--border)] bg-[var(--panel)] p-7 md:p-12 lg:grid-cols-[.8fr_1.2fr]"><div><span className="grid size-11 place-items-center rounded-2xl bg-[color-mix(in_srgb,var(--brand-blue)_9%,transparent)] text-[var(--brand-blue)]"><LockKeyhole size={19} /></span><h2 className="mt-7 text-4xl font-semibold tracking-[-.05em]">{t("More trustworthy than intelligent.", "Más confiable que inteligente.")}</h2><p className="mt-5 text-sm leading-7 text-[var(--muted)]">{t("Trust is not a disclaimer. It is part of how Virro defines scope, retention, evidence and human validation.", "La confianza no es un disclaimer. Es parte de cómo Virro define alcance, retención, evidencia y validación humana.")}</p></div><div className="grid gap-3 sm:grid-cols-2">{[t("No private conversations stored by default", "No guarda conversaciones privadas por defecto"), t("No unnecessary raw messages retained", "No conserva mensajes crudos innecesarios"), t("No employee surveillance", "No vigila empleados"), t("No personal performance scores", "No genera scores de desempeño personal")].map((item) => <div key={item} className="flex items-start gap-3 rounded-2xl border border-[var(--border)] bg-[var(--panel-soft)] p-5 text-[10px] leading-5"><ShieldCheck size={14} className="mt-0.5 shrink-0 text-[var(--brand-blue)]" />{item}</div>)}</div></div></section>
+
+    <DiagnosisRequestForm />
+  </main><footer className="border-t border-[var(--border)] px-5 py-10 md:px-8"><div className="mx-auto flex max-w-7xl flex-col gap-6 sm:flex-row sm:items-center sm:justify-between"><Link href="/" className="flex items-center gap-2"><Image src="/brand/virro-icon.svg" alt="" width={25} height={21} /><span className="font-semibold tracking-[-.04em]">Virro</span></Link><p className="text-[9px] text-[var(--subtle)]">Operating Understanding Layer · {t("Probabilistic estimates, human validation", "Estimaciones probabilísticas, validación humana")}</p><div className="flex gap-4 text-[10px]"><Link href="/app/privacy-trust">{t("Privacy", "Privacidad")}</Link><Link href="/app">{t("Enterprise demo", "Demo enterprise")}</Link></div></div></footer></div>;
 }
 
-function LayerConnector() {
-  return <RevealOnScroll className="relative flex h-12 items-center justify-center"><AnimatedConnectorLine className="h-8 w-px" /><ArrowDown size={14} className="absolute bottom-0 text-teal-300" /></RevealOnScroll>;
-}
+type Translator = (english: string, spanish: string) => string;
+function HeroPreview({ t }: { t: Translator }) { return <div className="hero-product-scene relative"><div className="hero-preview-back absolute inset-8 -rotate-3 rounded-[28px] border border-[var(--border)] bg-[var(--panel-soft)]" /><div className="hero-preview relative overflow-hidden rounded-[28px] border border-[var(--border)] bg-[var(--panel)] shadow-[0_40px_130px_rgba(0,0,0,.24)]"><div className="flex items-center justify-between border-b border-[var(--border)] px-5 py-4"><div><p className="text-[8px] font-semibold uppercase tracking-[.14em] text-[var(--brand-blue)]">{t("Demo workspace · Simulated data", "Demo workspace · Datos simulados")}</p><p className="mt-1 text-xs font-semibold">{t("Executive understanding", "Entendimiento ejecutivo")}</p></div><span className="size-2 rounded-full bg-emerald-400" /></div><div className="p-5"><div className="grid grid-cols-3 gap-2">{[["DoU Score", "68"], ["Meaning Loss", "34"], ["Handoff", "48"]].map(([label, value], index) => <div key={label} className="rounded-xl border border-[var(--border)] bg-[var(--panel-soft)] p-3"><p className="text-[8px] text-[var(--subtle)]">{label}</p><p className={`mt-2 text-2xl font-semibold ${index === 1 ? "text-rose-300" : index === 2 ? "text-amber-300" : "text-[var(--brand-blue)]"}`}>{value}</p></div>)}</div><div className="mt-3 grid gap-3 sm:grid-cols-[1.1fr_.9fr]"><div className="rounded-2xl border border-[var(--border)] bg-[var(--panel-soft)] p-4"><p className="text-[9px] font-semibold">{t("Meaning loss risk", "Riesgo de pérdida de significado")}</p>{[[t("Technical context", "Contexto técnico"), 61], [t("Product handoff", "Handoff de producto"), 38], [t("AI context", "Contexto para IA"), 24]].map(([label, value]) => <div key={String(label)} className="mt-4"><div className="flex justify-between text-[8px] text-[var(--subtle)]"><span>{label}</span><span>{value}</span></div><div className="mt-1.5 h-1 rounded-full bg-[var(--border)]"><div className="h-full rounded-full bg-[var(--brand-blue)]" style={{ width: `${value}%` }} /></div></div>)}</div><div className="rounded-2xl border border-[var(--border)] bg-[var(--panel-soft)] p-4"><p className="text-[9px] font-semibold">{t("Next action", "Siguiente acción")}</p><div className="mt-4 rounded-xl border border-[color-mix(in_srgb,var(--brand-blue)_20%,transparent)] bg-[color-mix(in_srgb,var(--brand-blue)_5%,transparent)] p-3 text-[9px] leading-5 text-[var(--muted)]">{t("Validate rollback ownership before the handoff advances.", "Validar ownership de rollback antes de que avance el handoff.")}</div></div></div></div></div></div>; }

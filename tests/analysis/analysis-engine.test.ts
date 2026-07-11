@@ -54,7 +54,7 @@ describe("pack analyzers", () => {
       "Confluence existe, pero el equipo no entiende cómo actuar",
       "Vacante técnica mal entendida que llena el pipeline de candidatos incorrectos",
       "Candidato presentado sin contexto suficiente para que el cliente lo evalúe bien",
-      "Pérdida de entendimiento entre áreas sin flujo claramente clasificado",
+      "Información crítica que cambia de significado entre áreas",
     ]);
   });
 });

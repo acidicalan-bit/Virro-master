@@ -23,11 +23,13 @@ describe("landing motion system", () => {
     expect(packageJson).not.toContain("framer-motion");
   });
 
-  it("provides the three interactive product scenes", () => {
+  it("provides the five interactive enterprise product scenes", () => {
     const walkthrough = readFileSync(join(root, "components/landing/product-walkthrough.tsx"), "utf8");
     expect(walkthrough).toContain('id: "dashboard"');
-    expect(walkthrough).toContain('id: "assistant"');
-    expect(walkthrough).toContain('id: "report"');
-    expect(walkthrough).toContain("Demo preview · Datos simulados");
+    expect(walkthrough).toContain('id: "inbox"');
+    expect(walkthrough).toContain('id: "packs"');
+    expect(walkthrough).toContain('id: "reports"');
+    expect(walkthrough).toContain('id: "trust"');
+    expect(walkthrough).toContain("Demo enterprise · Datos simulados");
   });
 });

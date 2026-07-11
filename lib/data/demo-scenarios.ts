@@ -138,7 +138,7 @@ export const demoScenarios: DemoScenario[] = [
   },
   {
     id: "scenario-critical-flow",
-    title: "Pérdida de entendimiento entre áreas sin flujo claramente clasificado",
+    title: "Información crítica que cambia de significado entre áreas",
     rawInput: "El trabajo sigue pasando entre áreas, pero cada equipo nuevo dedica días a reconstruir contexto y nadie acuerda qué significa terminado.",
     context: "El cliente puede describir la pérdida de tiempo y ejecución, pero aún no sabe qué pack de Virro explica mejor el flujo.",
     sourceRole: "Operations Sponsor",

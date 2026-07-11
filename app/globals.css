@@ -167,6 +167,40 @@ button, select { cursor: pointer; }
 .public-landing .brand-architecture .architecture-core .text-teal-100 { color: var(--brand-blue); }
 .public-landing .brand-architecture .architecture-core .bg-teal-300 { background: #0969ff; color: #ffffff; }
 
+.public-landing .landing-nav-shell { transition: border-color var(--motion-fast) ease, box-shadow var(--motion-fast) ease; }
+.public-landing .hero-glow { position: absolute; pointer-events: none; border-radius: 999px; filter: blur(1px); }
+.public-landing .hero-glow-one { left: 7%; top: 10%; width: 520px; height: 520px; background: radial-gradient(circle, color-mix(in srgb, var(--brand-blue) 11%, transparent), transparent 68%); }
+.public-landing .hero-glow-two { right: -8%; top: 25%; width: 480px; height: 480px; background: radial-gradient(circle, color-mix(in srgb, var(--brand-coral) 7%, transparent), transparent 70%); }
+.public-landing .hero-preview-back { transform-origin: center; transition: transform var(--motion-base) var(--premium-ease); }
+.public-landing .hero-product-scene:hover .hero-preview-back { transform: rotate(-5deg) translate3d(-5px, 5px, 0); }
+.public-landing .hero-preview { background: linear-gradient(145deg, color-mix(in srgb, var(--panel) 97%, var(--brand-blue) 3%), var(--panel)); }
+.public-landing .thesis-section { background: linear-gradient(180deg, color-mix(in srgb, var(--panel-soft) 88%, transparent), transparent); }
+.public-landing .architecture-orbit-section { background: radial-gradient(circle at 72% 50%, color-mix(in srgb, var(--brand-blue) 8%, transparent), transparent 32%); }
+.public-landing .orbit-stage { position: relative; min-height: 650px; isolation: isolate; }
+.public-landing .orbit-ring { position: absolute; left: 50%; top: 50%; border: 1px solid color-mix(in srgb, var(--border) 88%, transparent); border-radius: 999px; transform: translate(-50%, -50%); }
+.public-landing .orbit-ring::after { position: absolute; left: 50%; top: -4px; width: 8px; height: 8px; content: ""; border-radius: 99px; background: var(--brand-blue); box-shadow: 0 0 22px color-mix(in srgb, var(--brand-blue) 45%, transparent); }
+.public-landing .orbit-ring-outer { width: 600px; height: 600px; animation: orbit-spin 32s linear infinite; }
+.public-landing .orbit-ring-inner { width: 390px; height: 390px; border-style: dashed; animation: orbit-spin-reverse 25s linear infinite; }
+.public-landing .orbit-core { position: absolute; left: 50%; top: 50%; z-index: 3; display: flex; width: 210px; height: 210px; flex-direction: column; align-items: center; justify-content: center; border: 1px solid color-mix(in srgb, var(--brand-blue) 32%, var(--border)); border-radius: 999px; background: color-mix(in srgb, var(--panel) 92%, transparent); box-shadow: 0 30px 100px color-mix(in srgb, var(--brand-blue) 14%, transparent); transform: translate(-50%, -50%); backdrop-filter: blur(18px); }
+.public-landing .orbit-core strong { margin-top: 13px; font-size: 20px; letter-spacing: -.045em; }
+.public-landing .orbit-core span { margin-top: 5px; max-width: 130px; color: var(--subtle); font-size: 8px; line-height: 1.5; text-align: center; }
+.public-landing .orbit-nodes { position: absolute; inset: 0; }
+.public-landing .orbit-node { --angle: calc(var(--orbit-index) * 45deg); position: absolute; left: 50%; top: 50%; z-index: 4; display: flex; min-width: 145px; align-items: center; gap: 9px; border: 1px solid var(--border); border-radius: 16px; background: var(--panel); padding: 10px 12px; box-shadow: 0 16px 48px rgba(0,0,0,.11); transform: translate(-50%, -50%) rotate(var(--angle)) translateY(-285px) rotate(calc(var(--angle) * -1)); transition: border-color var(--motion-fast) ease, box-shadow var(--motion-fast) ease, scale var(--motion-fast) var(--premium-ease); }
+.public-landing .orbit-node:hover { border-color: color-mix(in srgb, var(--brand-blue) 34%, var(--border)); box-shadow: 0 20px 65px color-mix(in srgb, var(--brand-blue) 11%, transparent); scale: 1.04; }
+.public-landing .orbit-node > span { display: grid; width: 30px; height: 30px; place-items: center; flex: none; border-radius: 10px; background: color-mix(in srgb, var(--brand-blue) 8%, transparent); color: var(--brand-blue); }
+.public-landing .orbit-node strong { font-size: 9px; line-height: 1.35; }
+.public-landing .solution-panel { box-shadow: 0 22px 75px rgba(0,0,0,.08); transition: transform var(--motion-fast) var(--premium-ease), border-color var(--motion-fast) ease, box-shadow var(--motion-fast) ease; }
+.public-landing .solution-panel::after { position: absolute; right: -18%; bottom: -45%; width: 62%; height: 100%; content: ""; border-radius: 999px; background: radial-gradient(circle, color-mix(in srgb, var(--brand-blue) 8%, transparent), transparent 69%); transition: transform var(--motion-slow) var(--premium-ease); }
+.public-landing .solution-panel:hover { transform: translateY(-5px); border-color: color-mix(in srgb, var(--brand-blue) 28%, var(--border)); box-shadow: 0 34px 90px rgba(0,0,0,.13); }
+.public-landing .solution-panel:hover::after { transform: translate3d(-10px,-8px,0) scale(1.08); }
+.public-landing .solution-panel-number { position: absolute; right: 24px; top: 16px; color: color-mix(in srgb, var(--text) 6%, transparent); font-size: 72px; font-weight: 700; letter-spacing: -.08em; }
+.public-landing .audit-offer-panel { background: radial-gradient(circle at 10% 0, color-mix(in srgb, var(--brand-blue) 11%, transparent), transparent 42%); }
+.public-landing .report-sheet { transform: perspective(1200px) rotateY(-2deg); transition: transform var(--motion-slow) var(--premium-ease); }
+.public-landing .report-sheet:hover { transform: perspective(1200px) rotateY(0deg) translateY(-4px); }
+
+@keyframes orbit-spin { to { transform: translate(-50%, -50%) rotate(360deg); } }
+@keyframes orbit-spin-reverse { to { transform: translate(-50%, -50%) rotate(-360deg); } }
+
 /* The landing uses semantic theme surfaces. Product screenshots remain dark previews. */
 [data-theme="light"] .public-landing [class*="border-white"] { border-color: var(--border); }
 [data-theme="light"] .public-landing [class*="bg-white/"] { background-color: var(--hover); }
@@ -243,6 +277,12 @@ button, select { cursor: pointer; }
   .motion-floating { animation-duration: 9s; }
   .hero-watermark { opacity: .02; }
   .walkthrough-panel { animation-name: hero-item-enter; }
+  .public-landing .orbit-stage { min-height: auto; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .public-landing .orbit-ring { display: none; }
+  .public-landing .orbit-core { position: relative; left: auto; top: auto; grid-column: 1 / -1; width: 150px; height: 150px; margin: 0 auto 18px; transform: none; }
+  .public-landing .orbit-nodes { display: contents; }
+  .public-landing .orbit-node { position: static; min-width: 0; transform: none; }
+  .public-landing .report-sheet { transform: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -254,6 +294,7 @@ button, select { cursor: pointer; }
   .architecture-result,
   .report-proof-row { opacity: 1 !important; transform: none !important; }
   .motion-connector { transform: none !important; }
+  .orbit-ring { animation: none !important; }
 }
 
 ::-webkit-scrollbar { width: 8px; height: 8px; }
