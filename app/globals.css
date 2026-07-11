@@ -17,6 +17,12 @@
   --ring-track: #252b35;
   --brand-blue: #4d9aff;
   --brand-coral: #ff6b64;
+  --motion-fast: 180ms;
+  --motion-base: 320ms;
+  --motion-slow: 650ms;
+  --motion-scene: 900ms;
+  --premium-ease: cubic-bezier(.22, 1, .36, 1);
+  --soft-ease: cubic-bezier(.16, 1, .3, 1);
   color-scheme: dark;
 }
 
@@ -47,6 +53,64 @@ button, select { cursor: pointer; }
 
 .landing-header { background: var(--header); }
 .virro-brand { background: transparent; }
+
+.motion-navbar { animation: navbar-enter var(--motion-slow) var(--premium-ease) both; }
+.hero-scene-item { animation: hero-item-enter var(--motion-slow) var(--premium-ease) both; }
+.hero-scene-item:nth-child(1) { animation-delay: 80ms; }
+.hero-scene-item:nth-child(2) { animation-delay: 150ms; }
+.hero-scene-item:nth-child(3) { animation-delay: 220ms; }
+.hero-scene-item:nth-child(4) { animation-delay: 290ms; }
+.hero-scene-item:nth-child(5) { animation-delay: 360ms; }
+.hero-scene-item:nth-child(6) { animation-delay: 430ms; }
+.hero-scene-item:nth-child(7) { animation-delay: 500ms; }
+.hero-product-scene { animation: product-scene-enter var(--motion-scene) var(--premium-ease) 240ms both; }
+.motion-floating { animation: gentle-float 7s ease-in-out 1.2s infinite; }
+.motion-reveal { opacity: 0; transform: translate3d(0, 22px, 0); transition: opacity var(--motion-slow) var(--soft-ease) var(--motion-delay, 0ms), transform var(--motion-slow) var(--soft-ease) var(--motion-delay, 0ms); }
+.motion-reveal.motion-fade { transform: none; }
+.motion-reveal.is-visible { opacity: 1; transform: translate3d(0, 0, 0); }
+.motion-stagger > * { opacity: 0; transform: translate3d(0, 16px, 0); }
+.motion-stagger.is-visible > * { animation: stagger-item-in var(--motion-slow) var(--premium-ease) both; }
+.motion-stagger.is-visible > *:nth-child(2) { animation-delay: 70ms; }
+.motion-stagger.is-visible > *:nth-child(3) { animation-delay: 140ms; }
+.motion-stagger.is-visible > *:nth-child(4) { animation-delay: 210ms; }
+.motion-stagger.is-visible > *:nth-child(5) { animation-delay: 280ms; }
+.motion-stagger.is-visible > *:nth-child(6) { animation-delay: 350ms; }
+.motion-card { transition: transform var(--motion-fast) var(--premium-ease), border-color var(--motion-fast) ease, background-color var(--motion-fast) ease; }
+.motion-connector { display: block; background: linear-gradient(90deg, transparent, var(--brand-blue), var(--brand-coral), transparent); transform: scaleX(0); transform-origin: left; }
+.motion-reveal.is-visible .motion-connector { animation: connector-draw var(--motion-scene) var(--premium-ease) 120ms forwards; }
+.motion-reveal.is-visible .motion-connector.h-8 { background: linear-gradient(180deg, transparent, var(--brand-blue), var(--brand-coral)); transform: scaleY(0); transform-origin: top; animation-name: connector-draw-y; }
+.walkthrough-tab { transition: border-color var(--motion-fast) ease, background-color var(--motion-fast) ease, transform var(--motion-fast) var(--premium-ease); }
+.walkthrough-tab::after { position: absolute; inset: auto 12px -1px; height: 2px; content: ""; border-radius: 999px; background: linear-gradient(90deg, var(--brand-blue), var(--brand-coral)); transform: scaleX(0); transform-origin: left; transition: transform var(--motion-base) var(--premium-ease); }
+.walkthrough-tab.is-active::after { transform: scaleX(1); }
+.walkthrough-panel { animation: walkthrough-panel-in var(--motion-base) var(--premium-ease) both; }
+.architecture-interactor,
+.architecture-result,
+.audit-step { transition: transform var(--motion-fast) var(--premium-ease), border-color var(--motion-fast) ease, background-color var(--motion-fast) ease; }
+.architecture-scene .motion-stagger.is-visible .architecture-interactor,
+.architecture-scene .motion-stagger.is-visible .architecture-result { animation: stagger-item-in var(--motion-slow) var(--premium-ease) both; }
+.architecture-scene .motion-stagger.is-visible .architecture-interactor:nth-child(2),
+.architecture-scene .motion-stagger.is-visible .architecture-result:nth-child(2) { animation-delay: 90ms; }
+.architecture-scene .motion-stagger.is-visible .architecture-interactor:nth-child(3),
+.architecture-scene .motion-stagger.is-visible .architecture-result:nth-child(3) { animation-delay: 180ms; }
+.architecture-scene .motion-reveal.is-visible .architecture-core { animation: architecture-core-enter var(--motion-scene) var(--premium-ease) both; }
+.architecture-scene:has(.architecture-interactor:hover) .architecture-core,
+.architecture-scene:has(.architecture-result:hover) .architecture-core { border-color: color-mix(in srgb, var(--brand-blue) 48%, transparent); box-shadow: 0 24px 75px color-mix(in srgb, var(--brand-blue) 14%, transparent); }
+.report-sheet-scene.is-visible .report-proof-row { animation: stagger-item-in var(--motion-slow) var(--premium-ease) both; }
+.report-sheet-scene.is-visible .report-proof-row:nth-child(2) { animation-delay: 70ms; }
+.report-sheet-scene.is-visible .report-proof-row:nth-child(3) { animation-delay: 140ms; }
+.report-sheet-scene.is-visible .report-proof-row:nth-child(4) { animation-delay: 210ms; }
+.report-sheet-scene.is-visible .report-proof-row:nth-child(5) { animation-delay: 280ms; }
+.report-sheet-scene.is-visible .report-proof-row:nth-child(6) { animation-delay: 350ms; }
+
+@keyframes navbar-enter { from { opacity: 0; transform: translate3d(0, -10px, 0); } to { opacity: 1; transform: none; } }
+@keyframes hero-item-enter { from { opacity: 0; transform: translate3d(0, 20px, 0); } to { opacity: 1; transform: none; } }
+@keyframes product-scene-enter { from { opacity: 0; transform: translate3d(24px, 12px, 0) scale(.985); } to { opacity: 1; transform: none; } }
+@keyframes gentle-float { 0%, 100% { transform: translate3d(0, 0, 0); } 50% { transform: translate3d(0, -6px, 0); } }
+@keyframes stagger-item-in { from { opacity: 0; transform: translate3d(0, 16px, 0); } to { opacity: 1; transform: none; } }
+@keyframes connector-draw { to { transform: scaleX(1); } }
+@keyframes connector-draw-y { to { transform: scaleY(1); } }
+@keyframes walkthrough-panel-in { from { opacity: 0; transform: translate3d(10px, 0, 0); } to { opacity: 1; transform: none; } }
+@keyframes architecture-core-enter { 0% { opacity: 0; transform: scale(.985); } 68% { box-shadow: 0 24px 82px color-mix(in srgb, var(--brand-blue) 14%, transparent); } 100% { opacity: 1; transform: none; } }
 
 .public-landing .brand-accent { color: var(--brand-blue); }
 .public-landing .brand-accent-coral { color: var(--brand-coral); }
@@ -160,6 +224,37 @@ button, select { cursor: pointer; }
 
 .field-control::placeholder { color: var(--subtle); }
 .field-control:focus { border-color: rgba(45, 212, 191, .5); box-shadow: 0 0 0 4px rgba(45, 212, 191, .055); }
+
+.public-landing a:focus-visible,
+.public-landing button:focus-visible,
+.field-control:focus-visible { outline: 2px solid color-mix(in srgb, var(--brand-blue) 72%, white); outline-offset: 3px; }
+.public-landing .brand-primary-button svg { transition: transform var(--motion-fast) var(--premium-ease); }
+.public-landing .brand-primary-button:hover svg { transform: translateX(3px); }
+
+@media (hover: hover) {
+  .motion-card:hover,
+  .architecture-interactor:hover,
+  .architecture-result:hover,
+  .audit-step:hover { transform: translate3d(0, -3px, 0); border-color: color-mix(in srgb, var(--brand-blue) 30%, var(--border)); }
+  .walkthrough-tab:hover { transform: translate3d(2px, 0, 0); }
+}
+
+@media (max-width: 640px) {
+  .motion-floating { animation-duration: 9s; }
+  .hero-watermark { opacity: .02; }
+  .walkthrough-panel { animation-name: hero-item-enter; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation-duration: .01ms !important; animation-delay: 0ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+  .motion-reveal,
+  .motion-stagger > *,
+  .architecture-interactor,
+  .architecture-result,
+  .report-proof-row { opacity: 1 !important; transform: none !important; }
+  .motion-connector { transform: none !important; }
+}
 
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--subtle) 35%, transparent); border-radius: 99px; }
