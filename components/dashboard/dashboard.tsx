@@ -8,6 +8,7 @@ import {
   Braces,
   CircleAlert,
   Database,
+  FileBarChart,
   FileWarning,
   Handshake,
   PackagePlus,
@@ -42,6 +43,13 @@ export function Dashboard() {
     { label: t("Technical Understanding Readiness", "Readiness de entendimiento técnico"), detail: t("How ready technical documentation is for another team to understand, test, maintain or modify a system.", "Estima si la documentación técnica permite que otro equipo entienda, pruebe, mantenga o modifique un sistema."), value: insights.metrics.technicalReadiness, suffix: "%", icon: ShieldCheck, tone: "blue" },
     { label: t("Onboarding Readiness", "Readiness de onboarding"), detail: t("How prepared the context is for a new member, consultant or provider.", "Qué tan preparado está el contexto para que un nuevo miembro, consultora o proveedor pueda incorporarse con claridad."), value: insights.metrics.onboardingReadiness, suffix: "%", icon: UsersRound, tone: "teal" },
   ];
+  const demoSteps = [
+    { number: "01", label: t("Review the executive dashboard", "Revisa el tablero ejecutivo"), href: "/app" },
+    { number: "02", label: t("Open Demo Scenarios", "Abre Escenarios demo"), href: "/app/demo-scenarios" },
+    { number: "03", label: t("Try the Understanding Inbox", "Prueba la Bandeja de entendimiento"), href: "/app/inbox" },
+    { number: "04", label: t("Review a specific analysis pack", "Revisa un pack específico"), href: "/app/handoff-intelligence" },
+    { number: "05", label: t("Open Reports as a client deliverable", "Consulta Reports como ejemplo de entregable"), href: "/app/reports" },
+  ];
 
   return (
     <div className="space-y-6">
@@ -53,8 +61,8 @@ export function Dashboard() {
           <p className="mt-2 max-w-3xl text-sm text-[var(--muted)]">{t("A decision view of risk concentration, readiness, understanding debt and the next corrective action.", "Vista ejecutiva de concentración de riesgo, readiness, deuda de entendimiento y próximas acciones correctivas.")}</p>
         </div>
         <div className="flex gap-2">
-          <Link href="/app/demo-scenarios" className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--panel)] px-4 text-xs font-medium"><PackagePlus size={14} /> {t("Demo scenarios", "Escenarios demo")}</Link>
-          <Link href="/app/inbox" className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-teal-300 px-4 text-xs font-semibold text-slate-950">{t("New event", "Nuevo evento")} <ArrowRight size={14} /></Link>
+          <Link href="/app/demo-scenarios" className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--panel)] px-4 text-xs font-medium"><PackagePlus size={14} /> {t("Explore demo scenarios", "Explorar escenarios demo")}</Link>
+          <Link href="/app/reports" className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-teal-300 px-4 text-xs font-semibold text-slate-950"><FileBarChart size={14} /> {t("View executive report example", "Ver ejemplo de reporte ejecutivo")}</Link>
         </div>
       </section>
 
@@ -63,9 +71,9 @@ export function Dashboard() {
         <p className="mt-1.5 max-w-4xl text-xs leading-5 text-[var(--muted)]">{t("This dashboard shows where an organization may be accumulating understanding debt. Each event represents a moment where information must be understood so a team, consultant, tool or AI can act. Virro estimates risk, readiness and missing context to help decide what to correct first.", "Este tablero muestra dónde una empresa podría estar acumulando deuda de entendimiento. Cada evento representa un momento donde una información necesita ser entendida para que un equipo, consultora, herramienta o IA pueda actuar. Virro estima riesgos, readiness y contexto faltante para ayudar a decidir qué corregir primero.")}</p>
       </section>
 
-      <div className="flex items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--panel-soft)] px-3 py-2 text-[10px] text-[var(--subtle)]">
-        <CircleAlert size={13} /> {t("Scores are probabilistic estimates of operational risk and readiness—not guarantees or personal evaluations.", "Los scores son estimaciones probabilísticas de riesgo operativo y readiness. No son garantías ni evaluaciones personales.")}
-      </div>
+      <section className="panel p-4 md:p-5"><div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end"><div><p className="text-[9px] font-semibold uppercase tracking-[.13em] text-indigo-300">{t("Private demo guide", "Guía de demo privada")}</p><h2 className="mt-1.5 text-sm font-semibold">{t("How to tour this demo", "Cómo recorrer esta demo")}</h2></div><p className="max-w-xl text-[10px] leading-5 text-[var(--subtle)]">{t("A suggested path to connect executive risk, operational evidence and the final client deliverable.", "Un recorrido sugerido para conectar riesgo ejecutivo, evidencia operativa y entregable final para cliente.")}</p></div><div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-5">{demoSteps.map((step) => <Link key={step.number} href={step.href} className="group rounded-xl border border-[var(--border)] bg-[var(--panel-soft)] p-3 transition hover:border-indigo-300/20 hover:bg-indigo-400/[.035]"><div className="flex items-center justify-between"><span className="text-[9px] font-semibold text-indigo-300">{step.number}</span><ArrowRight size={12} className="text-[var(--subtle)] transition group-hover:translate-x-0.5 group-hover:text-indigo-300" /></div><p className="mt-2 text-[10px] font-medium leading-4">{step.label}</p></Link>)}</div></section>
+
+      <section className="grid gap-2 rounded-lg border border-[var(--border)] bg-[var(--panel-soft)] p-3 text-[9px] leading-4 text-[var(--subtle)] lg:grid-cols-3"><p className="flex items-start gap-2"><ShieldCheck size={12} className="mt-0.5 shrink-0 text-teal-300" />{t("Virro must be more trustworthy than intelligent.", "Virro debe ser más confiable que inteligente.")}</p><p className="flex items-start gap-2"><ShieldCheck size={12} className="mt-0.5 shrink-0 text-teal-300" />{t("Virro does not evaluate people and is not designed to monitor employees.", "Virro no evalúa personas. Evalúa riesgos de entendimiento en información operativa. Virro no está diseñado para vigilar empleados.")}</p><p className="flex items-start gap-2"><CircleAlert size={12} className="mt-0.5 shrink-0 text-teal-300" />{t("Scores are probabilistic estimates, not guarantees. Virro does not retain raw private text by default.", "Los scores son estimaciones probabilísticas, no garantías. Virro no guarda texto privado crudo por defecto.")}</p></section>
 
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {metrics.map(({ label, detail, value, suffix, icon: Icon, tone }) => (
