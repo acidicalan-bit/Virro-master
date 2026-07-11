@@ -15,6 +15,8 @@
   --muted: #9ba5b2;
   --subtle: #647080;
   --ring-track: #252b35;
+  --brand-blue: #4d9aff;
+  --brand-coral: #ff6b64;
   color-scheme: dark;
 }
 
@@ -32,6 +34,8 @@
   --muted: #52606f;
   --subtle: #84909d;
   --ring-track: #e5e9ed;
+  --brand-blue: #0969ff;
+  --brand-coral: #d93630;
   color-scheme: light;
 }
 
@@ -40,6 +44,52 @@ html { background: var(--app-bg); }
 body { margin: 0; font-family: var(--font-inter), Arial, sans-serif; background: var(--app-bg); }
 button, a, select { -webkit-tap-highlight-color: transparent; }
 button, select { cursor: pointer; }
+
+.landing-header { background: var(--header); }
+.brand-lockup { background: #ffffff; }
+
+.public-landing .brand-accent { color: var(--brand-blue); }
+.public-landing .brand-accent-coral { color: var(--brand-coral); }
+.public-landing .brand-primary-button { background: #0969ff; color: #ffffff; }
+.public-landing .brand-primary-button:hover { background: #075edb; }
+.public-landing .brand-architecture .architecture-core {
+  border-color: color-mix(in srgb, var(--brand-blue) 28%, transparent);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--brand-blue) 11%, transparent), color-mix(in srgb, var(--brand-coral) 4%, transparent));
+  box-shadow: 0 24px 75px color-mix(in srgb, var(--brand-blue) 8%, transparent);
+}
+.public-landing .brand-architecture .architecture-core .text-teal-300,
+.public-landing .brand-architecture .architecture-core .text-teal-100 { color: var(--brand-blue); }
+.public-landing .brand-architecture .architecture-core .bg-teal-300 { background: #0969ff; color: #ffffff; }
+
+/* The landing uses semantic theme surfaces. Product screenshots remain dark previews. */
+[data-theme="light"] .public-landing [class*="border-white"] { border-color: var(--border); }
+[data-theme="light"] .public-landing [class*="bg-white/"] { background-color: var(--hover); }
+[data-theme="light"] .public-landing [class*="bg-black/"] { background-color: rgba(15, 23, 42, .035); }
+
+[data-theme="light"] .text-teal-300 { color: #0f766e; }
+[data-theme="light"] .text-teal-200,
+[data-theme="light"] .text-teal-100 { color: #115e59; }
+[data-theme="light"] .text-cyan-300,
+[data-theme="light"] .text-sky-300,
+[data-theme="light"] .text-sky-200 { color: #0369a1; }
+[data-theme="light"] .text-rose-300 { color: #be123c; }
+[data-theme="light"] .text-amber-300 { color: #a16207; }
+[data-theme="light"] .text-indigo-300 { color: #6d28d9; }
+[data-theme="light"] .text-emerald-200 { color: #047857; }
+
+[data-theme="light"] .public-landing .visual-dark {
+  --muted: #9ba5b2;
+  --subtle: #647080;
+}
+[data-theme="light"] .public-landing .visual-dark [class*="border-white"] { border-color: rgba(255, 255, 255, .075); }
+[data-theme="light"] .public-landing .visual-dark [class*="bg-white/"] { background-color: rgba(255, 255, 255, .035); }
+[data-theme="light"] .public-landing .visual-dark .text-teal-300 { color: #5eead4; }
+[data-theme="light"] .public-landing .visual-dark .text-teal-200,
+[data-theme="light"] .public-landing .visual-dark .text-teal-100 { color: #99f6e4; }
+[data-theme="light"] .public-landing .visual-dark .text-sky-200 { color: #bae6fd; }
+[data-theme="light"] .public-landing .visual-dark .text-rose-300 { color: #fda4af; }
+[data-theme="light"] .public-landing .visual-dark .text-amber-300 { color: #fde047; }
+[data-theme="light"] .public-landing .visual-dark .text-indigo-300 { color: #c4b5fd; }
 
 .panel {
   border: 1px solid var(--border);

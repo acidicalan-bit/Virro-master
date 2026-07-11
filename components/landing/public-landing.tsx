@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import {
   ArrowDown,
@@ -21,6 +22,7 @@ import {
   UsersRound,
 } from "lucide-react";
 import { DiagnosisRequestForm } from "@/components/landing/diagnosis-request-form";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 
 const understandingFlow = [
   "Información ambigua",
@@ -35,22 +37,22 @@ const understandingFlow = [
 const problemCards = [
   {
     title: "Humanos interpretando distinto",
-    text: "Producto, Dev, QA, arquitectura, staffing u operaciones pueden recibir la misma información y entender acciones distintas.",
+    text: "La misma información puede convertirse en acciones distintas según rol, contexto o receptor.",
     icon: UsersRound,
   },
   {
-    title: "Herramientas llenas de información, pero no de claridad",
-    text: "Jira, Confluence, Slack o documentos pueden contener datos sin transferir suficiente entendimiento operativo.",
+    title: "Herramientas con datos, no claridad",
+    text: "Jira, Confluence o Slack pueden almacenar información sin transferir entendimiento operativo.",
     icon: Boxes,
   },
   {
     title: "IA con contexto incompleto",
-    text: "Los sistemas de IA responden mejor cuando reciben intención, contexto, restricciones y criterios suficientemente claros.",
+    text: "La IA responde mejor cuando recibe intención, contexto, restricciones y criterios claros.",
     icon: Bot,
   },
   {
     title: "Deuda de Entendimiento Colectivo",
-    text: "Cuando la información avanza sin estar entendida, aparece deuda invisible como fricción, aclaraciones, retrasos o decisiones débiles.",
+    text: "Cuando la información avanza sin estar entendida, la organización acumula fricción invisible.",
     icon: Network,
   },
 ];
@@ -126,23 +128,20 @@ const auditAreas = [
 
 export function PublicLanding() {
   return (
-    <div className="min-h-screen overflow-hidden bg-[var(--app-bg)] text-[var(--text)]">
-      <header className="sticky top-0 z-30 border-b border-white/[.06] bg-[rgba(8,11,16,.86)] backdrop-blur-xl">
+    <div className="public-landing min-h-screen overflow-hidden bg-[var(--app-bg)] text-[var(--text)]">
+      <header className="landing-header sticky top-0 z-30 border-b border-white/[.06] backdrop-blur-xl">
         <div className="mx-auto flex h-[72px] max-w-7xl items-center gap-6 px-5 md:px-8">
-          <Link href="/" className="flex items-center gap-3" aria-label="Virro, inicio">
-            <span className="grid size-9 place-items-center rounded-xl bg-gradient-to-br from-teal-200 to-cyan-500 text-sm font-black text-slate-950 shadow-[0_10px_35px_rgba(45,212,191,.12)]">V</span>
-            <span>
-              <span className="block text-base font-semibold tracking-[-.03em]">Virro</span>
-              <span className="block text-[8px] uppercase tracking-[.18em] text-[var(--subtle)]">Operating Understanding Layer</span>
-            </span>
+          <Link href="/" className="brand-lockup flex shrink-0 items-center rounded-lg px-2 py-1" aria-label="Virro, inicio">
+            <Image src="/brand/virro-logo.svg" alt="Virro" width={110} height={31} priority className="h-auto w-[92px] sm:w-[110px]" />
           </Link>
           <nav className="ml-auto hidden items-center gap-6 text-[11px] text-[var(--muted)] lg:flex" aria-label="Navegación pública">
-            <a href="#categoria" className="transition hover:text-white">Categoría</a>
-            <a href="#arquitectura" className="transition hover:text-white">Arquitectura</a>
-            <a href="#producto" className="transition hover:text-white">Producto</a>
-            <a href="#audit" className="transition hover:text-white">Meaning Loss Audit</a>
+            <a href="#categoria" className="transition hover:text-[var(--text)]">Categoría</a>
+            <a href="#arquitectura" className="transition hover:text-[var(--text)]">Arquitectura</a>
+            <a href="#producto" className="transition hover:text-[var(--text)]">Producto</a>
+            <a href="#audit" className="transition hover:text-[var(--text)]">Meaning Loss Audit</a>
           </nav>
-          <Link href="/app" className="ml-auto inline-flex h-9 items-center gap-2 rounded-lg border border-white/10 bg-white/[.035] px-3 text-[10px] font-medium transition hover:border-white/20 hover:bg-white/[.06] lg:ml-2">
+          <ThemeToggle />
+          <Link href="/app" className="inline-flex h-9 items-center gap-2 rounded-lg border border-white/10 bg-white/[.035] px-3 text-[10px] font-medium transition hover:border-white/20 hover:bg-white/[.06] lg:ml-2">
             Ver demo enterprise <ArrowRight size={13} />
           </Link>
         </div>
@@ -162,10 +161,10 @@ export function PublicLanding() {
               </h1>
               <p className="mt-6 text-base font-medium tracking-[-.02em] text-teal-100 md:text-lg">La capa de entendimiento operativo para organizaciones modernas.</p>
               <p className="mt-5 max-w-2xl text-sm leading-7 text-[var(--muted)] md:text-[15px]">
-                Virro es la infraestructura invisible que ayuda a alinear cómo personas, equipos, herramientas e inteligencias artificiales entienden la comunicación digital dentro de tu empresa.
+                Virro es la infraestructura invisible que ayuda a que personas, equipos, herramientas e IA entiendan mejor la comunicación digital antes de convertirla en trabajo, decisión o automatización.
               </p>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                <a href="#audit" className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-teal-300 px-6 text-sm font-semibold text-slate-950 shadow-[0_20px_60px_rgba(45,212,191,.14)] transition hover:bg-teal-200">
+                <a href="#audit" className="brand-primary-button inline-flex h-12 items-center justify-center gap-2 rounded-xl px-6 text-sm font-semibold shadow-[0_20px_60px_rgba(9,105,255,.18)] transition">
                   Diagnosticar un flujo crítico <ArrowRight size={15} />
                 </a>
                 <Link href="/app" className="inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[.035] px-6 text-sm font-medium transition hover:border-white/20 hover:bg-white/[.06]">
@@ -174,7 +173,7 @@ export function PublicLanding() {
               </div>
               <p className="mt-5 flex max-w-2xl items-start gap-2 text-[10px] leading-5 text-[var(--subtle)]">
                 <ShieldCheck size={13} className="mt-0.5 shrink-0 text-teal-300" />
-                Los scores de Virro son estimaciones de riesgo y readiness. No son garantías ni evaluaciones personales.
+                Scores estimados · No son garantías · No evalúan personas
               </p>
             </div>
             <HeroProductPreview />
@@ -266,7 +265,7 @@ export function PublicLanding() {
                 <h2 className="mt-6 text-3xl font-semibold tracking-[-.045em] md:text-5xl">Meaning Loss Audit</h2>
                 <p className="mt-3 text-sm font-medium text-teal-100">Diagnóstico de pérdida de entendimiento en un flujo crítico.</p>
                 <p className="mt-5 max-w-xl text-xs leading-6 text-[var(--muted)]">Revisamos de 3 a 5 Understanding Events para detectar señales de pérdida, contexto faltante, preguntas críticas y la siguiente acción que conviene validar.</p>
-                <a href="#solicitar-diagnostico" className="mt-7 inline-flex h-11 items-center gap-2 rounded-xl bg-teal-300 px-5 text-xs font-semibold text-slate-950 transition hover:bg-teal-200">Solicitar diagnóstico <ArrowRight size={14} /></a>
+                <a href="#solicitar-diagnostico" className="brand-primary-button mt-7 inline-flex h-11 items-center gap-2 rounded-xl px-5 text-xs font-semibold transition">Solicitar diagnóstico <ArrowRight size={14} /></a>
                 <p className="mt-4 max-w-md text-[10px] leading-5 text-[var(--subtle)]">No necesitas saber qué pack elegir. Empieza describiendo el flujo donde hoy se pierde claridad.</p>
               </div>
               <div className="grid gap-3 md:grid-cols-3">
@@ -300,14 +299,14 @@ export function PublicLanding() {
             <p className="text-[9px] font-semibold uppercase tracking-[.16em] text-teal-300">Operating Understanding Layer</p>
             <h2 className="mt-4 text-3xl font-semibold tracking-[-.045em] md:text-5xl">Empieza por un flujo donde hoy se pierde claridad.</h2>
             <p className="mx-auto mt-5 max-w-2xl text-sm leading-6 text-[var(--muted)]">Virro puede ayudar a convertir ese dolor en evidencia, preguntas críticas y una primera recomendación operativa.</p>
-            <a href="#audit" className="mt-7 inline-flex h-12 items-center gap-2 rounded-xl bg-teal-300 px-6 text-sm font-semibold text-slate-950 transition hover:bg-teal-200">Diagnosticar un flujo crítico <ArrowRight size={15} /></a>
+            <a href="#audit" className="brand-primary-button mt-7 inline-flex h-12 items-center gap-2 rounded-xl px-6 text-sm font-semibold transition">Diagnosticar un flujo crítico <ArrowRight size={15} /></a>
           </div>
         </section>
       </main>
 
       <footer className="border-t border-white/[.055] px-5 py-8 md:px-8">
-        <div className="mx-auto flex max-w-7xl flex-col gap-3 text-[10px] text-[var(--subtle)] sm:flex-row sm:items-center sm:justify-between">
-          <p>Virro · Operating Understanding Layer</p>
+        <div className="mx-auto flex max-w-7xl flex-col gap-4 text-[10px] text-[var(--subtle)] sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3"><span className="brand-lockup rounded-lg px-2 py-1"><Image src="/brand/virro-logo.svg" alt="Virro" width={96} height={27} className="h-auto w-24" /></span><span>Operating Understanding Layer</span></div>
           <div className="flex flex-wrap gap-4"><Link href="/app/privacy-trust">Privacidad y confianza</Link><Link href="/app/reports">Reporte ejecutivo</Link><Link href="/app">Demo enterprise</Link></div>
         </div>
       </footer>
@@ -328,7 +327,7 @@ function SectionIntro({ eyebrow, title, tone = "teal", children }: { eyebrow: st
 function HeroProductPreview() {
   return (
     <div className="relative mx-auto w-full max-w-[610px] lg:mx-0">
-      <div className="rounded-[24px] border border-white/[.09] bg-[linear-gradient(145deg,rgba(18,24,33,.98),rgba(10,14,20,.98))] p-3 shadow-[0_40px_120px_rgba(0,0,0,.34)] sm:p-4">
+      <div className="visual-dark rounded-[24px] border border-white/[.09] bg-[linear-gradient(145deg,rgba(18,24,33,.98),rgba(10,14,20,.98))] p-3 text-[#f2f5f7] shadow-[0_40px_120px_rgba(0,0,0,.34)] sm:p-4">
         <div className="flex items-center justify-between border-b border-white/[.06] px-2 pb-3">
           <div className="flex items-center gap-2"><span className="grid size-6 place-items-center rounded-lg bg-teal-300 text-[9px] font-black text-slate-950">V</span><span className="text-[10px] font-semibold">Aperture Systems</span></div>
           <span className="rounded-full border border-sky-400/15 bg-sky-400/[.05] px-2.5 py-1 text-[8px] font-semibold text-sky-200">Demo preview · Datos simulados</span>
@@ -388,7 +387,7 @@ function ArchitectureDiagram() {
     { title: "IA", items: ["ChatGPT", "Copilot", "Gemini", "Agentes internos", "Automatizaciones"], icon: Bot },
   ];
   return (
-    <section id="arquitectura" className="border-y border-white/[.055] bg-white/[.018] px-5 py-20 md:px-8 md:py-28">
+    <section id="arquitectura" className="brand-architecture border-y border-white/[.055] bg-white/[.018] px-5 py-20 md:px-8 md:py-28">
       <div className="mx-auto max-w-7xl">
         <SectionIntro eyebrow="Arquitectura organizacional" title="Dónde vive Virro dentro de la operación moderna.">
           <p>Virro no reemplaza tus herramientas. Vive entre la comunicación digital y la ejecución para ayudar a que la información llegue mejor entendida.</p>
@@ -401,7 +400,7 @@ function ArchitectureDiagram() {
             </div>
           </div>
           <LayerConnector />
-          <div className="rounded-2xl border border-teal-400/20 bg-[linear-gradient(135deg,rgba(45,212,191,.09),rgba(56,189,248,.035))] p-5 shadow-[0_20px_70px_rgba(45,212,191,.05)] md:p-7">
+          <div className="architecture-core rounded-2xl border p-5 md:p-7">
             <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start"><div><p className="text-[9px] font-semibold uppercase tracking-[.14em] text-teal-300">Capa intermedia</p><h3 className="mt-2 text-xl font-semibold tracking-[-.03em]">Virro — Operating Understanding Layer</h3><p className="mt-3 max-w-3xl text-xs leading-6 text-[var(--muted)]">La capa que procesa, aclara, clasifica, estructura y valida si la información está lista para que otra persona, equipo, herramienta o IA pueda actuar.</p></div><span className="grid size-11 shrink-0 place-items-center rounded-xl bg-teal-300 text-slate-950"><Layers3 size={19} /></span></div>
             <div className="mt-5 flex flex-wrap gap-2">{layerFunctions.map((item) => <span key={item} className="rounded-lg border border-teal-300/15 bg-black/10 px-3 py-2 text-[9px] text-teal-100">{item}</span>)}</div>
           </div>
@@ -425,7 +424,7 @@ function ProductPreviewCard({ kind, title, text, href }: { kind: "dashboard" | "
     <article className="group overflow-hidden rounded-2xl border border-white/[.075] bg-[var(--panel)] shadow-[0_24px_75px_rgba(0,0,0,.12)] transition duration-300 hover:-translate-y-1 hover:border-white/[.13]">
       <div className="border-b border-white/[.06] bg-[var(--panel-soft)] p-3">
         <div className="flex items-center justify-between"><span className="text-[8px] font-semibold uppercase tracking-[.12em] text-[var(--subtle)]">Demo preview · Datos simulados</span><span className="size-1.5 rounded-full bg-teal-300" /></div>
-        <ProductMiniature kind={kind} />
+        <div className="visual-dark text-[#f2f5f7]"><ProductMiniature kind={kind} /></div>
       </div>
       <div className="p-5">
         <h3 className="text-sm font-semibold">{title}</h3>

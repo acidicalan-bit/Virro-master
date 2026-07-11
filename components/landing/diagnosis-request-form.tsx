@@ -33,7 +33,6 @@ export function DiagnosisRequestForm() {
         <div className="mt-7 space-y-3 text-[11px] leading-5 text-[var(--muted)]">
           <p className="flex gap-3"><ShieldCheck size={15} className="mt-0.5 shrink-0 text-teal-300" />Virro no evalúa personas. Evalúa riesgos de entendimiento en información operativa.</p>
           <p className="flex gap-3"><ShieldCheck size={15} className="mt-0.5 shrink-0 text-teal-300" />Los scores son estimaciones probabilísticas, no garantías.</p>
-          <p className="flex gap-3"><ShieldCheck size={15} className="mt-0.5 shrink-0 text-teal-300" />No compartas información sensible en este formulario. Para pilotos reales se definen reglas de privacidad y alcance antes de analizar eventos.</p>
         </div>
       </div>
 
@@ -43,10 +42,11 @@ export function DiagnosisRequestForm() {
           <FormField label="Empresa"><input name="company" required maxLength={120} autoComplete="organization" className="field-control" /></FormField>
           <FormField label="Rol"><input name="role" required maxLength={120} autoComplete="organization-title" className="field-control" /></FormField>
           <FormField label="Email"><input name="email" type="email" required maxLength={254} autoComplete="email" className="field-control" /></FormField>
-          <FormField label="¿Qué flujo te gustaría diagnosticar?" className="sm:col-span-2"><select name="flow" required defaultValue="" className="field-control"><option value="" disabled>Selecciona un flujo</option>{flowOptions.map((option) => <option key={option} value={option}>{option}</option>)}</select></FormField>
-          <FormField label="Describe brevemente dónde se está perdiendo claridad, contexto o ejecución." className="sm:col-span-2"><textarea name="context" required minLength={12} maxLength={1200} className="field-control min-h-32 resize-y py-3 leading-6" /></FormField>
+          <FormField label="Flujo a diagnosticar" className="sm:col-span-2"><select name="flow" required defaultValue="" className="field-control"><option value="" disabled>Selecciona un flujo</option>{flowOptions.map((option) => <option key={option} value={option}>{option}</option>)}</select></FormField>
+          <FormField label="Descripción breve" className="sm:col-span-2"><textarea name="context" required minLength={12} maxLength={1200} placeholder="Describe dónde se está perdiendo claridad, contexto o capacidad de ejecución." className="field-control min-h-32 resize-y py-3 leading-6" /></FormField>
         </div>
-        <button type="submit" className="mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-teal-300 px-5 text-xs font-semibold text-slate-950"><Send size={14} />Enviar solicitud</button>
+        <button type="submit" className="brand-primary-button mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl px-5 text-xs font-semibold"><Send size={14} />Enviar solicitud</button>
+        <p className="mt-4 flex items-start gap-2 text-[10px] leading-5 text-[var(--subtle)]"><ShieldCheck size={13} className="mt-0.5 shrink-0 text-teal-300" />No compartas información sensible. Para pilotos reales se definen reglas de privacidad y alcance antes de analizar eventos.</p>
         {submitted && <div role="status" className="mt-4 flex items-start gap-3 rounded-xl border border-emerald-400/20 bg-emerald-400/[.07] p-4 text-[11px] leading-5 text-emerald-200"><CheckCircle2 size={16} className="mt-0.5 shrink-0" /><span>Gracias. Tu solicitud quedó registrada como demo. Conecta este formulario a email/CRM en la siguiente fase.</span></div>}
       </form>
     </div>
