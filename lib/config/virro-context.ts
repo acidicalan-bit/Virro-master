@@ -18,5 +18,5 @@ export const virroContextLayers = {
   projectContext: { mode: "mock", fields: ["status", "decisions", "risks", "constraints", "next actions"] },
   patternMemory: { enabledByDefault: false, storesRawPrivateText: false, allowedData: ["Permissioned anonymized patterns", "Aggregated risk categories", "Pack effectiveness trends"] },
   privacyRules: ["No raw private text retention by default", "No employee surveillance", "No personal performance scoring", "Human validation for material decisions"],
-  outputContracts: ["Operational artifact", "Estimated scores", "Critical questions", "Analysis trace", "Human confirmation state"],
+  outputContracts: ["Operational artifact", "Estimated scores", "Critical questions to validate", "Analysis trace", "Human confirmation state"],
 };

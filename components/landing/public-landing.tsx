@@ -28,7 +28,7 @@ export function PublicLanding() {
     [t("Analyzed flow", "Flujo analizado"), "Product → Development"],
     [t("Reviewed events", "Eventos revisados"), "3–5 Understanding Events"],
     [t("Primary risk", "Riesgo principal"), t("Rollback ownership is undefined", "Ownership de rollback no definido")],
-    [t("Critical questions", "Preguntas críticas"), t("Receiver, decision and boundaries pending validation", "Receptor, decisión y límites pendientes de validar")],
+    [t("Critical questions to validate", "Preguntas críticas para validar"), t("Receiver, decision and boundaries pending validation", "Receptor, decisión y límites pendientes de validar")],
     [t("Estimated score", "Score estimado"), "Handoff Readiness · 48/100"],
     [t("Recommendation", "Recomendación"), t("Handoff Intelligence pilot", "Piloto de Handoff Intelligence")],
   ];

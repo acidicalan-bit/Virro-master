@@ -14,13 +14,13 @@ export function PrivacyTrust() {
     t("Virro does not retain raw private text or unnecessary messages by default.", "Virro no guarda texto privado crudo por defecto ni mensajes innecesarios."),
     t("Store anonymized patterns only with permission.", "Guardar patrones anonimizados solo con permiso."),
     t("Virro is not designed to monitor employees or evaluate personal performance.", "Virro no está diseñado para vigilar empleados ni evaluar desempeño personal."),
-    t("Virro does not evaluate people. It evaluates understanding risks in operational information.", "Virro no evalúa personas. Evalúa riesgos de entendimiento en información operativa."),
+    t("Virro does not evaluate people. It estimates interpretation risks in operational information.", "Virro no evalúa personas. Estima riesgos de interpretación en información operativa."),
     t("Scores are probabilistic estimates, not guarantees or personal evaluations.", "Los scores son estimaciones probabilísticas, no garantías ni evaluaciones personales."),
   ];
   const current = mode === "private" ? {
     label: t("Private Mode", "Modo privado"),
     description: t("Analyze the current event without retaining raw operational content in the mock store.", "Analiza el evento actual sin retener contenido operativo crudo en el store mock."),
-    saved: [t("Event ID and selected pack", "ID del evento y pack seleccionado"), t("Estimated scores when explicitly saved", "Scores estimados cuando se guardan explícitamente"), "AnalysisTrace", t("Approved operational outputs", "Outputs operativos aprobados")],
+    saved: [t("Event ID and selected pack", "ID del evento y pack seleccionado"), t("Estimated scores when explicitly saved", "Scores estimados cuando se guardan explícitamente"), "AnalysisTrace", t("Approved operational deliverables", "Entregables operativos aprobados")],
     notSaved: [t("Private conversations", "Conversaciones privadas"), t("Raw input after the session boundary", "Input crudo después del límite de sesión"), t("Employee behavior profiles", "Perfiles de comportamiento de empleados"), t("Cross-customer learning patterns", "Patrones de aprendizaje entre clientes")],
   } : {
     label: t("Pattern Learning Allowed", "Aprendizaje por patrones permitido"),

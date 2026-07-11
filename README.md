@@ -1,6 +1,6 @@
 # Virro Enterprise Demo Platform
 
-Virro is operational understanding infrastructure for companies, teams, processes and AI. This demo turns imperfect digital communication into traceable Understanding Events, probabilistic readiness signals and operational outputs.
+Virro is operational understanding infrastructure for companies, teams, processes and AI. This demo turns imperfect digital communication into traceable Understanding Events, probabilistic readiness signals and operational deliverables.
 
 ## Local development
 

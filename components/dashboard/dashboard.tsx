@@ -48,7 +48,7 @@ export function Dashboard() {
     { number: "02", label: t("Open Demo Scenarios", "Abre Escenarios demo"), href: "/app/demo-scenarios" },
     { number: "03", label: t("Try the Understanding Inbox", "Prueba la Bandeja de entendimiento"), href: "/app/inbox" },
     { number: "04", label: t("Review a specific analysis pack", "Revisa un pack específico"), href: "/app/handoff-intelligence" },
-    { number: "05", label: t("Open Reports as a client deliverable", "Consulta Reports como ejemplo de entregable"), href: "/app/reports" },
+    { number: "05", label: t("Open Reports as a client deliverable", "Consulta Reportes como ejemplo de entregable"), href: "/app/reports" },
   ];
 
   return (
@@ -57,7 +57,7 @@ export function Dashboard() {
       <section className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div>
           <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-teal-300">05 · {t("Executive Dashboard", "Tablero ejecutivo")}</p>
-          <h1 className="text-2xl font-semibold tracking-[-0.035em] md:text-[30px]">{t("Where operational understanding is being lost.", "Dónde se está perdiendo entendimiento operativo.")}</h1>
+          <h1 className="text-2xl font-semibold tracking-[-0.035em] md:text-[30px]">{t("Where operational meaning is at risk.", "Dónde está en riesgo el significado operativo.")}</h1>
           <p className="mt-2 max-w-3xl text-sm text-[var(--muted)]">{t("A decision view of risk concentration, readiness, understanding debt and the next corrective action.", "Vista ejecutiva de concentración de riesgo, readiness, deuda de entendimiento y próximas acciones correctivas.")}</p>
         </div>
         <div className="flex gap-2">
@@ -73,7 +73,7 @@ export function Dashboard() {
 
       <section className="panel p-4 md:p-5"><div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end"><div><p className="text-[9px] font-semibold uppercase tracking-[.13em] text-indigo-300">{t("Private demo guide", "Guía de demo privada")}</p><h2 className="mt-1.5 text-sm font-semibold">{t("How to tour this demo", "Cómo recorrer esta demo")}</h2></div><p className="max-w-xl text-[10px] leading-5 text-[var(--subtle)]">{t("A suggested path to connect executive risk, operational evidence and the final client deliverable.", "Un recorrido sugerido para conectar riesgo ejecutivo, evidencia operativa y entregable final para cliente.")}</p></div><div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-5">{demoSteps.map((step) => <Link key={step.number} href={step.href} className="group rounded-xl border border-[var(--border)] bg-[var(--panel-soft)] p-3 transition hover:border-indigo-300/20 hover:bg-indigo-400/[.035]"><div className="flex items-center justify-between"><span className="text-[9px] font-semibold text-indigo-300">{step.number}</span><ArrowRight size={12} className="text-[var(--subtle)] transition group-hover:translate-x-0.5 group-hover:text-indigo-300" /></div><p className="mt-2 text-[10px] font-medium leading-4">{step.label}</p></Link>)}</div></section>
 
-      <section className="grid gap-2 rounded-lg border border-[var(--border)] bg-[var(--panel-soft)] p-3 text-[9px] leading-4 text-[var(--subtle)] lg:grid-cols-3"><p className="flex items-start gap-2"><ShieldCheck size={12} className="mt-0.5 shrink-0 text-teal-300" />{t("Virro must be more trustworthy than intelligent.", "Virro debe ser más confiable que inteligente.")}</p><p className="flex items-start gap-2"><ShieldCheck size={12} className="mt-0.5 shrink-0 text-teal-300" />{t("Virro does not evaluate people and is not designed to monitor employees.", "Virro no evalúa personas. Evalúa riesgos de entendimiento en información operativa. Virro no está diseñado para vigilar empleados.")}</p><p className="flex items-start gap-2"><CircleAlert size={12} className="mt-0.5 shrink-0 text-teal-300" />{t("Scores are probabilistic estimates, not guarantees. Virro does not retain raw private text by default.", "Los scores son estimaciones probabilísticas, no garantías. Virro no guarda texto privado crudo por defecto.")}</p></section>
+      <section className="grid gap-2 rounded-lg border border-[var(--border)] bg-[var(--panel-soft)] p-3 text-[9px] leading-4 text-[var(--subtle)] lg:grid-cols-3"><p className="flex items-start gap-2"><ShieldCheck size={12} className="mt-0.5 shrink-0 text-teal-300" />{t("Virro must be more trustworthy than intelligent.", "Virro debe ser más confiable que inteligente.")}</p><p className="flex items-start gap-2"><ShieldCheck size={12} className="mt-0.5 shrink-0 text-teal-300" />{t("Virro does not evaluate people and is not designed to monitor employees.", "Virro no evalúa personas. Estima riesgos de interpretación en información operativa. Virro no está diseñado para vigilar empleados.")}</p><p className="flex items-start gap-2"><CircleAlert size={12} className="mt-0.5 shrink-0 text-teal-300" />{t("Scores are probabilistic estimates, not guarantees. Virro does not retain raw private text by default.", "Los scores son estimaciones probabilísticas, no garantías. Virro no guarda texto privado crudo por defecto.")}</p></section>
 
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {metrics.map(({ label, detail, value, suffix, icon: Icon, tone }) => (
@@ -100,7 +100,7 @@ export function Dashboard() {
         </article>
 
         <article className="panel p-5">
-          <div className="flex items-center gap-2"><FileWarning size={16} className="text-rose-300" /><h2 className="text-sm font-semibold">{t("Top Understanding Risks", "Principales riesgos de entendimiento")}</h2></div>
+          <div className="flex items-center gap-2"><FileWarning size={16} className="text-rose-300" /><h2 className="text-sm font-semibold">{t("Top Interpretation Risks", "Principales riesgos de interpretación")}</h2></div>
           <div className="mt-4 space-y-2">
             {insights.topRisks.map((item, index) => <div key={item.risk} className="flex items-start gap-3 rounded-xl border border-[var(--border)] bg-[var(--panel-soft)] p-3"><span className="grid size-6 shrink-0 place-items-center rounded-md bg-rose-400/[.08] text-[10px] font-semibold text-rose-300">{index + 1}</span><div><p className="text-xs leading-5">{operationalText(locale, item.risk)}</p><p className="mt-0.5 text-[9px] text-[var(--subtle)]">{t(`Observed in ${item.count} active event${item.count === 1 ? "" : "s"}`, `Observado en ${item.count} evento${item.count === 1 ? "" : "s"} activo${item.count === 1 ? "" : "s"}`)}</p></div></div>)}
           </div>

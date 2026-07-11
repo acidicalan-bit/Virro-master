@@ -20,7 +20,7 @@ export function classifyEvent(input: AssistantInput, locale: Locale = "en"): Cla
   }).sort((a, b) => b.score - a.score);
   const best = ranked[0];
 
-  if (!best || best.score === 0) return { pack: "critical-flow-discovery", confidence: 48, reason: locale === "es" ? "El dolor muestra posible pérdida de entendimiento, pero aún no hay evidencia suficiente para asignar un pack especializado." : "The pain shows possible meaning loss, but there is not enough evidence to force a specialist pack.", signals: ["unclassified-operational-pain"] };
+  if (!best || best.score === 0) return { pack: "critical-flow-discovery", confidence: 48, reason: locale === "es" ? "El dolor muestra posible pérdida de significado, pero aún no hay evidencia suficiente para asignar un pack especializado." : "The pain shows possible meaning loss, but there is not enough evidence to force a specialist pack.", signals: ["unclassified-operational-pain"] };
   const confidence = Math.min(94, 58 + best.score * 11);
   const definition = packRegistry[best.pack as PackType];
   const name = locale === "es" ? definition.spanishName : definition.name;
