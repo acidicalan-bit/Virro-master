@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Bell, ChevronDown, Menu, Moon, Search, Sun, X } from "lucide-react";
+import { ArrowUpRight, Bell, ChevronDown, Menu, Moon, Search, Sun, X } from "lucide-react";
 import { localizeModule, modules } from "@/lib/config/modules";
 import { events } from "@/lib/data/seed";
 import { buildWorkspaceStats } from "@/lib/domain/understanding-event";
@@ -67,6 +67,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[var(--ring-track)]"><div className="h-full rounded-full bg-gradient-to-r from-cyan-400 to-teal-300" style={{ width: `${shellStats.virroScore}%` }} /></div>
             <p className="mt-2 text-[10px] leading-relaxed text-[var(--subtle)]">{t(`Estimated from ${events.length} active Understanding Events.`, `Estimado a partir de ${events.length} Understanding Events activos.`)}</p>
           </div>
+          <Link href="/" className="mt-2 flex items-center justify-between rounded-lg px-3 py-2 text-[10px] font-medium text-[var(--subtle)] transition hover:bg-[var(--hover)] hover:text-[var(--text)]"><span>{t("Back to public site", "Volver al sitio público")}</span><ArrowUpRight size={12} /></Link>
         </div>
       </aside>
       {open && <button aria-label={t("Close navigation overlay", "Cerrar superposición de navegación")} className="fixed inset-0 z-30 bg-black/55 backdrop-blur-sm lg:hidden" onClick={() => setOpen(false)} />}
