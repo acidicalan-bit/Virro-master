@@ -11,7 +11,7 @@ import { listStoredAssistantEvidence, subscribeAssistantEvents } from "@/lib/ser
 import type { UnderstandingEvent } from "@/lib/types/understanding";
 
 const spanishReportLabels: Record<ReportType, string> = {
-  "meaning-loss-audit": "Reporte de audit de Meaning Loss", "product-delivery-understanding": "Reporte de entendimiento de entrega de producto", "ai-understanding-audit": "Audit de entendimiento para IA", "handoff-readiness": "Reporte de readiness de handoffs", "process-understanding": "Reporte de entendimiento de procesos", "onboarding-understanding": "Reporte de entendimiento de onboarding", "consulting-delivery": "Reporte de entrega para consultoras", "technical-documentation-understanding": "Reporte de entendimiento de documentación técnica", "executive-virro-score": "Reporte ejecutivo Virro Score",
+  "meaning-loss-audit": "Reporte de auditoría de Meaning Loss", "product-delivery-understanding": "Reporte de entendimiento de entrega de producto", "ai-understanding-audit": "Auditoría de entendimiento para IA", "handoff-readiness": "Reporte de readiness de handoffs", "process-understanding": "Reporte de entendimiento de procesos", "onboarding-understanding": "Reporte de entendimiento de onboarding", "consulting-delivery": "Reporte de entrega para consultoras", "technical-documentation-understanding": "Reporte de entendimiento de documentación técnica", "executive-virro-score": "Reporte ejecutivo Virro Score",
 };
 
 const clientReportSections = [
