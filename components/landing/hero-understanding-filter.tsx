@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ArrowRight, CheckCircle2, FileBarChart, Layers3, Radar, ShieldCheck } from "lucide-react";
 import { useLanguage } from "@/components/i18n/language-provider";
+import { RevealOnScroll } from "@/components/landing/motion/motion-primitives";
 
 const inputs = ["Junta", "Pantalla", "Ticket", "Documento", "Call", "Diseño", "CRM", "BI", "IA"];
 const filters = ["Contexto", "Criterio", "Claridad", "Receptor", "Riesgo", "Readiness"];
@@ -22,7 +23,7 @@ export function HeroUnderstandingFilter() {
         <div className="hero-scene-item mt-9 flex flex-col gap-3 sm:flex-row"><a href="#solicitar-diagnostico" className="brand-primary-button inline-flex h-12 items-center justify-center gap-2 rounded-full px-6 text-sm font-semibold shadow-[0_20px_60px_rgba(9,105,255,.22)]">{t("Diagnose a critical flow", "Diagnosticar un flujo crítico")} <ArrowRight size={15} /></a><a href="#como-funciona" className="inline-flex h-12 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--panel)] px-6 text-sm font-medium transition hover:-translate-y-0.5 hover:shadow-lg">{t("See how Virro works", "Ver cómo funciona Virro")}</a></div>
         <div className="hero-scene-item mt-6 flex flex-wrap gap-x-5 gap-y-2 text-[9px] text-[var(--subtle)]"><span className="flex items-center gap-2"><ShieldCheck size={12} className="text-[var(--brand-blue)]" />{t("Data minimization from the audit", "Minimización de datos desde la auditoría")}</span><span className="flex items-center gap-2"><CheckCircle2 size={12} className="text-[var(--brand-blue)]" />{t("Probabilistic estimates · human validation", "Estimaciones probabilísticas · validación humana")}</span></div>
       </div>
-      <div className="hero-filter-scene hero-product-scene" aria-label={t("Information flowing through Virro's understanding filter", "Información atravesando el filtro de entendimiento de Virro")}>
+      <RevealOnScroll className="hero-visual-reveal"><div className="hero-filter-scene hero-product-scene" aria-label={t("Information flowing through Virro's understanding filter", "Información atravesando el filtro de entendimiento de Virro")}>
         <div className="filter-scene-top"><span>{t("Digital flow", "Flujo digital")}</span><span className="filter-live"><i />{t("Understanding observability", "Observabilidad de entendimiento")}</span></div>
         <div className="filter-scene-body">
           <div className="filter-inputs"><p>{t("Scattered input", "Input disperso")}</p>{inputLabels.map((label, index) => <span key={label} style={{ "--particle-index": index } as React.CSSProperties}>{label}</span>)}</div>
@@ -30,7 +31,7 @@ export function HeroUnderstandingFilter() {
           <div className="filter-outputs"><p>{t("Ready to move forward", "Listo para avanzar")}</p>{outputs.map((label, index) => <span key={label}><i>{String(index + 1).padStart(2, "0")}</i>{label}{index === 1 && <b>68</b>}</span>)}</div>
         </div>
         <div className="filter-scene-footer"><span><FileBarChart size={12} />{t("Executive evidence", "Evidencia ejecutiva")}</span><Link href="/app" className="inline-flex items-center gap-2">{t("Open enterprise demo", "Abrir demo enterprise")} <ArrowRight size={12} /></Link></div>
-      </div>
+      </div></RevealOnScroll>
     </div>
   </section>;
 }

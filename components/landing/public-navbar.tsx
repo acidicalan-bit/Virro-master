@@ -20,7 +20,7 @@ export function PublicNavbar() {
 
   useEffect(() => {
     function close(event: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) setSolutionsOpen(false);
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) { setSolutionsOpen(false); setMobileOpen(false); }
     }
     function escape(event: KeyboardEvent) {
       if (event.key === "Escape") { setSolutionsOpen(false); setMobileOpen(false); }
@@ -29,6 +29,13 @@ export function PublicNavbar() {
     document.addEventListener("keydown", escape);
     return () => { document.removeEventListener("mousedown", close); document.removeEventListener("keydown", escape); };
   }, []);
+
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = previous; };
+  }, [mobileOpen]);
 
   const anchors = [
     ["#plataforma", t("Platform", "Plataforma")],
@@ -57,13 +64,13 @@ export function PublicNavbar() {
             <ThemeToggle label={t("Toggle theme", "Cambiar tema")} />
             <Link href="/app" className="hidden h-9 items-center rounded-full border border-[var(--border)] px-3 text-[10px] font-semibold md:inline-flex">{t("Enterprise demo", "Demo enterprise")}</Link>
             <a href="#solicitar-diagnostico" className="brand-primary-button hidden h-9 items-center gap-2 rounded-full px-4 text-[10px] font-semibold 2xl:inline-flex">{t("Diagnose a critical flow", "Diagnosticar un flujo crítico")} <ArrowRight size={12} /></a>
-            <button type="button" onClick={() => setMobileOpen((value) => !value)} aria-expanded={mobileOpen} aria-label={t("Open menu", "Abrir menú")} className="grid size-9 place-items-center rounded-full border border-[var(--border)] xl:hidden">{mobileOpen ? <X size={17} /> : <Menu size={17} />}</button>
+            <button type="button" onClick={() => setMobileOpen((value) => !value)} aria-expanded={mobileOpen} aria-controls="mobile-primary-navigation" aria-label={t("Open main menu", "Abrir menú principal")} className="mobile-menu-trigger xl:hidden"><span>{t("Menu", "Menú")}</span>{mobileOpen ? <X size={16} /> : <Menu size={16} />}</button>
           </div>
         </div>
 
         {solutionsOpen && <div className="absolute left-1/2 top-[calc(100%+10px)] hidden w-[min(960px,calc(100vw-48px))] -translate-x-1/2 rounded-[22px] border border-[var(--border)] bg-[var(--panel)] p-4 shadow-[0_30px_100px_rgba(0,0,0,.24)] xl:block"><div className="mb-3 flex items-center justify-between px-2"><div><p className="text-[9px] font-semibold uppercase tracking-[.16em] text-[var(--brand-blue)]">Operating Understanding</p><p className="mt-1 text-xs text-[var(--muted)]">{t("Analysis packs for critical operational flows", "Packs de análisis para flujos operativos críticos")}</p></div><Link href="/app" className="text-[10px] font-semibold text-[var(--brand-blue)]">{t("Explore demo", "Explorar demo")} →</Link></div><div className="grid grid-cols-2 gap-1">{solutions.map(({ id, href, icon: Icon, label, description }) => <Link key={id} href={href} onClick={() => setSolutionsOpen(false)} className="group flex gap-3 rounded-xl p-3 transition hover:bg-[var(--hover)]"><span className="grid size-9 shrink-0 place-items-center rounded-xl border border-[var(--border)] bg-[var(--panel-soft)] text-[var(--brand-blue)]"><Icon size={16} /></span><span><span className="block text-[11px] font-semibold">{label}</span><span className="mt-1 block text-[9px] leading-4 text-[var(--subtle)]">{description}</span></span></Link>)}</div></div>}
 
-        {mobileOpen && <div className="max-h-[calc(100vh-96px)] overflow-y-auto border-t border-[var(--border)] bg-[var(--panel)] p-4 xl:hidden"><div className="mb-4 sm:hidden"><LanguageToggle /></div><p className="px-2 text-[9px] font-semibold uppercase tracking-[.14em] text-[var(--subtle)]">{t("Packs", "Packs")}</p><div className="mt-2 grid gap-1 sm:grid-cols-2">{solutions.map(({ id, href, icon: Icon, label }) => <Link key={id} href={href} onClick={() => setMobileOpen(false)} className="flex items-center gap-3 rounded-xl px-2 py-2.5 text-[10px] font-medium hover:bg-[var(--hover)]"><Icon size={14} className="text-[var(--brand-blue)]" />{label}</Link>)}</div><div className="my-3 h-px bg-[var(--border)]" />{anchors.map(([href, label]) => <a key={href} href={href} onClick={() => setMobileOpen(false)} className="block rounded-xl px-2 py-3 text-[11px] text-[var(--muted)]">{label}</a>)}<div className="mt-3 grid grid-cols-2 gap-2"><Link href="/app" className="inline-flex h-11 items-center justify-center rounded-xl border border-[var(--border)] text-[10px] font-semibold">{t("View demo", "Ver demo")}</Link><a href="#solicitar-diagnostico" onClick={() => setMobileOpen(false)} className="brand-primary-button inline-flex h-11 items-center justify-center rounded-xl text-[10px] font-semibold">{t("Diagnose flow", "Diagnosticar flujo")}</a></div></div>}
+        {mobileOpen && <div id="mobile-primary-navigation" className="mobile-menu-panel xl:hidden"><div className="mobile-menu-heading"><div><span>{t("Main navigation", "Navegación principal")}</span><strong>Operating Understanding Layer</strong></div><div className="sm:hidden"><LanguageToggle /></div></div><nav className="mobile-menu-primary" aria-label={t("Mobile main navigation", "Navegación principal móvil")}>{anchors.map(([href, label], index) => <a key={href} href={href} onClick={() => setMobileOpen(false)} style={{ "--mobile-index": index } as React.CSSProperties}><span>{String(index + 1).padStart(2, "0")}</span><strong>{label}</strong><ArrowRight size={14} /></a>)}</nav><div className="mobile-menu-pack-head"><span>{t("Analysis packs", "Packs de análisis")}</span><a href="#packs" onClick={() => setMobileOpen(false)}>{t("View all", "Ver todos")} <ArrowRight size={11} /></a></div><div className="mobile-menu-packs">{solutions.slice(0, 6).map(({ id, href, icon: Icon, label }, index) => <Link key={id} href={href} onClick={() => setMobileOpen(false)} style={{ "--mobile-index": index + anchors.length } as React.CSSProperties}><Icon size={14} /><span>{label}</span></Link>)}</div><div className="mobile-menu-actions"><Link href="/app" onClick={() => setMobileOpen(false)}>{t("View enterprise demo", "Ver demo enterprise")}</Link><a href="#solicitar-diagnostico" onClick={() => setMobileOpen(false)} className="brand-primary-button">{t("Diagnose a critical flow", "Diagnosticar un flujo crítico")} <ArrowRight size={13} /></a></div></div>}
       </div>
     </header>
   );

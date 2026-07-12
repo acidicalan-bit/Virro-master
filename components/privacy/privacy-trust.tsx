@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { CheckCircle2, EyeOff, Fingerprint, LockKeyhole, ShieldCheck, UsersRound, XCircle } from "lucide-react";
 import { useLanguage } from "@/components/i18n/language-provider";
 
@@ -42,7 +43,7 @@ export function PrivacyTrust() {
       { n: "02", title: t("Analyze", "Analizar"), detail: t("Controlled provider boundary", "Límite controlado del proveedor") },
       { n: "03", title: t("Minimize", "Minimizar"), detail: t("Discard unnecessary raw content", "Descartar contenido crudo innecesario") },
       { n: "04", title: t("Retain", "Retener"), detail: t("Only under the selected mode", "Solo según el modo seleccionado") },
-    ].map((step) => <div key={step.n} className="rounded-xl border border-[var(--border)] bg-[var(--panel-soft)] p-4"><p className="text-[9px] font-semibold text-teal-300">{step.n}</p><p className="mt-2 text-xs font-medium">{step.title}</p><p className="mt-1 text-[10px] leading-4 text-[var(--subtle)]">{step.detail}</p></div>)}</div></section>
+    ].map((step) => <div key={step.n} className="rounded-xl border border-[var(--border)] bg-[var(--panel-soft)] p-4"><p className="text-[9px] font-semibold text-teal-300">{step.n}</p><p className="mt-2 text-xs font-medium">{step.title}</p><p className="mt-1 text-[10px] leading-4 text-[var(--subtle)]">{step.detail}</p></div>)}</div><div className="mt-5 flex flex-wrap gap-3 border-t border-[var(--border)] pt-5 text-[10px] font-semibold"><Link href="/legal/privacy" className="text-teal-300">{t("Read privacy notice", "Leer aviso de privacidad")}</Link><Link href="/legal/terms" className="text-[var(--muted)]">{t("Terms of use", "Términos de uso")}</Link><Link href="/legal" className="text-[var(--muted)]">{t("Legal center", "Centro legal")}</Link></div></section>
   </div>;
 }
 
