@@ -12,9 +12,10 @@ from .models import Analysis, AuditLog, Event, License, Report, Tenant, UsageRec
 from .privacy import privacy_shield
 from .schemas import AnalyzeRequest, AnalysisResponse, LicenseActivate, PrivacyRequest, ReportRequest
 
-logging.basicConfig(level=settings.log_level,format="%(levelname)s %(message)s")
+logging.basicConfig(level=(settings.log_level.strip().upper() or "INFO"),format="%(levelname)s %(message)s")
 logger=logging.getLogger("virro-core")
-Base.metadata.create_all(engine)
+if settings.virro_env in {"development", "test"}:
+    Base.metadata.create_all(engine)
 app=FastAPI(title="Virro Core Understanding Engine",version="0.1.0",docs_url="/docs")
 app.add_middleware(CORSMiddleware,allow_origins=settings.origins,allow_methods=["GET","POST"],allow_headers=["Content-Type","X-API-Key"],allow_credentials=False)
 
