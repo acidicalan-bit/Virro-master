@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 from uuid import uuid4
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, JSON, String
+from sqlalchemy import Boolean, CheckConstraint, DateTime, ForeignKey, Integer, JSON, String, false
 from sqlalchemy.orm import Mapped, mapped_column
 from .database import Base
 
@@ -14,7 +14,7 @@ class License(Base):
 class User(Base):
     __tablename__="users"; id: Mapped[str]=mapped_column(String,primary_key=True,default=uid); tenant_id: Mapped[str]=mapped_column(ForeignKey("tenants.id"),index=True); role: Mapped[str]=mapped_column(String,default="member"); created_at: Mapped[datetime]=mapped_column(DateTime(timezone=True),default=now)
 class Event(Base):
-    __tablename__="events"; id: Mapped[str]=mapped_column(String,primary_key=True,default=uid); tenant_id: Mapped[str]=mapped_column(String,index=True); event_type: Mapped[str]=mapped_column(String); source_type: Mapped[str]=mapped_column(String); privacy_mode: Mapped[str]=mapped_column(String,default="safe"); fingerprint: Mapped[str]=mapped_column(String,index=True); raw_stored: Mapped[bool]=mapped_column(Boolean,default=False); created_at: Mapped[datetime]=mapped_column(DateTime(timezone=True),default=now)
+    __tablename__="events"; __table_args__=(CheckConstraint("raw_stored = false",name="ck_events_raw_stored_false"),); id: Mapped[str]=mapped_column(String,primary_key=True,default=uid); tenant_id: Mapped[str]=mapped_column(String,index=True); event_type: Mapped[str]=mapped_column(String); source_type: Mapped[str]=mapped_column(String); privacy_mode: Mapped[str]=mapped_column(String,default="safe"); fingerprint: Mapped[str]=mapped_column(String,index=True); raw_stored: Mapped[bool]=mapped_column(Boolean,default=False,server_default=false(),nullable=False); created_at: Mapped[datetime]=mapped_column(DateTime(timezone=True),default=now)
 class Analysis(Base):
     __tablename__="analyses"; id: Mapped[str]=mapped_column(String,primary_key=True,default=uid); event_id: Mapped[str]=mapped_column(ForeignKey("events.id"),index=True); tenant_id: Mapped[str]=mapped_column(String,index=True); readiness_score: Mapped[int]=mapped_column(Integer); risk_level: Mapped[str]=mapped_column(String); missing_context: Mapped[list]=mapped_column(JSON,default=list); interpretation_risks: Mapped[list]=mapped_column(JSON,default=list); questions: Mapped[list]=mapped_column(JSON,default=list); recommended_pack: Mapped[str]=mapped_column(String); next_action: Mapped[str]=mapped_column(String); safe_output: Mapped[dict]=mapped_column(JSON,default=dict); created_at: Mapped[datetime]=mapped_column(DateTime(timezone=True),default=now)
 class Report(Base):

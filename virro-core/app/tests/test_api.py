@@ -26,6 +26,13 @@ def test_analyze_safe_never_persists_raw(client, headers, caplog):
         assert not hasattr(event, "raw_text") and not hasattr(event, "content")
     assert secret not in caplog.text
 
+def test_database_rejects_raw_stored_true():
+    from sqlalchemy.exc import IntegrityError
+    with SessionLocal() as db:
+        db.add(Event(tenant_id="tenant-a", event_type="ticket", source_type="api", privacy_mode="safe", fingerprint="test", raw_stored=True))
+        with pytest.raises(IntegrityError):
+            db.commit()
+
 def test_store_raw_rejected_without_echo(client, headers):
     payload = {**BASE, "store_raw": True, "content": "private@example.com SECRET-PAYLOAD"}
     response = client.post("/v1/understanding/analyze-safe", headers=headers, json=payload)
