@@ -1,0 +1,18 @@
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: virro
+      POSTGRES_USER: virro
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+    volumes: ["virro_pg:/var/lib/postgresql/data"]
+    healthcheck: {test: ["CMD-SHELL", "pg_isready -U virro"], interval: 5s, timeout: 5s, retries: 10}
+  api:
+    build: .
+    environment:
+      DATABASE_URL: postgresql+psycopg://virro:${POSTGRES_PASSWORD}@db:5432/virro
+      VIRRO_API_KEY: ${VIRRO_API_KEY:?set VIRRO_API_KEY}
+      CORS_ORIGINS: ${CORS_ORIGINS:-https://www.virro.app}
+    ports: ["8000:8000"]
+    depends_on: {db: {condition: service_healthy}}
+volumes: {virro_pg: {}}
