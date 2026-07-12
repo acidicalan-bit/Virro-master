@@ -447,11 +447,27 @@ button, select { cursor: pointer; }
 .demo-selector { display: flex; gap: 7px; overflow-x: auto; padding-bottom: 5px; }
 .demo-selector button { flex: none; border: 1px solid var(--border); border-radius: 999px; background: var(--panel); padding: 9px 13px; color: var(--muted); font-size: 9px; font-weight: 600; transition: all var(--motion-fast) ease; }
 .demo-selector button.is-active { border-color: var(--brand-blue); background: var(--brand-blue); color: white; box-shadow: 0 12px 35px rgba(9,105,255,.18); }
-.demo-lab { display: grid; min-height: 530px; margin-top: 18px; overflow: hidden; border: 1px solid var(--border); border-radius: 30px; background: var(--panel); grid-template-columns: 1fr .72fr 1fr; box-shadow: 0 30px 100px rgba(0,0,0,.11); animation: walkthrough-panel-in var(--motion-base) var(--premium-ease) both; }
-.demo-lab > section { display: flex; flex-direction: column; padding: 28px; }
+.demo-pipeline { display: flex; align-items: center; gap: 9px; margin-top: 24px; overflow-x: auto; color: var(--subtle); font-size: 8px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; scrollbar-width: none; }
+.demo-pipeline span { flex: none; border: 1px solid var(--border); border-radius: 999px; background: var(--panel); padding: 8px 11px; }
+.demo-pipeline svg { flex: none; color: var(--brand-blue); }
+.demo-lab { display: grid; min-height: 500px; margin-top: 14px; overflow: hidden; border: 1px solid var(--border); border-radius: 30px; background: var(--panel); grid-template-columns: 1.1fr .9fr .9fr 1fr 1fr; box-shadow: 0 30px 100px rgba(0,0,0,.11); animation: walkthrough-panel-in var(--motion-base) var(--premium-ease) both; }
+.demo-lab > section { display: flex; min-width: 0; flex-direction: column; border-right: 1px solid var(--border); padding: 24px; }
+.demo-lab > section:last-child { border-right: 0; }
 .demo-panel-label { display: flex; align-items: center; gap: 8px; color: var(--brand-blue); font-size: 8px; font-weight: 700; letter-spacing: .11em; text-transform: uppercase; }
-.demo-lab blockquote { margin: auto 0; font-size: 21px; font-weight: 550; line-height: 1.5; letter-spacing: -.03em; }
+.demo-lab blockquote { margin: auto 0; font-size: 18px; font-weight: 550; line-height: 1.5; letter-spacing: -.03em; }
 .demo-source-tag { align-self: flex-start; border: 1px solid var(--border); border-radius: 999px; background: var(--panel-soft); padding: 7px 10px; color: var(--subtle); font-size: 8px; }
+.demo-privacy-panel { background: linear-gradient(180deg, color-mix(in srgb, var(--brand-blue) 8%, transparent), transparent); }
+.demo-privacy-panel > strong, .demo-decision-panel > strong { margin-top: auto; font-size: 15px; line-height: 1.45; }
+.demo-privacy-panel > p, .demo-decision-panel > p { margin-top: 14px; color: var(--muted); font-size: 9px; line-height: 1.75; }
+.demo-no-store { display: grid; gap: 7px; margin-top: 24px; border: 1px solid color-mix(in srgb, var(--brand-blue) 20%, var(--border)); border-radius: 14px; background: color-mix(in srgb, var(--brand-blue) 5%, transparent); padding: 12px; }
+.demo-no-store svg { color: var(--brand-blue); }
+.demo-no-store span, .demo-no-store b { font-size: 8px; line-height: 1.5; }
+.demo-no-store span { color: var(--muted); }
+.demo-no-store b { color: var(--brand-blue); }
+.demo-readiness-panel ul { display: grid; gap: 10px; margin: auto 0 24px; padding: 0; list-style: none; }
+.demo-readiness-panel li { display: flex; gap: 7px; color: var(--muted); font-size: 9px; line-height: 1.5; }
+.demo-readiness-panel li svg { flex: none; color: var(--brand-coral); }
+.demo-output-panel .demo-bundle-name { margin-top: auto; }
 .demo-filter-column { display: flex; flex-direction: column; justify-content: center; border-right: 1px solid var(--border); border-left: 1px solid var(--border); background: linear-gradient(180deg, color-mix(in srgb, var(--brand-blue) 7%, transparent), transparent); padding: 25px; }
 .demo-filter-icon { display: grid; width: 42px; height: 42px; place-items: center; border-radius: 14px; background: color-mix(in srgb, var(--brand-blue) 10%, transparent); color: var(--brand-blue); }
 .demo-filter-column > strong { margin-top: 16px; font-size: 12px; }
@@ -518,6 +534,9 @@ button, select { cursor: pointer; }
 .privacy-points span { position: absolute; right: 18px; top: 16px; color: var(--subtle); font-size: 8px; }
 .privacy-points svg { color: var(--brand-blue); }
 .privacy-points p { margin-top: 14px; max-width: 180px; font-size: 11px; font-weight: 600; line-height: 1.5; }
+.privacy-engine-path { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 16px; overflow-x: auto; border: 1px solid var(--border); border-radius: 18px; background: var(--panel); padding: 14px; color: var(--subtle); font-size: 8px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.privacy-engine-path span, .privacy-engine-path svg { flex: none; }
+.privacy-engine-path svg { color: var(--brand-blue); }
 .privacy-footnote { margin-top: 16px; color: var(--subtle); font-size: 9px; line-height: 1.7; }
 
 .packaging-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; }
@@ -631,6 +650,9 @@ button, select { cursor: pointer; }
   .value-family-grid article:nth-child(1), .value-family-grid article:nth-child(10), .value-family-grid article:nth-child(11) { grid-column: span 1; }
   .capability-system-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
   .discoverability-layout { grid-template-columns: 1fr; }
+  .demo-lab { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .demo-lab > section { min-height: 330px; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+  .demo-decision-panel { grid-column: 1 / -1; }
 }
 
 @media (max-width: 767px) {
@@ -673,8 +695,9 @@ button, select { cursor: pointer; }
   .executive-report-head { gap: 18px; }
   .executive-report-grid { grid-template-columns: 1fr; }
   .demo-lab { display: block; }
-  .demo-lab > section { min-height: 360px; }
-  .demo-filter-column { min-height: 390px; border: 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+  .demo-lab > section { min-height: 320px; border-right: 0; border-bottom: 1px solid var(--border); }
+  .demo-decision-panel { min-height: 280px !important; }
+  .demo-pipeline { margin-right: -20px; padding-right: 20px; }
   .audit-pilot-footer, .solution-bundle-note { grid-template-columns: repeat(2,1fr); }
   .ai-context-body { grid-template-columns: 1fr; }
   .ai-context-body > div { border-right: 0; border-bottom: 1px solid rgba(255,255,255,.07); }

@@ -9,6 +9,7 @@ export type DiagnosisRequest = {
   tools: string;
   flow: string;
   context: string;
+  engagement?: "audit" | "pilot";
 };
 
 function singleLine(value: string) {
@@ -17,17 +18,18 @@ function singleLine(value: string) {
 
 export function buildDiagnosisMailto(request: DiagnosisRequest) {
   const company = singleLine(request.company);
-  const subject = `Solicitud Meaning Loss Audit · ${company}`;
+  const engagement = request.engagement === "pilot" ? "Piloto enterprise" : "Auditoría de entendimiento operativo";
+  const subject = `Solicitud ${engagement} · ${company}`;
   const body = [
     "Hola equipo Virro,",
     "",
-    "Quiero solicitar un diagnóstico de flujo crítico.",
+    `Quiero solicitar: ${engagement}.`,
     "",
     `Nombre: ${singleLine(request.name)}`,
     `Empresa: ${company}`,
     `Rol: ${singleLine(request.role)}`,
     `Email de contacto: ${singleLine(request.email)}`,
-    `Área con mayor pérdida de claridad: ${singleLine(request.area)}`,
+    `Área con mayor riesgo de interpretación: ${singleLine(request.area)}`,
     `Herramientas principales: ${singleLine(request.tools)}`,
     `Flujo a diagnosticar: ${singleLine(request.flow)}`,
     "",

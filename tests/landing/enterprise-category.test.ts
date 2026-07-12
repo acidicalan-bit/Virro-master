@@ -19,6 +19,20 @@ describe("Virro enterprise category experience", () => {
     }
   });
 
+  it("shows the privacy-first decision path in the demo", () => {
+    const source = readFileSync(join(root, "components/landing/transversal-demo.tsx"), "utf8");
+    for (const stage of ["Safe input", "Privacy Shield", "Readiness Gate", "Pack Engine", "Executive Signal"]) {
+      expect(source).toContain(stage);
+    }
+    expect(source).toContain("Raw data: no");
+  });
+
+  it("uses enterprise audit and pilot conversion actions", () => {
+    const source = readFileSync(join(root, "components/landing/diagnosis-request-form.tsx"), "utf8");
+    expect(source).toContain('t("Request an audit", "Solicitar auditoría")');
+    expect(source).toContain('t("Configure a pilot", "Configurar piloto")');
+  });
+
   it("provides visible and structured AI-discovery content", () => {
     const capabilities = readFileSync(join(root, "components/landing/platform-capabilities.tsx"), "utf8");
     const layout = readFileSync(join(root, "app/layout.tsx"), "utf8");

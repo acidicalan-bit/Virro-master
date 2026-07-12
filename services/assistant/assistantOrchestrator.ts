@@ -34,7 +34,7 @@ export const assistantOrchestrator = {
       targetTeam: receiver,
       expectedReceiver: receiver,
       packType: routedPack,
-      probableIntent: locale === "es" ? "Detectar dónde se pierde entendimiento antes de que el flujo avance." : "Detect where understanding is lost before the flow advances.",
+      probableIntent: locale === "es" ? "Detectar dónde la información puede avanzar sin contexto suficiente." : "Detect where information may advance without enough context.",
       missingContext: missingContext.map((item) => item.label),
       risks: meaningLossRisks.map((risk) => risk.title),
       criticalQuestions: criticalQuestions.map((question) => question.question),

@@ -118,7 +118,7 @@ export function Dashboard() {
       </section>
 
       <section className="grid gap-3 md:grid-cols-3">
-        <AnswerCard question={t("Where is the company losing operational understanding?", "¿Dónde está perdiendo entendimiento la empresa?")} answer={operationalText(locale, insights.answers.losingUnderstanding)} />
+        <AnswerCard question={t("Where is interpretation risk concentrated?", "¿Dónde se concentra el riesgo de interpretación?")} answer={operationalText(locale, insights.answers.losingUnderstanding)} />
         <AnswerCard question={t("Which area has the highest risk?", "¿Qué área tiene más riesgo?")} answer={operationalText(locale, insights.answers.highestRiskArea)} />
         <AnswerCard question={t("What should we correct first?", "¿Qué deberíamos corregir primero?")} answer={operationalText(locale, insights.answers.firstCorrection)} />
       </section>

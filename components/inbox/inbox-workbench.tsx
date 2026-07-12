@@ -80,7 +80,7 @@ export function InboxWorkbench() {
     <section>
       <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-teal-300">03 · {t("Understanding Inbox", "Bandeja de entendimiento")}</p>
       <h1 className="text-2xl font-semibold tracking-[-0.035em] md:text-[30px]">{t("Virro Understanding Assistant", "Asistente de Entendimiento Virro")}</h1>
-      <p className="mt-2 max-w-3xl text-sm text-[var(--muted)]">{t("Turn ambiguous information into an auditable Understanding Event.", "Convierte información ambigua en un Understanding Event auditable.")}</p>
+      <p className="mt-2 max-w-3xl text-sm text-[var(--muted)]">{t("Structure ambiguous information as an auditable Understanding Event.", "Estructura información ambigua como un Understanding Event auditable.")}</p>
       <p className="mt-2 max-w-3xl text-[11px] leading-5 text-[var(--subtle)]">{t("The assistant does not converse for the sake of conversation. It helps detect whether information is sufficiently understood before moving forward.", "El asistente no conversa por conversar. Ayuda a detectar si la información está suficientemente entendida antes de avanzar.")}</p>
     </section>
 
