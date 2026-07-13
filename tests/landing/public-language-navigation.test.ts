@@ -18,7 +18,7 @@ describe("public landing language and navigation", () => {
     const form = readFileSync(join(root, "components/landing/diagnosis-request-form.tsx"), "utf8");
     expect(landing).toContain('href="/app"');
     expect(form).toContain('id="solicitar-diagnostico"');
-    expect(landing).toContain("<ArchitectureOrbit />");
+    expect(landing).toContain("<VirroCoreSection />");
     expect(landing).toContain("<SolutionPanels />");
   });
 });
