@@ -21,10 +21,11 @@ describe("Virro enterprise category experience", () => {
 
   it("shows the privacy-first decision path in the demo", () => {
     const source = readFileSync(join(root, "components/landing/transversal-demo.tsx"), "utf8");
-    for (const stage of ["Safe input", "Privacy Shield", "Readiness Gate", "Pack Engine", "Executive Signal"]) {
+    for (const stage of ["Safe input", "Privacy Shield", "Readiness Gate", "Pack Engine", "Operational output", "Executive Signal"]) {
       expect(source).toContain(stage);
     }
-    expect(source).toContain("Raw data: no");
+    expect(source).toContain("Raw data stored: No");
+    expect(source).toContain("Signals stored: readiness, risks, patterns");
   });
 
   it("uses enterprise audit and pilot conversion actions", () => {

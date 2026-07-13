@@ -50,10 +50,11 @@ export function DiagnosisRequestForm() {
       <div>
         <p className="text-[10px] font-semibold uppercase tracking-[.16em] text-[var(--brand-blue)]">Enterprise Audit / Pilot</p>
         <h2 className="mt-4 text-4xl font-semibold tracking-[-.052em] md:text-6xl">{t("Start with an operational understanding audit.", "Empieza con una auditoría de entendimiento operativo.")}</h2>
-        <p className="mt-5 max-w-xl text-sm leading-7 text-[var(--muted)]">{t("Select a critical flow. Virro reviews real examples with data minimization, generates an Enterprise Understanding Map and recommends the pack or pilot with the highest expected value.", "Selecciona un flujo crítico. Virro revisa ejemplos reales con minimización de datos, genera un Enterprise Understanding Map y recomienda el pack o piloto con mayor valor esperado.")}</p>
+        <p className="mt-5 max-w-xl text-sm leading-7 text-[var(--muted)]">{t("Request an operational understanding audit. In 1–2 weeks we identify where your company is advancing with incomplete, ambiguous or difficult-to-transfer information, and deliver an executive map with quick wins, readiness by flow and a recommended pack.", "Solicita una auditoría de entendimiento operativo. En 1–2 semanas identificamos dónde tu empresa está avanzando con información incompleta, ambigua o difícil de transferir, y entregamos un mapa ejecutivo con quick wins, readiness por flujo y pack recomendado.")}</p>
         <div className="mt-7 space-y-3 text-[11px] leading-5 text-[var(--muted)]">
           <p className="flex gap-3"><ShieldCheck size={15} className="mt-0.5 shrink-0 text-[var(--brand-blue)]" />{t("Virro does not evaluate people. It estimates interpretation risk in operational information.", "Virro no evalúa personas. Estima riesgos de interpretación en información operativa.")}</p>
           <p className="flex gap-3"><ShieldCheck size={15} className="mt-0.5 shrink-0 text-[var(--brand-blue)]" />{t("Scores are probabilistic estimates, not guarantees.", "Los scores son estimaciones probabilísticas, no garantías.")}</p>
+          <p className="flex gap-3"><ShieldCheck size={15} className="mt-0.5 shrink-0 text-[var(--brand-blue)]" />{t("An audit can lead to a focused pilot, a combined pack or an Enterprise Layer license.", "Una auditoría puede derivar en un piloto enfocado, un pack combinado o una licencia Enterprise Layer.")}</p>
         </div>
       </div>
 

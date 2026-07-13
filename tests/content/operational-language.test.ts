@@ -12,8 +12,8 @@ const forbidden = [
   /detecta pérdida/i,
   /expone contexto/i,
   /prioriza acción/i,
-  /outputs? operativos?/i,
-  /operational outputs?/i,
+  /outputs operativos/i,
+  /operational outputs/i,
   /riesgos? de entendimiento/i,
   /understanding risks?/i,
 ];
