@@ -39,7 +39,7 @@ export function PrivacyTrust() {
       <article className="panel p-5"><div className="flex items-center gap-2"><UsersRound size={16} className="text-indigo-300" /><h2 className="text-sm font-semibold">{t("No employee surveillance", "Sin vigilancia de empleados")}</h2></div><p className="mt-3 text-xs leading-6 text-[var(--muted)]">{t("Virro detects where context, ownership and meaning are lost. It does not rank people, infer motivation or create individual performance scores.", "Virro detecta dónde se pierde contexto, ownership y significado. No clasifica personas, infiere motivación ni crea scores individuales de desempeño.")}</p></article></div>
     </section>
     <section className="panel p-5"><div className="grid gap-4 md:grid-cols-4">{[
-      { n: "01", title: t("Safe input", "Input seguro"), detail: t("Only relevant operational content", "Solo contenido operativo relevante") },
+      { n: "01", title: t("Initial information", "Información inicial"), detail: t("Only relevant operational content", "Solo contenido operativo relevante") },
       { n: "02", title: "Privacy Shield", detail: t("Mask PII and secrets before analysis", "Enmascarar PII y secretos antes del análisis") },
       { n: "03", title: "Analyze-Safe", detail: t("Analyze masked operational meaning", "Analizar significado operativo enmascarado") },
       { n: "04", title: t("Safe signals", "Señales seguras"), detail: t("Store metadata and results, not raw content", "Guardar metadata y resultados, no contenido crudo") },

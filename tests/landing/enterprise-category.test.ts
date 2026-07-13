@@ -51,6 +51,16 @@ describe("Virro enterprise category experience", () => {
     expect(audit).not.toContain("Configurar piloto");
   });
 
+  it("keeps audit CTA sizing in the shared landing button system", () => {
+    const styles = readFileSync(join(root, "app/globals.css"), "utf8");
+    const audit = readFileSync(join(root, "components/landing/commercial-sections.tsx"), "utf8");
+    expect(styles).toContain("min-height: 52px");
+    expect(styles).toContain("white-space: nowrap");
+    expect(styles).toContain(".brand-secondary-button");
+    expect(audit).toContain("audit-pilot-actions");
+    expect(audit).toContain('t("Explore a pilot", "Explorar piloto")');
+  });
+
   it("provides visible and structured AI-discovery content", () => {
     const capabilities = readFileSync(join(root, "components/landing/platform-capabilities.tsx"), "utf8");
     const layout = readFileSync(join(root, "app/layout.tsx"), "utf8");
