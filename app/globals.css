@@ -116,17 +116,16 @@ button, select { cursor: pointer; }
 
 .public-landing .brand-accent { color: var(--brand-blue); }
 .public-landing .brand-accent-coral { color: var(--brand-coral); }
-.public-landing .brand-primary-button,
-.public-landing .brand-secondary-button { display: inline-flex; min-height: 52px; width: auto; align-items: center; justify-content: center; gap: 10px; border-radius: 999px; padding: 0 24px; font-weight: 700; line-height: 1; text-align: center; text-decoration: none; white-space: nowrap; transition: background-color var(--motion-fast) ease, border-color var(--motion-fast) ease, box-shadow var(--motion-fast) ease, transform var(--motion-fast) var(--premium-ease); }
-.public-landing .brand-primary-button { border: 1px solid transparent; background: #0969ff; color: #ffffff; }
-.public-landing .brand-primary-button:hover { background: #075edb; box-shadow: 0 14px 32px rgba(9,105,255,.23); transform: translateY(-2px); }
-.public-landing .brand-secondary-button { border: 1px solid var(--border); background: color-mix(in srgb, var(--panel) 88%, transparent); color: var(--text); }
-.public-landing .brand-secondary-button:hover { border-color: color-mix(in srgb, var(--brand-blue) 42%, var(--border)); background: var(--hover); transform: translateY(-2px); }
-.public-landing .brand-primary-button:focus-visible,
-.public-landing .brand-secondary-button:focus-visible { outline: 2px solid color-mix(in srgb, var(--brand-blue) 72%, white); outline-offset: 3px; }
+.brand-primary-button,
+.brand-secondary-button { display: inline-flex; min-height: 52px; width: auto; align-items: center; justify-content: center; gap: 10px; border-radius: 999px; padding: 0 24px; font-weight: 700; line-height: 1; text-align: center; text-decoration: none; white-space: nowrap; transition: background-color var(--motion-fast) ease, border-color var(--motion-fast) ease, box-shadow var(--motion-fast) ease, transform var(--motion-fast) var(--premium-ease); }
+.brand-primary-button { border: 1px solid transparent; background: #0969ff; color: #ffffff; }
+.brand-primary-button:hover { background: #075edb; box-shadow: 0 14px 32px rgba(9,105,255,.23); transform: translateY(-2px); }
+.brand-secondary-button { border: 1px solid var(--border); background: color-mix(in srgb, var(--panel) 88%, transparent); color: var(--text); }
+.brand-secondary-button:hover { border-color: color-mix(in srgb, var(--brand-blue) 42%, var(--border)); background: var(--hover); transform: translateY(-2px); }
+.brand-primary-button:focus-visible,
+.brand-secondary-button:focus-visible { outline: 2px solid color-mix(in srgb, var(--brand-blue) 72%, white); outline-offset: 3px; }
 .public-landing main > section { padding-block: clamp(4rem, 8vw, 7.5rem); }
 .public-landing .mx-auto.max-w-\[1380px\] { max-width: 1240px; }
-.public-landing .public-navbar .brand-primary-button { min-height: 36px; padding: 0 16px; }
 .public-landing .landing-hero {
   background-image:
     linear-gradient(to right, color-mix(in srgb, var(--border) 42%, transparent) 1px, transparent 1px),

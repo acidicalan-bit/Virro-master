@@ -57,6 +57,7 @@ describe("Virro enterprise category experience", () => {
     expect(styles).toContain("min-height: 52px");
     expect(styles).toContain("white-space: nowrap");
     expect(styles).toContain(".brand-secondary-button");
+    expect(styles).not.toContain("min-height: 36px");
     expect(audit).toContain("audit-pilot-actions");
     expect(audit).toContain('t("Explore a pilot", "Explorar piloto")');
   });
