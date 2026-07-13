@@ -7,7 +7,7 @@ const root = process.cwd();
 describe("Virro enterprise category experience", () => {
   it("exposes the complete operating-understanding capability chain", () => {
     const source = readFileSync(join(root, "components/landing/platform-capabilities.tsx"), "utf8");
-    for (const capability of ["Understanding Capture", "Understanding Event", "Readiness Gate", "Output Bundles", "Living Understanding Map", "Knowledge Continuity", "Privacy Shield"]) {
+    for (const capability of ["Capture", "Privacy Shield", "Readiness Gate", "Pack Engine", "Executive Report"]) {
       expect(source).toContain(capability);
     }
   });
