@@ -34,6 +34,23 @@ describe("Virro enterprise category experience", () => {
     expect(source).toContain('t("Explore a pilot", "Explorar piloto")');
   });
 
+  it("keeps executive preview scores visible from the first render", () => {
+    const source = readFileSync(join(root, "components/landing/product-walkthrough.tsx"), "utf8");
+    expect(source).toContain('Metric label="DoU Score" value={68}');
+    expect(source).toContain('Metric label="Meaning Loss Risk" value={34}');
+    expect(source).toContain('value={1} tone="amber" suffix=""');
+    expect(source).not.toContain("CountUpMetric");
+  });
+
+  it("uses the requested capability narrative and pilot CTA", () => {
+    const capabilities = readFileSync(join(root, "components/landing/platform-capabilities.tsx"), "utf8");
+    const audit = readFileSync(join(root, "components/landing/commercial-sections.tsx"), "utf8");
+    expect(capabilities).toContain("De información dispersa a señales operativas para decidir mejor.");
+    expect(capabilities).toContain("para conservar señales de readiness, riesgo, contexto y continuidad que alimentan decisiones, handoffs y reportes ejecutivos.");
+    expect(audit).toContain('t("Explore a pilot", "Explorar piloto")');
+    expect(audit).not.toContain("Configurar piloto");
+  });
+
   it("provides visible and structured AI-discovery content", () => {
     const capabilities = readFileSync(join(root, "components/landing/platform-capabilities.tsx"), "utf8");
     const layout = readFileSync(join(root, "app/layout.tsx"), "utf8");

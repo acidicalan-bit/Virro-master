@@ -28,10 +28,10 @@ const scenarios: Scenario[] = [
 function pick(copy: Copy, locale: string) { return locale === "es" ? copy.es : copy.en; }
 
 function AnimatedScore({ target }: { target: number }) {
-  const [value, setValue] = useState(0);
+  const [value, setValue] = useState(target);
   useEffect(() => {
-    let frame = 0; const start = performance.now(); const duration = 820;
-    const tick = (now: number) => { const progress = Math.min((now - start) / duration, 1); setValue(Math.round(target * (1 - Math.pow(1 - progress, 3)))); if (progress < 1) frame = requestAnimationFrame(tick); };
+    let frame = 0; const start = performance.now(); const duration = 820; const initial = Math.max(1, Math.round(target * .25));
+    const tick = (now: number) => { const progress = Math.min((now - start) / duration, 1); setValue(Math.round(initial + (target - initial) * (1 - Math.pow(1 - progress, 3)))); if (progress < 1) frame = requestAnimationFrame(tick); };
     frame = requestAnimationFrame(tick); return () => cancelAnimationFrame(frame);
   }, [target]);
   return <strong aria-label={`Readiness ${target} de 100`}>{value}<small>/100</small></strong>;
