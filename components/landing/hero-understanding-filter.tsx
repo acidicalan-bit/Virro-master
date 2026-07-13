@@ -5,13 +5,13 @@ import { ArrowRight, CheckCircle2, FileBarChart, Layers3, Radar, ShieldCheck } f
 import { useLanguage } from "@/components/i18n/language-provider";
 import { RevealOnScroll } from "@/components/landing/motion/motion-primitives";
 
-const inputs = ["Junta", "Pantalla", "Ticket", "Documento", "Call", "Diseño", "CRM", "BI", "IA"];
-const filters = ["Contexto", "Criterio", "Claridad", "Receptor", "Riesgo", "Readiness"];
-const outputs = ["Privacy Shield", "Readiness Gate", "Pack recomendado", "Enterprise Map", "Executive Report"];
+const inputs = ["Junta", "Ticket", "Documento", "Diseño", "CRM", "IA"];
+const filters = ["Contexto", "Criterio", "Receptor", "Readiness"];
+const outputs = ["Privacy Shield", "Readiness Gate", "Pack recomendado", "Executive Report"];
 
 export function HeroUnderstandingFilter() {
   const { locale, t } = useLanguage();
-  const inputLabels = locale === "es" ? inputs : ["Meeting", "Screen", "Ticket", "Document", "Call", "Design", "CRM", "BI", "AI"];
+  const inputLabels = locale === "es" ? inputs : ["Meeting", "Ticket", "Document", "Design", "CRM", "AI"];
   return <section id="plataforma" className="landing-hero relative min-h-[940px] scroll-mt-24 overflow-hidden px-5 pb-24 pt-36 md:px-8 md:pt-44">
     <div className="hero-glow hero-glow-one" /><div className="hero-glow hero-glow-two" /><div className="hero-grid-fade" />
     <div className="relative mx-auto grid max-w-[1380px] gap-14 xl:grid-cols-[.88fr_1.12fr] xl:items-center">
@@ -27,7 +27,7 @@ export function HeroUnderstandingFilter() {
         <div className="filter-scene-top"><span>{t("Digital flow", "Flujo digital")}</span><span className="filter-live"><i />{t("Understanding observability", "Observabilidad de entendimiento")}</span></div>
         <div className="filter-scene-body">
           <div className="filter-inputs"><p>{t("Scattered input", "Input disperso")}</p>{inputLabels.map((label, index) => <span key={label} style={{ "--particle-index": index } as React.CSSProperties}>{label}</span>)}</div>
-          <div className="filter-core"><div className="filter-core-rings" aria-hidden /><div className="filter-core-mark"><Radar size={20} /><strong>Virro</strong><small>Understanding Filter</small></div><div className="filter-signals">{filters.map((label, index) => <span key={label} style={{ "--signal-index": index } as React.CSSProperties}>{locale === "es" ? label : ["Context", "Criteria", "Clarity", "Receiver", "Risk", "Readiness"][index]}</span>)}</div></div>
+          <div className="filter-core"><div className="filter-core-rings" aria-hidden /><div className="filter-core-mark"><Radar size={20} /><strong>Virro</strong><small>Understanding Filter</small></div><div className="filter-signals">{filters.map((label, index) => <span key={label} style={{ "--signal-index": index } as React.CSSProperties}>{locale === "es" ? label : ["Context", "Criteria", "Receiver", "Readiness"][index]}</span>)}</div></div>
           <div className="filter-outputs"><p>{t("Controlled path to a decision", "Ruta controlada hacia una decisión")}</p>{outputs.map((label, index) => <span key={label}><i>{String(index + 1).padStart(2, "0")}</i>{label}{index === 1 && <b>68</b>}</span>)}</div>
         </div>
         <div className="filter-scene-footer"><span><FileBarChart size={12} />{t("Executive evidence", "Evidencia ejecutiva")}</span><Link href="/app" className="inline-flex items-center gap-2">{t("Open enterprise demo", "Abrir demo enterprise")} <ArrowRight size={12} /></Link></div>
