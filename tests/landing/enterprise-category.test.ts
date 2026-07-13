@@ -12,6 +12,23 @@ describe("Virro enterprise category experience", () => {
     }
   });
 
+  it("keeps the public operating sequence focused on five buyer-facing modules", () => {
+    const source = readFileSync(join(root, "components/landing/commercial-sections.tsx"), "utf8");
+    for (const capability of ["Capture", "Privacy Shield", "Readiness Gate", "Pack Engine", "Executive Report"]) {
+      expect(source).toContain(capability);
+    }
+    for (const internalConcept of ["Understanding Capture", "Output Bundle", "Living Understanding Map"]) {
+      expect(source).not.toContain(internalConcept);
+    }
+  });
+
+  it("uses a single audit conversion action across public packs", () => {
+    const source = readFileSync(join(root, "components/landing/solution-panels.tsx"), "utf8");
+    expect(source).toContain('href="#solicitar-diagnostico"');
+    expect(source).toContain('t("Evaluate in an audit", "Evaluar en auditoría")');
+    expect(source).not.toContain("Explorar en demo enterprise");
+  });
+
   it("includes twelve transversal demo flows", () => {
     const source = readFileSync(join(root, "components/landing/enterprise-demo-experience-v2.tsx"), "utf8");
     for (const id of ["meeting", "product", "design", "support", "sales", "marketing", "data", "process", "finance", "policy", "ai", "continuity"]) {

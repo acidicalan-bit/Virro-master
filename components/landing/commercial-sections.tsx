@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, Bot, Boxes, CheckCircle2, CircleAlert, Eye, FileSearch, Layers3, LockKeyhole, Map, Network, PackageCheck, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowRight, Bot, Boxes, CheckCircle2, CircleAlert, Eye, Layers3, LockKeyhole, Network, ShieldCheck, Sparkles } from "lucide-react";
 import { useLanguage } from "@/components/i18n/language-provider";
 import { RevealOnScroll, StaggerGroup } from "@/components/landing/motion/motion-primitives";
 
@@ -19,11 +19,10 @@ export function CategoryLayerSection() {
 export function HowItWorksSection() {
   const { t } = useLanguage();
   const steps = [
-    ["Understanding Capture", t("Meeting, screen, ticket, document, call, design, process or system signal.", "Junta, pantalla, ticket, documento, call, diseño, proceso o señal de sistema."), Boxes],
-    ["Understanding Event", t("Creates a traceable unit around receiver, intent, context and expected action.", "Crea una unidad trazable alrededor de receptor, intención, contexto y acción esperada."), FileSearch],
+    ["Capture", t("Captures relevant operating information from real work.", "Captura información operativa relevante desde el trabajo real."), Boxes],
+    ["Privacy Shield", t("Applies minimization and masking before analysis.", "Aplica minimización y máscara antes del análisis."), LockKeyhole],
     ["Readiness Gate", t("Estimates whether information can advance or still needs validation.", "Estima si la información puede avanzar o todavía necesita validación."), Eye],
-    ["Output Bundle", t("Packages questions, checklist, handoff, Context Pack or brief for the receiver.", "Empaqueta preguntas, checklist, handoff, Context Pack o brief para el receptor."), PackageCheck],
-    ["Living Understanding Map", t("Keeps flows, decisions, risks, tools and continuity connected.", "Mantiene conectados flujos, decisiones, riesgos, herramientas y continuidad."), Map],
+    ["Pack Engine", t("Selects the right review pack for the receiver and operating flow.", "Selecciona el pack de revisión adecuado para el receptor y flujo operativo."), Layers3],
     ["Executive Report", t("Structures patterns and readiness as priorities for leadership.", "Estructura patrones y readiness como prioridades para dirección."), Sparkles],
   ] as const;
   return <section id="como-funciona" className="how-section scroll-mt-24 px-5 py-24 md:px-8 md:py-36"><div className="mx-auto max-w-[1380px]"><div className="max-w-4xl"><p className="section-kicker">{t("How it works", "Cómo funciona")}</p><h2 className="section-display">{t("From real work to readiness, risks and actionable deliverables.", "Del trabajo real a readiness, riesgos y entregables accionables.")}</h2></div><StaggerGroup className="how-steps mt-14">{steps.map(([title, detail, Icon], index) => <article key={title}><div><span>0{index + 1}</span><Icon size={18} /></div><h3>{title}</h3><p>{detail}</p>{index < steps.length - 1 && <ArrowRight size={15} className="how-step-arrow" />}</article>)}</StaggerGroup></div></section>;
