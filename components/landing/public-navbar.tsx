@@ -9,7 +9,7 @@ import { useLanguage } from "@/components/i18n/language-provider";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { modules, localizeModule } from "@/lib/config/modules";
 
-const solutionIds = ["product-delivery", "ai-understanding", "handoff-intelligence", "process-understanding", "onboarding", "consulting-delivery", "talent-staffing", "technical-documentation"];
+const solutionIds = ["product-delivery", "ai-understanding", "handoff-intelligence", "process-understanding"];
 
 export function PublicNavbar() {
   const { locale, t } = useLanguage();

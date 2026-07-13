@@ -738,6 +738,8 @@ button, select { cursor: pointer; }
 .audit-pilot-stages article i { position: absolute; left: 16px; top: 48px; width: 1px; height: 18px; background: var(--border); }
 .audit-pilot-footer { display: grid; border-top: 1px solid var(--border); background: var(--panel-soft); grid-template-columns: repeat(4,1fr); }
 .audit-pilot-footer span { border-right: 1px solid var(--border); padding: 14px; color: var(--subtle); font-size: 8px; text-align: center; }
+.audit-pilot-form-wrap { border-top: 1px solid var(--border); background: linear-gradient(180deg, color-mix(in srgb, var(--panel-soft) 72%, transparent), var(--panel)); }
+.audit-pilot-form-wrap .diagnosis-request-form { max-width: 920px; margin: 0 auto; }
 .solution-bundle-note { display: grid; margin-top: 18px; overflow: hidden; border: 1px solid var(--border); border-radius: 18px; background: var(--panel); grid-template-columns: repeat(4,1fr); }
 .solution-bundle-note span { border-right: 1px solid var(--border); padding: 14px; color: var(--muted); font-size: 9px; text-align: center; }
 

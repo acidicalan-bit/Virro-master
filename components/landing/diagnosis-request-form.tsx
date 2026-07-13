@@ -45,20 +45,7 @@ export function DiagnosisRequestForm() {
     window.location.assign(mailto);
   }
 
-  return <section id="solicitar-diagnostico" className="diagnosis-final-section scroll-mt-24 px-5 py-24 md:px-8 md:py-36">
-    <div className="mx-auto grid max-w-[1380px] gap-12 lg:grid-cols-[.75fr_1.25fr] lg:items-start">
-      <div>
-        <p className="text-[10px] font-semibold uppercase tracking-[.16em] text-[var(--brand-blue)]">Enterprise Audit / Pilot</p>
-        <h2 className="mt-4 text-4xl font-semibold tracking-[-.052em] md:text-6xl">{t("Start with an operational understanding audit.", "Empieza con una auditoría de entendimiento operativo.")}</h2>
-        <p className="mt-5 max-w-xl text-sm leading-7 text-[var(--muted)]">{t("Request an operational understanding audit. In 1–2 weeks we identify where your company is advancing with incomplete, ambiguous or difficult-to-transfer information, and deliver an executive map with quick wins, readiness by flow and a recommended pack.", "Solicita una auditoría de entendimiento operativo. En 1–2 semanas identificamos dónde tu empresa está avanzando con información incompleta, ambigua o difícil de transferir, y entregamos un mapa ejecutivo con quick wins, readiness por flujo y pack recomendado.")}</p>
-        <div className="mt-7 space-y-3 text-[11px] leading-5 text-[var(--muted)]">
-          <p className="flex gap-3"><ShieldCheck size={15} className="mt-0.5 shrink-0 text-[var(--brand-blue)]" />{t("Virro does not evaluate people. It estimates interpretation risk in operational information.", "Virro no evalúa personas. Estima riesgos de interpretación en información operativa.")}</p>
-          <p className="flex gap-3"><ShieldCheck size={15} className="mt-0.5 shrink-0 text-[var(--brand-blue)]" />{t("Scores are probabilistic estimates, not guarantees.", "Los scores son estimaciones probabilísticas, no garantías.")}</p>
-          <p className="flex gap-3"><ShieldCheck size={15} className="mt-0.5 shrink-0 text-[var(--brand-blue)]" />{t("An audit can lead to a focused pilot, a combined pack or an Enterprise Layer license.", "Una auditoría puede derivar en un piloto enfocado, un pack combinado o una licencia Enterprise Layer.")}</p>
-        </div>
-      </div>
-
-      <form onSubmit={submit} className="rounded-2xl border border-white/[.08] bg-[var(--panel)] p-5 shadow-[0_24px_80px_rgba(0,0,0,.2)] md:p-7">
+  return <form id="solicitar-diagnostico" onSubmit={submit} className="diagnosis-request-form scroll-mt-24 rounded-2xl border border-white/[.08] bg-[var(--panel)] p-5 shadow-[0_24px_80px_rgba(0,0,0,.2)] md:p-7">
         <div className="grid gap-4 sm:grid-cols-2">
           <FormField label={t("Name", "Nombre")}><input name="name" required maxLength={80} autoComplete="name" className="field-control" /></FormField>
           <FormField label={t("Company", "Empresa")}><input name="company" required maxLength={120} autoComplete="organization" className="field-control" /></FormField>
@@ -72,9 +59,7 @@ export function DiagnosisRequestForm() {
         <div className="mt-5 grid gap-3 sm:grid-cols-2"><button type="submit" name="engagement" value="audit" className="brand-primary-button w-full text-xs"><Mail size={14} />{t("Request an audit", "Solicitar auditoría")}</button><button type="submit" name="engagement" value="pilot" className="brand-secondary-button w-full text-xs"><ShieldCheck size={14} />{t("Explore a pilot", "Explorar piloto")}</button></div>
         <p className="mt-4 flex items-start gap-2 text-[10px] leading-5 text-[var(--subtle)]"><ShieldCheck size={13} className="mt-0.5 shrink-0 text-[var(--brand-blue)]" />{t("Do not share sensitive information in this form. In a real audit, Virro defines privacy, scope and confidentiality rules before analyzing operational events.", "No compartas información sensible en este formulario. En una auditoría real, Virro define reglas de privacidad, alcance y confidencialidad antes de analizar eventos operativos.")}</p>
         {submitted && <div role="status" className="mt-4 flex items-start gap-3 rounded-xl border border-sky-400/20 bg-sky-400/[.07] p-4 text-[11px] leading-5 text-sky-200"><Mail size={16} className="mt-0.5 shrink-0" /><span>{t("Your email client will open with the formal request and selected engagement prepared. Nothing is sent until you confirm it.", "Tu cliente de correo abrirá con la solicitud formal y el tipo de engagement seleccionados. Nada se envía hasta que lo confirmes.")}</span></div>}
-      </form>
-    </div>
-  </section>;
+  </form>;
 }
 
 function FormField({ label, className = "", children }: { label: string; className?: string; children: React.ReactNode }) {

@@ -6,6 +6,7 @@ import { RevealOnScroll } from "@/components/landing/motion/motion-primitives";
 
 const modules = [
   { title: "Privacy Shield", detail: ["Mask sensitive entities before analysis.", "Enmascara entidades sensibles antes del análisis."], icon: LockKeyhole },
+  { title: "Analyze-Safe", detail: ["Processes operational events in a protected default mode.", "Procesa eventos operativos en un modo seguro por defecto."], icon: ShieldCheck },
   { title: "Readiness Gate", detail: ["Estimate what must be validated before moving forward.", "Estima qué falta validar antes de avanzar."], icon: Radar },
   { title: "Pack Engine", detail: ["Select the right review for the flow and receiver.", "Selecciona la revisión adecuada para el flujo y receptor."], icon: Network },
   { title: "Enterprise Understanding Map", detail: ["Connect flow signals into a management view.", "Conecta señales del flujo en una vista de gestión."], icon: Network },
@@ -18,7 +19,7 @@ export function VirroCoreSection() {
     <div className="mx-auto max-w-[1380px]">
       <RevealOnScroll className="virro-core-intro">
         <p className="section-kicker">Virro Core</p>
-        <h2 className="section-display">{t("One connected operating system for information that needs to move forward.", "Un sistema conectado para la información que necesita avanzar.")}</h2>
+        <h2 className="section-display">{t("Operational understanding engine with privacy by design.", "Motor de entendimiento operativo con privacidad por diseño.")}</h2>
         <p className="section-lead">{t("The privacy-first engine that analyzes operational events, masks sensitive information, estimates readiness and retains understanding signals without storing raw content by default.", "El motor privacy-first que analiza eventos operativos, enmascara información sensible, estima readiness y conserva señales de entendimiento sin guardar contenido crudo por defecto.")}</p>
       </RevealOnScroll>
 
@@ -36,7 +37,7 @@ export function VirroCoreSection() {
           </article>)}
         </div>
         <div className="virro-core-signals">
-          <div className="core-mask-signal"><span>{t("Privacy Shield masking", "Privacy Shield masking")}</span><strong>[EMAIL_1] · [CLIENT_1] · [PERSON_1]</strong><small>{t("Raw content is transient", "El contenido crudo es transitorio")}</small></div>
+          <div className="core-mask-signal"><span>{t("Metadata-only storage", "Almacenamiento solo de metadata")}</span><strong>[EMAIL_1] · [CLIENT_1] · [PERSON_1]</strong><small>{t("Signals, not conversations. Raw content is transient.", "Señales, no conversaciones. El contenido crudo es transitorio.")}</small></div>
           <div className="core-readiness-signal"><span>READINESS</span><strong>68<small>/100</small></strong><i><b /></i></div>
           <div className="core-report-signal"><span>EXECUTIVE REPORT</span><strong>{t("Validate scope owner before delivery", "Validar responsable de alcance antes de delivery")}</strong><a href="#auditoria">{t("View next action", "Ver siguiente acción")} <ArrowRight size={12} /></a></div>
         </div>
