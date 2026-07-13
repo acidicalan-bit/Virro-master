@@ -13,15 +13,15 @@ describe("Virro enterprise category experience", () => {
   });
 
   it("includes twelve transversal demo flows", () => {
-    const source = readFileSync(join(root, "components/landing/transversal-demo.tsx"), "utf8");
+    const source = readFileSync(join(root, "components/landing/enterprise-demo-experience-v2.tsx"), "utf8");
     for (const id of ["meeting", "product", "design", "support", "sales", "marketing", "data", "process", "finance", "policy", "ai", "continuity"]) {
       expect(source).toContain(`id: "${id}"`);
     }
   });
 
   it("shows the privacy-first decision path in the demo", () => {
-    const source = readFileSync(join(root, "components/landing/transversal-demo.tsx"), "utf8");
-    for (const stage of ["Safe input", "Privacy Shield", "Readiness Gate", "Pack Engine", "Operational output", "Executive Signal"]) {
+    const source = readFileSync(join(root, "components/landing/enterprise-demo-experience-v2.tsx"), "utf8");
+    for (const stage of ["Initial information", "Privacy Shield", "Readiness Gate", "Recommended pack", "Operational deliverable", "Executive signal"]) {
       expect(source).toContain(stage);
     }
     expect(source).toContain("Raw data stored: No");
@@ -31,7 +31,7 @@ describe("Virro enterprise category experience", () => {
   it("uses enterprise audit and pilot conversion actions", () => {
     const source = readFileSync(join(root, "components/landing/diagnosis-request-form.tsx"), "utf8");
     expect(source).toContain('t("Request an audit", "Solicitar auditoría")');
-    expect(source).toContain('t("Configure a pilot", "Configurar piloto")');
+    expect(source).toContain('t("Explore a pilot", "Explorar piloto")');
   });
 
   it("provides visible and structured AI-discovery content", () => {

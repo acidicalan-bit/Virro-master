@@ -12,7 +12,7 @@ import { ProductWalkthrough } from "@/components/landing/product-walkthrough";
 import { DiscoverabilitySection, PlatformCapabilities } from "@/components/landing/platform-capabilities";
 import { PublicNavbar } from "@/components/landing/public-navbar";
 import { SolutionPanels } from "@/components/landing/solution-panels";
-import { TransversalDemo } from "@/components/landing/transversal-demo";
+import { EnterpriseDemoExperienceV2 } from "@/components/landing/enterprise-demo-experience-v2";
 import { AIUnderstandingSection, AuditPilotSection, CategoryLayerSection, HowItWorksSection, PackagingSection, PrivacyShieldSection, ProblemSection, WhyNowSection } from "@/components/landing/commercial-sections";
 import { useLanguage } from "@/components/i18n/language-provider";
 
@@ -33,7 +33,7 @@ export function PublicLanding() {
       <section id="producto" className="product-stage scroll-mt-24 px-5 py-24 md:px-8 md:py-36"><div className="mx-auto max-w-[1380px]"><div className="grid gap-7 lg:grid-cols-[.82fr_1.18fr] lg:items-end"><div><p className="section-kicker">{t("Product interface", "Interfaz de producto")}</p><h2 className="section-display">{t("One operating loop, from intake to executive evidence.", "Un ciclo operativo, desde el ingreso hasta la evidencia ejecutiva.")}</h2></div><p className="section-lead lg:justify-self-end">{t("The enterprise demo shows how Virro captures an Understanding Event, reviews it through specialized packs and exposes readiness, risk and next actions.", "La demo enterprise muestra cómo Virro captura un Understanding Event, lo revisa con packs especializados y hace visibles readiness, riesgo y siguientes acciones.")}</p></div><ProductWalkthrough /></div></section>
       <EnterpriseUnderstandingMap />
       <ExecutiveReportProof />
-      <TransversalDemo />
+      <EnterpriseDemoExperienceV2 />
       <AuditPilotSection />
       <SolutionPanels />
       <AIUnderstandingSection />
