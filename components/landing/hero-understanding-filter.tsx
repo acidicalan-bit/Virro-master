@@ -9,12 +9,14 @@ const heroVideos = [
   { src: "/hero/virro-flow-01.mp4" },
   { src: "/hero/virro-flow-02.mp4" },
   { src: "/hero/virro-flow-03.mp4" },
+  { src: "/hero/virro-flow-04.mp4" },
 ];
 
 const signals = [
-  { index: "01", flow: ["Meeting → Delivery", "Junta → Delivery"], message: ["Validate owner and success criteria", "Validar responsable y criterio de éxito"], pack: "Handoff Intelligence" },
-  { index: "02", flow: ["Data request → BI", "Solicitud de datos → BI"], message: ["Decision and period need validation", "Decisión y periodo por validar"], pack: "Data Request Readiness" },
-  { index: "03", flow: ["AI instruction → Context Pack", "Instrucción IA → Context Pack"], message: ["Operational constraints need validation", "Restricciones operativas por validar"], pack: "AI Understanding" },
+  { flow: ["Meeting → Delivery", "Junta → Delivery"], input: ["Who confirms the release criteria?", "¿Quién confirma el criterio de salida?"], signal: ["Owner and evidence need validation", "Responsable y evidencia por validar"], action: ["Confirm owner before delivery", "Confirmar responsable antes de entregar"] },
+  { flow: ["Data request → BI", "Solicitud de datos → BI"], input: ["We need the latest conversion view for the board.", "Necesitamos la vista de conversión para la junta."], signal: ["Period and decision need validation", "Periodo y decisión por validar"], action: ["Define period and use before preparing data", "Definir periodo y uso antes de preparar datos"] },
+  { flow: ["AI instruction → Context Pack", "Instrucción IA → Context Pack"], input: ["Summarize this process for the operations team.", "Resume este proceso para el equipo de operaciones."], signal: ["Operational constraints are missing", "Faltan restricciones operativas"], action: ["Add receiver, format and constraints", "Agregar receptor, formato y restricciones"] },
+  { flow: ["Support → Product", "Soporte → Producto"], input: ["The client reports the same issue after the last update.", "El cliente reporta el mismo problema tras la última actualización."], signal: ["Impact and reproduction need validation", "Impacto y reproducción por validar"], action: ["Validate evidence before prioritizing", "Validar evidencia antes de priorizar"] },
 ];
 
 const CROSSFADE_MS = 1000;
@@ -121,16 +123,17 @@ export function HeroUnderstandingFilter() {
         <div className="hero-scene-item mt-6 flex flex-wrap gap-x-5 gap-y-2 text-[9px] text-[var(--subtle)]"><span className="flex items-center gap-2"><ShieldCheck size={12} className="text-[var(--brand-blue)]" />{t("Data minimization from the audit", "Minimización de datos desde la auditoría")}</span><span className="flex items-center gap-2"><CheckCircle2 size={12} className="text-[var(--brand-blue)]" />{t("Probabilistic estimates · human validation", "Estimaciones probabilísticas · validación humana")}</span></div>
       </div>
       <aside className="hero-flow-messages" aria-label={t("Analyze-Safe operational signal", "Señal operativa Analyze-Safe")}>
-        <div className="hero-flow-caption"><span><LockKeyhole size={13} />Analyze-Safe</span><b>{t("Operational flow signal", "Señal de flujo operativo")}</b></div>
-        <article key={activeSignal.index} className="hero-flow-bubble">
-          <span className="hero-flow-number">{activeSignal.index}</span>
-          <div>
-            <p>{t(activeSignal.flow[0], activeSignal.flow[1])}</p>
-            <strong>{t(activeSignal.message[0], activeSignal.message[1])}</strong>
-          </div>
-          <em>{activeSignal.pack}</em>
-          <span className="hero-flow-action">{t("Next action", "Siguiente acción")}: {t("validate before advancing", "validar antes de avanzar")}</span>
-        </article>
+        <div key={activeSignal.flow[0]} className="hero-message-cluster">
+          <article className="hero-message-bubble hero-message-input">
+            <span className="hero-message-meta">{t(activeSignal.flow[0], activeSignal.flow[1])}</span>
+            <strong>{t(activeSignal.input[0], activeSignal.input[1])}</strong>
+          </article>
+          <article className="hero-message-bubble hero-message-signal">
+            <span className="hero-message-meta"><LockKeyhole size={11} /> Analyze-Safe</span>
+            <strong>{t(activeSignal.signal[0], activeSignal.signal[1])}</strong>
+            <p>{t("Next action", "Siguiente acción")}: {t(activeSignal.action[0], activeSignal.action[1])}</p>
+          </article>
+        </div>
       </aside>
     </div>
   </section>;
