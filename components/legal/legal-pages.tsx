@@ -118,3 +118,37 @@ export function AccessibilityStatementPage() {
   ];
   return <LegalShell eyebrow={t("Accessible by design", "Accesibilidad por diseño")} title={t("Accessibility Statement", "Declaración de accesibilidad")}>{sections.map(([heading, copy]) => <section key={heading}><h2>{heading}</h2><p>{copy}</p></section>)}</LegalShell>;
 }
+
+type EnterpriseTrustDocument = "security-overview" | "data-processing" | "subprocessors";
+
+export function EnterpriseTrustDocumentPage({ document }: { document: EnterpriseTrustDocument }) {
+  const { t } = useLanguage();
+  const documents = {
+    "security-overview": {
+      eyebrow: t("Enterprise trust", "Confianza enterprise"),
+      title: t("Security Overview", "Resumen de seguridad"),
+      purpose: t("Virro uses privacy-first processing, proportional technical controls and customer-defined scope for audits and pilots. This overview does not represent a certification or a guarantee of zero risk.", "Virro utiliza procesamiento privacy-first, controles técnicos proporcionales y alcance definido con el cliente para auditorías y pilotos. Este resumen no representa una certificación ni una garantía de riesgo cero."),
+    },
+    "data-processing": {
+      eyebrow: t("Enterprise trust", "Confianza enterprise"),
+      title: t("Data Processing Terms", "Términos de tratamiento de datos"),
+      purpose: t("Data-processing terms, controller and processor responsibilities, and deployment-specific safeguards are scoped for the applicable enterprise engagement.", "Los términos de tratamiento de datos, responsabilidades de responsable y encargado, y salvaguardas por despliegue se definen para el engagement enterprise aplicable."),
+    },
+    subprocessors: {
+      eyebrow: t("Enterprise trust", "Confianza enterprise"),
+      title: t("Subprocessors", "Subencargados"),
+      purpose: t("The current subprocessor register is shared as part of enterprise diligence for the agreed deployment and service scope.", "El registro actual de subencargados se comparte como parte de la debida diligencia enterprise para el despliegue y alcance de servicio acordados."),
+    },
+  }[document];
+
+  return <LegalShell eyebrow={documents.eyebrow} title={documents.title}>
+    <section>
+      <h2>{t("Availability", "Disponibilidad")}</h2>
+      <p>{documents.purpose}</p>
+    </section>
+    <section>
+      <h2>{t("Enterprise request", "Solicitud enterprise")}</h2>
+      <p>{t("Available for enterprise pilots upon request. Contact contacto@virro.app to define scope, privacy requirements and the appropriate documentation.", "Disponible para pilotos enterprise bajo solicitud. Contacta a contacto@virro.app para definir alcance, requisitos de privacidad y la documentación aplicable.")}</p>
+    </section>
+  </LegalShell>;
+}

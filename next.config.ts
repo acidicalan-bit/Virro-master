@@ -36,6 +36,16 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  async redirects() {
+    return [
+      { source: "/privacy", destination: "/legal/privacy", permanent: true },
+      { source: "/terms", destination: "/legal/terms", permanent: true },
+      { source: "/es/terms", destination: "/legal/terms", permanent: true },
+      { source: "/es/privacy", destination: "/legal/privacy", permanent: true },
+      // Prevent the former Spanish landing from exposing a stale public narrative.
+      { source: "/es", destination: "/", permanent: true },
+    ];
+  },
   async headers() {
     return [{ source: "/(.*)", headers: securityHeaders }];
   },

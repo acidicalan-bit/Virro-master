@@ -897,6 +897,8 @@ html[data-theme="light"] .landing-hero.has-video-hero .brand-secondary-button { 
 .legal-card span { display: flex; align-items: center; gap: 7px; margin-top: auto; padding-top: 24px; color: var(--brand-blue); font-size: 9px; font-weight: 700; }
 
 .mobile-menu-trigger { display: inline-flex; height: 36px; align-items: center; gap: 7px; border: 1px solid var(--border); border-radius: 999px; background: var(--panel); padding: 0 11px; color: var(--text); font-size: 9px; font-weight: 700; box-shadow: 0 8px 28px rgba(0,0,0,.09); }
+@media (min-width: 1281px) { .public-desktop-nav { display: flex !important; } .mobile-menu-trigger { display: none !important; } }
+@media (max-width: 1280px) { .public-desktop-nav { display: none !important; } }
 @media (max-width: 1535px) { .landing-nav-shell > div > .ml-auto > a.brand-primary-button { display: none !important; } }
 @media (min-width: 1281px) and (max-width: 1535px) { .landing-nav-shell > div { gap: 7px; padding-right: 14px; padding-left: 14px; } .landing-nav-shell nav a, .landing-nav-shell nav button { padding-right: 8px; padding-left: 8px; } }
 .mobile-menu-panel { position: absolute; top: calc(100% + 9px); right: 0; left: 0; z-index: 30; max-height: calc(100vh - 100px); overflow-y: auto; border: 1px solid var(--border); border-radius: 22px; background: var(--app-bg); padding: 17px; box-shadow: 0 35px 110px rgba(0,0,0,.38); animation: mobile-menu-enter 420ms var(--premium-ease) both; overscroll-behavior: contain; }

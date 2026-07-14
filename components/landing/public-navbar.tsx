@@ -54,7 +54,7 @@ export function PublicNavbar() {
             <Image src="/brand/virro-icon.svg" alt="" width={31} height={25} sizes="29px" priority className="h-auto w-[29px] object-contain" />
             <span className="text-lg font-semibold tracking-[-.05em]">Virro</span>
           </Link>
-          <nav className="ml-auto hidden items-center gap-0.5 min-[1281px]:flex" aria-label={t("Public navigation", "Navegación pública")}>
+          <nav className="public-desktop-nav ml-auto hidden items-center gap-0.5 min-[1281px]:flex" aria-label={t("Public navigation", "Navegación pública")}>
             <button type="button" onClick={() => setSolutionsOpen((value) => !value)} aria-expanded={solutionsOpen} className="flex h-9 items-center gap-1.5 rounded-full px-3 text-[10px] font-medium text-[var(--muted)] transition hover:bg-[var(--hover)] hover:text-[var(--text)]">Packs <ChevronDown size={12} className={`transition ${solutionsOpen ? "rotate-180" : ""}`} /></button>
             {anchors.map(([href, label]) => <a key={href} href={href} className="rounded-full px-3 py-2.5 text-[10px] font-medium text-[var(--muted)] transition hover:bg-[var(--hover)] hover:text-[var(--text)]">{label}</a>)}
           </nav>
