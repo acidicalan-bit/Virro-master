@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, FileText, Scale, ShieldCheck } from "lucide-react";
+import { Accessibility, ArrowLeft, ArrowRight, Cookie, FileText, Scale, ShieldCheck } from "lucide-react";
 import { useLanguage } from "@/components/i18n/language-provider";
 import { LanguageToggle } from "@/components/i18n/language-toggle";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
@@ -10,7 +10,7 @@ const effectiveDate = "11 July 2026";
 
 function LegalShell({ title, eyebrow, children }: { title: string; eyebrow: string; children: React.ReactNode }) {
   const { t } = useLanguage();
-  return <div className="min-h-screen bg-[var(--app-bg)] text-[var(--text)]"><header className="sticky top-0 z-20 border-b border-[var(--border)] bg-[color-mix(in_srgb,var(--header)_90%,transparent)] px-5 backdrop-blur-xl"><div className="mx-auto flex h-16 max-w-5xl items-center gap-3"><Link href="/" className="inline-flex items-center gap-2 text-sm font-semibold"><ArrowLeft size={15} /> Virro</Link><div className="ml-auto flex items-center gap-2"><LanguageToggle compact /><ThemeToggle label={t("Toggle theme", "Cambiar tema")} /></div></div></header><main className="px-5 py-16 md:py-24"><article className="mx-auto max-w-5xl"><p className="section-kicker">{eyebrow}</p><h1 className="mt-5 max-w-4xl text-4xl font-semibold tracking-[-.055em] md:text-7xl">{title}</h1><p className="mt-5 text-[10px] uppercase tracking-[.12em] text-[var(--subtle)]">{t("Effective date", "Fecha de vigencia")}: {effectiveDate}</p><div className="legal-document mt-14">{children}</div><div className="mt-14 flex flex-wrap gap-3 border-t border-[var(--border)] pt-7 text-[10px]"><Link href="/legal">{t("Legal center", "Centro legal")}</Link><Link href="/legal/terms">{t("Terms", "Términos")}</Link><Link href="/legal/privacy">{t("Privacy notice", "Aviso de privacidad")}</Link><a href="mailto:contacto@virro.app">contacto@virro.app</a></div></article></main></div>;
+  return <div className="min-h-screen bg-[var(--app-bg)] text-[var(--text)]"><a href="#legal-main-content" className="skip-link">{t("Skip to main content", "Saltar al contenido principal")}</a><header className="sticky top-0 z-20 border-b border-[var(--border)] bg-[color-mix(in_srgb,var(--header)_90%,transparent)] px-5 backdrop-blur-xl"><div className="mx-auto flex h-16 max-w-5xl items-center gap-3"><Link href="/" className="inline-flex items-center gap-2 text-sm font-semibold"><ArrowLeft size={15} /> Virro</Link><div className="ml-auto flex items-center gap-2"><LanguageToggle compact /><ThemeToggle label={t("Toggle theme", "Cambiar tema")} /></div></div></header><main id="legal-main-content" className="px-5 py-16 md:py-24"><article className="mx-auto max-w-5xl"><p className="section-kicker">{eyebrow}</p><h1 className="mt-5 max-w-4xl text-4xl font-semibold tracking-[-.055em] md:text-7xl">{title}</h1><p className="mt-5 text-[10px] uppercase tracking-[.12em] text-[var(--subtle)]">{t("Effective date", "Fecha de vigencia")}: {effectiveDate}</p><div className="legal-document mt-14">{children}</div><footer className="mt-14 flex flex-wrap gap-3 border-t border-[var(--border)] pt-7 text-[10px]"><Link href="/legal">{t("Legal center", "Centro legal")}</Link><Link href="/legal/terms">{t("Terms", "Términos")}</Link><Link href="/legal/privacy">{t("Privacy notice", "Aviso de privacidad")}</Link><Link href="/legal/cookies">{t("Cookies", "Cookies")}</Link><Link href="/legal/accessibility">{t("Accessibility", "Accesibilidad")}</Link><a href="mailto:contacto@virro.app">contacto@virro.app</a></footer></article></main></div>;
 }
 
 export function LegalCenter() {
@@ -18,9 +18,11 @@ export function LegalCenter() {
   const cards = [
     { href: "/legal/terms", icon: Scale, title: t("Terms of Use", "Términos de uso"), copy: t("Rules for accessing Virro, the enterprise demo, audits, pilots and future licensed services.", "Reglas para acceder a Virro, la demo enterprise, auditorías, pilotos y futuros servicios licenciados.") },
     { href: "/legal/privacy", icon: ShieldCheck, title: t("Privacy Notice", "Aviso de privacidad"), copy: t("What data Virro may process, why, and the privacy-first controls applied to audits and pilots.", "Qué datos puede tratar Virro, para qué y qué controles privacy-first se aplican a auditorías y pilotos.") },
+    { href: "/legal/cookies", icon: Cookie, title: t("Cookie Policy", "Política de cookies"), copy: t("The limited browser storage and cookie practices used by the public website.", "El almacenamiento local y las prácticas de cookies limitadas del sitio público.") },
+    { href: "/legal/accessibility", icon: Accessibility, title: t("Accessibility Statement", "Declaración de accesibilidad"), copy: t("Our accessibility commitment, known limitations and a way to report an issue.", "Nuestro compromiso de accesibilidad, limitaciones conocidas y canal para reportar un problema.") },
     { href: "/app/privacy-trust", icon: FileText, title: "Privacy & Trust", copy: t("Product principles, retention modes and the limits of probabilistic scores.", "Principios de producto, modos de retención y límites de los scores probabilísticos.") },
   ];
-  return <LegalShell eyebrow={t("Legal & trust", "Legal y confianza")} title={t("Clear terms for an understanding infrastructure.", "Términos claros para una infraestructura de entendimiento.")}><p className="legal-intro">{t("This center explains the public terms currently applicable to Virro. Enterprise pilots may add an order form, data-processing terms, confidentiality commitments and deployment-specific controls.", "Este centro explica los términos públicos actualmente aplicables a Virro. Los pilotos enterprise pueden añadir una orden de servicio, términos de tratamiento de datos, compromisos de confidencialidad y controles según el despliegue.")}</p><div className="mt-10 grid gap-4 md:grid-cols-3">{cards.map(({ href, icon: Icon, title, copy }) => <Link key={href} href={href} className="legal-card"><Icon size={19} /><h2>{title}</h2><p>{copy}</p><span>{t("Read document", "Leer documento")} <ArrowRight size={12} /></span></Link>)}</div><p className="mt-8 text-[10px] leading-5 text-[var(--subtle)]">{t("These documents are operational launch materials and should be reviewed by qualified counsel before regulated or jurisdiction-specific use.", "Estos documentos son materiales operativos de lanzamiento y deben ser revisados por asesoría jurídica calificada antes de uso regulado o específico de una jurisdicción.")}</p></LegalShell>;
+  return <LegalShell eyebrow={t("Legal & trust", "Legal y confianza")} title={t("Clear terms for an understanding infrastructure.", "Términos claros para una infraestructura de entendimiento.")}><p className="legal-intro">{t("This center explains the public terms currently applicable to Virro. Enterprise pilots may add an order form, data-processing terms, confidentiality commitments and deployment-specific controls.", "Este centro explica los términos públicos actualmente aplicables a Virro. Los pilotos enterprise pueden añadir una orden de servicio, términos de tratamiento de datos, compromisos de confidencialidad y controles según el despliegue.")}</p><div className="mt-10 grid gap-4 md:grid-cols-2 xl:grid-cols-3">{cards.map(({ href, icon: Icon, title, copy }) => <Link key={href} href={href} className="legal-card"><Icon size={19} /><h2>{title}</h2><p>{copy}</p><span>{t("Read document", "Leer documento")} <ArrowRight size={12} /></span></Link>)}</div><p className="mt-8 text-[10px] leading-5 text-[var(--subtle)]">{t("These documents are operational launch materials and should be reviewed by qualified counsel before regulated or jurisdiction-specific use.", "Estos documentos son materiales operativos de lanzamiento y deben ser revisados por asesoría jurídica calificada antes de uso regulado o específico de una jurisdicción.")}</p></LegalShell>;
 }
 
 export function TermsPage() {
@@ -79,4 +81,40 @@ export function PrivacyNoticePage() {
     ["10. Actualizaciones", "Los cambios materiales se reflejarán en esta página con una nueva fecha de vigencia. Los clientes contratados pueden recibir aviso adicional cuando sea requerido."],
   ];
   return <LegalShell eyebrow="Privacy Shield" title={t("Privacy Notice", "Aviso de privacidad")}>{sections.map(([heading, copy]) => <section key={heading}><h2>{heading}</h2><p>{copy}</p></section>)}</LegalShell>;
+}
+
+export function CookiePolicyPage() {
+  const { locale, t } = useLanguage();
+  const sections = locale === "en" ? [
+    ["1. Scope", "This policy describes the public website at virro.app. It does not replace customer-specific terms agreed for an enterprise audit, pilot or licensed deployment."],
+    ["2. Necessary storage", "Virro uses browser local storage to remember the selected language and visual theme. These preferences remain in the visitor's browser and are not used to profile visitors."],
+    ["3. Analytics and advertising", "The public website does not currently load advertising, behavioral tracking or non-essential analytics cookies. If that changes, Virro will update this policy and request consent before enabling non-essential storage where required."],
+    ["4. Managing preferences", "You can clear local storage and cookies through your browser settings. Clearing them may reset language or theme preferences."],
+    ["5. Contact", "Questions about this policy may be sent to contacto@virro.app."],
+  ] : [
+    ["1. Alcance", "Esta política describe el sitio público virro.app. No sustituye los términos específicos acordados para una auditoría, piloto o despliegue enterprise."],
+    ["2. Almacenamiento necesario", "Virro usa almacenamiento local del navegador para recordar el idioma y el tema visual seleccionados. Estas preferencias permanecen en el navegador del visitante y no se usan para perfilar visitantes."],
+    ["3. Analítica y publicidad", "El sitio público no carga actualmente cookies de publicidad, tracking conductual ni analítica no esencial. Si eso cambia, Virro actualizará esta política y solicitará consentimiento antes de activar almacenamiento no esencial cuando sea requerido."],
+    ["4. Gestionar preferencias", "Puedes borrar almacenamiento local y cookies desde la configuración de tu navegador. Al hacerlo pueden reiniciarse las preferencias de idioma o tema."],
+    ["5. Contacto", "Las preguntas sobre esta política pueden enviarse a contacto@virro.app."],
+  ];
+  return <LegalShell eyebrow={t("Privacy controls", "Controles de privacidad")} title={t("Cookie Policy", "Política de cookies")}>{sections.map(([heading, copy]) => <section key={heading}><h2>{heading}</h2><p>{copy}</p></section>)}</LegalShell>;
+}
+
+export function AccessibilityStatementPage() {
+  const { locale, t } = useLanguage();
+  const sections = locale === "en" ? [
+    ["1. Commitment", "Virro aims to make its public website and enterprise demo usable with keyboard navigation, assistive technology and responsive layouts. Our target is alignment with WCAG 2.2 AA where practical for this product stage."],
+    ["2. Measures in place", "The site includes semantic landmarks, a skip link, visible focus indicators, labeled form controls, responsive layouts and motion reduction when the visitor requests reduced motion."],
+    ["3. Known limitations", "Some simulated product views contain dense visual data and may need further refinement for advanced screen-reader workflows. Scores and diagrams remain demo content and require human validation."],
+    ["4. Report an issue", "If you encounter an accessibility barrier, contact contacto@virro.app with the page, device, browser and assistive technology used. We will review the report and prioritize a proportionate correction."],
+    ["5. Statement update", "Last updated: 13 July 2026."],
+  ] : [
+    ["1. Compromiso", "Virro busca que su sitio público y demo enterprise puedan usarse con navegación por teclado, tecnología asistiva y layouts responsivos. El objetivo es alineación con WCAG 2.2 AA cuando sea práctico para esta etapa del producto."],
+    ["2. Medidas implementadas", "El sitio incluye landmarks semánticos, enlace para saltar al contenido, indicadores de foco visibles, controles de formulario etiquetados, layouts responsivos y reducción de movimiento cuando el visitante la solicita."],
+    ["3. Limitaciones conocidas", "Algunas vistas simuladas de producto contienen datos visuales densos y pueden requerir refinamiento adicional para flujos avanzados con lector de pantalla. Los scores y diagramas son contenido demo y requieren validación humana."],
+    ["4. Reportar un problema", "Si encuentras una barrera de accesibilidad, escribe a contacto@virro.app indicando página, dispositivo, navegador y tecnología asistiva utilizada. Revisaremos el reporte y priorizaremos una corrección proporcional."],
+    ["5. Actualización", "Última actualización: 13 de julio de 2026."],
+  ];
+  return <LegalShell eyebrow={t("Accessible by design", "Accesibilidad por diseño")} title={t("Accessibility Statement", "Declaración de accesibilidad")}>{sections.map(([heading, copy]) => <section key={heading}><h2>{heading}</h2><p>{copy}</p></section>)}</LegalShell>;
 }

@@ -51,7 +51,7 @@ export function PublicNavbar() {
       <div className={`landing-nav-shell relative mx-auto max-w-[1380px] rounded-2xl border border-[var(--border)] shadow-[0_16px_60px_rgba(0,0,0,.14)] backdrop-blur-2xl ${mobileOpen ? "bg-[var(--panel)]" : "bg-[color-mix(in_srgb,var(--header)_88%,transparent)]"}`} ref={menuRef}>
         <div className="flex h-16 items-center gap-3 px-4 md:px-5">
           <Link href="/" className="virro-brand flex shrink-0 items-center gap-2.5" aria-label={t("Virro home", "Inicio de Virro")}>
-            <Image src="/brand/virro-icon.svg" alt="" width={31} height={25} priority className="h-auto w-[29px] object-contain" />
+            <Image src="/brand/virro-icon.svg" alt="" width={31} height={25} sizes="29px" priority className="h-auto w-[29px] object-contain" />
             <span className="text-lg font-semibold tracking-[-.05em]">Virro</span>
           </Link>
           <nav className="ml-auto hidden items-center gap-0.5 min-[1281px]:flex" aria-label={t("Public navigation", "Navegación pública")}>

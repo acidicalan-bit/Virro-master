@@ -128,6 +128,20 @@ button, select { cursor: pointer; }
 .brand-primary-button:focus-visible,
 .brand-secondary-button:focus-visible,
 .brand-tertiary-button:focus-visible { outline: 2px solid color-mix(in srgb, var(--brand-blue) 72%, white); outline-offset: 3px; }
+
+/* Keep the report-builder audit action aligned with the global CTA system. */
+a[href="/#solicitar-diagnostico"]:not(.brand-primary-button) {
+  display: inline-flex;
+  min-height: 52px;
+  height: auto;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 0 24px;
+  border-radius: 999px;
+  line-height: 1;
+  white-space: nowrap;
+}
 .public-landing main > section { padding-block: clamp(4rem, 8vw, 7.5rem); }
 .public-landing .mx-auto.max-w-\[1380px\] { max-width: 1240px; }
 .public-landing .landing-hero {
@@ -347,6 +361,15 @@ button, select { cursor: pointer; }
   .report-proof-row { opacity: 1 !important; transform: none !important; }
   .motion-connector { transform: none !important; }
   .orbit-ring { animation: none !important; }
+}
+
+.honeypot-field { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; }
+
+@media print {
+  .skip-link, .public-footer, .motion-navbar, .mobile-menu-panel, button, .no-print { display: none !important; }
+  body, .public-landing, main { background: #fff !important; color: #111827 !important; }
+  a { color: inherit !important; text-decoration: none !important; }
+  .panel, .legal-card, .legal-document section { box-shadow: none !important; break-inside: avoid; }
 }
 
 ::-webkit-scrollbar { width: 8px; height: 8px; }

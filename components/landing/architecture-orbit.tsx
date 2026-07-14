@@ -31,7 +31,7 @@ export function ArchitectureOrbit() {
         <div className="orbit-stage" aria-label={t("Virro solution architecture", "Arquitectura de soluciones Virro")}>
           <div className="orbit-ring orbit-ring-outer" aria-hidden />
           <div className="orbit-ring orbit-ring-inner" aria-hidden />
-          <div className="orbit-core"><Image src="/brand/virro-icon.svg" alt="" width={48} height={40} /><strong>Virro</strong><span>Operating Understanding Layer</span></div>
+          <div className="orbit-core"><Image src="/brand/virro-icon.svg" alt="" width={48} height={40} sizes="48px" /><strong>Virro</strong><span>Operating Understanding Layer</span></div>
           <div className="orbit-nodes">
             {nodes.map(({ en, es, icon: Icon }, index) => <div key={en} className="orbit-node" style={{ "--orbit-index": index } as React.CSSProperties}><span><Icon size={14} /></span><strong>{locale === "es" ? es : en}</strong></div>)}
           </div>

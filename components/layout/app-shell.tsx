@@ -29,10 +29,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-[var(--app-bg)] text-[var(--text)]">
+      <a href="#app-main-content" className="skip-link">{t("Skip to main content", "Saltar al contenido principal")}</a>
       <aside aria-hidden={!isDesktop && !open} inert={!isDesktop && !open} className={`fixed inset-y-0 left-0 z-40 flex w-[272px] flex-col border-r border-[var(--border)] bg-[var(--sidebar)] transition-transform lg:translate-x-0 ${open ? "translate-x-0" : "-translate-x-full"}`}>
         <div className="flex h-[76px] items-center justify-between border-b border-[var(--border)] px-5">
           <Link href="/" className="flex items-center gap-3" onClick={() => setOpen(false)}>
-            <div className="grid size-9 place-items-center rounded-xl border border-[var(--border)] bg-[var(--panel-soft)] p-1.5"><Image src="/brand/virro-icon.svg" alt="" width={28} height={24} className="h-auto w-full object-contain" /></div>
+            <div className="grid size-9 place-items-center rounded-xl border border-[var(--border)] bg-[var(--panel-soft)] p-1.5"><Image src="/brand/virro-icon.svg" alt="" width={28} height={24} sizes="28px" className="h-auto w-full object-contain" /></div>
             <div><p className="text-[17px] font-semibold tracking-[-0.03em]">Virro</p><p className="text-[10px] font-medium uppercase tracking-[0.18em] text-[var(--subtle)]">Enterprise</p></div>
           </Link>
           <button aria-label={t("Close navigation", "Cerrar navegación")} className="rounded-lg p-2 text-[var(--muted)] lg:hidden" onClick={() => setOpen(false)}><X size={18} /></button>
@@ -85,7 +86,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <div className="ml-1 grid size-8 place-items-center rounded-full bg-gradient-to-br from-indigo-400 to-fuchsia-400 text-[10px] font-bold text-white">MC</div>
           </div>
         </header>
-        <main className="mx-auto max-w-[1600px] p-4 md:p-7 lg:p-8">{children}</main>
+        <main id="app-main-content" className="mx-auto max-w-[1600px] p-4 md:p-7 lg:p-8">{children}</main>
       </div>
     </div>
   );

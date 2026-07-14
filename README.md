@@ -27,4 +27,18 @@ The application includes an executive dashboard, seven executable demo scenarios
 
 The current `analysisEngine` uses a deterministic `MockAnalysisEngine` and does not require an external AI provider. It receives an `UnderstandingEvent`, routes it to a pack analyzer and returns a consistent `AnalysisResult`. The engine boundary can be replaced later without coupling the Inbox to an LLM provider.
 
+The public diagnosis form is intentionally mailto-based during this phase: the site does not post or retain its payload. A visible honeypot filters basic automated submissions before the visitor's email client is opened.
+
 Production domain: [virro.app](https://www.virro.app/)
+
+## Launch DNS
+
+DMARC must be configured in DNS before launch. Start in monitoring mode only after SPF, DKIM and report reception are verified:
+
+```text
+Host: _dmarc
+Type: TXT
+Value: v=DMARC1; p=none; rua=mailto:dmarc@virro.app; pct=100
+```
+
+Do not move to `p=reject` until SPF/DKIM alignment and DMARC reports have been validated.
