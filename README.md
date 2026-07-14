@@ -29,6 +29,10 @@ The current `analysisEngine` uses a deterministic `MockAnalysisEngine` and does 
 
 The public diagnosis form is intentionally mailto-based during this phase: the site does not post or retain its payload. A visible honeypot filters basic automated submissions before the visitor's email client is opened.
 
+## Language delivery
+
+Spanish and English currently share one canonical route and switch interface strings client-side. `hreflang` is intentionally omitted until each language has a stable, indexable URL; publishing alternate annotations before then would be misleading to crawlers.
+
 Production domain: [virro.app](https://www.virro.app/)
 
 ## Launch DNS

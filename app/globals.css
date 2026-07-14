@@ -163,6 +163,8 @@ a[href="/#solicitar-diagnostico"]:not(.brand-primary-button) {
   background-position: center;
 }
 .landing-hero .brand-secondary-button { border-color: rgba(208, 226, 246, .23); background: rgba(255,255,255,.035); color: #f4f7fb; }
+html[data-theme="light"] .landing-hero .brand-secondary-button { border-color: rgba(9, 105, 255, .24); background: rgba(255,255,255,.76); color: #10233f; }
+html[data-theme="light"] .landing-hero .brand-secondary-button:hover { border-color: rgba(9, 105, 255, .46); background: #ffffff; }
 .landing-hero .hero-scene-item:first-child { border-color: rgba(124, 179, 255, .26); background: rgba(87, 150, 245, .08); }
 .public-landing .hero-watermark { opacity: .035; filter: saturate(.8); }
 .public-landing .hero-signal {

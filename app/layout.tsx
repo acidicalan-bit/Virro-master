@@ -6,7 +6,7 @@ import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
 
-const description = "Virro reduce el costo de trabajar con información mal entendida. Revisa contexto, criterio y claridad antes de que la información avance.";
+const description = "Virro reduce el costo de trabajar con información mal entendida. Revisa contexto, criterio y claridad antes de avanzar entre áreas y sistemas.";
 
 export const viewport: Viewport = { themeColor: [{ media: "(prefers-color-scheme: light)", color: "#f4f6f8" }, { media: "(prefers-color-scheme: dark)", color: "#080b10" }] };
 
