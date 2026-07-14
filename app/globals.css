@@ -169,7 +169,7 @@ html[data-theme="light"] .landing-hero .brand-secondary-button:hover { border-co
 .landing-hero.has-video-hero { isolation: isolate; background: #06111f; }
 .landing-hero.has-video-hero::before { position: absolute; inset: 0; z-index: 1; background-image: linear-gradient(rgba(155, 197, 238, .08) 1px, transparent 1px), linear-gradient(90deg, rgba(155, 197, 238, .08) 1px, transparent 1px); background-size: 72px 72px; content: ""; opacity: .42; pointer-events: none; }
 .hero-video-poster, .hero-video-media, .hero-video-scrim { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
-.hero-video-poster { z-index: 0; background: radial-gradient(circle at 72% 34%, rgba(51, 125, 205, .22), transparent 29%), linear-gradient(125deg, #061425 0%, #0b1f36 48%, #07111f 100%); }
+.hero-video-poster { z-index: 0; background-color: #06111f; background-image: linear-gradient(90deg, rgba(3, 14, 28, .46), rgba(3, 14, 28, .18)), url('/hero/virro-flow-poster.webp'); background-position: center; background-size: cover; }
 .hero-video-media { z-index: 0; display: block; object-fit: cover; object-position: center; opacity: 0; filter: saturate(.92) contrast(1.04) brightness(.76); transition: opacity 1000ms var(--premium-ease); }
 .hero-video-media.is-active { opacity: 1; }
 .hero-video-scrim { z-index: 1; background: linear-gradient(90deg, rgba(3, 14, 28, .9) 0%, rgba(4, 15, 28, .78) 36%, rgba(4, 15, 28, .42) 66%, rgba(4, 15, 28, .3) 100%), linear-gradient(180deg, rgba(3, 13, 26, .46), transparent 34%, rgba(3, 13, 26, .58)); }
@@ -1019,6 +1019,10 @@ html[data-theme="light"] .landing-hero.has-video-hero .brand-secondary-button { 
   .section-lead { font-size: 12px; line-height: 1.8; }
   .landing-hero { min-height: auto !important; }
   .public-landing main > .landing-hero { padding-top: calc(7.25rem + env(safe-area-inset-top)) !important; }
+  .landing-hero .hero-headline { margin-top: 1.25rem; font-size: clamp(2.25rem, 10.2vw, 2.55rem); line-height: .98; }
+  .landing-hero .hero-primary-copy { margin-top: 1.15rem; font-size: .9rem; line-height: 1.55; }
+  .landing-hero .hero-cta-group { margin-top: 1.25rem; gap: .6rem; }
+  .landing-hero .hero-trust-signals { margin-top: 1rem; }
   .virro-core-system { border-radius: 24px; }
   .virro-core-system-head { align-items: flex-start; flex-direction: column; padding: 17px; }
   .virro-core-operating-flow { grid-template-columns: 1fr; gap: 14px; padding: 14px; }

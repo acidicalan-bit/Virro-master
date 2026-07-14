@@ -20,6 +20,10 @@ export function LegalCenter() {
     { href: "/legal/privacy", icon: ShieldCheck, title: t("Privacy Notice", "Aviso de privacidad"), copy: t("What data Virro may process, why, and the privacy-first controls applied to audits and pilots.", "Qué datos puede tratar Virro, para qué y qué controles privacy-first se aplican a auditorías y pilotos.") },
     { href: "/legal/cookies", icon: Cookie, title: t("Cookie Policy", "Política de cookies"), copy: t("The limited browser storage and cookie practices used by the public website.", "El almacenamiento local y las prácticas de cookies limitadas del sitio público.") },
     { href: "/legal/accessibility", icon: Accessibility, title: t("Accessibility Statement", "Declaración de accesibilidad"), copy: t("Our accessibility commitment, known limitations and a way to report an issue.", "Nuestro compromiso de accesibilidad, limitaciones conocidas y canal para reportar un problema.") },
+    { href: "/legal/security-overview", icon: ShieldCheck, title: t("Security Overview", "Resumen de seguridad"), copy: t("Privacy-first design and the security scope defined for enterprise pilots.", "Diseño privacy-first y alcance de seguridad definido para pilotos enterprise.") },
+    { href: "/legal/data-processing", icon: FileText, title: t("Data Processing", "Tratamiento de datos"), copy: t("How Virro processes operational information to produce safe signals.", "Cómo Virro procesa información operativa para producir señales seguras.") },
+    { href: "/legal/subprocessors", icon: FileText, title: t("Subprocessors", "Subencargados"), copy: t("How the applicable provider list is defined for each deployment.", "Cómo se define la lista de proveedores aplicable a cada despliegue.") },
+    { href: "/legal/retention", icon: FileText, title: t("Retention", "Retención"), copy: t("The recommended initial retention configuration for enterprise pilots.", "La configuración inicial de retención recomendada para pilotos enterprise.") },
     { href: "/app/privacy-trust", icon: FileText, title: "Privacy & Trust", copy: t("Product principles, retention modes and the limits of probabilistic scores.", "Principios de producto, modos de retención y límites de los scores probabilísticos.") },
   ];
   return <LegalShell eyebrow={t("Legal & trust", "Legal y confianza")} title={t("Clear terms for an understanding infrastructure.", "Términos claros para una infraestructura de entendimiento.")}><p className="legal-intro">{t("This center explains the public terms currently applicable to Virro. Enterprise pilots may add an order form, data-processing terms, confidentiality commitments and deployment-specific controls.", "Este centro explica los términos públicos actualmente aplicables a Virro. Los pilotos enterprise pueden añadir una orden de servicio, términos de tratamiento de datos, compromisos de confidencialidad y controles según el despliegue.")}</p><div className="mt-10 grid gap-4 md:grid-cols-2 xl:grid-cols-3">{cards.map(({ href, icon: Icon, title, copy }) => <Link key={href} href={href} className="legal-card"><Icon size={19} /><h2>{title}</h2><p>{copy}</p><span>{t("Read document", "Leer documento")} <ArrowRight size={12} /></span></Link>)}</div><p className="mt-8 text-[10px] leading-5 text-[var(--subtle)]">{t("These documents are operational launch materials and should be reviewed by qualified counsel before regulated or jurisdiction-specific use.", "Estos documentos son materiales operativos de lanzamiento y deben ser revisados por asesoría jurídica calificada antes de uso regulado o específico de una jurisdicción.")}</p></LegalShell>;
@@ -127,22 +131,22 @@ export function EnterpriseTrustDocumentPage({ document }: { document: Enterprise
     "security-overview": {
       eyebrow: t("Enterprise trust", "Confianza enterprise"),
       title: t("Security Overview", "Resumen de seguridad"),
-      purpose: t("Virro uses privacy-first processing, proportional technical controls and customer-defined scope for audits and pilots. This overview does not represent a certification or a guarantee of zero risk.", "Virro utiliza procesamiento privacy-first, controles técnicos proporcionales y alcance definido con el cliente para auditorías y pilotos. Este resumen no representa una certificación ni una garantía de riesgo cero."),
+      purpose: t("Virro is designed with a privacy-first approach and no retention of raw content by default in safe mode. Specific security controls are defined according to the pilot scope, order form and deployment model.", "Virro está diseñado con enfoque privacy-first y no-retención de contenido crudo por defecto en modo seguro. Los controles específicos de seguridad se definen según el alcance del piloto, orden de servicio y modalidad de despliegue."),
     },
     "data-processing": {
       eyebrow: t("Enterprise trust", "Confianza enterprise"),
       title: t("Data Processing Terms", "Términos de tratamiento de datos"),
-      purpose: t("Data-processing terms, controller and processor responsibilities, and deployment-specific safeguards are scoped for the applicable enterprise engagement.", "Los términos de tratamiento de datos, responsabilidades de responsable y encargado, y salvaguardas por despliegue se definen para el engagement enterprise aplicable."),
+      purpose: t("Virro processes operational information to generate understanding signals, readiness, risks and safe reports. It is not designed to become the customer's document repository.", "Virro procesa información operativa para generar señales de entendimiento, readiness, riesgos y reportes seguros. No está diseñado para convertirse en repositorio documental del cliente."),
     },
     subprocessors: {
       eyebrow: t("Enterprise trust", "Confianza enterprise"),
       title: t("Subprocessors", "Subencargados"),
-      purpose: t("The current subprocessor register is shared as part of enterprise diligence for the agreed deployment and service scope.", "El registro actual de subencargados se comparte como parte de la debida diligencia enterprise para el despliegue y alcance de servicio acordados."),
+      purpose: t("The applicable subprocessor list is defined according to the deployment, integrations and active providers for the pilot. It is available upon request for enterprise customers.", "La lista de subprocesadores aplicables se define según el despliegue, integraciones y proveedores activos del piloto. Disponible bajo solicitud para clientes enterprise."),
     },
     retention: {
       eyebrow: t("Enterprise trust", "Confianza enterprise"),
       title: t("Data Retention", "Retención de datos"),
-      purpose: t("Retention controls are defined according to the applicable order form, privacy mode and agreed deployment scope.", "Los controles de retención se definen según la orden de servicio aplicable, el modo de privacidad y el alcance de despliegue acordado."),
+      purpose: t("Recommended initial configuration: raw_data_retention: none; safe_output_retention_days: 90; aggregate_patterns_retention_days: 365; audit_logs_retention_days: 365.", "Configuración inicial recomendada: raw_data_retention: none; safe_output_retention_days: 90; aggregate_patterns_retention_days: 365; audit_logs_retention_days: 365."),
     },
   }[document];
 
@@ -157,7 +161,7 @@ export function EnterpriseTrustDocumentPage({ document }: { document: Enterprise
     </section>
     <section>
       <h2>{t("Scope and review", "Alcance y revisión")}</h2>
-      <p>{t("Controls are defined according to the applicable order form. This material does not constitute a security certification. Legal review is required before regulated use.", "Los controles se definen según la orden de servicio aplicable. Este material no constituye una certificación de seguridad. Se requiere revisión legal antes de uso regulado.")}</p>
+      <p>{t("This documentation does not constitute a security certification, legal advice or a guarantee of regulatory compliance. Final controls must be validated by contract and legal review.", "Esta documentación no constituye certificación de seguridad, asesoría legal ni garantía de cumplimiento regulatorio. Los controles finales deben validarse por contrato y revisión legal.")}</p>
     </section>
   </LegalShell>;
 }
