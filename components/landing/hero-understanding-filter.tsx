@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
-import { ArrowRight, CheckCircle2, Layers3, LockKeyhole, ShieldCheck } from "lucide-react";
+import { ArrowRight, CheckCircle2, Layers3, ShieldCheck } from "lucide-react";
 import { useLanguage } from "@/components/i18n/language-provider";
+import { HeroVirroCorePanel } from "@/components/landing/hero-virro-core-panel";
 
 const heroVideos = [
   { src: "/hero/virro-flow-01.mp4" },
@@ -12,16 +12,8 @@ const heroVideos = [
   { src: "/hero/virro-flow-04.mp4" },
 ];
 
-const signals = [
-  { flow: ["Meeting → Delivery", "Junta → Delivery"], input: ["Who confirms the release criteria?", "¿Quién confirma el criterio de salida?"], signal: ["Owner and evidence need validation", "Responsable y evidencia por validar"], action: ["Confirm owner before delivery", "Confirmar responsable antes de entregar"] },
-  { flow: ["Data request → BI", "Solicitud de datos → BI"], input: ["We need the latest conversion view for the board.", "Necesitamos la vista de conversión para la junta."], signal: ["Period and decision need validation", "Periodo y decisión por validar"], action: ["Define period and use before preparing data", "Definir periodo y uso antes de preparar datos"] },
-  { flow: ["AI instruction → Context Pack", "Instrucción IA → Context Pack"], input: ["Summarize this process for the operations team.", "Resume este proceso para el equipo de operaciones."], signal: ["Operational constraints are missing", "Faltan restricciones operativas"], action: ["Add receiver, format and constraints", "Agregar receptor, formato y restricciones"] },
-  { flow: ["Support → Product", "Soporte → Producto"], input: ["The client reports the same issue after the last update.", "El cliente reporta el mismo problema tras la última actualización."], signal: ["Impact and reproduction need validation", "Impacto y reproducción por validar"], action: ["Validate evidence before prioritizing", "Validar evidencia antes de priorizar"] },
-];
-
 const CROSSFADE_MS = 1000;
 const CROSSFADE_LEAD_SECONDS = 1.15;
-const SIGNAL_DURATION_MS = 6800;
 
 export function HeroUnderstandingFilter() {
   const { t } = useLanguage();
@@ -30,8 +22,6 @@ export function HeroUnderstandingFilter() {
   const isTransitioning = useRef(false);
   const transitionTimer = useRef<number | undefined>(undefined);
   const [activeVideoIndex, setActiveVideoIndex] = useState(0);
-  const [activeSignalIndex, setActiveSignalIndex] = useState(0);
-  const activeSignal = signals[activeSignalIndex];
 
   useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
@@ -102,12 +92,6 @@ export function HeroUnderstandingFilter() {
     };
   }, []);
 
-  useEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const timer = window.setInterval(() => setActiveSignalIndex((index) => (index + 1) % signals.length), SIGNAL_DURATION_MS);
-    return () => window.clearInterval(timer);
-  }, []);
-
   return <section id="plataforma" className="landing-hero has-video-hero relative min-h-[820px] scroll-mt-24 overflow-hidden px-5 pb-24 pt-36 md:px-8 md:pt-44">
     <div className="hero-video-poster" aria-hidden="true" />
     {heroVideos.map((video, index) => <video key={video.src} ref={(element) => { videoRefs.current[index] = element; }} className={`hero-video-media${activeVideoIndex === index ? " is-active" : ""}`} muted playsInline preload="metadata" aria-hidden="true" tabIndex={-1} src={video.src} />)}
@@ -115,26 +99,13 @@ export function HeroUnderstandingFilter() {
     <div className="hero-glow hero-glow-one" /><div className="hero-glow hero-glow-two" /><div className="hero-grid-fade" />
     <div className="relative mx-auto grid max-w-[1380px] gap-14 xl:grid-cols-[.88fr_1.12fr] xl:items-center">
       <div className="hero-copy-scene relative z-10">
-        <div className="hero-scene-item inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--panel)] px-3 py-1.5 text-[9px] font-semibold uppercase tracking-[.17em] text-[var(--brand-blue)]"><Layers3 size={12} /> {t("Enterprise digital operational understanding infrastructure", "Infraestructura empresarial de entendimiento operativo digital")}</div>
-        <h1 className="hero-scene-item hero-headline mt-7 max-w-4xl text-[2.8rem] font-semibold leading-[.97] tracking-[-.065em] sm:text-6xl lg:text-[4.6rem]">{t("Reduce the cost of working with misunderstood information.", "Reduce el costo de trabajar con información mal entendida.")}</h1>
-        <p className="hero-scene-item hero-primary-copy mt-7 max-w-2xl text-base font-medium leading-7 md:text-lg">{t("Virro reviews whether information moving across teams, processes, tools and AI has enough context, criteria and clarity to move forward with lower risk.", "Virro revisa si la información que se mueve entre áreas, procesos, herramientas e IA tiene suficiente contexto, criterio y claridad para avanzar con menor riesgo.")}</p>
-        <p className="hero-scene-item hero-support-copy mt-4 max-w-2xl text-xs leading-6 md:text-sm">{t("It makes missing context, receiver expectations and the next recommended action visible before information becomes work or a decision.", "Hace visible el contexto faltante, lo que necesita el receptor y la siguiente acción recomendada antes de que la información se convierta en trabajo o decisión.")}</p>
-        <div className="hero-scene-item mt-9 flex flex-col gap-3 sm:flex-row"><a href="#solicitar-diagnostico" className="brand-primary-button text-sm shadow-[0_20px_60px_rgba(9,105,255,.22)]">{t("Request an audit", "Solicitar auditoría")} <ArrowRight size={15} /></a><Link href="/app" className="brand-secondary-button text-sm">{t("View enterprise demo", "Ver demo enterprise")}</Link></div>
+        <div className="hero-scene-item inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--panel)] px-3 py-1.5 text-[9px] font-semibold uppercase tracking-[.17em] text-[var(--brand-blue)]"><Layers3 size={12} /> {t("Operational understanding infrastructure", "Infraestructura de entendimiento operativo")}</div>
+        <h1 className="hero-scene-item hero-headline mt-7 max-w-4xl text-[2.8rem] font-semibold leading-[.97] tracking-[-.065em] sm:text-6xl lg:text-[4.6rem]">{t("Before moving forward, validate whether information is ready to be understood.", "Antes de avanzar, valida si la información está lista para ser entendida.")}</h1>
+        <p className="hero-scene-item hero-primary-copy mt-7 max-w-2xl text-base font-medium leading-7 md:text-lg">{t("Virro detects what is missing, what can be misinterpreted and what the next team, tool or AI needs to act with lower risk.", "Virro detecta qué falta, qué puede malinterpretarse y qué necesita el siguiente equipo, herramienta o IA para actuar con menor riesgo.")}</p>
+        <div className="hero-scene-item mt-9 flex flex-col gap-3 sm:flex-row"><a href="#solicitar-diagnostico" className="brand-primary-button text-sm shadow-[0_20px_60px_rgba(9,105,255,.22)]">{t("Request diagnosis", "Solicitar diagnóstico")} <ArrowRight size={15} /></a><a href="#como-funciona" className="brand-secondary-button text-sm">{t("See how it works", "Ver cómo funciona")}</a></div>
         <div className="hero-scene-item mt-6 flex flex-wrap gap-x-5 gap-y-2 text-[9px] text-[var(--subtle)]"><span className="flex items-center gap-2"><ShieldCheck size={12} className="text-[var(--brand-blue)]" />{t("Data minimization from the audit", "Minimización de datos desde la auditoría")}</span><span className="flex items-center gap-2"><CheckCircle2 size={12} className="text-[var(--brand-blue)]" />{t("Probabilistic estimates · human validation", "Estimaciones probabilísticas · validación humana")}</span></div>
       </div>
-      <aside className="hero-flow-messages" aria-label={t("Analyze-Safe operational signal", "Señal operativa Analyze-Safe")}>
-        <div key={activeSignal.flow[0]} className="hero-message-cluster">
-          <article className="hero-message-bubble hero-message-input">
-            <span className="hero-message-meta">{t(activeSignal.flow[0], activeSignal.flow[1])}</span>
-            <strong>{t(activeSignal.input[0], activeSignal.input[1])}</strong>
-          </article>
-          <article className="hero-message-bubble hero-message-signal">
-            <span className="hero-message-meta"><LockKeyhole size={11} /> Analyze-Safe</span>
-            <strong>{t(activeSignal.signal[0], activeSignal.signal[1])}</strong>
-            <p>{t("Next action", "Siguiente acción")}: {t(activeSignal.action[0], activeSignal.action[1])}</p>
-          </article>
-        </div>
-      </aside>
+      <HeroVirroCorePanel />
     </div>
   </section>;
 }
