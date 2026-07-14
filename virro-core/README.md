@@ -21,7 +21,8 @@ cd virro-core
 python -m venv .venv
 .venv/Scripts/activate     # Windows
 pip install -e ".[test]"
-set VIRRO_API_KEY=replace-with-a-local-secret
+set VIRRO_TENANT_API_KEYS={"demo":"replace-with-a-local-secret"}
+set VIRRO_FINGERPRINT_KEY=replace-with-a-separate-hmac-secret
 alembic upgrade head
 uvicorn app.main:app --reload
 pytest
@@ -31,7 +32,7 @@ OpenAPI: `http://localhost:8000/docs`. Health: `GET /health`.
 
 ## Docker + PostgreSQL
 
-Copy `.env.example` to `.env`, set `POSTGRES_PASSWORD` and `VIRRO_API_KEY`, then run `docker compose up --build`. Production expects HTTPS termination, encrypted managed database storage and a secrets manager. Do not commit `.env`.
+Copy `.env.example` to `.env`, set `POSTGRES_PASSWORD`, `VIRRO_TENANT_API_KEYS` and `VIRRO_FINGERPRINT_KEY`, then run `docker compose up --build`. Production expects HTTPS termination, encrypted managed database storage and a secrets manager. Do not commit `.env`.
 
 ## Key endpoints
 
@@ -42,14 +43,16 @@ Copy `.env.example` to `.env`, set `POSTGRES_PASSWORD` and `VIRRO_API_KEY`, then
 - `POST /v1/reports/executive`, `GET /v1/reports/{id}`
 - license and usage endpoints
 - `GET /v1/trust/data-handling-summary`
+- `GET /v1/trust/retention-policy`
+- `GET /v1/trust/security-overview`
 
-All `/v1` requests require `X-API-Key`.
+All `/v1` requests require a tenant-bound `X-API-Key` (or Bearer token) and a matching `X-Tenant-ID`. Credentials are configured as a JSON tenant-to-key map in `VIRRO_TENANT_API_KEYS`. Mutating analysis calls accept an `idempotency_key`; requests are rate-limited by credential, tenant and IP.
 
 ```bash
-curl -X POST http://localhost:8000/v1/understanding/analyze-safe -H "X-API-Key: $VIRRO_API_KEY" -H "Content-Type: application/json" -d '{"tenant_id":"demo","event_type":"handoff","source_type":"api","content":"QA should review this soon. Contact alan@example.com","privacy_mode":"safe","store_raw":false}'
-curl -X POST http://localhost:8000/v1/packs/ai-understanding/analyze -H "X-API-Key: $VIRRO_API_KEY" -H "Content-Type: application/json" -d '{"tenant_id":"demo","event_type":"ai_instruction","content":"Summarize this for leadership","privacy_mode":"safe","store_raw":false}'
-curl -X POST http://localhost:8000/v1/reports/executive -H "X-API-Key: $VIRRO_API_KEY" -H "Content-Type: application/json" -d '{"tenant_id":"demo"}'
-curl -X POST http://localhost:8000/v1/privacy/mask -H "X-API-Key: $VIRRO_API_KEY" -H "Content-Type: application/json" -d '{"content":"Email alan@example.com or +52 55 1234 5678"}'
+curl -X POST http://localhost:8000/v1/understanding/analyze-safe -H "X-API-Key: $VIRRO_DEMO_API_KEY" -H "X-Tenant-ID: demo" -H "Content-Type: application/json" -d '{"tenant_id":"demo","event_type":"handoff","source_type":"api","content":"QA should review this soon. Contact alan@example.com","privacy_mode":"safe","store_raw":false,"idempotency_key":"demo-handoff-001"}'
+curl -X POST http://localhost:8000/v1/packs/ai-understanding/analyze -H "X-API-Key: $VIRRO_DEMO_API_KEY" -H "X-Tenant-ID: demo" -H "Content-Type: application/json" -d '{"tenant_id":"demo","event_type":"ai_instruction","content":"Summarize this for leadership","privacy_mode":"safe","store_raw":false}'
+curl -X POST http://localhost:8000/v1/reports/executive -H "X-API-Key: $VIRRO_DEMO_API_KEY" -H "X-Tenant-ID: demo" -H "Content-Type: application/json" -d '{"tenant_id":"demo"}'
+curl -X POST http://localhost:8000/v1/privacy/mask -H "X-API-Key: $VIRRO_DEMO_API_KEY" -H "X-Tenant-ID: demo" -H "Content-Type: application/json" -d '{"content":"Email alan@example.com or +52 55 1234 5678"}'
 ```
 
 ## Retention and future operations
@@ -58,4 +61,4 @@ Tenant license defaults: raw data `none`, safe outputs 90 days, aggregate patter
 
 ## v0 limitations
 
-Masking and person-name recognition are heuristic, not guaranteed anonymization. The engine is deterministic and does not call an external LLM. API keys are tenant-level v0 credentials; rotation, RBAC, rate limiting, Alembic production migrations and verified deletion/export are next-cycle work.
+Masking and person-name recognition are heuristic, not guaranteed anonymization. The engine is deterministic and does not call an external LLM. API keys are tenant-level v0 credentials; automated rotation, granular RBAC and verified deletion/export remain next-cycle work. Alembic migrations must be applied before each production rollout.

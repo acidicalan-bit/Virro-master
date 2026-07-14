@@ -3,7 +3,7 @@ from pydantic import BaseModel, Field
 
 EventType = Literal["handoff","meeting","message","ticket","document","ai_instruction","process","design_brief","data_request","support_signal","sales_to_delivery","knowledge_transfer"]
 class AnalyzeRequest(BaseModel):
-    tenant_id: str = Field(min_length=1,max_length=100); event_type: EventType; source_type: Literal["manual","api","connector","webhook"]="manual"; content: str = Field(min_length=1,max_length=100000); privacy_mode: Literal["safe"]="safe"; store_raw: bool=False; pack_hint: str|None=None; client_name: str|None=None; company_name: str|None=None
+    tenant_id: str = Field(min_length=1,max_length=100); event_type: EventType; source_type: Literal["manual","api","connector","webhook"]="manual"; content: str = Field(min_length=1,max_length=100000); privacy_mode: Literal["safe"]="safe"; store_raw: bool=False; idempotency_key: str|None=Field(default=None,min_length=8,max_length=128); pack_hint: str|None=None; client_name: str|None=None; company_name: str|None=None
 class PrivacyRequest(BaseModel):
     content: str = Field(min_length=1,max_length=100000); privacy_mode: Literal["safe"]="safe"; client_name: str|None=None; company_name: str|None=None
 class AnalysisResponse(BaseModel):

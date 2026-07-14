@@ -14,5 +14,10 @@ out
 .vercel
 coverage
 *.log
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
 .dev-server*.log
 .DS_Store

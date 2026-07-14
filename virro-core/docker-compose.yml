@@ -11,7 +11,8 @@ services:
     build: .
     environment:
       DATABASE_URL: postgresql+psycopg://virro:${POSTGRES_PASSWORD}@db:5432/virro
-      VIRRO_API_KEY: ${VIRRO_API_KEY:?set VIRRO_API_KEY}
+      VIRRO_TENANT_API_KEYS: ${VIRRO_TENANT_API_KEYS:?set VIRRO_TENANT_API_KEYS}
+      VIRRO_FINGERPRINT_KEY: ${VIRRO_FINGERPRINT_KEY:?set VIRRO_FINGERPRINT_KEY}
       CORS_ORIGINS: ${CORS_ORIGINS:-https://www.virro.app}
     ports: ["8000:8000"]
     depends_on: {db: {condition: service_healthy}}

@@ -2,7 +2,8 @@ import os
 from pathlib import Path
 
 os.environ["VIRRO_ENV"] = "test"
-os.environ["VIRRO_API_KEY"] = "test-key-not-for-production"
+os.environ["VIRRO_TENANT_API_KEYS"] = '{"tenant-a":"test-key-a","tenant-b":"test-key-b"}'
+os.environ["VIRRO_FINGERPRINT_KEY"] = "test-fingerprint-key-not-for-production"
 os.environ["DATABASE_URL"] = "sqlite:///./virro-core-test.db"
 Path("virro-core-test.db").unlink(missing_ok=True)
 
@@ -23,4 +24,8 @@ def client():
 
 @pytest.fixture
 def headers():
-    return {"X-API-Key": "test-key-not-for-production"}
+    return {"X-API-Key": "test-key-a", "X-Tenant-ID": "tenant-a"}
+
+@pytest.fixture
+def tenant_b_headers():
+    return {"Authorization": "Bearer test-key-b", "X-Tenant-ID": "tenant-b"}

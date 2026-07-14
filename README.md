@@ -35,6 +35,28 @@ Spanish and English currently share one canonical route and switch interface str
 
 Production domain: [virro.app](https://www.virro.app/)
 
+## Security foundation
+
+Virro Core enforces this lifecycle:
+
+`Receive → Mask → Analyze → Discard → Store Signals → Report`
+
+Safe mode is the default and only supported v0 analysis mode. Every analysis request follows `Auth → Tenant Guard → PrivacyPolicyGuard → Privacy Shield → Analyze-Safe → Store Signals`. Tenant credentials and the HMAC fingerprint key come from environment variables; they are never embedded in frontend code or committed to the repository.
+
+Virro stores safe metadata, readiness scores, risk levels and patterns, missing-context categories, recommended packs, safe summaries, usage counters and audit metadata with `raw_stored=false`. It does not store raw conversations, complete documents, transcripts, emails, phone numbers, tokens or secrets by default. `store_raw=true` is rejected in safe mode.
+
+Configure retention with `SAFE_OUTPUT_RETENTION_DAYS`, `AGGREGATE_PATTERNS_RETENTION_DAYS` and `AUDIT_LOGS_RETENTION_DAYS`. Raw-data retention remains `none`. Configure tenant credentials as a JSON map in `VIRRO_TENANT_API_KEYS` and provide a separate `VIRRO_FINGERPRINT_KEY`. Requests must include `X-API-Key` or a bearer token plus the matching `X-Tenant-ID`.
+
+Public trust summaries are available at:
+
+- `GET /v1/trust/data-handling-summary`
+- `GET /v1/trust/retention-policy`
+- `GET /v1/trust/security-overview`
+
+Virro does not compete to store client information. Virro exists to analyze whether operational information is ready to move forward.
+
+Virro no compite por almacenar la información del cliente. Virro existe para revisar si esa información está lista para avanzar.
+
 ## Launch DNS
 
 DMARC must be configured in DNS before launch. Start in monitoring mode only after SPF, DKIM and report reception are verified:

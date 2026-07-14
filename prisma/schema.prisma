@@ -67,7 +67,10 @@ model UnderstandingEvent {
   id                String           @id @default(cuid())
   workspaceId       String
   title             String
-  rawInput          String
+  safeSummary       String
+  contentFingerprint String
+  privacyMode       String           @default("safe")
+  rawStored         Boolean          @default(false)
   inputType         String
   sourceRole        String
   targetRole        String
@@ -92,7 +95,7 @@ model UnderstandingEvent {
 model AnalysisResult {
   id                 String             @id @default(cuid())
   eventId            String
-  summary            String
+  safeSummary        String
   probableIntent     String
   targetReceiver     String
   meaningLossRisk    Float
