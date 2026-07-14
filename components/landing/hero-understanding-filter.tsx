@@ -1,17 +1,38 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, CheckCircle2, FileBarChart, Layers3, LockKeyhole, Radar, ShieldCheck } from "lucide-react";
+import { ArrowRight, CheckCircle2, Layers3, LockKeyhole, ShieldCheck } from "lucide-react";
 import { useLanguage } from "@/components/i18n/language-provider";
 import { RevealOnScroll } from "@/components/landing/motion/motion-primitives";
 
-const inputs = ["Junta", "Ticket", "Documento", "Diseño", "CRM", "IA"];
-const outputs = ["Privacy Shield", "Readiness Gate", "Pack recomendado", "Executive Report"];
+const heroVideos = [
+  { webm: "/hero/virro-hero.webm", mp4: "/hero/virro-hero.mp4" },
+  { webm: "/hero/virro-hero1.webm", mp4: "/hero/virro-hero1.mp4" },
+];
 
 export function HeroUnderstandingFilter() {
-  const { locale, t } = useLanguage();
-  const inputLabels = locale === "es" ? inputs : ["Meeting", "Ticket", "Document", "Design", "CRM", "AI"];
-  return <section id="plataforma" className="landing-hero relative min-h-[820px] scroll-mt-24 overflow-hidden px-5 pb-24 pt-36 md:px-8 md:pt-44">
+  const { t } = useLanguage();
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [activeVideoIndex, setActiveVideoIndex] = useState(0);
+  const activeVideo = heroVideos[activeVideoIndex];
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const startPlayback = () => { void video.play().catch(() => undefined); };
+    startPlayback();
+    video.addEventListener("canplay", startPlayback, { once: true });
+    return () => video.removeEventListener("canplay", startPlayback);
+  }, [activeVideoIndex]);
+
+  return <section id="plataforma" className="landing-hero has-video-hero relative min-h-[820px] scroll-mt-24 overflow-hidden px-5 pb-24 pt-36 md:px-8 md:pt-44">
+    <div className="hero-video-poster" aria-hidden="true" />
+    <video key={activeVideoIndex} ref={videoRef} className="hero-video-media" autoPlay muted playsInline preload="metadata" poster="/hero/virro-hero-poster.webp" aria-hidden="true" tabIndex={-1} onEnded={() => setActiveVideoIndex((index) => (index + 1) % heroVideos.length)}>
+      <source src={activeVideo.webm} type="video/webm" />
+      <source src={activeVideo.mp4} type="video/mp4" />
+    </video>
+    <div className="hero-video-scrim" aria-hidden="true" />
     <div className="hero-glow hero-glow-one" /><div className="hero-glow hero-glow-two" /><div className="hero-grid-fade" />
     <div className="relative mx-auto grid max-w-[1380px] gap-14 xl:grid-cols-[.88fr_1.12fr] xl:items-center">
       <div className="hero-copy-scene relative z-10">
@@ -22,22 +43,15 @@ export function HeroUnderstandingFilter() {
         <div className="hero-scene-item mt-9 flex flex-col gap-3 sm:flex-row"><a href="#solicitar-diagnostico" className="brand-primary-button text-sm shadow-[0_20px_60px_rgba(9,105,255,.22)]">{t("Request an audit", "Solicitar auditoría")} <ArrowRight size={15} /></a><Link href="/app" className="brand-secondary-button text-sm">{t("View enterprise demo", "Ver demo enterprise")}</Link></div>
         <div className="hero-scene-item mt-6 flex flex-wrap gap-x-5 gap-y-2 text-[9px] text-[var(--subtle)]"><span className="flex items-center gap-2"><ShieldCheck size={12} className="text-[var(--brand-blue)]" />{t("Data minimization from the audit", "Minimización de datos desde la auditoría")}</span><span className="flex items-center gap-2"><CheckCircle2 size={12} className="text-[var(--brand-blue)]" />{t("Probabilistic estimates · human validation", "Estimaciones probabilísticas · validación humana")}</span></div>
       </div>
-      <RevealOnScroll className="hero-visual-reveal"><div className="hero-filter-scene hero-product-scene" aria-label={t("Information flowing through Virro's understanding filter", "Información atravesando el filtro de entendimiento de Virro")}>
-        <div className="filter-scene-top"><span>{t("Digital flow", "Flujo digital")}</span><span className="filter-live"><i />{t("Understanding observability", "Observabilidad de entendimiento")}</span></div>
-        <div className="filter-scene-body">
-          <div className="filter-inputs"><p>{t("Ambiguous information", "Información ambigua")}</p>{inputLabels.slice(0, 4).map((label, index) => <span key={label} style={{ "--particle-index": index } as React.CSSProperties}>{label}</span>)}</div>
-          <div className="filter-core">
-            <div className="filter-core-stage">
-              <div className="filter-core-stage-top"><span><Radar size={15} /> Virro Core</span><i>Analyze-Safe</i></div>
-              <div className="filter-core-shield"><LockKeyhole size={16} /><span>{t("Privacy Shield active", "Privacy Shield activo")}</span><b>[EMAIL_1]</b></div>
-              <div className="filter-core-readiness"><span>{t("Readiness Gate", "Readiness Gate")}</span><strong>68<small>/100</small></strong><div><i /></div><p>{t("Context needs validation", "Contexto por validar")}</p></div>
-              <div className="filter-core-context"><span>{t("Context", "Contexto")}</span><span>{t("Receiver", "Receptor")}</span><span>{t("Criteria", "Criterio")}</span></div>
-            </div>
-          </div>
-          <div className="filter-outputs"><p>{t("Executive signal", "Señal ejecutiva")}</p>{outputs.map((label, index) => <span key={label}><i>{String(index + 1).padStart(2, "0")}</i>{index === 3 ? t("Executive signal", "Señal ejecutiva") : label}{index === 1 && <b>68/100</b>}</span>)}</div>
-        </div>
-        <div className="filter-scene-footer"><span><FileBarChart size={12} />{t("Executive evidence", "Evidencia ejecutiva")}</span><Link href="/app" className="inline-flex items-center gap-2">{t("Open enterprise demo", "Abrir demo enterprise")} <ArrowRight size={12} /></Link></div>
-      </div></RevealOnScroll>
+      <RevealOnScroll className="hero-visual-reveal">
+          <aside className="hero-flow-messages" aria-label={t("Analyze-Safe operational signal", "Señal operativa Analyze-Safe")}>
+            <div className="hero-flow-caption"><span><LockKeyhole size={13} />Analyze-Safe</span><b>{t("Operational flow signals", "Señales de flujo operativo")}</b></div>
+            <article className="hero-flow-message is-primary"><span>01</span><div><p>{t("Meeting → Delivery", "Junta → Delivery")}</p><strong>{t("Owner and criteria need validation", "Responsable y criterio por validar")}</strong></div><em>Handoff Intelligence</em></article>
+            <article className="hero-flow-message"><span>02</span><div><p>{t("Data request → BI", "Solicitud de datos → BI")}</p><strong>{t("Decision and period are missing", "Faltan decisión y periodo")}</strong></div><em>Data Request Readiness</em></article>
+            <article className="hero-flow-message"><span>03</span><div><p>{t("AI instruction → Context Pack", "Instrucción IA → Context Pack")}</p><strong>{t("Constraints need validation", "Restricciones por validar")}</strong></div><em>AI Understanding</em></article>
+            <div className="hero-flow-next"><span>{t("Next action", "SIGUIENTE ACCIÓN")}</span><strong>{t("Validate context before advancing", "Validar contexto antes de avanzar")}</strong></div>
+          </aside>
+      </RevealOnScroll>
     </div>
   </section>;
 }
