@@ -119,7 +119,7 @@ export function AccessibilityStatementPage() {
   return <LegalShell eyebrow={t("Accessible by design", "Accesibilidad por diseño")} title={t("Accessibility Statement", "Declaración de accesibilidad")}>{sections.map(([heading, copy]) => <section key={heading}><h2>{heading}</h2><p>{copy}</p></section>)}</LegalShell>;
 }
 
-type EnterpriseTrustDocument = "security-overview" | "data-processing" | "subprocessors";
+type EnterpriseTrustDocument = "security-overview" | "data-processing" | "subprocessors" | "retention";
 
 export function EnterpriseTrustDocumentPage({ document }: { document: EnterpriseTrustDocument }) {
   const { t } = useLanguage();
@@ -139,6 +139,11 @@ export function EnterpriseTrustDocumentPage({ document }: { document: Enterprise
       title: t("Subprocessors", "Subencargados"),
       purpose: t("The current subprocessor register is shared as part of enterprise diligence for the agreed deployment and service scope.", "El registro actual de subencargados se comparte como parte de la debida diligencia enterprise para el despliegue y alcance de servicio acordados."),
     },
+    retention: {
+      eyebrow: t("Enterprise trust", "Confianza enterprise"),
+      title: t("Data Retention", "Retención de datos"),
+      purpose: t("Retention controls are defined according to the applicable order form, privacy mode and agreed deployment scope.", "Los controles de retención se definen según la orden de servicio aplicable, el modo de privacidad y el alcance de despliegue acordado."),
+    },
   }[document];
 
   return <LegalShell eyebrow={documents.eyebrow} title={documents.title}>
@@ -149,6 +154,10 @@ export function EnterpriseTrustDocumentPage({ document }: { document: Enterprise
     <section>
       <h2>{t("Enterprise request", "Solicitud enterprise")}</h2>
       <p>{t("Available for enterprise pilots upon request. Contact contacto@virro.app to define scope, privacy requirements and the appropriate documentation.", "Disponible para pilotos enterprise bajo solicitud. Contacta a contacto@virro.app para definir alcance, requisitos de privacidad y la documentación aplicable.")}</p>
+    </section>
+    <section>
+      <h2>{t("Scope and review", "Alcance y revisión")}</h2>
+      <p>{t("Controls are defined according to the applicable order form. This material does not constitute a security certification. Legal review is required before regulated use.", "Los controles se definen según la orden de servicio aplicable. Este material no constituye una certificación de seguridad. Se requiere revisión legal antes de uso regulado.")}</p>
     </section>
   </LegalShell>;
 }

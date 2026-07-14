@@ -13,6 +13,10 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${base}/legal/privacy`, changeFrequency: "monthly", priority: 0.5 },
     { url: `${base}/legal/cookies`, changeFrequency: "monthly", priority: 0.3 },
     { url: `${base}/legal/accessibility`, changeFrequency: "monthly", priority: 0.3 },
+    { url: `${base}/legal/security-overview`, changeFrequency: "monthly", priority: 0.3 },
+    { url: `${base}/legal/data-processing`, changeFrequency: "monthly", priority: 0.3 },
+    { url: `${base}/legal/subprocessors`, changeFrequency: "monthly", priority: 0.3 },
+    { url: `${base}/legal/retention`, changeFrequency: "monthly", priority: 0.3 },
     { url: `${base}/faq`, changeFrequency: "monthly", priority: 0.5 },
   ];
 }

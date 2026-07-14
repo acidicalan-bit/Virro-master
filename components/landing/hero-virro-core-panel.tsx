@@ -28,8 +28,6 @@ export function HeroVirroCorePanel() {
         <i><b /></i>
       </div>
 
-      <div className="hero-core-panel-mobile-readiness">Readiness · 64/100</div>
-
       <div className="hero-core-panel-signals">
         <section>
           <span>{t("Risk detected", "Riesgo detectado")}</span>
@@ -37,14 +35,12 @@ export function HeroVirroCorePanel() {
         </section>
         <section>
           <span>{t("Next action", "Siguiente acción")}</span>
-          <strong className="hero-core-panel-action-desktop">{t("Define owner, expected format and success criteria.", "Definir responsable, formato esperado y criterio de éxito.")}</strong>
-          <strong className="hero-core-panel-action-mobile">{t("Define owner, format and criteria.", "Definir responsable, formato y criterio.")}</strong>
+          <strong>{t("Define owner, expected format and success criteria.", "Definir responsable, formato esperado y criterio de éxito.")}</strong>
         </section>
       </div>
 
       <footer className="hero-core-panel-footer">
-        <span>{t("Does not store private conversations by default.", "No guarda conversaciones privadas por defecto.")}</span>
-        <span>{t("Stores signals: readiness, risks and patterns.", "Guarda señales: readiness, riesgos y patrones.")}</span>
+        <span>{t("Does not store private conversations by default. Stores signals: readiness, risks and patterns.", "No guarda conversaciones privadas por defecto. Guarda señales: readiness, riesgos y patrones.")}</span>
       </footer>
     </aside>
   );

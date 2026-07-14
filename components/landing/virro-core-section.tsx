@@ -70,7 +70,7 @@ export function VirroCoreSection() {
           </li>
         </ol>
 
-        <footer className="virro-core-foot"><CheckCircle2 aria-hidden="true" size={14} /><span>{t("Signals stored: readiness, risks, patterns and aggregated reports.", "Señales guardadas: readiness, riesgos, patrones y reportes agregados.")}</span><span>{t("No private conversations by default.", "No conversaciones privadas por defecto.")}</span></footer>
+        <footer className="virro-core-foot"><CheckCircle2 aria-hidden="true" size={14} /><span>{t("Signals stored: readiness, risks, patterns and aggregated reports. No private conversations by default.", "Señales guardadas: readiness, riesgos, patrones y reportes agregados. No conversaciones privadas por defecto.")}</span></footer>
       </RevealOnScroll>
     </div>
   </section>;
