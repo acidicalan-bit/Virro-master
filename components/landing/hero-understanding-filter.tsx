@@ -4,34 +4,111 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, CheckCircle2, Layers3, LockKeyhole, ShieldCheck } from "lucide-react";
 import { useLanguage } from "@/components/i18n/language-provider";
-import { RevealOnScroll } from "@/components/landing/motion/motion-primitives";
 
 const heroVideos = [
-  { webm: "/hero/virro-hero.webm", mp4: "/hero/virro-hero.mp4" },
-  { webm: "/hero/virro-hero1.webm", mp4: "/hero/virro-hero1.mp4" },
+  { src: "/hero/virro-flow-01.mp4" },
+  { src: "/hero/virro-flow-02.mp4" },
+  { src: "/hero/virro-flow-03.mp4" },
 ];
+
+const signals = [
+  { index: "01", flow: ["Meeting → Delivery", "Junta → Delivery"], message: ["Validate owner and success criteria", "Validar responsable y criterio de éxito"], pack: "Handoff Intelligence" },
+  { index: "02", flow: ["Data request → BI", "Solicitud de datos → BI"], message: ["Decision and period need validation", "Decisión y periodo por validar"], pack: "Data Request Readiness" },
+  { index: "03", flow: ["AI instruction → Context Pack", "Instrucción IA → Context Pack"], message: ["Operational constraints need validation", "Restricciones operativas por validar"], pack: "AI Understanding" },
+];
+
+const CROSSFADE_MS = 1000;
+const CROSSFADE_LEAD_SECONDS = 1.15;
+const SIGNAL_DURATION_MS = 6800;
 
 export function HeroUnderstandingFilter() {
   const { t } = useLanguage();
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const videoRefs = useRef<Array<HTMLVideoElement | null>>([]);
+  const currentVideoIndex = useRef(0);
+  const isTransitioning = useRef(false);
+  const transitionTimer = useRef<number | undefined>(undefined);
   const [activeVideoIndex, setActiveVideoIndex] = useState(0);
-  const activeVideo = heroVideos[activeVideoIndex];
+  const [activeSignalIndex, setActiveSignalIndex] = useState(0);
+  const activeSignal = signals[activeSignalIndex];
 
   useEffect(() => {
-    const video = videoRef.current;
-    if (!video || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const startPlayback = () => { void video.play().catch(() => undefined); };
-    startPlayback();
-    video.addEventListener("canplay", startPlayback, { once: true });
-    return () => video.removeEventListener("canplay", startPlayback);
-  }, [activeVideoIndex]);
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    const videos = videoRefs.current;
+    const play = (video: HTMLVideoElement) => { void video.play().catch(() => undefined); };
+
+    const transitionToNext = () => {
+      if (isTransitioning.current) return;
+
+      const outgoingIndex = currentVideoIndex.current;
+      const incomingIndex = (outgoingIndex + 1) % heroVideos.length;
+      const outgoing = videos[outgoingIndex];
+      const incoming = videos[incomingIndex];
+      if (!outgoing || !incoming) return;
+
+      isTransitioning.current = true;
+      incoming.currentTime = 0;
+
+      const beginCrossfade = () => {
+        play(incoming);
+        currentVideoIndex.current = incomingIndex;
+        setActiveVideoIndex(incomingIndex);
+        transitionTimer.current = window.setTimeout(() => {
+          outgoing.pause();
+          outgoing.currentTime = 0;
+          isTransitioning.current = false;
+        }, CROSSFADE_MS);
+      };
+
+      if (incoming.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) beginCrossfade();
+      else incoming.addEventListener("canplay", beginCrossfade, { once: true });
+    };
+
+    const handleTimeUpdate = (index: number) => () => {
+      const video = videos[index];
+      if (!video || index !== currentVideoIndex.current || !Number.isFinite(video.duration)) return;
+      if (video.duration - video.currentTime <= CROSSFADE_LEAD_SECONDS) transitionToNext();
+    };
+
+    const handleEnded = (index: number) => () => {
+      if (index === currentVideoIndex.current) transitionToNext();
+    };
+
+    const listeners = videos.map((video, index) => {
+      if (!video) return undefined;
+      const timeUpdate = handleTimeUpdate(index);
+      const ended = handleEnded(index);
+      video.addEventListener("timeupdate", timeUpdate);
+      video.addEventListener("ended", ended);
+      return { ended, timeUpdate };
+    });
+
+    const initialVideo = videos[0];
+    if (initialVideo) {
+      initialVideo.currentTime = 0;
+      play(initialVideo);
+    }
+
+    return () => {
+      if (transitionTimer.current) window.clearTimeout(transitionTimer.current);
+      videos.forEach((video, index) => {
+        const listener = listeners[index];
+        if (!video || !listener) return;
+        video.removeEventListener("timeupdate", listener.timeUpdate);
+        video.removeEventListener("ended", listener.ended);
+      });
+    };
+  }, []);
+
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const timer = window.setInterval(() => setActiveSignalIndex((index) => (index + 1) % signals.length), SIGNAL_DURATION_MS);
+    return () => window.clearInterval(timer);
+  }, []);
 
   return <section id="plataforma" className="landing-hero has-video-hero relative min-h-[820px] scroll-mt-24 overflow-hidden px-5 pb-24 pt-36 md:px-8 md:pt-44">
     <div className="hero-video-poster" aria-hidden="true" />
-    <video key={activeVideoIndex} ref={videoRef} className="hero-video-media" autoPlay muted playsInline preload="metadata" poster="/hero/virro-hero-poster.webp" aria-hidden="true" tabIndex={-1} onEnded={() => setActiveVideoIndex((index) => (index + 1) % heroVideos.length)}>
-      <source src={activeVideo.webm} type="video/webm" />
-      <source src={activeVideo.mp4} type="video/mp4" />
-    </video>
+    {heroVideos.map((video, index) => <video key={video.src} ref={(element) => { videoRefs.current[index] = element; }} className={`hero-video-media${activeVideoIndex === index ? " is-active" : ""}`} muted playsInline preload="metadata" aria-hidden="true" tabIndex={-1} src={video.src} />)}
     <div className="hero-video-scrim" aria-hidden="true" />
     <div className="hero-glow hero-glow-one" /><div className="hero-glow hero-glow-two" /><div className="hero-grid-fade" />
     <div className="relative mx-auto grid max-w-[1380px] gap-14 xl:grid-cols-[.88fr_1.12fr] xl:items-center">
@@ -43,15 +120,18 @@ export function HeroUnderstandingFilter() {
         <div className="hero-scene-item mt-9 flex flex-col gap-3 sm:flex-row"><a href="#solicitar-diagnostico" className="brand-primary-button text-sm shadow-[0_20px_60px_rgba(9,105,255,.22)]">{t("Request an audit", "Solicitar auditoría")} <ArrowRight size={15} /></a><Link href="/app" className="brand-secondary-button text-sm">{t("View enterprise demo", "Ver demo enterprise")}</Link></div>
         <div className="hero-scene-item mt-6 flex flex-wrap gap-x-5 gap-y-2 text-[9px] text-[var(--subtle)]"><span className="flex items-center gap-2"><ShieldCheck size={12} className="text-[var(--brand-blue)]" />{t("Data minimization from the audit", "Minimización de datos desde la auditoría")}</span><span className="flex items-center gap-2"><CheckCircle2 size={12} className="text-[var(--brand-blue)]" />{t("Probabilistic estimates · human validation", "Estimaciones probabilísticas · validación humana")}</span></div>
       </div>
-      <RevealOnScroll className="hero-visual-reveal">
-          <aside className="hero-flow-messages" aria-label={t("Analyze-Safe operational signal", "Señal operativa Analyze-Safe")}>
-            <div className="hero-flow-caption"><span><LockKeyhole size={13} />Analyze-Safe</span><b>{t("Operational flow signals", "Señales de flujo operativo")}</b></div>
-            <article className="hero-flow-message is-primary"><span>01</span><div><p>{t("Meeting → Delivery", "Junta → Delivery")}</p><strong>{t("Owner and criteria need validation", "Responsable y criterio por validar")}</strong></div><em>Handoff Intelligence</em></article>
-            <article className="hero-flow-message"><span>02</span><div><p>{t("Data request → BI", "Solicitud de datos → BI")}</p><strong>{t("Decision and period are missing", "Faltan decisión y periodo")}</strong></div><em>Data Request Readiness</em></article>
-            <article className="hero-flow-message"><span>03</span><div><p>{t("AI instruction → Context Pack", "Instrucción IA → Context Pack")}</p><strong>{t("Constraints need validation", "Restricciones por validar")}</strong></div><em>AI Understanding</em></article>
-            <div className="hero-flow-next"><span>{t("Next action", "SIGUIENTE ACCIÓN")}</span><strong>{t("Validate context before advancing", "Validar contexto antes de avanzar")}</strong></div>
-          </aside>
-      </RevealOnScroll>
+      <aside className="hero-flow-messages" aria-label={t("Analyze-Safe operational signal", "Señal operativa Analyze-Safe")}>
+        <div className="hero-flow-caption"><span><LockKeyhole size={13} />Analyze-Safe</span><b>{t("Operational flow signal", "Señal de flujo operativo")}</b></div>
+        <article key={activeSignal.index} className="hero-flow-bubble">
+          <span className="hero-flow-number">{activeSignal.index}</span>
+          <div>
+            <p>{t(activeSignal.flow[0], activeSignal.flow[1])}</p>
+            <strong>{t(activeSignal.message[0], activeSignal.message[1])}</strong>
+          </div>
+          <em>{activeSignal.pack}</em>
+          <span className="hero-flow-action">{t("Next action", "Siguiente acción")}: {t("validate before advancing", "validar antes de avanzar")}</span>
+        </article>
+      </aside>
     </div>
   </section>;
 }
