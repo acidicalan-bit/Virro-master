@@ -1015,6 +1015,13 @@ html[data-theme="light"] .landing-hero.has-video-hero .brand-secondary-button { 
 }
 
 @media (max-width: 767px) {
+  .landing-hero .hero-copy-scene,
+  .landing-hero .hero-virro-core-panel,
+  .landing-hero .hero-core-panel-signals,
+  .landing-hero .hero-core-panel-signals section { min-width: 0; max-width: 100%; }
+  .landing-hero .hero-headline,
+  .landing-hero .hero-primary-copy,
+  .landing-hero .hero-core-panel-signals strong { overflow-wrap: anywhere; }
   .section-display { font-size: clamp(2.35rem,12vw,3.5rem); }
   .section-lead { font-size: 12px; line-height: 1.8; }
   .landing-hero { min-height: auto !important; }
