@@ -61,6 +61,8 @@ describe("Virro operational language", () => {
     expect(inbox).toContain('aria-describedby="inbox-raw-input-hint"');
     expect(inbox).toContain('id="inbox-form-guidance"');
     expect(inbox).toContain('"Nuevo evento de entendimiento operativo"');
+    expect(inbox).toContain('"Analiza información diaria, cambios críticos, handoffs, procesos, necesidades de rol, documentación técnica o instrucciones para IA."');
+    expect(inbox).not.toContain('"Analiza un requerimiento, handoff, proceso, necesidad de rol, documento técnico o instrucción para IA."');
     expect(inbox).toContain('"Diagnosticar flujo, cambio u onboarding crítico"');
     expect(inbox).toContain('"Describe una situación donde la información se mueve, cambia o necesita convertirse en acción, y el equipo puede perder claridad, contexto o tiempo."');
     for (const pack of ["Product Delivery", "AI Understanding", "Handoff Intelligence", "Process Understanding", "Onboarding & Knowledge Transfer", "Consulting Delivery", "Talent & Staffing Understanding", "Technical Documentation Understanding"]) {
