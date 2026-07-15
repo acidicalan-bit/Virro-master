@@ -20,12 +20,14 @@ describe("production landing QA contract", () => {
 
     expect(demo).toContain('role="tablist"');
     expect(demo).toContain('role="tab"');
-    expect(demo).toContain('aria-label={`${t("Show flow", "Mostrar flujo")}');
+    expect(demo).toContain('aria-label={`${t("Flow", "Flujo")} ${index + 1} ${t("of", "de")} ${scenarios.length}:');
     expect(demo).toContain('aria-controls={`enterprise-demo-panel-${scenario.id}`}');
     expect(demo).toContain("aria-posinset={index + 1}");
     expect(demo).toContain("aria-setsize={scenarios.length}");
     expect(demo).toContain('role="tabpanel"');
     expect(demo).toContain('index < scenarios.length - 1 ? " " : null');
+    expect(demo).toContain("El contexto todavía necesita aclararse antes de convertirse en acción.");
+    expect(demo).not.toContain("El contexto todavía necesita validación antes de que esto pueda avanzar.");
   });
 
   it("keeps every diagnosis field labelled and connects help text", () => {

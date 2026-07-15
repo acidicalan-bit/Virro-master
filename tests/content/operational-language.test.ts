@@ -45,6 +45,7 @@ describe("Virro operational language", () => {
   it("keeps the operational inbox narrative and accessible controls aligned", () => {
     const inbox = readFileSync(join(root, "components/inbox/inbox-workbench.tsx"), "utf8");
     const page = readFileSync(join(root, "app/app/inbox/page.tsx"), "utf8");
+    const packRegistry = readFileSync(join(root, "lib/config/pack-registry.ts"), "utf8");
     expect(inbox).toContain('"Bandeja de Entendimiento Operativo"');
     expect(inbox).toContain('"Virro mantiene el entendimiento operativo cuando la información se mueve, cambia o necesita convertirse en acción."');
     expect(page).toContain('title: "Bandeja de Entendimiento Operativo | Virro"');
@@ -59,5 +60,18 @@ describe("Virro operational language", () => {
     expect(inbox).toContain('aria-describedby="inbox-analysis-pack-hint"');
     expect(inbox).toContain('aria-describedby="inbox-raw-input-hint"');
     expect(inbox).toContain('id="inbox-form-guidance"');
+    expect(inbox).toContain('"Nuevo evento de entendimiento operativo"');
+    expect(inbox).toContain('"Diagnosticar flujo, cambio u onboarding crítico"');
+    expect(inbox).toContain('"Describe una situación donde la información se mueve, cambia o necesita convertirse en acción, y el equipo puede perder claridad, contexto o tiempo."');
+    for (const pack of ["Product Delivery", "AI Understanding", "Handoff Intelligence", "Process Understanding", "Onboarding & Knowledge Transfer", "Consulting Delivery", "Talent & Staffing Understanding", "Technical Documentation Understanding"]) {
+      expect(packRegistry).toContain(`name: "${pack}"`);
+    }
+    for (const pack of ["Change Understanding", "Data Request Understanding", "Vendor / Provider Change", "QA Automation Readiness"]) {
+      expect(inbox).toContain(`label: "${pack}"`);
+    }
+    expect(inbox).toContain('<span className="block font-semibold text-teal-300">0{index + 1}</span>{" "}<p');
+    expect(inbox).toContain('Analysis Trace</span>{" "}<span>');
+    expect(inbox).toContain('Evidencia de clasificación · Máximo 3 preguntas · Revisión humana requerida');
+    expect(inbox).not.toContain("AnalysisTrace");
   });
 });
