@@ -1,6 +1,6 @@
 "use client";
 
-import { type FormEvent, type ReactNode, useState } from "react";
+import { type FormEvent, type KeyboardEvent, type ReactNode, useState } from "react";
 import {
   CircleAlert,
   ClipboardCheck,
@@ -70,6 +70,17 @@ export function InboxWorkbench() {
     setSaved(false);
   }
 
+  function moveMode(event: KeyboardEvent<HTMLElement>) {
+    if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+    event.preventDefault();
+    const modes: AssistantMode[] = ["new-event", "critical-flow-discovery"];
+    const currentIndex = modes.indexOf(mode);
+    const nextIndex = event.key === "Home" ? 0 : event.key === "End" ? modes.length - 1 : event.key === "ArrowRight" ? (currentIndex + 1) % modes.length : (currentIndex - 1 + modes.length) % modes.length;
+    const nextMode = modes[nextIndex];
+    selectMode(nextMode);
+    requestAnimationFrame(() => document.getElementById(`inbox-mode-tab-${nextMode}`)?.focus());
+  }
+
   function save() {
     if (!result) return;
     saveAssistantResult(result);
@@ -78,15 +89,15 @@ export function InboxWorkbench() {
 
   return <div className="space-y-6">
     <section>
-      <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-teal-300">03 · {t("Understanding Inbox", "Bandeja de entendimiento")}</p>
-      <h1 className="text-2xl font-semibold tracking-[-0.035em] md:text-[30px]">{t("Virro Understanding Assistant", "Asistente de Entendimiento Virro")}</h1>
-      <p className="mt-2 max-w-3xl text-sm text-[var(--muted)]">{t("Structure ambiguous information as an auditable Understanding Event.", "Estructura información ambigua como un Understanding Event auditable.")}</p>
-      <p className="mt-2 max-w-3xl text-[11px] leading-5 text-[var(--subtle)]">{t("The assistant does not converse for the sake of conversation. It helps detect whether information is sufficiently understood before moving forward.", "El asistente no conversa por conversar. Ayuda a detectar si la información está suficientemente entendida antes de avanzar.")}</p>
+      <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-teal-300">03 · {t("Operational understanding", "Entendimiento operativo")}</p>
+      <h1 className="text-2xl font-semibold tracking-[-0.035em] md:text-[30px]">{t("Operational Understanding Inbox", "Bandeja de Entendimiento Operativo")}</h1>
+      <p className="mt-2 max-w-3xl text-sm text-[var(--muted)]">{t("Virro maintains operational understanding when information moves, changes, or needs to become action.", "Virro mantiene el entendimiento operativo cuando la información se mueve, cambia o necesita convertirse en acción.")}</p>
+      <p className="mt-2 max-w-3xl text-[11px] leading-5 text-[var(--subtle)]">{t("Turn scattered inputs into traceable Understanding Events with context, interpretation risks, and a clear operational outcome.", "Convierte inputs dispersos en Understanding Events trazables, con contexto, riesgos de interpretación y un resultado operativo claro.")}</p>
     </section>
 
-    <section className="grid gap-3 md:grid-cols-2">
-      <ModeCard active={mode === "new-event"} onClick={() => selectMode("new-event")} icon={<FileText size={18} />} title={t("New Understanding Event", "Nuevo Understanding Event")} description={t("Analyze a requirement, handoff, process, role need, technical document or AI instruction.", "Analiza un requerimiento, handoff, proceso, necesidad de rol, documento técnico o instrucción para IA.")} />
-      <ModeCard active={mode === "critical-flow-discovery"} onClick={() => selectMode("critical-flow-discovery")} icon={<Radar size={18} />} title={t("Diagnose critical flow", "Diagnosticar flujo crítico")} description={t("Describe where your team loses clarity, time, context or execution. Virro will recommend the most probable pack and audit.", "Describe un flujo donde tu equipo pierde claridad, tiempo, contexto o ejecución. Virro estimará dónde puede distorsionarse el significado operativo.")} />
+    <section role="tablist" aria-label={t("Operational understanding intake modes", "Modos de captura de entendimiento operativo")} onKeyDown={moveMode} className="grid gap-3 md:grid-cols-2">
+      <ModeCard id="inbox-mode-tab-new-event" active={mode === "new-event"} onClick={() => selectMode("new-event")} icon={<FileText size={18} />} title={t("New Understanding Event", "Nuevo Understanding Event")} description={t("Analyze a requirement, handoff, process, role need, technical document or AI instruction.", "Analiza un requerimiento, handoff, proceso, necesidad de rol, documento técnico o instrucción para IA.")} />{" "}
+      <ModeCard id="inbox-mode-tab-critical-flow-discovery" active={mode === "critical-flow-discovery"} onClick={() => selectMode("critical-flow-discovery")} icon={<Radar size={18} />} title={t("Diagnose critical flow", "Diagnosticar flujo crítico")} description={t("Describe where your team loses clarity, time, context or execution. Virro will recommend the most probable pack and audit.", "Describe un flujo donde tu equipo pierde claridad, tiempo, contexto o ejecución. Virro estimará dónde puede distorsionarse el significado operativo.")} />
     </section>
 
     <section className="rounded-xl border border-[var(--border)] bg-[var(--panel-soft)] p-2"><div className="flex items-center justify-between px-2 py-1.5"><p className="text-[9px] font-semibold uppercase tracking-[.12em] text-[var(--subtle)]">{t("Guided analysis flow", "Flujo guiado de análisis")}</p><span className={`rounded-full px-2 py-1 text-[9px] font-semibold ${result ? "bg-emerald-400/10 text-emerald-300" : loading ? "bg-amber-400/10 text-amber-300" : "bg-teal-400/10 text-teal-300"}`}>{result ? t("Evidence ready", "Evidencia lista") : loading ? t("Analyzing event", "Analizando evento") : t("Waiting for input", "Esperando información")}</span></div><div className="mt-1 grid gap-2 sm:grid-cols-5">
@@ -105,9 +116,10 @@ export function InboxWorkbench() {
       <p className="border-t border-teal-300/10 pt-2 md:col-span-2 xl:col-span-4"><ShieldCheck size={12} className="mr-2 inline text-teal-300" />{t("Virro does not retain raw private text by default.", "Virro no guarda texto privado crudo por defecto.")}</p>
     </div>
 
-    <section className="grid items-start gap-4 xl:grid-cols-[.9fr_1.1fr]">
-      <form onSubmit={analyze} className="panel p-5 md:p-6">
+    <section id="inbox-mode-panel" role="tabpanel" aria-labelledby={`inbox-mode-tab-${mode}`} className="grid items-start gap-4 xl:grid-cols-[.9fr_1.1fr]">
+      <form onSubmit={analyze} aria-describedby={error ? "inbox-form-guidance inbox-analysis-error" : "inbox-form-guidance"} className="panel p-5 md:p-6">
         <div className="flex items-start justify-between gap-4 border-b border-[var(--border)] pb-5"><div><h2 className="text-sm font-semibold">{mode === "critical-flow-discovery" ? t("Critical Flow Discovery", "Diagnóstico de flujo crítico") : t("Understanding Event intake", "Input del Understanding Event")}</h2><p className="mt-1 text-[11px] text-[var(--subtle)]">{workspace.name} · {t("Private Mode", "Modo privado")}</p></div><span className="rounded-md border border-teal-400/15 bg-teal-400/[.05] px-2.5 py-1 text-[9px] font-medium text-teal-200">{t("Controlled pipeline", "Pipeline controlado")}</span></div>
+        <p id="inbox-form-guidance" className="mt-4 text-[10px] leading-5 text-[var(--subtle)]">{t("Describe only the operational information needed for analysis. Do not include personal, confidential, or sensitive data.", "Describe solo la información operativa necesaria para el análisis. No incluyas datos personales, confidenciales ni sensibles.")}</p>
         <div className="mt-5 grid gap-4 sm:grid-cols-2">
           <Field id="inbox-title" label={t("Title", "Título")} className="sm:col-span-2"><input id="inbox-title" name="title" required aria-required="true" placeholder={mode === "critical-flow-discovery" ? t("e.g. Candidates rejected after client interviews", "ej. Candidatos rechazados después de entrevistas con cliente") : t("e.g. Billing API migration handoff", "ej. Handoff de migración de Billing API")} className="field-control" /></Field>
           <Field id="inbox-source-role" label={t("Source role", "Rol de origen")}><input id="inbox-source-role" name="sourceRole" placeholder={t("Who produced this information?", "¿Quién produjo esta información?")} className="field-control" /></Field>
@@ -142,8 +154,8 @@ function AssistantResultPanel({ result, saved, onSave, onAdjust, onDiscard }: { 
   </div>;
 }
 
-function ModeCard({ active, onClick, icon, title, description }: { active: boolean; onClick: () => void; icon: ReactNode; title: string; description: string }) { return <button type="button" onClick={onClick} className={`rounded-xl border p-4 text-left transition ${active ? "border-teal-400/30 bg-teal-400/[.06]" : "border-[var(--border)] bg-[var(--panel-soft)] hover:border-[var(--subtle)]"}`}><span className={active ? "text-teal-300" : "text-[var(--subtle)]"}>{icon}</span><p className="mt-3 text-xs font-semibold">{title}</p><p className="mt-1 text-[10px] leading-4 text-[var(--subtle)]">{description}</p></button>; }
-function Field({ id, label, hint, className = "", children }: { id: string; label: string; hint?: string; className?: string; children: ReactNode }) { return <div className={className}><label htmlFor={id} className="mb-2 flex items-center justify-between text-[11px] font-medium text-[var(--muted)]"><span>{label}</span>{hint && <span id={`${id}-hint`} className="font-normal text-[var(--subtle)]">{hint}</span>}</label>{children}</div>; }
+function ModeCard({ id, active, onClick, icon, title, description }: { id: string; active: boolean; onClick: () => void; icon: ReactNode; title: string; description: string }) { return <button id={id} type="button" role="tab" aria-selected={active} aria-controls="inbox-mode-panel" tabIndex={active ? 0 : -1} onClick={onClick} className={`rounded-xl border p-4 text-left transition ${active ? "border-teal-400/30 bg-teal-400/[.06]" : "border-[var(--border)] bg-[var(--panel-soft)] hover:border-[var(--subtle)]"}`}><span className={active ? "text-teal-300" : "text-[var(--subtle)]"}>{icon}</span><p className="mt-3 text-xs font-semibold">{title}</p><p className="mt-1 text-[10px] leading-4 text-[var(--subtle)]">{description}</p></button>; }
+function Field({ id, label, hint, className = "", children }: { id: string; label: string; hint?: string; className?: string; children: ReactNode }) { return <div className={className}><div className="mb-2 flex items-center justify-between gap-3 text-[11px]"><label htmlFor={id} className="font-medium text-[var(--muted)]">{label}</label>{hint ? <>{" "}<span id={`${id}-hint`} className="font-normal text-[var(--subtle)]">{hint}</span></> : null}</div>{children}</div>; }
 function FlowStep({ number, label, active }: { number: string; label: string; active: boolean }) { return <div className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-xs ${active ? "bg-[var(--active)]" : "text-[var(--subtle)]"}`}><span className={`grid size-7 place-items-center rounded-md text-[9px] font-semibold ${active ? "bg-teal-400/10 text-teal-300" : "bg-[var(--ring-track)]"}`}>{number}</span><span className="font-medium">{label}</span></div>; }
 function ResultSection({ title, icon, children }: { title: string; icon: ReactNode; children: ReactNode }) { return <section><div className="mb-2 flex items-center gap-2 text-xs font-semibold text-[var(--muted)]">{icon}{title}</div>{children}</section>; }
 function ResultList({ title, items, tone }: { title: string; items: string[]; tone: "amber" | "rose" }) { return <div className="rounded-xl border border-[var(--border)] bg-[var(--panel-soft)] p-3"><p className="text-[10px] font-semibold">{title}</p><div className="mt-2 space-y-1.5">{items.map((item) => <div key={item} className="flex items-start gap-2 text-[10px] leading-4 text-[var(--muted)]"><CircleAlert size={11} className={`mt-0.5 shrink-0 ${tone === "rose" ? "text-rose-300" : "text-amber-300"}`} />{item}</div>)}</div></div>; }
