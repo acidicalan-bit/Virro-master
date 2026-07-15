@@ -11,8 +11,8 @@ export function VirroCoreSection() {
     <div className="mx-auto max-w-[1380px]">
       <RevealOnScroll className="virro-core-intro">
         <p className="section-kicker">Virro Core</p>
-        <h2 className="section-display">{t("The engine that validates whether information can move forward.", "El motor que valida si la información puede avanzar.")}</h2>
-        <p className="section-lead">{t("Virro analyzes operational events, detects missing context, estimates readiness and recommends the next action without storing raw content by default.", "Virro analiza eventos operativos, detecta contexto faltante, estima readiness y recomienda la siguiente acción sin guardar contenido crudo por defecto.")}</p>
+        <h2 className="section-display">{t("Virro Core maintains operational understanding when information moves, changes or becomes action.", "Virro Core mantiene el entendimiento operativo cuando la información se mueve, cambia o se convierte en acción.")}</h2>
+        <p className="section-lead">{t("It analyzes operational events, detects missing context, estimates readiness, identifies critical changes and recommends actions to keep teams, tools and AI aligned.", "Analiza eventos operativos, detecta contexto faltante, estima readiness, identifica cambios críticos y recomienda acciones para mantener alineados equipos, herramientas e IA.")}</p>
       </RevealOnScroll>
 
       <RevealOnScroll className="virro-core-system mt-12">
@@ -23,54 +23,54 @@ export function VirroCoreSection() {
 
         <ol className="virro-core-operating-flow" aria-label={t("Virro Core operational flow", "Flujo operativo de Virro Core")}>
           <li className="virro-core-stage core-stage-input">
-            <div className="core-stage-heading"><FileInput aria-hidden="true" size={16} /><h3>{t("Information received", "Información recibida")}</h3></div>
-            <p className="core-stage-summary">{t("Ticket / handoff / AI instruction", "Ticket / handoff / instrucción para IA")}</p>
-            <blockquote>{t("“The client asked to adjust the approval flow.”", "“El cliente pidió ajustar el flujo de aprobación.”")}</blockquote>
-            <ul className="core-risk-chips" aria-label={t("Missing context", "Contexto faltante")}>
-              <li>{t("No owner", "Sin responsable")}</li>
-              <li>{t("No success criteria", "Sin criterio de éxito")}</li>
-              <li>{t("No defined impact", "Sin impacto definido")}</li>
+            <div className="core-stage-heading"><FileInput aria-hidden="true" size={16} /><h3>{t("Daily information", "Información diaria")}</h3></div>
+            <p className="core-stage-summary">{t("Messages / tickets / user stories / bugs", "Mensajes / tickets / HUs / bugs")}</p>
+            <blockquote>{t("“Priority changed after the critical integration issue.”", "“La prioridad cambió después del error crítico de integración.”")}</blockquote>
+            <ul className="core-risk-chips" aria-label={t("Operating inputs", "Entradas operativas")}>
+              <li>{t("Processes", "Procesos")}</li>
+              <li>Handoffs</li>
+              <li>{t("AI instructions", "Instrucciones para IA")}</li>
             </ul>
             <i className="core-connector-pulse" aria-hidden="true" />
           </li>
 
           <li className="virro-core-stage core-stage-safe">
-            <div className="core-stage-heading"><LockKeyhole aria-hidden="true" size={16} /><h3>Analyze-Safe</h3></div>
+            <div className="core-stage-heading"><LockKeyhole aria-hidden="true" size={16} /><h3>{t("Company standards", "Estándares de la empresa")}</h3></div>
             <div className="core-safe-status"><span><CheckCircle2 aria-hidden="true" size={13} />Privacy Shield {t("active", "activo")}</span><b>Raw data stored: No</b></div>
             <ul className="core-analysis-list">
-              {[t("Context", "Contexto"), t("Receiver", "Receptor"), t("Risk", "Riesgo"), t("Expected format", "Formato esperado"), t("Next action", "Siguiente acción")].map((item) => <li key={item}>{item}</li>)}
+              {[t("Guidelines", "Lineamientos"), t("Criteria", "Criterios"), t("Handoff rules", "Reglas de handoff"), t("Formats", "Formatos"), t("Ways of working", "Modo de trabajo")].map((item) => <li key={item}>{item}</li>)}
             </ul>
             <i className="core-connector-pulse" aria-hidden="true" />
           </li>
 
           <li className="virro-core-stage core-stage-readiness">
-            <div className="core-stage-heading"><Radar aria-hidden="true" size={16} /><h3>Readiness Gate</h3></div>
+            <div className="core-stage-heading"><Radar aria-hidden="true" size={16} /><h3>{t("Readiness & risks", "Readiness & riesgos")}</h3></div>
             <p className="core-readiness-score">64<small>/100</small></p>
             <div className="core-readiness-meter" aria-label="Readiness 64/100"><i><b /></i></div>
-            <p className="core-stage-risk"><span>{t("Main risk", "Riesgo principal")}</span>{t("Missing context to execute without rework.", "Falta contexto para ejecutar sin retrabajo.")}</p>
-            <strong className="core-readiness-badge">Handoff Readiness · {t("Medium", "Medio")}</strong>
+            <p className="core-stage-risk"><span>{t("Main risk", "Riesgo principal")}</span>{t("Outdated knowledge and ambiguous impact.", "Conocimiento desactualizado e impacto ambiguo.")}</p>
+            <strong className="core-readiness-badge">Change Readiness · {t("Medium", "Medio")}</strong>
             <i className="core-connector-pulse" aria-hidden="true" />
           </li>
 
           <li className="virro-core-stage core-stage-pack">
-            <div className="core-stage-heading"><Sparkles aria-hidden="true" size={16} /><h3>{t("Recommended pack", "Pack recomendado")}</h3></div>
-            <p className="core-pack-name">Handoff Intelligence</p>
-            <p className="core-stage-copy">{t("This flow requires validating whether information is ready for the next team.", "El flujo requiere validar si la información está lista para el siguiente equipo.")}</p>
+            <div className="core-stage-heading"><Sparkles aria-hidden="true" size={16} /><h3>{t("Operational change", "Cambio operativo")}</h3></div>
+            <p className="core-pack-name">Change Understanding</p>
+            <p className="core-stage-copy">{t("Identifies what changed, what is impacted and who must act.", "Identifica qué cambió, qué se impacta y quién debe actuar.")}</p>
             <ul className="core-analysis-list core-pack-list">
-              {[t("Owner", "Responsable"), t("Scope", "Alcance"), t("Success criteria", "Criterio de éxito"), t("Receiver team", "Equipo receptor")].map((item) => <li key={item}>{item}</li>)}
+              {[t("Changed priority", "Prioridad modificada"), t("Affected artifacts", "Artefactos afectados"), t("Outdated context", "Contexto obsoleto"), t("Required owner", "Responsable requerido")].map((item) => <li key={item}>{item}</li>)}
             </ul>
             <i className="core-connector-pulse" aria-hidden="true" />
           </li>
 
           <li className="virro-core-stage core-stage-action">
-            <div className="core-stage-heading"><Workflow aria-hidden="true" size={16} /><h3>{t("Next action", "Siguiente acción")}</h3></div>
-            <p className="core-decision">{t("Do not proceed yet.", "No avanzar todavía.")}</p>
-            <p className="core-stage-copy">{t("Validate owner, expected format and success criteria before turning this request into work.", "Validar responsable, formato esperado y criterio de éxito antes de convertir esta solicitud en trabajo.")}</p>
+            <div className="core-stage-heading"><Workflow aria-hidden="true" size={16} /><h3>{t("Clear action", "Acción clara")}</h3></div>
+            <p className="core-decision">{t("Update the shared operating context.", "Actualizar el contexto operativo compartido.")}</p>
+            <p className="core-stage-copy">{t("Generates updated deliverables, recommendations, onboarding and safe context for AI.", "Genera entregables, recomendaciones, artefactos actualizados, onboarding y contexto seguro para IA.")}</p>
             <a href="#auditoria">{t("View executive signal", "Ver señal ejecutiva")} <ArrowRight aria-hidden="true" size={13} /></a>
           </li>
         </ol>
 
-        <footer className="virro-core-foot"><CheckCircle2 aria-hidden="true" size={14} /><span>{t("Signals stored: readiness, risks, patterns and aggregated reports. No private conversations by default.", "Señales guardadas: readiness, riesgos, patrones y reportes agregados. No conversaciones privadas por defecto.")}</span></footer>
+        <footer className="virro-core-foot"><CheckCircle2 aria-hidden="true" size={14} /><span>{t("Virro masks sensitive information by default. It retains understanding signals, patterns and standards—not private conversations.", "Virro enmascara información delicada por defecto. Conserva señales, patrones y estándares de entendimiento; no conversaciones privadas.")}</span></footer>
       </RevealOnScroll>
     </div>
   </section>;

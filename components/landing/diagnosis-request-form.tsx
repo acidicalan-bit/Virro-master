@@ -19,6 +19,9 @@ const flowOptions = [
   "Legal / Security / Compliance",
   "Talent & Staffing",
   "Knowledge Continuity",
+  "Change Understanding",
+  "Onboarding & Knowledge Transfer",
+  "Consulting Delivery",
   "Process Understanding",
   "No estoy seguro",
 ];
@@ -41,6 +44,7 @@ export function DiagnosisRequestForm() {
       tools: String(data.get("tools") ?? ""),
       flow: String(data.get("flow") ?? ""),
       context: String(data.get("context") ?? ""),
+      message: String(data.get("message") ?? ""),
       engagement: submitter?.value === "pilot" ? "pilot" : "audit",
     });
     setSubmitted(true);
@@ -48,19 +52,21 @@ export function DiagnosisRequestForm() {
   }
 
   return <form id="solicitar-diagnostico" onSubmit={submit} aria-describedby="diagnosis-sensitive-note" className="diagnosis-request-form scroll-mt-24 rounded-2xl border border-white/[.08] bg-[var(--panel)] p-5 shadow-[0_24px_80px_rgba(0,0,0,.2)] md:p-7">
+        <div className="mb-7"><p className="section-kicker">{t("Operational understanding diagnosis", "Diagnóstico de entendimiento operativo")}</p><h3 className="mt-3 text-2xl font-semibold tracking-[-.04em]">{t("Request an operational understanding diagnosis.", "Solicita un diagnóstico de entendimiento operativo.")}</h3><p className="mt-3 text-[11px] leading-5 text-[var(--muted)]">{t("Tell us which flow, team, critical change or onboarding needs greater clarity. Do not include sensitive data.", "Cuéntanos qué flujo, equipo, cambio crítico u onboarding necesita mayor claridad. No incluyas datos sensibles.")}</p></div>
         <div className="grid gap-4 sm:grid-cols-2">
           <FormField id="diagnosis-name" label={t("Name", "Nombre")}><input id="diagnosis-name" name="name" required aria-required="true" maxLength={80} autoComplete="name" className="field-control" /></FormField>
           <FormField id="diagnosis-company" label={t("Company", "Empresa")}><input id="diagnosis-company" name="company" required aria-required="true" maxLength={120} autoComplete="organization" className="field-control" /></FormField>
           <FormField id="diagnosis-role" label={t("Role", "Rol")}><input id="diagnosis-role" name="role" required aria-required="true" maxLength={120} autoComplete="organization-title" className="field-control" /></FormField>
           <FormField id="diagnosis-email" label="Email"><input id="diagnosis-email" name="email" type="email" required aria-required="true" aria-describedby="diagnosis-email-help" maxLength={254} autoComplete="email" inputMode="email" spellCheck={false} className="field-control" /><span id="diagnosis-email-help" className="sr-only">{t("Enter a valid business email address.", "Ingresa una dirección de correo empresarial válida.")}</span></FormField>
-          <FormField id="diagnosis-area" label={t("Area where rework or confusion is highest today", "Área donde hoy se genera más retrabajo o confusión")}><input id="diagnosis-area" name="area" required aria-required="true" maxLength={160} placeholder={t("e.g. Product and QA", "Ej. Producto y QA")} className="field-control" /></FormField>
-          <FormField id="diagnosis-tools" label={t("Tools where this flow lives", "Herramientas donde vive ese flujo")}><input id="diagnosis-tools" name="tools" required aria-required="true" maxLength={240} placeholder={t("e.g. Slack, Jira, Figma, Zendesk, Drive, Copilot", "Ej. Slack, Jira, Figma, Zendesk, Drive, Copilot")} className="field-control" /></FormField>
-          <FormField id="diagnosis-flow" label={t("Critical flow you want to diagnose", "Flujo crítico que quieres diagnosticar")} className="sm:col-span-2"><select id="diagnosis-flow" name="flow" required aria-required="true" defaultValue="" className="field-control"><option value="" disabled>{t("Select a flow", "Selecciona un flujo")}</option>{flowOptions.map((option) => <option key={option} value={option}>{option === "No estoy seguro" ? t("I am not sure", option) : option}</option>)}</select></FormField>
-          <FormField id="diagnosis-context" label={t("Additional message", "Mensaje adicional")} className="sm:col-span-2"><textarea id="diagnosis-context" name="context" required aria-required="true" minLength={12} maxLength={1200} placeholder={t("Describe the flow, its receivers and the rework or risk it is creating.", "Describe el flujo, sus receptores y el retrabajo o riesgo que está generando.")} className="field-control min-h-32 resize-y py-3 leading-6" /></FormField>
+          <FormField id="diagnosis-area" label={t("Area", "Área")}><input id="diagnosis-area" name="area" required aria-required="true" maxLength={160} placeholder={t("e.g. Product and QA", "Ej. Producto y QA")} className="field-control" /></FormField>
+          <FormField id="diagnosis-tools" label={t("Tools used", "Herramientas utilizadas")}><input id="diagnosis-tools" name="tools" required aria-required="true" maxLength={240} placeholder={t("e.g. Slack, Jira, Figma, Zendesk, Drive, Copilot", "Ej. Slack, Jira, Figma, Zendesk, Drive, Copilot")} className="field-control" /></FormField>
+          <FormField id="diagnosis-flow" label={t("Critical flow or situation", "Flujo o situación crítica")} className="sm:col-span-2"><select id="diagnosis-flow" name="flow" required aria-required="true" defaultValue="" className="field-control"><option value="" disabled>{t("Select a flow", "Selecciona un flujo")}</option>{flowOptions.map((option) => <option key={option} value={option}>{option === "No estoy seguro" ? t("I am not sure", option) : option}</option>)}</select></FormField>
+          <FormField id="diagnosis-context" label={t("What is creating rework or lack of clarity", "Qué está generando retrabajo o falta de claridad")} className="sm:col-span-2"><textarea id="diagnosis-context" name="context" required aria-required="true" minLength={12} maxLength={1200} placeholder={t("Describe the flow, recent change and operational impact.", "Describe el flujo, el cambio reciente y su impacto operativo.")} className="field-control min-h-32 resize-y py-3 leading-6" /></FormField>
+          <FormField id="diagnosis-message" label={t("Additional message", "Mensaje adicional")} className="sm:col-span-2"><textarea id="diagnosis-message" name="message" maxLength={1200} className="field-control min-h-24 resize-y py-3 leading-6" /></FormField>
         </div>
         <div className="honeypot-field" aria-hidden="true"><label htmlFor="diagnosis-website">Website</label><input id="diagnosis-website" name="website" type="text" tabIndex={-1} autoComplete="off" /></div>
         <div className="mt-5 grid gap-3 sm:grid-cols-2"><button type="submit" name="engagement" value="audit" className="brand-primary-button w-full text-xs"><Mail size={14} />{t("Request an audit", "Solicitar auditoría")}</button><button type="submit" name="engagement" value="pilot" className="brand-secondary-button w-full text-xs"><ShieldCheck size={14} />{t("Explore a pilot", "Explorar piloto")}</button></div>
-        <p id="diagnosis-sensitive-note" className="mt-4 flex items-start gap-2 text-[10px] leading-5 text-[var(--subtle)]"><ShieldCheck aria-hidden="true" size={13} className="mt-0.5 shrink-0 text-[var(--brand-blue)]" />{t("Share the flow where operational clarity is most often lost. Do not include sensitive data.", "Comparte el flujo donde más se pierde claridad operativa. No incluyas datos sensibles.")}</p>
+        <p id="diagnosis-sensitive-note" className="mt-4 flex items-start gap-2 text-[10px] leading-5 text-[var(--subtle)]"><ShieldCheck aria-hidden="true" size={13} className="mt-0.5 shrink-0 text-[var(--brand-blue)]" />{t("Do not include passwords, tokens, private documents, sensitive data or confidential information.", "No incluyas contraseñas, tokens, documentos privados, datos sensibles ni información confidencial.")}</p>
         {submitted && <div role="status" className="mt-4 flex items-start gap-3 rounded-xl border border-sky-400/20 bg-sky-400/[.07] p-4 text-[11px] leading-5 text-sky-200"><Mail size={16} className="mt-0.5 shrink-0" /><span>{t("Your email client will open with the formal request and selected engagement prepared. Nothing is sent until you confirm it.", "Tu cliente de correo abrirá con la solicitud formal y el tipo de engagement seleccionados. Nada se envía hasta que lo confirmes.")}</span></div>}
   </form>;
 }

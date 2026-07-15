@@ -9,6 +9,7 @@ export type DiagnosisRequest = {
   tools: string;
   flow: string;
   context: string;
+  message?: string;
   engagement?: "audit" | "pilot";
 };
 
@@ -35,6 +36,7 @@ export function buildDiagnosisMailto(request: DiagnosisRequest) {
     "",
     "Descripción breve:",
     request.context.trim(),
+    ...(request.message?.trim() ? ["", "Mensaje adicional:", request.message.trim()] : []),
     "",
     "Entiendo que antes de analizar eventos reales definiremos privacidad, alcance y confidencialidad.",
   ].join("\n");
