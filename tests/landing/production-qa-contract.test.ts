@@ -22,6 +22,8 @@ describe("production landing QA contract", () => {
     expect(demo).toContain('role="tab"');
     expect(demo).toContain('aria-label={`${t("Show flow", "Mostrar flujo")}');
     expect(demo).toContain('aria-controls={`enterprise-demo-panel-${scenario.id}`}');
+    expect(demo).toContain("aria-posinset={index + 1}");
+    expect(demo).toContain("aria-setsize={scenarios.length}");
     expect(demo).toContain('role="tabpanel"');
     expect(demo).toContain('index < scenarios.length - 1 ? " " : null');
   });
@@ -35,9 +37,25 @@ describe("production landing QA contract", () => {
     }
     expect(form).toContain("<label htmlFor={id}");
     expect(form).toContain('type="email"');
-    expect(form).toContain('aria-describedby="diagnosis-email-help"');
+    expect(form).toContain('aria-describedby="diagnosis-email-help diagnosis-sensitive-note"');
     expect(form).toContain('aria-describedby="diagnosis-sensitive-note"');
     expect(form).toContain('id="diagnosis-sensitive-note"');
+  });
+
+  it("keeps navigation, panel statements, form help and footer text semantically separated", () => {
+    const nav = read("components/landing/public-navbar.tsx");
+    const panel = read("components/landing/hero-virro-core-panel.tsx");
+    const form = read("components/landing/diagnosis-request-form.tsx");
+    const landing = read("components/landing/public-landing.tsx");
+
+    expect(nav).toContain('aria-label={t("Virro main navigation", "Navegación principal de Virro")}');
+    expect(nav).toContain('index < anchors.length - 1 ? " " : null');
+    expect(panel).toContain('La información puede avanzar con contexto incompleto.');
+    expect(panel).toMatch(/contexto incompleto\."\)}<\/strong>\s*<\/section>\s*\{" "\}\s*<section>/);
+    expect(form).toContain('<label htmlFor={id}');
+    expect(form).toContain('</label>{" "}{children}');
+    expect(form).toContain('Ingresa una dirección de correo empresarial válida.');
+    expect(landing).toContain('aria-label={t("Footer navigation", "Navegación del pie de página")}');
   });
 
   it("covers changes, onboarding, enterprise packs and visible privacy", () => {
