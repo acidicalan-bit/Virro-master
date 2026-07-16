@@ -1,82 +1,18 @@
 "use client";
 
+import { ArrowRight, CheckCircle2, History, Network, Radar, RefreshCw } from "lucide-react";
 import Link from "next/link";
-import { ArrowRight, CheckCircle2, FileInput, LockKeyhole, Radar, Sparkles, Workflow } from "lucide-react";
 import { useLanguage } from "@/components/i18n/language-provider";
 import { RevealOnScroll } from "@/components/landing/motion/motion-primitives";
 
 export function VirroCoreSection() {
   const { t } = useLanguage();
-
-  return <section id="virro-core" className="virro-core-section px-5 py-24 md:px-8 md:py-36">
-    <div className="mx-auto max-w-[1380px]">
-      <RevealOnScroll className="virro-core-intro">
-        <p className="section-kicker">Virro Core</p>
-        <h2 className="section-display">{t("Evidence before verdict. Integrity after change.", "Evidencia antes del veredicto. Integridad después del cambio.")}</h2>
-        <p className="section-lead">{t("Virro connects to the tools where a company already works and detects when work tries to advance with insufficient context or information that no longer represents reality.", "Virro se conecta a las herramientas donde ya trabaja una empresa y detecta cuándo el trabajo intenta avanzar con contexto insuficiente o con información que dejó de representar la realidad.")}</p>
-        <p className="mt-5 text-sm font-semibold leading-6">{t("Virro does not only detect risk. It also recognizes when it lacks enough evidence to issue a reliable verdict.", "Virro no solo detecta riesgo. También reconoce cuándo no tiene evidencia suficiente para emitir un veredicto confiable.")}</p>
-      </RevealOnScroll>
-
-      <RevealOnScroll className="virro-core-system mt-12">
-        <div className="virro-core-system-head">
-          <div><span>VIRRO CORE / ANALYZE-SAFE</span><strong>{t("Operational flow", "Flujo operativo")}</strong></div>
-          <p><i />{t("Safe mode active", "Modo seguro activo")}</p>
-        </div>
-
-        <ol className="virro-core-operating-flow" aria-label={t("Virro Core operational flow", "Flujo operativo de Virro Core")}>
-          <li className="virro-core-stage core-stage-input">
-            <div className="core-stage-heading"><FileInput aria-hidden="true" size={16} /><h3>{t("Daily information", "Información diaria")}</h3></div>
-            <p className="core-stage-summary">{t("Messages / tickets / user stories / bugs", "Mensajes / tickets / HUs / bugs")}</p>
-            <blockquote>{t("“Priority changed after the critical integration issue.”", "“La prioridad cambió después del error crítico de integración.”")}</blockquote>
-            <ul className="core-risk-chips" aria-label={t("Operating inputs", "Entradas operativas")}>
-              <li>{t("Processes", "Procesos")}</li>
-              <li>Handoffs</li>
-              <li>{t("AI instructions", "Instrucciones para IA")}</li>
-            </ul>
-            <i className="core-connector-pulse" aria-hidden="true" />
-          </li>
-
-          <li className="virro-core-stage core-stage-safe">
-            <div className="core-stage-heading"><LockKeyhole aria-hidden="true" size={16} /><h3>{t("Company standards", "Estándares de la empresa")}</h3></div>
-            <div className="core-safe-status"><span><CheckCircle2 aria-hidden="true" size={13} />Privacy Shield {t("active", "activo")}</span><b>{t("Raw content stored: No", "Contenido crudo almacenado: No")}</b></div>
-            <ul className="core-analysis-list">
-              {[t("Guidelines", "Lineamientos"), t("Criteria", "Criterios"), t("Handoff rules", "Reglas de handoff"), t("Formats", "Formatos"), t("Ways of working", "Modo de trabajo")].map((item) => <li key={item}>{item}</li>)}
-            </ul>
-            <i className="core-connector-pulse" aria-hidden="true" />
-          </li>
-
-          <li className="virro-core-stage core-stage-readiness">
-            <div className="core-stage-heading"><Radar aria-hidden="true" size={16} /><h3>{t("Readiness & risks", "Readiness & riesgos")}</h3></div>
-            <p className="core-readiness-score">64<small>/100</small></p>
-            <div className="core-readiness-meter" aria-label="Readiness 64/100"><i><b /></i></div>
-            <p className="core-stage-risk"><span>{t("Main risk", "Riesgo principal")}</span>{t("Outdated knowledge and ambiguous impact.", "Conocimiento desactualizado e impacto ambiguo.")}</p>
-            <strong className="core-readiness-badge">Change Readiness · {t("Medium", "Medio")}</strong>
-            <i className="core-connector-pulse" aria-hidden="true" />
-          </li>
-
-          <li className="virro-core-stage core-stage-pack">
-            <div className="core-stage-heading"><Sparkles aria-hidden="true" size={16} /><h3>{t("Operational change", "Cambio operativo")}</h3></div>
-            <p className="core-pack-name">Change Understanding</p>
-            <p className="core-stage-copy">{t("Identifies what changed, what is impacted and who must act.", "Identifica qué cambió, qué se impacta y quién debe actuar.")}</p>
-            <ul className="core-analysis-list core-pack-list">
-              {[t("Changed priority", "Prioridad modificada"), t("Affected artifacts", "Artefactos afectados"), t("Outdated context", "Contexto obsoleto"), t("Required owner", "Responsable requerido")].map((item) => <li key={item}>{item}</li>)}
-            </ul>
-            <i className="core-connector-pulse" aria-hidden="true" />
-          </li>
-
-          <li className="virro-core-stage core-stage-action">
-            <div className="core-stage-heading"><Workflow aria-hidden="true" size={16} /><h3>{t("Clear action", "Acción clara")}</h3></div>
-            <p className="core-decision">{t("Update the shared operating context.", "Actualizar el contexto operativo compartido.")}</p>
-            <p className="core-stage-copy">{t("Generates updated deliverables, recommendations, onboarding and safe context for AI.", "Genera entregables, recomendaciones, artefactos actualizados, onboarding y contexto seguro para IA.")}</p>
-            <a href="#auditoria">{t("View executive signal", "Ver señal ejecutiva")} <ArrowRight aria-hidden="true" size={13} /></a>
-          </li>
-        </ol>
-
-        <footer className="virro-core-foot"><CheckCircle2 aria-hidden="true" size={14} /><span>{t("Virro masks sensitive information by default. It retains understanding signals, patterns and standards—not private conversations.", "Virro enmascara información delicada por defecto. Conserva señales, patrones y estándares de entendimiento; no conversaciones privadas.")}</span></footer>
-      </RevealOnScroll>
-      <RevealOnScroll className="mt-6 flex justify-end">
-        <Link href="/app" className="brand-secondary-button text-sm">{t("Explore enterprise demo", "Explorar demo enterprise")} <ArrowRight aria-hidden="true" size={14} /></Link>
-      </RevealOnScroll>
-    </div>
-  </section>;
+  const flow = [t("Source", "Fuente"), t("Transfer point", "Punto de transferencia"), t("Receiver", "Receptor"), t("Expected action", "Acción esperada"), t("Required evidence", "Evidencia necesaria"), "Readiness", t("Change", "Cambio"), "Outcome"];
+  const capabilities = [
+    ["Readiness", t("Checks whether the available information is sufficient for the next receiver to act.", "Evalúa si la información disponible es suficiente para que el siguiente responsable actúe."), Radar],
+    ["Change Integrity", t("Detects when reality changes but dependent information remains on a previous version.", "Detecta cuando la realidad cambia, pero la información dependiente conserva una versión anterior."), RefreshCw],
+    ["Handoff Integrity", t("Reviews responsibility, evidence and the expected action at each transfer.", "Revisa responsabilidad, evidencia y acción esperada en cada transferencia."), Network],
+    ["Knowledge Continuity", t("Makes critical context reusable beyond one person, meeting or provider.", "Hace reutilizable el contexto crítico más allá de una persona, reunión o proveedor."), History],
+  ] as const;
+  return <section id="virro-core" className="virro-core-section scroll-mt-24 px-5 py-24 md:px-8 md:py-36"><div className="mx-auto max-w-[1380px]"><RevealOnScroll><p className="section-kicker">Virro Core</p><h2 className="section-display max-w-5xl">{t("Understand the transfer before judging the result.", "Entiende la transferencia antes de evaluar el resultado.")}</h2><p className="section-lead mt-6 max-w-4xl">{t("Virro analyzes the points where work is created, changes or passes to the next owner, and detects when information still does not enable sufficiently clear execution.", "Virro analiza los puntos donde el trabajo se crea, cambia o pasa al siguiente responsable, y detecta cuándo la información todavía no permite ejecutar con suficiente claridad.")}</p></RevealOnScroll><ol className="mt-12 flex flex-wrap items-center gap-2" aria-label={t("Virro Core operating sequence", "Secuencia operativa de Virro Core")}>{flow.map((item, index) => <li key={item} className="flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--panel)] px-3 py-2 text-[9px] font-semibold"><span className="text-[var(--brand-blue)]">{index + 1}</span>{item}{index < flow.length - 1 && <ArrowRight aria-hidden="true" size={11} />}</li>)}</ol><div className="mt-10 grid gap-4 md:grid-cols-2">{capabilities.map(([title, copy, Icon]) => <article key={title} className="rounded-[24px] border border-[var(--border)] bg-[var(--panel)] p-6"><Icon aria-hidden="true" className="text-[var(--brand-blue)]" size={19} /><h3 className="mt-5 text-xl font-semibold">{title}</h3><p className="mt-3 text-xs leading-6 text-[var(--muted)]">{copy}</p></article>)}</div><p className="mt-8 flex items-start gap-2 text-[10px] leading-5 text-[var(--subtle)]"><CheckCircle2 aria-hidden="true" size={13} className="mt-0.5 shrink-0 text-teal-300" />{t("Virro also recognizes when there is not enough evidence to issue a reliable verdict.", "Virro también reconoce cuándo no existe evidencia suficiente para emitir un veredicto confiable.")}</p><Link href="/app" className="brand-secondary-button mt-7 text-sm">{t("Explore enterprise demo", "Explorar demo enterprise")} <ArrowRight aria-hidden="true" size={14} /></Link></div></section>;
 }

@@ -34,9 +34,9 @@ export function PublicNavbar() {
 
   const anchors = [
     ["/#virro-core", t("How it works", "Cómo funciona")],
-    ["/#readiness-gate", "Readiness Gate"],
-    ["/#change-integrity", "Change Integrity"],
-    ["/#aplicaciones", t("Applications", "Aplicaciones")],
+    ["/flow-audit", t("Workflow audit", "Auditoría de flujo")],
+    ["/#casos-uso", t("Use cases", "Casos de uso")],
+    ["/#formas-entrada", t("Integrations", "Integraciones")],
     ["/#privacidad", t("Privacy", "Privacidad")],
     ["/#empresa", t("Company", "Empresa")],
   ];
@@ -55,13 +55,13 @@ export function PublicNavbar() {
           <div className="ml-auto flex items-center gap-2 lg:ml-2">
             <div className="hidden sm:block"><LanguageToggle compact /></div>
             <ThemeToggle label={t("Toggle theme", "Cambiar tema")} />
-            <Link href="/jira-readiness" className="hidden h-9 items-center rounded-full border border-[var(--border)] px-3 text-[10px] font-semibold md:inline-flex">Demo</Link>
+            <Link href="/workflow-discovery" className="hidden h-9 items-center rounded-full border border-[var(--border)] px-3 text-[10px] font-semibold md:inline-flex">Demo</Link>
             <Link href="/#solicitar-auditoria" className="brand-primary-button hidden h-9 items-center gap-2 rounded-full px-4 text-[10px] font-semibold 2xl:inline-flex">{t("Analyze a workflow", "Analizar un flujo")} <ArrowRight size={12} /></Link>
             <button type="button" onClick={() => setMobileOpen((value) => !value)} aria-expanded={mobileOpen} aria-controls="mobile-primary-navigation" aria-label={t("Open main menu", "Abrir menú principal")} className="mobile-menu-trigger min-[1281px]:hidden"><span>{t("Menu", "Menú")}</span>{mobileOpen ? <X size={16} /> : <Menu size={16} />}</button>
           </div>
         </div>
 
-        {mobileOpen && <div id="mobile-primary-navigation" className="mobile-menu-panel min-[1281px]:hidden"><div className="mobile-menu-heading"><div><span>{t("Main navigation", "Navegación principal")}</span>{" "}<strong>Enterprise Understanding Layer</strong></div><div className="sm:hidden"><LanguageToggle /></div></div><nav className="mobile-menu-primary" aria-label={t("Virro mobile main navigation", "Navegación principal móvil de Virro")}>{anchors.map(([href, label], index) => <Fragment key={href}><Link href={href} aria-label={label} onClick={() => setMobileOpen(false)} style={{ "--mobile-index": index } as React.CSSProperties}><span aria-hidden="true">{String(index + 1).padStart(2, "0")}</span><strong>{label}</strong><ArrowRight aria-hidden="true" size={14} /></Link>{index < anchors.length - 1 ? " " : null}</Fragment>)}</nav><div className="mobile-menu-actions"><Link href="/jira-readiness" onClick={() => setMobileOpen(false)}>Demo</Link>{" "}<Link href="/#solicitar-auditoria" onClick={() => setMobileOpen(false)} className="brand-primary-button">{t("Analyze a workflow", "Analizar un flujo")} <ArrowRight aria-hidden="true" size={13} /></Link></div></div>}
+        {mobileOpen && <div id="mobile-primary-navigation" className="mobile-menu-panel min-[1281px]:hidden"><div className="mobile-menu-heading"><div><span>{t("Main navigation", "Navegación principal")}</span>{" "}<strong>Enterprise Understanding Layer</strong></div><div className="sm:hidden"><LanguageToggle /></div></div><nav className="mobile-menu-primary" aria-label={t("Virro mobile main navigation", "Navegación principal móvil de Virro")}>{anchors.map(([href, label], index) => <Fragment key={href}><Link href={href} aria-label={label} onClick={() => setMobileOpen(false)} style={{ "--mobile-index": index } as React.CSSProperties}><span aria-hidden="true">{String(index + 1).padStart(2, "0")}</span><strong>{label}</strong><ArrowRight aria-hidden="true" size={14} /></Link>{index < anchors.length - 1 ? " " : null}</Fragment>)}</nav><div className="mobile-menu-actions"><Link href="/workflow-discovery" onClick={() => setMobileOpen(false)}>Demo</Link>{" "}<Link href="/#solicitar-auditoria" onClick={() => setMobileOpen(false)} className="brand-primary-button">{t("Analyze a workflow", "Analizar un flujo")} <ArrowRight aria-hidden="true" size={13} /></Link></div></div>}
       </div>
     </header>
   );

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const attempts = new Map<string, { count: number; resetAt: number }>();
-const allowedFlows = new Set(["Jira Product Delivery", "Change Integrity", "Design Handoff", "Dev to QA", "Workflow Discovery", "Otro"]);
+const allowedFlows = new Set(["Design Delivery", "Product Delivery", "Operational Handoff", "Sales to Delivery", "Vendor Handoff", "Documentation and Knowledge", "AI Understanding", "Otro"]);
+const allowedTools = new Set(["Jira", "Figma", "GitHub", "Slack/Teams", "Correo/documentos", "Sistema interno", "No existe una fuente clara", "Otro"]);
 
 function clean(value: unknown, max: number) { return typeof value === "string" ? value.replace(/[<>\u0000-\u001F]/g, " ").replace(/\s+/g, " ").trim().slice(0, max) : ""; }
 function validEmail(value: string) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) && value.length <= 254; }
@@ -15,8 +16,8 @@ export async function POST(request: NextRequest) {
   let body: Record<string, unknown>;
   try { body = await request.json() as Record<string, unknown>; } catch { return NextResponse.json({ error: "Solicitud inválida." }, { status: 400 }); }
   if (clean(body.website, 100)) return NextResponse.json({ ok: true }, { status: 202 });
-  const lead = { name: clean(body.name, 80), email: clean(body.email, 254).toLowerCase(), company: clean(body.company, 120), role: clean(body.role, 120), teamSize: clean(body.teamSize, 20), primaryTool: clean(body.primaryTool, 120), flow: clean(body.flow, 80), projectSize: clean(body.projectSize, 120), problem: clean(body.problem, 800), privacyConsent: body.privacyConsent === "accepted", submittedAt: new Date().toISOString(), source: "virro.app/shadow-scan" };
-  if (!lead.name || !validEmail(lead.email) || !lead.company || !lead.role || !lead.teamSize || !lead.primaryTool || !allowedFlows.has(lead.flow) || !lead.projectSize || lead.problem.length < 20 || !lead.privacyConsent) return NextResponse.json({ error: "Revisa los campos obligatorios y el consentimiento de privacidad." }, { status: 400 });
+  const lead = { name: clean(body.name, 80), email: clean(body.email, 254).toLowerCase(), company: clean(body.company, 120), companySize: clean(body.companySize, 20), area: clean(body.area, 120), flowType: clean(body.flowType, 80), informationLocation: clean(body.informationLocation, 160), sender: clean(body.sender, 160), receiver: clean(body.receiver, 160), nextAction: clean(body.nextAction, 240), commonChange: clean(body.commonChange, 200), tool: clean(body.tool, 80), volume: clean(body.volume, 120), problem: clean(body.problem, 1000), privacyConsent: body.privacyConsent === "accepted", submittedAt: new Date().toISOString(), source: "virro.app/workflow-audit" };
+  if (!lead.name || !validEmail(lead.email) || !lead.company || !lead.companySize || !lead.area || !allowedFlows.has(lead.flowType) || !lead.informationLocation || !lead.sender || !lead.receiver || !lead.nextAction || !lead.commonChange || !allowedTools.has(lead.tool) || !lead.volume || lead.problem.length < 20 || !lead.privacyConsent) return NextResponse.json({ error: "Revisa los campos obligatorios y el consentimiento de privacidad." }, { status: 400 });
 
   const webhook = process.env.VIRRO_LEADS_WEBHOOK_URL;
   const resendKey = process.env.RESEND_API_KEY;

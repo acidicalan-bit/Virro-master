@@ -6,8 +6,8 @@ import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
 
-const title = "Virro — Readiness y Change Integrity para equipos empresariales";
-const description = "Virro detecta trabajo que intenta avanzar con contexto insuficiente y cambios que dejan historias, pruebas o documentación desactualizadas.";
+const title = "Virro — Infraestructura de entendimiento operativo";
+const description = "Virro mantiene clara la información cuando el trabajo avanza o cambia, detectando contexto insuficiente, cambios no propagados e información desactualizada.";
 const openGraphTitle = "Virro — Mantén el entendimiento operativo de tu empresa";
 const openGraphDescription = "Una capa enterprise para reducir retrabajo causado por información ambigua, incompleta o desactualizada entre equipos, procesos, herramientas e IA.";
 
@@ -30,7 +30,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   const structuredData = { "@context": "https://schema.org", "@graph": [
     { "@type": "Organization", "@id": "https://www.virro.app/#organization", name: "Virro", url: "https://www.virro.app", description },
     { "@type": "WebSite", "@id": "https://www.virro.app/#website", url: "https://www.virro.app", name: "Virro", publisher: { "@id": "https://www.virro.app/#organization" }, inLanguage: ["es", "en"] },
-    { "@type": "SoftwareApplication", "@id": "https://www.virro.app/#software", name: "Virro", url: "https://www.virro.app", applicationCategory: "BusinessApplication", operatingSystem: "Web", description, featureList: ["Readiness Gate", "Handoff Intelligence", "Executive Reports", "Privacy Shield", "AI Understanding"] },
+    { "@type": "SoftwareApplication", "@id": "https://www.virro.app/#software", name: "Virro", url: "https://www.virro.app", applicationCategory: "BusinessApplication", operatingSystem: "Web", description, featureList: ["Readiness", "Change Integrity", "Handoff Integrity", "Knowledge Continuity", "AI Understanding"] },
     { "@type": "FAQPage", "@id": "https://www.virro.app/faq#faq", url: "https://www.virro.app/faq", name: "Preguntas frecuentes de Virro", mainEntity: [
       { "@type": "Question", name: "¿Qué es Virro?", acceptedAnswer: { "@type": "Answer", text: "Virro es infraestructura empresarial de entendimiento operativo digital. Mantiene clara, actualizada, consultable y accionable la información que mueve el trabajo diario." } },
       { "@type": "Question", name: "¿Qué información guarda Virro?", acceptedAnswer: { "@type": "Answer", text: "En modo seguro, Virro procesa contenido crudo de forma transitoria y conserva señales seguras, scores, categorías de contexto y reportes agregados, no conversaciones completas por defecto." } },

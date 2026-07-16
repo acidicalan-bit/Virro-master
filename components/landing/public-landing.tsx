@@ -6,7 +6,7 @@ import { HeroUnderstandingFilter } from "@/components/landing/hero-understanding
 import { PublicNavbar } from "@/components/landing/public-navbar";
 import { ProblemSection } from "@/components/landing/commercial-sections";
 import { VirroCoreSection } from "@/components/landing/virro-core-section";
-import { CentralFailuresSection, EnterprisePrivacySection, FinalEnterpriseCta, FutureApplicationsSection, GradualitySection, InitialProductSection, NonJiraSection, ShadowScanOfferSection, ShadowScanSection, UnderstandingEventDemo } from "@/components/landing/enterprise-home-sections";
+import { EnterprisePrivacySection, FinalEnterpriseCta, FutureApplicationsSection, InitialProductSection, NonJiraSection, ShadowScanOfferSection, UnderstandingEventDemo } from "@/components/landing/enterprise-home-sections";
 import { PublicAnalyticsObserver } from "@/components/landing/public-analytics-observer";
 import { useLanguage } from "@/components/i18n/language-provider";
 
@@ -19,13 +19,10 @@ export function PublicLanding() {
     <main id="main-content">
       <HeroUnderstandingFilter />
       <ProblemSection />
-      <CentralFailuresSection />
       <VirroCoreSection />
       <InitialProductSection />
-      <ShadowScanSection />
-      <UnderstandingEventDemo />
-      <GradualitySection />
       <FutureApplicationsSection />
+      <UnderstandingEventDemo />
       <EnterprisePrivacySection />
       <NonJiraSection />
       <ShadowScanOfferSection />

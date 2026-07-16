@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import { ArrowRight, Layers3, ShieldCheck } from "lucide-react";
 import { useLanguage } from "@/components/i18n/language-provider";
 import { HeroVirroCorePanel } from "@/components/landing/hero-virro-core-panel";
@@ -102,9 +101,9 @@ export function HeroUnderstandingFilter() {
       <div className="hero-copy-scene relative z-10">
         <div className="hero-scene-item inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--panel)] px-3 py-1.5 text-[9px] font-semibold uppercase tracking-[.17em] text-[var(--brand-blue)]"><Layers3 size={12} /> {t("Operational understanding infrastructure", "Infraestructura de entendimiento operativo")}</div>
         <h1 className="hero-scene-item hero-headline mt-7 max-w-4xl text-[2.8rem] font-semibold leading-[.97] tracking-[-.065em] sm:text-6xl lg:text-[4.6rem]">{t("Keep information clear when work moves or changes.", "Mantén clara la información cuando el trabajo avanza o cambia.")}</h1>
-        <p className="hero-scene-item hero-primary-copy mt-7 max-w-2xl text-base font-medium leading-7 md:text-lg">{t("Virro detects when a delivery tries to advance without the context the next team needs and when a change leaves stories, tests or documentation operating with different versions of reality.", "Virro detecta cuándo una entrega intenta avanzar sin el contexto que el siguiente equipo necesita y cuándo un cambio deja historias, pruebas o documentación operando con versiones distintas de la realidad.")}</p>
-        <div className="hero-scene-item hero-cta-group mt-9 flex flex-col gap-3 sm:flex-row"><a href="#solicitar-auditoria" data-analytics-event="hero_audit_click" className="brand-primary-button text-sm shadow-[0_20px_60px_rgba(9,105,255,.22)]">{t("Analyze a workflow", "Analizar un flujo")} <ArrowRight size={15} /></a><Link href="/jira-readiness" data-analytics-event="hero_demo_click" className="brand-secondary-button text-sm">{t("View Shadow Scan", "Ver Shadow Scan")}</Link></div>
-        <p className="hero-scene-item hero-trust-signals mt-6 flex items-center gap-2 text-[9px] text-[var(--subtle)]"><ShieldCheck aria-hidden="true" size={12} className="shrink-0 text-[var(--brand-blue)]" />{t("Read only at the start · Safe signals · Human review · No employee surveillance", "Solo lectura al iniciar · Señales seguras · Revisión humana · Sin vigilancia de empleados")}</p>
+        <p className="hero-scene-item hero-primary-copy mt-7 max-w-2xl text-base font-medium leading-7 md:text-lg">{t("Virro analyzes the points where a delivery passes to the next owner and detects insufficient context, unpropagated changes and information that no longer represents reality.", "Virro analiza los puntos donde una entrega pasa al siguiente responsable y detecta contexto insuficiente, cambios no propagados e información que dejó de representar la realidad.")}</p>
+        <div className="hero-scene-item hero-cta-group mt-9 flex flex-col gap-3 sm:flex-row"><a href="#solicitar-auditoria" data-analytics-event="hero_audit_click" className="brand-primary-button text-sm shadow-[0_20px_60px_rgba(9,105,255,.22)]">{t("Analyze a workflow", "Analizar un flujo")} <ArrowRight size={15} /></a><a href="#virro-core" data-analytics-event="hero_demo_click" className="brand-secondary-button text-sm">{t("See how it works", "Ver cómo funciona")}</a></div>
+        <p className="hero-scene-item hero-trust-signals mt-6 flex items-center gap-2 text-[9px] text-[var(--subtle)]"><ShieldCheck aria-hidden="true" size={12} className="shrink-0 text-[var(--brand-blue)]" />{t("Assisted audit · Secure import · Integrations · API", "Auditoría asistida · Importación segura · Integraciones · API")}</p>
       </div>
       <HeroVirroCorePanel />
     </div>

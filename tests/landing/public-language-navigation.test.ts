@@ -9,7 +9,7 @@ describe("public landing language and navigation", () => {
     const navbar = readFileSync(join(root, "components/landing/public-navbar.tsx"), "utf8");
     const provider = readFileSync(join(root, "components/i18n/language-provider.tsx"), "utf8");
     expect(navbar).toContain("<LanguageToggle");
-    expect(navbar).toContain('t("Applications", "Aplicaciones")');
+    expect(navbar).toContain('t("Use cases", "Casos de uso")');
     expect(provider).toContain('localStorage.setItem("virro-locale"');
   });
 

@@ -12,7 +12,7 @@ describe("production landing QA contract", () => {
 
     expect(hero.match(/Actualizar responsables, criterios y artefactos antes de convertirlo en trabajo\./g)).toHaveLength(1);
     expect(hero.match(/Guarda señales de entendimiento, no conversaciones privadas\./g)).toHaveLength(1);
-    expect(core.match(/Virro no solo detecta riesgo\. También reconoce cuándo no tiene evidencia suficiente para emitir un veredicto confiable\./g)).toHaveLength(1);
+    expect(core.match(/Virro también reconoce cuándo no existe evidencia suficiente para emitir un veredicto confiable\./g)).toHaveLength(1);
   });
 
   it("exposes the global audit and Enterprise demo actions", () => {
@@ -21,9 +21,9 @@ describe("production landing QA contract", () => {
     const styles = read("app/globals.css");
 
     expect(hero).toContain('href="#solicitar-auditoria"');
-    expect(hero).toContain('<Link href="/jira-readiness" data-analytics-event="hero_demo_click"');
+    expect(hero).toContain('<a href="#virro-core" data-analytics-event="hero_demo_click"');
     expect(core).toContain('<section id="virro-core"');
-    expect(core).toContain('<Link href="/app" className="brand-secondary-button text-sm"');
+    expect(core).toContain('<Link href="/app" className="brand-secondary-button mt-7 text-sm"');
     expect(core).toContain('"Explorar demo enterprise"');
     expect(styles).toContain('scroll-behavior: smooth');
     expect(styles).toContain('#virro-core { scroll-margin-top: 96px; }');
@@ -48,7 +48,7 @@ describe("production landing QA contract", () => {
 
   it("keeps every diagnosis field labelled and connects help text", () => {
     const form = read("components/landing/diagnosis-request-form.tsx");
-    const ids = ["name", "email", "company", "role", "size", "flow", "tool", "project", "problem", "website"];
+    const ids = ["name", "email", "company", "size", "area", "flow", "location", "tool", "sender", "receiver", "action", "change", "volume", "problem", "website"];
 
     for (const id of ids) {
       expect(form).toContain(`id="audit-${id}"`);
@@ -85,8 +85,8 @@ describe("production landing QA contract", () => {
     expect(landing).toContain("<UnderstandingEventDemo />");
     expect(enterprise).toContain("Acceso mínimo, procesamiento limitado y señales seguras");
     expect(enterprise).toContain("Revisión humana");
-    expect(enterprise).toContain("Change Integrity Failure");
-    expect(enterprise).toContain("Design → Development");
+    expect(enterprise).toContain("Change Integrity");
+    expect(enterprise).toContain("Brief → diseño → aprobación → producción");
   });
 
   it("keeps permanent redirects, canonical metadata and sitemap aligned", () => {
@@ -100,9 +100,11 @@ describe("production landing QA contract", () => {
     expect(config).toContain('source: "/inbox", destination: "/app/inbox", permanent: true');
     expect(config).toContain('source: "/demo-scenarios", destination: "/app/demo-scenarios", permanent: true');
     expect(layout).toContain('alternates: { canonical: "/" }');
-    expect(layout).toContain("Virro — Readiness y Change Integrity para equipos empresariales");
+    expect(layout).toContain("Virro — Infraestructura de entendimiento operativo");
     expect(sitemap).toContain('`${base}/jira-readiness`');
     expect(sitemap).toContain('`${base}/change-integrity`');
+    expect(sitemap).toContain('`${base}/flow-audit`');
+    expect(sitemap).toContain('`${base}/design-delivery`');
     expect(layout).not.toContain("Claridad operativa para Product Delivery");
     expect(sitemap).not.toMatch(/\$\{base\}\/es(?:[\"`/])/);
   });
