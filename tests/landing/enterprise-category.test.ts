@@ -24,8 +24,8 @@ describe("Virro enterprise category experience", () => {
 
   it("uses a single audit conversion action across public packs", () => {
     const source = readFileSync(join(root, "components/landing/solution-panels.tsx"), "utf8");
-    expect(source).toContain('href="#solicitar-diagnostico"');
-    expect(source).toContain('t("Evaluate in an audit", "Evaluar en auditoría")');
+    expect(source).toContain('href="#solicitar-auditoria"');
+    expect(source).toContain('t("Evaluate this flow", "Evaluar este flujo")');
     expect(source).not.toContain("Explorar en demo enterprise");
   });
 
@@ -41,14 +41,16 @@ describe("Virro enterprise category experience", () => {
     for (const stage of ["Initial information", "Privacy Shield", "Readiness Gate", "Recommended pack", "Operational deliverable", "Executive signal"]) {
       expect(source).toContain(stage);
     }
-    expect(source).toContain("Raw data stored: No");
-    expect(source).toContain("Signals stored: readiness, risks, patterns");
+    expect(source).toContain("Contenido crudo almacenado: No");
+    expect(source).toContain("Señales conservadas: readiness, riesgos, patrones");
+    expect(source).toContain("████████");
   });
 
   it("uses enterprise audit and pilot conversion actions", () => {
     const source = readFileSync(join(root, "components/landing/diagnosis-request-form.tsx"), "utf8");
     expect(source).toContain('t("Request an audit", "Solicitar auditoría")');
-    expect(source).toContain('t("Explore a pilot", "Explorar piloto")');
+    expect(source).toContain('t("Schedule a conversation", "Agendar conversación")');
+    expect(source).toContain('fetch("/api/audit-requests"');
   });
 
   it("keeps executive preview scores visible from the first render", () => {
@@ -64,7 +66,7 @@ describe("Virro enterprise category experience", () => {
     const audit = readFileSync(join(root, "components/landing/commercial-sections.tsx"), "utf8");
     expect(capabilities).toContain("De información dispersa a señales operativas para decidir mejor.");
     expect(capabilities).toContain("para conservar señales de readiness, riesgo, contexto y continuidad que alimentan decisiones, handoffs y reportes ejecutivos.");
-    expect(audit).toContain('t("Explore a pilot", "Explorar piloto")');
+    expect(audit).toContain('t("Request an audit", "Solicitar auditoría")');
     expect(audit).not.toContain("Configurar piloto");
   });
 
@@ -76,7 +78,7 @@ describe("Virro enterprise category experience", () => {
     expect(styles).toContain(".brand-secondary-button");
     expect(styles).not.toContain("min-height: 36px");
     expect(audit).toContain("audit-pilot-actions");
-    expect(audit).toContain('t("Explore a pilot", "Explorar piloto")');
+    expect(audit).toContain('href="#solicitar-auditoria"');
   });
 
   it("provides visible and structured AI-discovery content", () => {

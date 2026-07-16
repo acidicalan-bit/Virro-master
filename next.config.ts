@@ -44,6 +44,9 @@ const nextConfig: NextConfig = {
       { source: "/es/privacy", destination: "/legal/privacy", permanent: true },
       // Prevent the former Spanish landing from exposing a stale public narrative.
       { source: "/es", destination: "/", permanent: true },
+      { source: "/inbox", destination: "/app/inbox", permanent: true },
+      { source: "/demo-scenarios", destination: "/app/demo-scenarios", permanent: true },
+      { source: "/app/scenarios", destination: "/app/demo-scenarios", permanent: true },
     ];
   },
   async headers() {

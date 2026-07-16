@@ -12,6 +12,7 @@ import { TalentStaffingPack } from "@/components/packs/talent-staffing-pack";
 import { TechnicalDocumentationPack } from "@/components/packs/technical-documentation-pack";
 import { ReportBuilder } from "@/components/reports/report-builder";
 import { PrivacyTrust } from "@/components/privacy/privacy-trust";
+import { DemoSettings } from "@/components/modules/demo-settings";
 
 export function generateStaticParams() {
   return [...moduleMap.keys()].filter((id) => id !== "dashboard" && id !== "inbox").map((module) => ({ module }));
@@ -32,5 +33,6 @@ export default async function ModulePage({ params }: { params: Promise<{ module:
   if (moduleId === "technical-documentation") return <TechnicalDocumentationPack />;
   if (moduleId === "reports") return <ReportBuilder />;
   if (moduleId === "privacy-trust") return <PrivacyTrust />;
+  if (moduleId === "settings") return <DemoSettings />;
   return <ModuleOverview moduleId={definition.id} />;
 }

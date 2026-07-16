@@ -1,4 +1,4 @@
-import { notFound, redirect } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { moduleMap } from "@/lib/config/modules";
 
 export function generateStaticParams() {
@@ -7,7 +7,7 @@ export function generateStaticParams() {
 
 export default async function LegacyModuleRedirect({ params }: { params: Promise<{ module: string }> }) {
   const { module } = await params;
-  if (module === "dashboard") redirect("/app");
+  if (module === "dashboard") permanentRedirect("/app");
   if (!moduleMap.has(module) || module === "inbox") notFound();
-  redirect(`/app/${module}`);
+  permanentRedirect(`/app/${module}`);
 }

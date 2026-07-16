@@ -46,8 +46,8 @@
 }
 
 * { box-sizing: border-box; }
-html { background: var(--app-bg); scroll-behavior: smooth; }
-body { margin: 0; font-family: var(--font-inter), Arial, sans-serif; background: var(--app-bg); }
+html { max-width: 100%; overflow-x: clip; background: var(--app-bg); scroll-behavior: smooth; }
+body { width: 100%; max-width: 100%; margin: 0; overflow-x: clip; font-family: var(--font-inter), Arial, sans-serif; background: var(--app-bg); }
 button, a, select { -webkit-tap-highlight-color: transparent; }
 button, select { cursor: pointer; }
 
@@ -1031,6 +1031,7 @@ html[data-theme="light"] .landing-hero.has-video-hero .brand-secondary-button { 
   .landing-hero .hero-primary-copy { margin-top: 1.15rem; font-size: .9rem; line-height: 1.55; }
   .landing-hero .hero-cta-group { margin-top: 1.25rem; gap: .6rem; }
   .landing-hero .hero-trust-signals { margin-top: 1rem; }
+  .landing-nav-shell > div > .ml-auto > button:not(.mobile-menu-trigger) { display: none; }
   .virro-core-system { border-radius: 24px; }
   .virro-core-system-head { align-items: flex-start; flex-direction: column; padding: 17px; }
   .virro-core-operating-flow { grid-template-columns: 1fr; gap: 14px; padding: 14px; }

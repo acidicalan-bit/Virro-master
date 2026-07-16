@@ -1,76 +1,58 @@
 "use client";
 
 import { type FormEvent, useState } from "react";
-import { Mail, ShieldCheck } from "lucide-react";
+import Link from "next/link";
+import { ArrowRight, Mail, ShieldCheck } from "lucide-react";
 import { useLanguage } from "@/components/i18n/language-provider";
-import { buildDiagnosisMailto } from "@/lib/conversion/diagnosis-mailto";
+import { trackPublicEvent } from "@/lib/analytics/public-events";
 
-const flowOptions = [
-  "Product Delivery",
-  "AI Understanding",
-  "Handoff Intelligence",
-  "Technical Documentation",
-  "Design & Experience",
-  "Data Request",
-  "Sales-to-Delivery",
-  "Support Signal",
-  "Marketing Understanding",
-  "Finance / Procurement",
-  "Legal / Security / Compliance",
-  "Talent & Staffing",
-  "Knowledge Continuity",
-  "Change Understanding",
-  "Onboarding & Knowledge Transfer",
-  "Consulting Delivery",
-  "Process Understanding",
-  "No estoy seguro",
-];
+const flowOptions = ["Product Delivery", "Cambios críticos", "Handoffs", "IA empresarial", "Onboarding", "Documentación", "Procesos", "Otro"];
 
 export function DiagnosisRequestForm() {
   const { t } = useLanguage();
-  const [submitted, setSubmitted] = useState(false);
+  const [status, setStatus] = useState<"idle" | "sending" | "success" | "error">("idle");
+  const [error, setError] = useState("");
+  const [started, setStarted] = useState(false);
 
-  function submit(event: FormEvent<HTMLFormElement>) {
+  function markStarted() { if (!started) { setStarted(true); trackPublicEvent("audit_form_started"); } }
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const data = new FormData(event.currentTarget);
-    if (String(data.get("website") ?? "").trim()) return;
-    const submitter = (event.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null;
-    const mailto = buildDiagnosisMailto({
-      name: String(data.get("name") ?? ""),
-      company: String(data.get("company") ?? ""),
-      role: String(data.get("role") ?? ""),
-      email: String(data.get("email") ?? ""),
-      area: String(data.get("area") ?? ""),
-      tools: String(data.get("tools") ?? ""),
-      flow: String(data.get("flow") ?? ""),
-      context: String(data.get("context") ?? ""),
-      message: String(data.get("message") ?? ""),
-      engagement: submitter?.value === "pilot" ? "pilot" : "audit",
-    });
-    setSubmitted(true);
-    window.location.assign(mailto);
+    setStatus("sending"); setError("");
+    const form = event.currentTarget;
+    const payload = Object.fromEntries(new FormData(form).entries());
+    try {
+      const response = await fetch("/api/audit-requests", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+      const result = await response.json() as { error?: string };
+      if (!response.ok) throw new Error(result.error || t("The request could not be sent.", "No se pudo enviar la solicitud."));
+      setStatus("success"); form.reset(); trackPublicEvent("audit_form_submitted");
+    } catch (reason) {
+      setStatus("error"); setError(reason instanceof Error ? reason.message : t("The request could not be sent.", "No se pudo enviar la solicitud."));
+    }
   }
 
-  return <form id="solicitar-diagnostico" onSubmit={submit} aria-describedby="diagnosis-sensitive-note" className="diagnosis-request-form scroll-mt-24 rounded-2xl border border-white/[.08] bg-[var(--panel)] p-5 shadow-[0_24px_80px_rgba(0,0,0,.2)] md:p-7">
-        <div className="mb-7"><p className="section-kicker">{t("Operational understanding diagnosis", "Diagnóstico de entendimiento operativo")}</p><h3 className="mt-3 text-2xl font-semibold tracking-[-.04em]">{t("Request an operational understanding diagnosis.", "Solicita un diagnóstico de entendimiento operativo.")}</h3><p className="mt-3 text-[11px] leading-5 text-[var(--muted)]">{t("Tell us which flow, team, critical change or onboarding needs greater clarity. Do not include sensitive data.", "Cuéntanos qué flujo, equipo, cambio crítico u onboarding necesita mayor claridad. No incluyas datos sensibles.")}</p></div>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <FormField id="diagnosis-name" label={t("Name", "Nombre")}><input id="diagnosis-name" name="name" required aria-required="true" aria-describedby="diagnosis-sensitive-note" maxLength={80} autoComplete="name" className="field-control" /></FormField>
-          <FormField id="diagnosis-company" label={t("Company", "Empresa")}><input id="diagnosis-company" name="company" required aria-required="true" aria-describedby="diagnosis-sensitive-note" maxLength={120} autoComplete="organization" className="field-control" /></FormField>
-          <FormField id="diagnosis-role" label={t("Role", "Rol")}><input id="diagnosis-role" name="role" required aria-required="true" aria-describedby="diagnosis-sensitive-note" maxLength={120} autoComplete="organization-title" className="field-control" /></FormField>
-          <FormField id="diagnosis-email" label="Email"><input id="diagnosis-email" name="email" type="email" required aria-required="true" aria-describedby="diagnosis-email-help diagnosis-sensitive-note" maxLength={254} autoComplete="email" inputMode="email" spellCheck={false} className="field-control" />{" "}<span id="diagnosis-email-help" className="sr-only">{t("Enter a valid business email address.", "Ingresa una dirección de correo empresarial válida.")}</span></FormField>
-          <FormField id="diagnosis-area" label={t("Area", "Área")}><input id="diagnosis-area" name="area" required aria-required="true" aria-describedby="diagnosis-sensitive-note" maxLength={160} placeholder={t("e.g. Product and QA", "Ej. Producto y QA")} className="field-control" /></FormField>
-          <FormField id="diagnosis-tools" label={t("Tools used", "Herramientas utilizadas")}><input id="diagnosis-tools" name="tools" required aria-required="true" aria-describedby="diagnosis-sensitive-note" maxLength={240} placeholder={t("e.g. Slack, Jira, Figma, Zendesk, Drive, Copilot", "Ej. Slack, Jira, Figma, Zendesk, Drive, Copilot")} className="field-control" /></FormField>
-          <FormField id="diagnosis-flow" label={t("Critical flow or situation", "Flujo o situación crítica")} className="sm:col-span-2"><select id="diagnosis-flow" name="flow" required aria-required="true" aria-describedby="diagnosis-sensitive-note" defaultValue="" className="field-control"><option value="" disabled>{t("Select a flow", "Selecciona un flujo")}</option>{flowOptions.map((option) => <option key={option} value={option}>{option === "No estoy seguro" ? t("I am not sure", option) : option}</option>)}</select></FormField>
-          <FormField id="diagnosis-context" label={t("What is creating rework or lack of clarity", "Qué está generando retrabajo o falta de claridad")} className="sm:col-span-2"><textarea id="diagnosis-context" name="context" required aria-required="true" aria-describedby="diagnosis-sensitive-note" minLength={12} maxLength={1200} placeholder={t("Describe the flow, recent change and operational impact.", "Describe el flujo, el cambio reciente y su impacto operativo.")} className="field-control min-h-32 resize-y py-3 leading-6" /></FormField>
-          <FormField id="diagnosis-message" label={t("Additional message", "Mensaje adicional")} className="sm:col-span-2"><textarea id="diagnosis-message" name="message" aria-describedby="diagnosis-sensitive-note" maxLength={1200} className="field-control min-h-24 resize-y py-3 leading-6" /></FormField>
-        </div>
-        <div className="honeypot-field" aria-hidden="true"><label htmlFor="diagnosis-website">Website</label><input id="diagnosis-website" name="website" type="text" tabIndex={-1} autoComplete="off" /></div>
-        <div className="mt-5 grid gap-3 sm:grid-cols-2"><button type="submit" name="engagement" value="audit" className="brand-primary-button w-full text-xs"><Mail size={14} />{t("Request an audit", "Solicitar auditoría")}</button><button type="submit" name="engagement" value="pilot" className="brand-secondary-button w-full text-xs"><ShieldCheck size={14} />{t("Explore a pilot", "Explorar piloto")}</button></div>
-        <p id="diagnosis-sensitive-note" className="mt-4 flex items-start gap-2 text-[10px] leading-5 text-[var(--subtle)]"><ShieldCheck aria-hidden="true" size={13} className="mt-0.5 shrink-0 text-[var(--brand-blue)]" />{t("Do not include passwords, tokens, private documents, sensitive data or confidential information.", "No incluyas contraseñas, tokens, documentos privados, datos sensibles ni información confidencial.")}</p>
-        {submitted && <div role="status" className="mt-4 flex items-start gap-3 rounded-xl border border-sky-400/20 bg-sky-400/[.07] p-4 text-[11px] leading-5 text-sky-200"><Mail size={16} className="mt-0.5 shrink-0" /><span>{t("Your email client will open with the formal request and selected engagement prepared. Nothing is sent until you confirm it.", "Tu cliente de correo abrirá con la solicitud formal y el tipo de engagement seleccionados. Nada se envía hasta que lo confirmes.")}</span></div>}
+  if (status === "success") return <div id="solicitar-auditoria" className="scroll-mt-24 rounded-2xl border border-teal-400/20 bg-teal-400/[.06] p-7" role="status"><CheckCircle /><h3 className="mt-4 text-2xl font-semibold">{t("Request received.", "Solicitud recibida.")}</h3><p className="mt-3 text-sm leading-6 text-[var(--muted)]">{t("We will review the described flow and respond within two business days.", "Revisaremos el flujo descrito y responderemos en un máximo de dos días hábiles.")}</p><a href="mailto:contacto@virro.app?subject=Agendar%20conversaci%C3%B3n%20sobre%20auditor%C3%ADa%20Virro" className="brand-secondary-button mt-6">{t("Schedule a conversation", "Agendar conversación")} <ArrowRight aria-hidden="true" size={14} /></a></div>;
+
+  return <form id="solicitar-auditoria" onSubmit={submit} onFocusCapture={markStarted} aria-describedby="audit-sensitive-note" className="diagnosis-request-form scroll-mt-24 rounded-2xl border border-white/[.08] bg-[var(--panel)] p-5 shadow-[0_24px_80px_rgba(0,0,0,.2)] md:p-7">
+    <div className="mb-7"><p className="section-kicker">{t("Enterprise audit", "Auditoría Enterprise")}</p><h3 className="mt-3 text-2xl font-semibold tracking-[-.04em]">{t("Request an operational understanding audit.", "Solicita una auditoría de entendimiento operativo.")}</h3><p className="mt-3 text-[11px] leading-5 text-[var(--muted)]">{t("Describe only the workflow and business impact. Do not paste operational content.", "Describe únicamente el flujo y el impacto de negocio. No pegues contenido operativo.")}</p></div>
+    <div className="grid gap-4 sm:grid-cols-2">
+      <FormField id="audit-name" label={t("First name", "Nombre")}><input id="audit-name" name="name" required maxLength={80} autoComplete="given-name" className="field-control" /></FormField>
+      <FormField id="audit-last-name" label={t("Last name (optional)", "Apellido (opcional)")}><input id="audit-last-name" name="lastName" maxLength={80} autoComplete="family-name" className="field-control" /></FormField>
+      <FormField id="audit-email" label={t("Business email", "Correo empresarial")} help={t("Enter a valid business email address.", "Ingresa una dirección de correo empresarial válida.")}><input id="audit-email" name="email" type="email" required maxLength={254} autoComplete="email" inputMode="email" spellCheck={false} aria-describedby="audit-email-help audit-sensitive-note" className="field-control" /></FormField>
+      <FormField id="audit-company" label={t("Company", "Empresa")}><input id="audit-company" name="company" required maxLength={120} autoComplete="organization" className="field-control" /></FormField>
+      <FormField id="audit-role" label={t("Role", "Cargo")}><input id="audit-role" name="role" required maxLength={120} autoComplete="organization-title" className="field-control" /></FormField>
+      <FormField id="audit-size" label={t("Approximate number of employees", "Número aproximado de empleados")}><select id="audit-size" name="companySize" required defaultValue="" className="field-control"><option value="" disabled>{t("Select a range", "Selecciona un rango")}</option>{["1–20", "21–50", "51–200", "201–500", "501–1,000", "1,001+"].map((value) => <option key={value}>{value}</option>)}</select></FormField>
+      <FormField id="audit-flow" label={t("Workflow to evaluate", "Flujo que desea evaluar")} className="sm:col-span-2"><select id="audit-flow" name="flow" required defaultValue="" className="field-control"><option value="" disabled>{t("Select a workflow", "Selecciona un flujo")}</option>{flowOptions.map((option) => <option key={option}>{option}</option>)}</select></FormField>
+      <FormField id="audit-tools" label={t("Tools used", "Herramientas utilizadas")}><input id="audit-tools" name="tools" required maxLength={240} placeholder="Jira, Slack, Teams, Confluence…" className="field-control" /></FormField>
+      <FormField id="audit-problem" label={t("Brief problem description", "Descripción breve del problema")} className="sm:col-span-2"><textarea id="audit-problem" name="problem" required minLength={20} maxLength={800} aria-describedby="audit-sensitive-note" className="field-control min-h-32 resize-y py-3 leading-6" /></FormField>
+    </div>
+    <div className="honeypot-field" aria-hidden="true"><label htmlFor="audit-website">Website</label><input id="audit-website" name="website" type="text" tabIndex={-1} autoComplete="off" /></div>
+    <label className="mt-5 flex items-start gap-3 text-[10px] leading-5 text-[var(--muted)]"><input name="privacyConsent" value="accepted" type="checkbox" required className="mt-1 size-4 shrink-0 accent-[var(--brand-blue)]" /><span>{t("I have read the privacy notice and consent to Virro using this information to respond to my request.", "He leído el aviso de privacidad y autorizo a Virro a usar esta información para responder mi solicitud.")} <Link href="/legal/privacy" className="font-semibold text-[var(--brand-blue)]">{t("Privacy notice", "Aviso de privacidad")}</Link>.</span></label>
+    <p id="audit-sensitive-note" className="mt-4 flex items-start gap-2 text-[10px] leading-5 text-[var(--subtle)]"><ShieldCheck aria-hidden="true" size={13} className="mt-0.5 shrink-0 text-[var(--brand-blue)]" />{t("Do not include personal data, credentials, private conversations or confidential documentation in this form.", "No incluyas datos personales, credenciales, conversaciones privadas ni documentación confidencial en este formulario.")}</p>
+    <button type="submit" disabled={status === "sending"} className="brand-primary-button mt-5 w-full text-xs disabled:opacity-60"><Mail aria-hidden="true" size={14} />{status === "sending" ? t("Sending…", "Enviando…") : t("Request an audit", "Solicitar auditoría")}</button>
+    {status === "error" && <div role="alert" className="mt-4 rounded-xl border border-rose-400/20 bg-rose-400/[.06] p-4 text-[11px] leading-5 text-rose-200">{error}</div>}
   </form>;
 }
 
-function FormField({ id, label, className = "", children }: { id: string; label: string; className?: string; children: React.ReactNode }) {
-  return <div className={className}><label htmlFor={id} className="mb-2 block text-[11px] font-medium text-[var(--muted)]">{label}</label>{" "}{children}</div>;
-}
+function FormField({ id, label, help, className = "", children }: { id: string; label: string; help?: string; className?: string; children: React.ReactNode }) { return <div className={className}><label htmlFor={id} className="mb-2 block text-[11px] font-medium text-[var(--muted)]">{label}</label>{children}{help && <span id={`${id}-help`} className="mt-1.5 block text-[9px] leading-4 text-[var(--subtle)]">{help}</span>}</div>; }
+function CheckCircle() { return <span className="grid size-10 place-items-center rounded-full bg-teal-400/10 text-teal-300"><ShieldCheck aria-hidden="true" size={19} /></span>; }

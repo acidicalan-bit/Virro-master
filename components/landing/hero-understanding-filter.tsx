@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ArrowRight, CheckCircle2, Layers3, ShieldCheck } from "lucide-react";
+import Link from "next/link";
+import { ArrowRight, Layers3, ShieldCheck } from "lucide-react";
 import { useLanguage } from "@/components/i18n/language-provider";
 import { HeroVirroCorePanel } from "@/components/landing/hero-virro-core-panel";
 
@@ -101,9 +102,9 @@ export function HeroUnderstandingFilter() {
       <div className="hero-copy-scene relative z-10">
         <div className="hero-scene-item inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--panel)] px-3 py-1.5 text-[9px] font-semibold uppercase tracking-[.17em] text-[var(--brand-blue)]"><Layers3 size={12} /> {t("Operational understanding infrastructure", "Infraestructura de entendimiento operativo")}</div>
         <h1 className="hero-scene-item hero-headline mt-7 max-w-4xl text-[2.8rem] font-semibold leading-[.97] tracking-[-.065em] sm:text-6xl lg:text-[4.6rem]">{t("Keep your company’s operational understanding clear.", "Mantén claro el entendimiento operativo de tu empresa.")}</h1>
-        <p className="hero-scene-item hero-primary-copy mt-7 max-w-2xl text-base font-medium leading-7 md:text-lg">{t("Virro helps messages, tickets, processes, changes, handoffs and AI instructions remain understandable when information moves, changes or needs to become action.", "Virro ayuda a que mensajes, tickets, procesos, cambios, handoffs e instrucciones para IA se mantengan entendibles cuando la información se mueve, cambia o necesita convertirse en acción.")}</p>
-        <div className="hero-scene-item hero-cta-group mt-9 flex flex-col gap-3 sm:flex-row"><a href="#solicitar-diagnostico" className="brand-primary-button text-sm shadow-[0_20px_60px_rgba(9,105,255,.22)]">{t("Request diagnosis", "Solicitar diagnóstico")} <ArrowRight size={15} /></a><a href="#virro-core" className="brand-secondary-button text-sm">{t("See how it works", "Ver cómo funciona")}</a></div>
-        <div className="hero-scene-item hero-trust-signals mt-6 flex flex-wrap gap-x-5 gap-y-2 text-[9px] text-[var(--subtle)]"><span className="flex items-center gap-2"><ShieldCheck size={12} className="text-[var(--brand-blue)]" />{t("Understanding signals, not private conversations", "Señales de entendimiento, no conversaciones privadas")}</span><span className="flex items-center gap-2"><CheckCircle2 size={12} className="text-[var(--brand-blue)]" />{t("Critical changes · onboarding · safe AI context", "Cambios críticos · onboarding · contexto seguro para IA")}</span></div>
+        <p className="hero-scene-item hero-primary-copy mt-7 max-w-2xl text-base font-medium leading-7 md:text-lg">{t("Virro detects where a change, handoff or instruction loses context before it becomes rework, wrong decisions or AI operating with outdated information.", "Virro detecta dónde un cambio, handoff o instrucción pierde contexto antes de convertirse en retrabajo, decisiones equivocadas o IA operando con información desactualizada.")}</p>
+        <div className="hero-scene-item hero-cta-group mt-9 flex flex-col gap-3 sm:flex-row"><a href="#solicitar-auditoria" data-analytics-event="hero_audit_click" className="brand-primary-button text-sm shadow-[0_20px_60px_rgba(9,105,255,.22)]">{t("Request an audit", "Solicitar auditoría")} <ArrowRight size={15} /></a><Link href="/app" data-analytics-event="hero_demo_click" className="brand-secondary-button text-sm">{t("View Enterprise demo", "Ver demo Enterprise")}</Link></div>
+        <p className="hero-scene-item hero-trust-signals mt-6 flex items-center gap-2 text-[9px] text-[var(--subtle)]"><ShieldCheck aria-hidden="true" size={12} className="shrink-0 text-[var(--brand-blue)]" />{t("Default masking · Safe signals · Human review · No employee surveillance", "Enmascaramiento por defecto · Señales seguras · Revisión humana · Sin vigilancia de empleados")}</p>
       </div>
       <HeroVirroCorePanel />
     </div>

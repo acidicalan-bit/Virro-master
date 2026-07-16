@@ -12,8 +12,8 @@ export function VirroCoreSection() {
     <div className="mx-auto max-w-[1380px]">
       <RevealOnScroll className="virro-core-intro">
         <p className="section-kicker">Virro Core</p>
-        <h2 className="section-display">{t("Virro Core maintains operational understanding when information moves, changes or becomes action.", "Virro Core mantiene el entendimiento operativo cuando la información se mueve, cambia o se convierte en acción.")}</h2>
-        <p className="section-lead">{t("It analyzes operational events, detects missing context, estimates readiness, identifies critical changes and recommends actions to keep teams, tools and AI aligned.", "Analiza eventos operativos, detecta contexto faltante, estima readiness, identifica cambios críticos y recomienda acciones para mantener alineados equipos, herramientas e IA.")}</p>
+        <h2 className="section-display">{t("From daily information to clear action.", "De información diaria a una acción clara.")}</h2>
+        <p className="section-lead">{t("Virro Core turns imperfect information into a structured decision surface. It identifies what is missing, what could be interpreted differently, what knowledge became outdated, who is affected and what the next action should be.", "Virro Core convierte información imperfecta en una superficie de decisión estructurada. Identifica qué falta, qué podría interpretarse de forma distinta, qué conocimiento quedó obsoleto, quién se ve afectado y cuál debería ser la siguiente acción.")}</p>
       </RevealOnScroll>
 
       <RevealOnScroll className="virro-core-system mt-12">
@@ -37,7 +37,7 @@ export function VirroCoreSection() {
 
           <li className="virro-core-stage core-stage-safe">
             <div className="core-stage-heading"><LockKeyhole aria-hidden="true" size={16} /><h3>{t("Company standards", "Estándares de la empresa")}</h3></div>
-            <div className="core-safe-status"><span><CheckCircle2 aria-hidden="true" size={13} />Privacy Shield {t("active", "activo")}</span><b>Raw data stored: No</b></div>
+            <div className="core-safe-status"><span><CheckCircle2 aria-hidden="true" size={13} />Privacy Shield {t("active", "activo")}</span><b>{t("Raw content stored: No", "Contenido crudo almacenado: No")}</b></div>
             <ul className="core-analysis-list">
               {[t("Guidelines", "Lineamientos"), t("Criteria", "Criterios"), t("Handoff rules", "Reglas de handoff"), t("Formats", "Formatos"), t("Ways of working", "Modo de trabajo")].map((item) => <li key={item}>{item}</li>)}
             </ul>

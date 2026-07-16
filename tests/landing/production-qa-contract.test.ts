@@ -12,16 +12,16 @@ describe("production landing QA contract", () => {
 
     expect(hero.match(/Actualizar responsables, criterios y artefactos antes de convertirlo en trabajo\./g)).toHaveLength(1);
     expect(hero.match(/Guarda señales de entendimiento, no conversaciones privadas\./g)).toHaveLength(1);
-    expect(core.match(/Virro Core mantiene el entendimiento operativo cuando la información se mueve, cambia o se convierte en acción\./g)).toHaveLength(1);
+    expect(core.match(/Virro Core convierte información imperfecta en una superficie de decisión estructurada\./g)).toHaveLength(1);
   });
 
-  it("connects the hero explainer CTA to Virro Core with an accessible native anchor", () => {
+  it("exposes the global audit and Enterprise demo actions", () => {
     const hero = read("components/landing/hero-understanding-filter.tsx");
     const core = read("components/landing/virro-core-section.tsx");
     const styles = read("app/globals.css");
 
-    expect(hero).toContain('href="#virro-core" className="brand-secondary-button text-sm"');
-    expect(hero).not.toContain('href="#como-funciona"');
+    expect(hero).toContain('href="#solicitar-auditoria"');
+    expect(hero).toContain('<Link href="/app" data-analytics-event="hero_demo_click"');
     expect(core).toContain('<section id="virro-core"');
     expect(core).toContain('<Link href="/app" className="brand-secondary-button text-sm"');
     expect(core).toContain('"Explorar demo enterprise"');
@@ -48,16 +48,17 @@ describe("production landing QA contract", () => {
 
   it("keeps every diagnosis field labelled and connects help text", () => {
     const form = read("components/landing/diagnosis-request-form.tsx");
-    const ids = ["name", "company", "role", "email", "area", "tools", "flow", "context", "message", "website"];
+    const ids = ["name", "last-name", "email", "company", "role", "size", "flow", "tools", "problem", "website"];
 
     for (const id of ids) {
-      expect(form).toContain(`id="diagnosis-${id}"`);
+      expect(form).toContain(`id="audit-${id}"`);
     }
     expect(form).toContain("<label htmlFor={id}");
     expect(form).toContain('type="email"');
-    expect(form).toContain('aria-describedby="diagnosis-email-help diagnosis-sensitive-note"');
-    expect(form).toContain('aria-describedby="diagnosis-sensitive-note"');
-    expect(form).toContain('id="diagnosis-sensitive-note"');
+    expect(form).toContain('aria-describedby="audit-email-help audit-sensitive-note"');
+    expect(form).toContain('aria-describedby="audit-sensitive-note"');
+    expect(form).toContain('id="audit-sensitive-note"');
+    expect(form).toContain('name="privacyConsent"');
   });
 
   it("keeps navigation, panel statements, form help and footer text semantically separated", () => {
@@ -71,23 +72,22 @@ describe("production landing QA contract", () => {
     expect(panel).toContain('La información puede avanzar con contexto incompleto.');
     expect(panel).toMatch(/contexto incompleto\."\)}<\/strong>\s*<\/section>\s*\{" "\}\s*<section>/);
     expect(form).toContain('<label htmlFor={id}');
-    expect(form).toContain('</label>{" "}{children}');
+    expect(form).toContain('</label>{children}');
     expect(form).toContain('Ingresa una dirección de correo empresarial válida.');
     expect(landing).toContain('aria-label={t("Footer navigation", "Navegación del pie de página")}');
   });
 
   it("covers changes, onboarding, enterprise packs and visible privacy", () => {
     const landing = read("components/landing/public-landing.tsx");
-    const continuity = read("components/landing/continuity-trust-sections.tsx");
+    const enterprise = read("components/landing/enterprise-home-sections.tsx");
     const packs = read("components/landing/solution-panels.tsx");
 
-    expect(landing).toContain("<PrivacyTrustHome />");
-    expect(landing).toContain("<ChangeKnowledgeLayer />");
-    expect(continuity).toContain("Change & Knowledge Integration Layer");
-    expect(continuity).toContain("Señales de entendimiento, no conversaciones privadas.");
-    expect(packs).toContain("Change Understanding");
-    expect(packs).toContain("Onboarding & Knowledge Transfer");
-    expect(packs).toContain("Consulting Delivery");
+    expect(landing).toContain("<EnterprisePrivacySection />");
+    expect(landing).toContain("<UnderstandingEventDemo />");
+    expect(enterprise).toContain("Entendimiento sin convertirte en otro repositorio de información privada");
+    expect(enterprise).toContain("Revisión humana");
+    expect(packs).toContain("Change & Handoff Understanding");
+    expect(packs).toContain("AI Understanding");
   });
 
   it("keeps permanent redirects, canonical metadata and sitemap aligned", () => {
@@ -98,6 +98,8 @@ describe("production landing QA contract", () => {
     for (const [source, destination] of [["/es", "/"], ["/privacy", "/legal/privacy"], ["/terms", "/legal/terms"], ["/es/privacy", "/legal/privacy"], ["/es/terms", "/legal/terms"]]) {
       expect(config).toContain(`source: "${source}", destination: "${destination}", permanent: true`);
     }
+    expect(config).toContain('source: "/inbox", destination: "/app/inbox", permanent: true');
+    expect(config).toContain('source: "/demo-scenarios", destination: "/app/demo-scenarios", permanent: true');
     expect(layout).toContain('alternates: { canonical: "/" }');
     expect(layout).toContain("Virro — Infraestructura de entendimiento operativo para empresas");
     expect(layout).not.toContain("Claridad operativa para Product Delivery");
