@@ -15,6 +15,22 @@ describe("production landing QA contract", () => {
     expect(core.match(/Virro Core mantiene el entendimiento operativo cuando la información se mueve, cambia o se convierte en acción\./g)).toHaveLength(1);
   });
 
+  it("connects the hero explainer CTA to Virro Core with an accessible native anchor", () => {
+    const hero = read("components/landing/hero-understanding-filter.tsx");
+    const core = read("components/landing/virro-core-section.tsx");
+    const styles = read("app/globals.css");
+
+    expect(hero).toContain('href="#virro-core" className="brand-secondary-button text-sm"');
+    expect(hero).not.toContain('href="#como-funciona"');
+    expect(core).toContain('<section id="virro-core"');
+    expect(core).toContain('<Link href="/app" className="brand-secondary-button text-sm"');
+    expect(core).toContain('"Explorar demo enterprise"');
+    expect(styles).toContain('scroll-behavior: smooth');
+    expect(styles).toContain('#virro-core { scroll-margin-top: 96px; }');
+    expect(styles).toContain('@media (prefers-reduced-motion: reduce)');
+    expect(styles).toContain('html { scroll-behavior: auto; }');
+  });
+
   it("exposes the demo selector as individually labelled tabs", () => {
     const demo = read("components/landing/enterprise-demo-experience-v2.tsx");
 

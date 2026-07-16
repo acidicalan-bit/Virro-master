@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { ArrowRight, CheckCircle2, FileInput, LockKeyhole, Radar, Sparkles, Workflow } from "lucide-react";
 import { useLanguage } from "@/components/i18n/language-provider";
 import { RevealOnScroll } from "@/components/landing/motion/motion-primitives";
@@ -7,7 +8,7 @@ import { RevealOnScroll } from "@/components/landing/motion/motion-primitives";
 export function VirroCoreSection() {
   const { t } = useLanguage();
 
-  return <section id="virro-core" className="virro-core-section scroll-mt-24 px-5 py-24 md:px-8 md:py-36">
+  return <section id="virro-core" className="virro-core-section px-5 py-24 md:px-8 md:py-36">
     <div className="mx-auto max-w-[1380px]">
       <RevealOnScroll className="virro-core-intro">
         <p className="section-kicker">Virro Core</p>
@@ -71,6 +72,9 @@ export function VirroCoreSection() {
         </ol>
 
         <footer className="virro-core-foot"><CheckCircle2 aria-hidden="true" size={14} /><span>{t("Virro masks sensitive information by default. It retains understanding signals, patterns and standards—not private conversations.", "Virro enmascara información delicada por defecto. Conserva señales, patrones y estándares de entendimiento; no conversaciones privadas.")}</span></footer>
+      </RevealOnScroll>
+      <RevealOnScroll className="mt-6 flex justify-end">
+        <Link href="/app" className="brand-secondary-button text-sm">{t("Explore enterprise demo", "Explorar demo enterprise")} <ArrowRight aria-hidden="true" size={14} /></Link>
       </RevealOnScroll>
     </div>
   </section>;

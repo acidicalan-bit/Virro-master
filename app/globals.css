@@ -46,7 +46,7 @@
 }
 
 * { box-sizing: border-box; }
-html { background: var(--app-bg); }
+html { background: var(--app-bg); scroll-behavior: smooth; }
 body { margin: 0; font-family: var(--font-inter), Arial, sans-serif; background: var(--app-bg); }
 button, a, select { -webkit-tap-highlight-color: transparent; }
 button, select { cursor: pointer; }
@@ -143,6 +143,7 @@ a[href="/#solicitar-diagnostico"]:not(.brand-primary-button) {
   white-space: nowrap;
 }
 .public-landing main > section { padding-block: clamp(4rem, 8vw, 7.5rem); }
+#virro-core { scroll-margin-top: 96px; }
 .public-landing .mx-auto.max-w-\[1380px\] { max-width: 1240px; }
 .public-landing .landing-hero {
   --text: #f4f7fb;
