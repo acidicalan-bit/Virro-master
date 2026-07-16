@@ -6,8 +6,8 @@ import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
 
-const title = "Virro — Infraestructura de entendimiento operativo para empresas";
-const description = "Virro ayuda a empresas a mantener clara, actualizada y accionable su información operativa cuando se mueve, cambia o necesita convertirse en acción.";
+const title = "Virro — Readiness y Change Integrity para equipos empresariales";
+const description = "Virro detecta trabajo que intenta avanzar con contexto insuficiente y cambios que dejan historias, pruebas o documentación desactualizadas.";
 const openGraphTitle = "Virro — Mantén el entendimiento operativo de tu empresa";
 const openGraphDescription = "Una capa enterprise para reducir retrabajo causado por información ambigua, incompleta o desactualizada entre equipos, procesos, herramientas e IA.";
 

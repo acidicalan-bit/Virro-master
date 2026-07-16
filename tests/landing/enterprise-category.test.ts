@@ -48,7 +48,7 @@ describe("Virro enterprise category experience", () => {
 
   it("uses enterprise audit and pilot conversion actions", () => {
     const source = readFileSync(join(root, "components/landing/diagnosis-request-form.tsx"), "utf8");
-    expect(source).toContain('t("Request an audit", "Solicitar auditoría")');
+    expect(source).toContain('t("Start Shadow Scan", "Iniciar Shadow Scan")');
     expect(source).toContain('t("Schedule a conversation", "Agendar conversación")');
     expect(source).toContain('fetch("/api/audit-requests"');
   });

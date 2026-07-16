@@ -12,8 +12,9 @@ export function VirroCoreSection() {
     <div className="mx-auto max-w-[1380px]">
       <RevealOnScroll className="virro-core-intro">
         <p className="section-kicker">Virro Core</p>
-        <h2 className="section-display">{t("From daily information to clear action.", "De información diaria a una acción clara.")}</h2>
-        <p className="section-lead">{t("Virro Core turns imperfect information into a structured decision surface. It identifies what is missing, what could be interpreted differently, what knowledge became outdated, who is affected and what the next action should be.", "Virro Core convierte información imperfecta en una superficie de decisión estructurada. Identifica qué falta, qué podría interpretarse de forma distinta, qué conocimiento quedó obsoleto, quién se ve afectado y cuál debería ser la siguiente acción.")}</p>
+        <h2 className="section-display">{t("Evidence before verdict. Integrity after change.", "Evidencia antes del veredicto. Integridad después del cambio.")}</h2>
+        <p className="section-lead">{t("Virro connects to the tools where a company already works and detects when work tries to advance with insufficient context or information that no longer represents reality.", "Virro se conecta a las herramientas donde ya trabaja una empresa y detecta cuándo el trabajo intenta avanzar con contexto insuficiente o con información que dejó de representar la realidad.")}</p>
+        <p className="mt-5 text-sm font-semibold leading-6">{t("Virro does not only detect risk. It also recognizes when it lacks enough evidence to issue a reliable verdict.", "Virro no solo detecta riesgo. También reconoce cuándo no tiene evidencia suficiente para emitir un veredicto confiable.")}</p>
       </RevealOnScroll>
 
       <RevealOnScroll className="virro-core-system mt-12">

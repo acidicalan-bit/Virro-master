@@ -33,11 +33,12 @@ export function PublicNavbar() {
   }, [mobileOpen]);
 
   const anchors = [
-    ["#virro-core", t("How it works", "Cómo funciona")],
-    ["#aplicaciones", t("Applications", "Aplicaciones")],
-    ["#privacidad", t("Privacy", "Privacidad")],
-    ["#auditoria", t("Audit", "Auditoría")],
-    ["#resultados", t("Company", "Empresa")],
+    ["/#virro-core", t("How it works", "Cómo funciona")],
+    ["/#readiness-gate", "Readiness Gate"],
+    ["/#change-integrity", "Change Integrity"],
+    ["/#aplicaciones", t("Applications", "Aplicaciones")],
+    ["/#privacidad", t("Privacy", "Privacidad")],
+    ["/#empresa", t("Company", "Empresa")],
   ];
 
   return (
@@ -49,18 +50,18 @@ export function PublicNavbar() {
             <span className="text-lg font-semibold tracking-[-.05em]">Virro</span>
           </Link>
           <nav className="public-desktop-nav ml-auto hidden items-center gap-0.5 min-[1281px]:flex" aria-label={t("Virro main navigation", "Navegación principal de Virro")}>
-            {anchors.map(([href, label], index) => <Fragment key={href}><a href={href} aria-label={label} className="rounded-full px-3 py-2.5 text-[10px] font-medium text-[var(--muted)] transition hover:bg-[var(--hover)] hover:text-[var(--text)]">{label}</a>{index < anchors.length - 1 ? " " : null}</Fragment>)}
+            {anchors.map(([href, label], index) => <Fragment key={href}><Link href={href} aria-label={label} className="rounded-full px-3 py-2.5 text-[10px] font-medium text-[var(--muted)] transition hover:bg-[var(--hover)] hover:text-[var(--text)]">{label}</Link>{index < anchors.length - 1 ? " " : null}</Fragment>)}
           </nav>
           <div className="ml-auto flex items-center gap-2 lg:ml-2">
             <div className="hidden sm:block"><LanguageToggle compact /></div>
             <ThemeToggle label={t("Toggle theme", "Cambiar tema")} />
-            <Link href="/app" className="hidden h-9 items-center rounded-full border border-[var(--border)] px-3 text-[10px] font-semibold md:inline-flex">{t("Enterprise demo", "Demo enterprise")}</Link>
-            <a href="#solicitar-auditoria" className="brand-primary-button hidden h-9 items-center gap-2 rounded-full px-4 text-[10px] font-semibold 2xl:inline-flex">{t("Request an audit", "Solicitar auditoría")} <ArrowRight size={12} /></a>
+            <Link href="/jira-readiness" className="hidden h-9 items-center rounded-full border border-[var(--border)] px-3 text-[10px] font-semibold md:inline-flex">Demo</Link>
+            <Link href="/#solicitar-auditoria" className="brand-primary-button hidden h-9 items-center gap-2 rounded-full px-4 text-[10px] font-semibold 2xl:inline-flex">{t("Analyze a workflow", "Analizar un flujo")} <ArrowRight size={12} /></Link>
             <button type="button" onClick={() => setMobileOpen((value) => !value)} aria-expanded={mobileOpen} aria-controls="mobile-primary-navigation" aria-label={t("Open main menu", "Abrir menú principal")} className="mobile-menu-trigger min-[1281px]:hidden"><span>{t("Menu", "Menú")}</span>{mobileOpen ? <X size={16} /> : <Menu size={16} />}</button>
           </div>
         </div>
 
-        {mobileOpen && <div id="mobile-primary-navigation" className="mobile-menu-panel min-[1281px]:hidden"><div className="mobile-menu-heading"><div><span>{t("Main navigation", "Navegación principal")}</span>{" "}<strong>Operational Understanding</strong></div><div className="sm:hidden"><LanguageToggle /></div></div><nav className="mobile-menu-primary" aria-label={t("Virro mobile main navigation", "Navegación principal móvil de Virro")}>{anchors.map(([href, label], index) => <Fragment key={href}><a href={href} aria-label={label} onClick={() => setMobileOpen(false)} style={{ "--mobile-index": index } as React.CSSProperties}><span aria-hidden="true">{String(index + 1).padStart(2, "0")}</span><strong>{label}</strong><ArrowRight aria-hidden="true" size={14} /></a>{index < anchors.length - 1 ? " " : null}</Fragment>)}</nav><div className="mobile-menu-actions"><Link href="/app" onClick={() => setMobileOpen(false)}>{t("View Enterprise demo", "Ver demo Enterprise")}</Link>{" "}<a href="#solicitar-auditoria" onClick={() => setMobileOpen(false)} className="brand-primary-button">{t("Request an audit", "Solicitar auditoría")} <ArrowRight aria-hidden="true" size={13} /></a></div></div>}
+        {mobileOpen && <div id="mobile-primary-navigation" className="mobile-menu-panel min-[1281px]:hidden"><div className="mobile-menu-heading"><div><span>{t("Main navigation", "Navegación principal")}</span>{" "}<strong>Enterprise Understanding Layer</strong></div><div className="sm:hidden"><LanguageToggle /></div></div><nav className="mobile-menu-primary" aria-label={t("Virro mobile main navigation", "Navegación principal móvil de Virro")}>{anchors.map(([href, label], index) => <Fragment key={href}><Link href={href} aria-label={label} onClick={() => setMobileOpen(false)} style={{ "--mobile-index": index } as React.CSSProperties}><span aria-hidden="true">{String(index + 1).padStart(2, "0")}</span><strong>{label}</strong><ArrowRight aria-hidden="true" size={14} /></Link>{index < anchors.length - 1 ? " " : null}</Fragment>)}</nav><div className="mobile-menu-actions"><Link href="/jira-readiness" onClick={() => setMobileOpen(false)}>Demo</Link>{" "}<Link href="/#solicitar-auditoria" onClick={() => setMobileOpen(false)} className="brand-primary-button">{t("Analyze a workflow", "Analizar un flujo")} <ArrowRight aria-hidden="true" size={13} /></Link></div></div>}
       </div>
     </header>
   );

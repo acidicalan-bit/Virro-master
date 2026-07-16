@@ -16,10 +16,10 @@ describe("public landing language and navigation", () => {
   it("keeps public conversion and demo routes explicit", () => {
     const landing = readFileSync(join(root, "components/landing/public-landing.tsx"), "utf8");
     const form = readFileSync(join(root, "components/landing/diagnosis-request-form.tsx"), "utf8");
-    expect(landing).toContain('href="/app"');
+    expect(landing).toContain('href="/jira-readiness"');
     expect(form).toContain('id="solicitar-auditoria"');
     expect(form).toContain('fetch("/api/audit-requests"');
     expect(landing).toContain("<VirroCoreSection />");
-    expect(landing).toContain("<SolutionPanels />");
+    expect(landing).toContain("<FutureApplicationsSection />");
   });
 });

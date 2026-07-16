@@ -12,7 +12,7 @@ describe("production landing QA contract", () => {
 
     expect(hero.match(/Actualizar responsables, criterios y artefactos antes de convertirlo en trabajo\./g)).toHaveLength(1);
     expect(hero.match(/Guarda señales de entendimiento, no conversaciones privadas\./g)).toHaveLength(1);
-    expect(core.match(/Virro Core convierte información imperfecta en una superficie de decisión estructurada\./g)).toHaveLength(1);
+    expect(core.match(/Virro no solo detecta riesgo\. También reconoce cuándo no tiene evidencia suficiente para emitir un veredicto confiable\./g)).toHaveLength(1);
   });
 
   it("exposes the global audit and Enterprise demo actions", () => {
@@ -21,7 +21,7 @@ describe("production landing QA contract", () => {
     const styles = read("app/globals.css");
 
     expect(hero).toContain('href="#solicitar-auditoria"');
-    expect(hero).toContain('<Link href="/app" data-analytics-event="hero_demo_click"');
+    expect(hero).toContain('<Link href="/jira-readiness" data-analytics-event="hero_demo_click"');
     expect(core).toContain('<section id="virro-core"');
     expect(core).toContain('<Link href="/app" className="brand-secondary-button text-sm"');
     expect(core).toContain('"Explorar demo enterprise"');
@@ -48,7 +48,7 @@ describe("production landing QA contract", () => {
 
   it("keeps every diagnosis field labelled and connects help text", () => {
     const form = read("components/landing/diagnosis-request-form.tsx");
-    const ids = ["name", "last-name", "email", "company", "role", "size", "flow", "tools", "problem", "website"];
+    const ids = ["name", "email", "company", "role", "size", "flow", "tool", "project", "problem", "website"];
 
     for (const id of ids) {
       expect(form).toContain(`id="audit-${id}"`);
@@ -80,14 +80,13 @@ describe("production landing QA contract", () => {
   it("covers changes, onboarding, enterprise packs and visible privacy", () => {
     const landing = read("components/landing/public-landing.tsx");
     const enterprise = read("components/landing/enterprise-home-sections.tsx");
-    const packs = read("components/landing/solution-panels.tsx");
 
     expect(landing).toContain("<EnterprisePrivacySection />");
     expect(landing).toContain("<UnderstandingEventDemo />");
-    expect(enterprise).toContain("Entendimiento sin convertirte en otro repositorio de información privada");
+    expect(enterprise).toContain("Acceso mínimo, procesamiento limitado y señales seguras");
     expect(enterprise).toContain("Revisión humana");
-    expect(packs).toContain("Change & Handoff Understanding");
-    expect(packs).toContain("AI Understanding");
+    expect(enterprise).toContain("Change Integrity Failure");
+    expect(enterprise).toContain("Design → Development");
   });
 
   it("keeps permanent redirects, canonical metadata and sitemap aligned", () => {
@@ -95,13 +94,15 @@ describe("production landing QA contract", () => {
     const layout = read("app/layout.tsx");
     const sitemap = read("app/sitemap.ts");
 
-    for (const [source, destination] of [["/es", "/"], ["/privacy", "/legal/privacy"], ["/terms", "/legal/terms"], ["/es/privacy", "/legal/privacy"], ["/es/terms", "/legal/terms"]]) {
+    for (const [source, destination] of [["/es", "/"], ["/terms", "/legal/terms"], ["/es/privacy", "/legal/privacy"], ["/es/terms", "/legal/terms"]]) {
       expect(config).toContain(`source: "${source}", destination: "${destination}", permanent: true`);
     }
     expect(config).toContain('source: "/inbox", destination: "/app/inbox", permanent: true');
     expect(config).toContain('source: "/demo-scenarios", destination: "/app/demo-scenarios", permanent: true');
     expect(layout).toContain('alternates: { canonical: "/" }');
-    expect(layout).toContain("Virro — Infraestructura de entendimiento operativo para empresas");
+    expect(layout).toContain("Virro — Readiness y Change Integrity para equipos empresariales");
+    expect(sitemap).toContain('`${base}/jira-readiness`');
+    expect(sitemap).toContain('`${base}/change-integrity`');
     expect(layout).not.toContain("Claridad operativa para Product Delivery");
     expect(sitemap).not.toMatch(/\$\{base\}\/es(?:[\"`/])/);
   });

@@ -38,7 +38,6 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   async redirects() {
     return [
-      { source: "/privacy", destination: "/legal/privacy", permanent: true },
       { source: "/terms", destination: "/legal/terms", permanent: true },
       { source: "/es/terms", destination: "/legal/terms", permanent: true },
       { source: "/es/privacy", destination: "/legal/privacy", permanent: true },
