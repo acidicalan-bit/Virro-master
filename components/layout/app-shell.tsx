@@ -29,7 +29,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <a href="#app-main-content" className="skip-link">{t("Skip to main content", "Saltar al contenido principal")}</a>
       <aside aria-hidden={!isDesktop && !open} inert={!isDesktop && !open} className={`fixed inset-y-0 left-0 z-40 flex w-[272px] flex-col border-r border-[var(--border)] bg-[var(--sidebar)] transition-transform lg:translate-x-0 ${open ? "translate-x-0" : "-translate-x-full"}`}>
         <div className="flex h-[76px] items-center justify-between border-b border-[var(--border)] px-5">
-          <Link href="/" className="flex items-center gap-3" onClick={() => setOpen(false)}>
+          <Link href="/" aria-label="Virro Enterprise" className="flex items-center gap-3" onClick={() => setOpen(false)}>
             <div className="grid size-9 place-items-center rounded-xl border border-[var(--border)] bg-[var(--panel-soft)] p-1.5"><Image src="/brand/virro-icon.svg" alt="" width={28} height={24} sizes="28px" className="h-auto w-full object-contain" /></div>
             <div><p className="text-[17px] font-semibold tracking-[-0.03em]">Virro</p><p className="text-[10px] font-medium uppercase tracking-[0.18em] text-[var(--subtle)]">Enterprise</p></div>
           </Link>
@@ -46,10 +46,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <div key={module.id}>
                   {module.id === "product-delivery" && <p className="mb-2 mt-5 px-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--subtle)]">{t("Priority flows", "Flujos prioritarios")}</p>}
                   {module.id === "reports" && <div className="my-3 border-t border-[var(--border)]" />}
-                  <Link href={module.href} onClick={() => setOpen(false)} className={`group flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] transition ${active ? "bg-[var(--active)] font-medium text-[var(--text)] shadow-sm" : "text-[var(--muted)] hover:bg-[var(--hover)] hover:text-[var(--text)]"}`}>
+                  <Link href={module.href} aria-label={localizedModule.label} onClick={() => setOpen(false)} className={`group flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] transition ${active ? "bg-[var(--active)] font-medium text-[var(--text)] shadow-sm" : "text-[var(--muted)] hover:bg-[var(--hover)] hover:text-[var(--text)]"}`}>
                     <Icon size={17} strokeWidth={active ? 2 : 1.7} className={active ? "text-teal-300" : "text-[var(--subtle)] group-hover:text-[var(--muted)]"} />
                     <span>{localizedModule.label}</span>
-                    {module.id === "inbox" && <span className="ml-auto rounded-full bg-teal-400/10 px-2 py-0.5 text-[10px] font-semibold text-teal-300">{events.length}</span>}
+                    {module.id === "inbox" && <span aria-hidden="true" className="ml-auto rounded-full bg-teal-400/10 px-2 py-0.5 text-[10px] font-semibold text-teal-300">{events.length}</span>}
                   </Link>
                 </div>
               );

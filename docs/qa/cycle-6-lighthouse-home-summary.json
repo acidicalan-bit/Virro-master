@@ -1,0 +1,45 @@
+{
+  "generatedAt": "2026-07-17T13:02:27.4638926Z",
+  "url": "http://localhost:3101/",
+  "lighthouseVersion": "12.8.2",
+  "fetchTime": "2026-07-17T13:01:42.977Z",
+  "categories": {
+    "performance": 100.0,
+    "accessibility": 100.0,
+    "best-practices": 100.0,
+    "seo": 100.0
+  },
+  "audits": {
+    "first-contentful-paint": {
+      "score": 100.0,
+      "displayValue": "0.5 s",
+      "numericValue": 498.05
+    },
+    "largest-contentful-paint": {
+      "score": 98.0,
+      "displayValue": "0.8 s",
+      "numericValue": 750.59
+    },
+    "total-blocking-time": {
+      "score": 100.0,
+      "displayValue": "0 ms",
+      "numericValue": 0.0
+    },
+    "cumulative-layout-shift": {
+      "score": 100.0,
+      "displayValue": "0",
+      "numericValue": 0.0
+    },
+    "speed-index": {
+      "score": 100.0,
+      "displayValue": "0.7 s",
+      "numericValue": 698.21
+    },
+    "interactive": {
+      "score": 100.0,
+      "displayValue": "0.8 s",
+      "numericValue": 751.44
+    }
+  },
+  "note": "Lighthouse 12.8.2 produced JSON successfully; CLI exited nonzero on Windows temp cleanup EPERM after report write."
+}

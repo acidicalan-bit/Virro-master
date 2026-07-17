@@ -1,6 +1,6 @@
 # Public claims and limitations
 
-Last reviewed: 2026-07-16
+Last reviewed: 2026-07-17
 Scope: public website, public demo, assisted audit funnel and enterprise demo workspace.
 
 ## Claim policy
@@ -46,3 +46,7 @@ Virro must distinguish the delivery model wherever a capability is described:
 ## Review rule
 
 Any new public metric, integration, certification, customer outcome or retention statement must be added to this document with its evidence owner, current status and limitation before publication.
+
+## Cycle 6 review
+
+No new public claims were introduced during the Cycle 6 production-readiness pass. The current site still requires human legal, commercial and operations approval before any productive connector, certification, SLA, retention automation or customer outcome statement is promoted beyond the statuses listed above.
