@@ -1,4 +1,4 @@
-export type PublicAnalyticsEvent = "hero_audit_click" | "hero_demo_click" | "core_section_view" | "demo_scenario_started" | "audit_form_started" | "audit_form_submitted" | "pilot_cta_click" | "privacy_section_view";
+export type PublicAnalyticsEvent = "hero_audit_click" | "hero_demo_click" | "core_section_view" | "demo_scenario_started" | "audit_form_started" | "audit_form_submitted" | "audit_form_failed" | "audit_form_rate_limited" | "pilot_cta_click" | "privacy_section_view";
 
 export function trackPublicEvent(name: PublicAnalyticsEvent) {
   if (typeof window === "undefined") return;

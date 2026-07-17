@@ -178,6 +178,14 @@ export interface Report {
 export interface EnterpriseReport extends Report {
   whatWasAnalyzed: string[];
   scores: Partial<UnderstandingScores>;
+  evidenceContext: {
+    sampleSize: number;
+    period: string;
+    coverage: string;
+    sourcesAbsent: string[];
+    confidence: "low" | "medium" | "high";
+    limitations: string[];
+  };
   missingContext: string[];
   criticalQuestions: string[];
   understandingDebtBacklog: string[];

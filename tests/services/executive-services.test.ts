@@ -19,7 +19,11 @@ describe("executive services", () => {
       expect(report.title).toBe(definition.label);
       expect(report.summary).toBeTruthy();
       expect(report.whatWasAnalyzed.length).toBeGreaterThan(0);
-      expect(Object.keys(report.scores).length).toBeGreaterThan(0);
+      expect(report.scores).toEqual({});
+      expect(report.evidenceContext.sampleSize).toBeGreaterThan(0);
+      expect(report.evidenceContext.sampleSize).toBeLessThanOrEqual(events.length);
+      expect(report.evidenceContext.confidence).toBe("low");
+      expect(report.evidenceContext.limitations.length).toBeGreaterThan(0);
       expect(report.recommendations.length).toBeGreaterThan(0);
       expect(report.suggestedNextPilot).toBeTruthy();
     }
@@ -27,7 +31,8 @@ describe("executive services", () => {
 
   it("builds the executive narrative in Spanish when requested", () => {
     const report = reportBuilder.buildReport(workspace.id, events, "executive-virro-score", "2026-07-10T00:00:00.000Z", "es");
-    expect(report.summary).toContain("Se analizaron");
+    expect(report.summary).toContain("Se revisaron");
+    expect(report.summary).toContain("muestra es insuficiente");
     expect(report.recommendations[1]).toContain("responsable");
     expect(report.suggestedNextPilot).toContain("piloto de entendimiento");
   });

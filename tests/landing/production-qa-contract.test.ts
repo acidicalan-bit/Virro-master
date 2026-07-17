@@ -12,7 +12,7 @@ describe("production landing QA contract", () => {
 
     expect(hero.match(/Actualizar responsables, criterios y artefactos antes de convertirlo en trabajo\./g)).toHaveLength(1);
     expect(hero.match(/Guarda señales de entendimiento, no conversaciones privadas\./g)).toHaveLength(1);
-    expect(core.match(/Virro también reconoce cuándo no existe evidencia suficiente para emitir un veredicto confiable\./g)).toHaveLength(1);
+    expect(core.match(/Virro no fuerza un score cuando la evidencia no permite sostener un veredicto confiable\./g)).toHaveLength(1);
   });
 
   it("exposes the global audit and Enterprise demo actions", () => {
@@ -23,8 +23,8 @@ describe("production landing QA contract", () => {
     expect(hero).toContain('href="#solicitar-auditoria"');
     expect(hero).toContain('<a href="#virro-core" data-analytics-event="hero_demo_click"');
     expect(core).toContain('<section id="virro-core"');
-    expect(core).toContain('<Link href="/app" className="brand-secondary-button mt-7 text-sm"');
-    expect(core).toContain('"Explorar demo enterprise"');
+    expect(core).toContain('<Link href="/app/scenarios" className="brand-secondary-button mt-7 text-sm"');
+    expect(core).toContain('t("Explore enterprise demo", "Explorar demo enterprise")');
     expect(styles).toContain('scroll-behavior: smooth');
     expect(styles).toContain('#virro-core { scroll-margin-top: 96px; }');
     expect(styles).toContain('@media (prefers-reduced-motion: reduce)');
@@ -80,13 +80,16 @@ describe("production landing QA contract", () => {
   it("covers changes, onboarding, enterprise packs and visible privacy", () => {
     const landing = read("components/landing/public-landing.tsx");
     const enterprise = read("components/landing/enterprise-home-sections.tsx");
+    const registry = read("lib/config/capability-registry.ts");
 
     expect(landing).toContain("<EnterprisePrivacySection />");
     expect(landing).toContain("<UnderstandingEventDemo />");
-    expect(enterprise).toContain("Acceso mínimo, procesamiento limitado y señales seguras");
+    expect(enterprise).toContain("Las afirmaciones de privacidad dependen del runtime utilizado.");
+    expect(enterprise).toContain("Formulario público");
+    expect(enterprise).toContain("Auditoría asistida");
     expect(enterprise).toContain("Revisión humana");
     expect(enterprise).toContain("Change Integrity");
-    expect(enterprise).toContain("Brief → diseño → aprobación → producción");
+    expect(registry).toContain("Brief → diseño → revisión → aprobación → producción");
   });
 
   it("keeps permanent redirects, canonical metadata and sitemap aligned", () => {
@@ -94,17 +97,21 @@ describe("production landing QA contract", () => {
     const layout = read("app/layout.tsx");
     const sitemap = read("app/sitemap.ts");
 
-    for (const [source, destination] of [["/es", "/"], ["/terms", "/legal/terms"], ["/es/privacy", "/legal/privacy"], ["/es/terms", "/legal/terms"]]) {
-      expect(config).toContain(`source: "${source}", destination: "${destination}", permanent: true`);
+    for (const [source, destination] of [["/es", "/"], ["/privacy", "/legal/privacy"], ["/terms", "/legal/terms"], ["/es/privacy", "/legal/privacy"], ["/es/terms", "/legal/terms"]]) {
+      expect(config).toMatch(new RegExp(`source: "${source.replace("/", "\\/")}"[\\s\\S]*?destination: "${destination.replaceAll("/", "\\/")}"[\\s\\S]*?permanent: true`));
     }
-    expect(config).toContain('source: "/inbox", destination: "/app/inbox", permanent: true');
-    expect(config).toContain('source: "/demo-scenarios", destination: "/app/demo-scenarios", permanent: true');
+    expect(config).toMatch(/source: "\/inbox"[\s\S]*?destination: "\/app\/inbox"[\s\S]*?permanent: true/);
+    expect(config).toMatch(/source: "\/demo-scenarios"[\s\S]*?destination: "\/demo"[\s\S]*?permanent: true/);
     expect(layout).toContain('alternates: { canonical: "/" }');
-    expect(layout).toContain("Virro — Infraestructura de entendimiento operativo");
+    expect(layout).toContain("Virro — Infraestructura de Entendimiento Operativo Digital");
     expect(sitemap).toContain('`${base}/jira-readiness`');
     expect(sitemap).toContain('`${base}/change-integrity`');
     expect(sitemap).toContain('`${base}/flow-audit`');
     expect(sitemap).toContain('`${base}/design-delivery`');
+    expect(sitemap).toContain('`${base}/how-it-works`');
+    expect(sitemap).toContain('`${base}/demo`');
+    expect(sitemap).toContain('`${base}/operational-handoff`');
+    expect(sitemap).not.toContain('`${base}/privacy`');
     expect(layout).not.toContain("Claridad operativa para Product Delivery");
     expect(sitemap).not.toMatch(/\$\{base\}\/es(?:[\"`/])/);
   });

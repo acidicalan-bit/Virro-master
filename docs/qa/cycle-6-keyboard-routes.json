@@ -1,0 +1,67 @@
+{
+  "generatedAt": "2026-07-17T13:09:11.822Z",
+  "baseUrl": "http://localhost:3101",
+  "method": "Chrome extension browser session against next start production server. Each route was traversed with Tab key sampling up to 24 focus steps.",
+  "note": "BODY focus entries indicate end-of-tab-cycle return, not a missing focus indicator on a control. App shell links use aria-label to avoid badge or stacked-text concatenation in accessible names.",
+  "routes": [
+    {
+      "route": "/",
+      "focusableControlsSampled": 24,
+      "allVisibleControlsHaveFocusIndicator": true,
+      "verifiedControls": [
+        "skip link",
+        "primary navigation links",
+        "language buttons",
+        "theme toggle",
+        "hero CTA links",
+        "Virro Core CTA"
+      ]
+    },
+    {
+      "route": "/demo",
+      "focusableControlsSampled": 23,
+      "allVisibleControlsHaveFocusIndicator": true,
+      "verifiedControls": [
+        "skip link",
+        "primary navigation links",
+        "language buttons",
+        "theme toggle",
+        "demo area links"
+      ]
+    },
+    {
+      "route": "/app/inbox",
+      "focusableControlsSampled": 23,
+      "allVisibleControlsHaveFocusIndicator": true,
+      "semanticNameChecks": {
+        "brandAria": "Virro Enterprise",
+        "inboxAria": "Bandeja de entendimiento",
+        "inboxVisibleText": "Bandeja de entendimiento 4",
+        "badgeAccessibility": "The inbox count badge is aria-hidden so it is not appended to the navigation link accessible name."
+      },
+      "verifiedControls": [
+        "skip link",
+        "app sidebar links",
+        "language buttons",
+        "theme toggle",
+        "inbox mode tab",
+        "inbox text inputs",
+        "analysis pack select",
+        "raw input textarea"
+      ]
+    },
+    {
+      "route": "/legal/privacy",
+      "focusableControlsSampled": 22,
+      "allVisibleControlsHaveFocusIndicator": true,
+      "verifiedControls": [
+        "skip link",
+        "brand link",
+        "language buttons",
+        "theme toggle",
+        "legal section links",
+        "contact email link"
+      ]
+    }
+  ]
+}

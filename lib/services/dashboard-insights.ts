@@ -82,7 +82,7 @@ export function buildDashboardInsights(events: UnderstandingEvent[]) {
     areaRisk,
     answers: {
       losingUnderstanding: backlog[0]?.gap ?? "No material understanding gap detected",
-      highestRiskArea: mostAtRiskArea ? `${mostAtRiskArea.label} · ${mostAtRiskArea.risk}/100 risk` : "No active area risk",
+      highestRiskArea: mostAtRiskArea ? `${mostAtRiskArea.label} · directional finding across ${mostAtRiskArea.eventCount} event${mostAtRiskArea.eventCount === 1 ? "" : "s"}` : "No active area risk",
       firstCorrection: backlog[0]
         ? `Resolve “${backlog[0].gap}” across ${backlog[0].eventCount} affected event${backlog[0].eventCount === 1 ? "" : "s"}.`
         : "Continue monitoring new Understanding Events.",

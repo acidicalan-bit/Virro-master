@@ -22,9 +22,27 @@ export function HeroUnderstandingFilter() {
   const isTransitioning = useRef(false);
   const transitionTimer = useRef<number | undefined>(undefined);
   const [activeVideoIndex, setActiveVideoIndex] = useState(0);
+  const [videosEnabled, setVideosEnabled] = useState(false);
 
   useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    let timer: number | undefined;
+    const enable = () => {
+      timer = window.setTimeout(() => setVideosEnabled(true), 900);
+    };
+    if (document.readyState === "complete") {
+      enable();
+    } else {
+      window.addEventListener("load", enable, { once: true });
+    }
+    return () => {
+      window.removeEventListener("load", enable);
+      if (timer !== undefined) window.clearTimeout(timer);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!videosEnabled || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
     const videos = videoRefs.current;
     const play = (video: HTMLVideoElement) => { void video.play().catch(() => undefined); };
@@ -90,11 +108,11 @@ export function HeroUnderstandingFilter() {
         video.removeEventListener("ended", listener.ended);
       });
     };
-  }, []);
+  }, [videosEnabled]);
 
   return <section id="plataforma" className="landing-hero has-video-hero relative min-h-[820px] scroll-mt-24 overflow-hidden px-5 pb-24 pt-36 md:px-8 md:pt-44">
     <div className="hero-video-poster" aria-hidden="true" />
-    {heroVideos.map((video, index) => <video key={video.src} ref={(element) => { videoRefs.current[index] = element; }} className={`hero-video-media${activeVideoIndex === index ? " is-active" : ""}`} autoPlay={index === 0} muted loop playsInline preload="metadata" poster="/hero/virro-flow-poster.webp" aria-hidden="true" tabIndex={-1} src={video.src} />)}
+    {videosEnabled && heroVideos.map((video, index) => <video key={video.src} ref={(element) => { videoRefs.current[index] = element; }} className={`hero-video-media${activeVideoIndex === index ? " is-active" : ""}`} muted loop playsInline preload={index === 0 ? "metadata" : "none"} poster="/hero/virro-flow-poster.webp" aria-hidden="true" tabIndex={-1} src={video.src} />)}
     <div className="hero-video-scrim" aria-hidden="true" />
     <div className="hero-glow hero-glow-one" /><div className="hero-glow hero-glow-two" /><div className="hero-grid-fade" />
     <div className="relative mx-auto grid max-w-[1380px] gap-14 xl:grid-cols-[.88fr_1.12fr] xl:items-center">
@@ -103,7 +121,7 @@ export function HeroUnderstandingFilter() {
         <h1 className="hero-scene-item hero-headline mt-7 max-w-4xl text-[2.8rem] font-semibold leading-[.97] tracking-[-.065em] sm:text-6xl lg:text-[4.6rem]">{t("Keep information clear when work moves or changes.", "Mantén clara la información cuando el trabajo avanza o cambia.")}</h1>
         <p className="hero-scene-item hero-primary-copy mt-7 max-w-2xl text-base font-medium leading-7 md:text-lg">{t("Virro analyzes the points where a delivery passes to the next owner and detects insufficient context, unpropagated changes and information that no longer represents reality.", "Virro analiza los puntos donde una entrega pasa al siguiente responsable y detecta contexto insuficiente, cambios no propagados e información que dejó de representar la realidad.")}</p>
         <div className="hero-scene-item hero-cta-group mt-9 flex flex-col gap-3 sm:flex-row"><a href="#solicitar-auditoria" data-analytics-event="hero_audit_click" className="brand-primary-button text-sm shadow-[0_20px_60px_rgba(9,105,255,.22)]">{t("Analyze a workflow", "Analizar un flujo")} <ArrowRight size={15} /></a><a href="#virro-core" data-analytics-event="hero_demo_click" className="brand-secondary-button text-sm">{t("See how it works", "Ver cómo funciona")}</a></div>
-        <p className="hero-scene-item hero-trust-signals mt-6 flex items-center gap-2 text-[9px] text-[var(--subtle)]"><ShieldCheck aria-hidden="true" size={12} className="shrink-0 text-[var(--brand-blue)]" />{t("Assisted audit · Secure import · Integrations · API", "Auditoría asistida · Importación segura · Integraciones · API")}</p>
+        <p className="hero-scene-item hero-trust-signals mt-6 flex items-center gap-2 text-[9px] text-[var(--subtle)]"><ShieldCheck aria-hidden="true" size={12} className="shrink-0 text-[var(--brand-blue)]" />{t("Assisted audit · Secure import · Connectors planned · API planned", "Auditoría asistida · Importación segura · Conectores planeados · API planeada")}</p>
       </div>
       <HeroVirroCorePanel />
     </div>

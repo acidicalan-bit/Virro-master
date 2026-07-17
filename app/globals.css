@@ -13,7 +13,7 @@
   --border: rgba(255,255,255,.075);
   --text: #f2f5f7;
   --muted: #9ba5b2;
-  --subtle: #647080;
+  --subtle: #8d9aab;
   --ring-track: #252b35;
   --brand-blue: #4d9aff;
   --brand-coral: #ff6b64;
@@ -38,7 +38,7 @@
   --border: rgba(15,23,42,.09);
   --text: #111827;
   --muted: #52606f;
-  --subtle: #84909d;
+  --subtle: #5f6b7a;
   --ring-track: #e5e9ed;
   --brand-blue: #0969ff;
   --brand-coral: #d93630;
@@ -148,7 +148,7 @@ a[href="/#solicitar-diagnostico"]:not(.brand-primary-button) {
 .public-landing .landing-hero {
   --text: #f4f7fb;
   --muted: #a7b5c6;
-  --subtle: #718198;
+  --subtle: #9fb0c8;
   --panel: #0d1725;
   --panel-soft: #09121e;
   --border: rgba(204, 223, 246, .13);
@@ -366,6 +366,7 @@ html[data-theme="light"] .landing-hero.has-video-hero .brand-secondary-button { 
 .public-landing a:focus-visible,
 .public-landing button:focus-visible,
 .field-control:focus-visible { outline: 2px solid color-mix(in srgb, var(--brand-blue) 72%, white); outline-offset: 3px; }
+:where(a, button, input, select, textarea, [role="tab"]):focus-visible { outline: 2px solid color-mix(in srgb, var(--brand-blue) 72%, white); outline-offset: 3px; }
 .public-landing .brand-primary-button svg { transition: transform var(--motion-fast) var(--premium-ease); }
 .public-landing .brand-primary-button:hover svg { transform: translateX(3px); }
 
