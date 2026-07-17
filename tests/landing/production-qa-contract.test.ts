@@ -23,8 +23,8 @@ describe("production landing QA contract", () => {
     expect(hero).toContain('href="#solicitar-auditoria"');
     expect(hero).toContain('<a href="#virro-core" data-analytics-event="hero_demo_click"');
     expect(core).toContain('<section id="virro-core"');
-    expect(core).toContain('<Link href="/app" className="brand-secondary-button mt-7 text-sm"');
-    expect(core).toContain('t("View demo", "Ver demo")');
+    expect(core).toContain('<Link href="/app/scenarios" className="brand-secondary-button mt-7 text-sm"');
+    expect(core).toContain('t("Explore enterprise demo", "Explorar demo enterprise")');
     expect(styles).toContain('scroll-behavior: smooth');
     expect(styles).toContain('#virro-core { scroll-margin-top: 96px; }');
     expect(styles).toContain('@media (prefers-reduced-motion: reduce)');

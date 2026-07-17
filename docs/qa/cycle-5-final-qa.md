@@ -1,6 +1,6 @@
 # Virro — Ciclo 5: QA final y preparación de publicación
 
-Fecha: 16 de julio de 2026
+Fecha: 17 de julio de 2026
 
 Rama: `feature/virro-universal-flow-refinement`
 
@@ -10,9 +10,9 @@ Producción: sin cambios ni despliegue durante este ciclo.
 
 ## Resultado ejecutivo
 
-El endurecimiento técnico del Ciclo 5 queda implementado y cubierto por lint, pruebas automatizadas, build de producción y comprobaciones HTTP locales. Se alinearon metadata, canonical, Open Graph, datos estructurados, sitemap, robots, redirects, foco visible, reducción de movimiento, carga diferida del video del hero y veracidad de claims públicos.
+El endurecimiento técnico del Ciclo 5 queda implementado y cubierto por lint, pruebas automatizadas, build de producción, comprobaciones HTTP locales y QA visual en Chrome. Se alinearon metadata, canonical, Open Graph, datos estructurados, sitemap, robots, redirects, foco visible, reducción de movimiento, carga diferida del video del hero y veracidad de claims públicos.
 
-La evidencia visual desktop/mobile y la ejecución interactiva con axe no pudieron producirse: el navegador integrado no logró inicializar su runtime y devolvió `failed to write kernel assets: El sistema no puede encontrar la ruta especificada. (os error 3)` en dos intentos, incluido un reinicio del kernel. Este documento no presenta esa validación como aprobada.
+La conexión de navegador se recuperó usando Chrome con el runtime actualizado `26.715.21425`. Se verificaron capturas desktop/mobile, navegación por teclado inicial, ausencia de overflow horizontal en home e inbox, scroll del CTA del hero hacia Virro Core y CTA secundario de Virro Core hacia `/app/scenarios`.
 
 ## Matriz de validación
 
@@ -27,8 +27,9 @@ La evidencia visual desktop/mobile y la ejecución interactiva con axe no pudier
 | Noindex de aplicación | HTML de `/app` | Aprobado |
 | Headers de seguridad | Respuestas HTTP locales | Aprobado |
 | Accesibilidad estática | Contratos automatizados y revisión de fuente | Aprobado |
-| Teclado/axe interactivo | Navegador integrado | No ejecutado por fallo de herramienta |
-| Responsive visual | Capturas desktop/mobile | No ejecutado por fallo de herramienta |
+| Teclado interactivo | Chrome | Aprobado en recorrido inicial de foco |
+| Responsive visual | Capturas Chrome desktop/mobile | Aprobado |
+| Axe interactivo | Runner no instalado en la base | Pendiente |
 
 ## Rutas validadas
 
@@ -44,6 +45,8 @@ Estas rutas respondieron `200` en el servidor local:
 - `/jira-readiness`
 - `/app`
 - `/app/inbox`
+- `/app/privacy-trust`
+- `/legal`
 - `/legal/privacy`
 - `/sitemap.xml`
 - `/robots.txt`
@@ -77,8 +80,18 @@ Redirects permanentes comprobados:
 - El video del hero conserva `aria-hidden` y no introduce controles falsos.
 - Los elementos visuales no funcionales del shell de demo dejaron de exponerse como botones.
 - Los contratos automatizados cubren foco, reduced motion, video diferido y chrome no interactivo.
+- El recorrido inicial por teclado en Chrome expuso foco visible en skip link, logo, navegación principal y enlace de demo.
+- `/app/inbox` conserva labels reales para `Título`, `Rol de origen`, `Receptor esperado`, `Pack de análisis` e `Información original`; los helpers de pack e input original están conectados con `aria-describedby`.
+- La home y `/app/inbox` no presentan overflow horizontal en 1440px ni en 390px.
+- El enlace `Ver cómo funciona` del hero apunta a `#virro-core`, desplaza hasta la sección y respeta `scroll-margin-top: 96px`.
+- El CTA secundario dentro de Virro Core queda como `Explorar demo enterprise` y apunta a `/app/scenarios`.
 
-La navegación real por teclado, orden de foco, lectura con tecnología asistiva y auditoría axe deben repetirse con un navegador funcional antes de aprobar publicación.
+La lectura con tecnología asistiva y auditoría axe deben repetirse con un runner dedicado antes de aprobar publicación.
+
+## Evidencia visual
+
+- Desktop Chrome: `docs/qa/artifacts/cycle-5-home-desktop-chrome.png`
+- Mobile Chrome 390x844: `docs/qa/artifacts/cycle-5-home-mobile-chrome.png`
 
 ## Performance del hero
 
@@ -102,11 +115,9 @@ La política de estados, claims y limitaciones queda en `docs/public-claims-and-
 
 ## Evidencia pendiente antes de producción
 
-1. Capturas desktop y mobile de las rutas prioritarias.
-2. Verificación de overflow horizontal en anchos móviles reales.
-3. Recorrido completo por teclado y comprobación de foco visible.
-4. Auditoría axe en home, demo, formulario y aplicación.
-5. Comprobación de Core Web Vitals en build servido en modo producción.
-6. Revisión y aprobación humana de claims comerciales y legales.
+1. Recorrido completo por teclado en todas las rutas prioritarias, no sólo muestra inicial.
+2. Auditoría axe en home, demo, formulario y aplicación.
+3. Comprobación de Core Web Vitals en build servido en modo producción.
+4. Revisión y aprobación humana de claims comerciales y legales.
 
 No se recomienda desplegar esta rama hasta completar los puntos anteriores y aprobar explícitamente la publicación.

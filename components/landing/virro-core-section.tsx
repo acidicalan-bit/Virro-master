@@ -27,7 +27,7 @@ export function VirroCoreSection() {
         </article>)}
       </div>
       <p className="mt-8 flex items-start gap-2 text-[10px] leading-5 text-[var(--subtle)]"><CheckCircle2 aria-hidden="true" size={13} className="mt-0.5 shrink-0 text-teal-300" />{t("Virro does not force a score when the evidence cannot support a reliable verdict.", "Virro no fuerza un score cuando la evidencia no permite sostener un veredicto confiable.")}</p>
-      <Link href="/app" className="brand-secondary-button mt-7 text-sm">{t("View demo", "Ver demo")} <ArrowRight aria-hidden="true" size={14} /></Link>
+      <Link href="/app/scenarios" className="brand-secondary-button mt-7 text-sm">{t("Explore enterprise demo", "Explorar demo enterprise")} <ArrowRight aria-hidden="true" size={14} /></Link>
     </div>
   </section>;
 }
