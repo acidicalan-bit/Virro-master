@@ -7,11 +7,8 @@ import { useEffect, useState } from "react";
 import { ArrowUpRight, Bell, ChevronDown, Menu, Search, X } from "lucide-react";
 import { localizeModule, modules } from "@/lib/config/modules";
 import { events } from "@/lib/data/seed";
-import { buildWorkspaceStats } from "@/lib/domain/understanding-event";
 import { useLanguage } from "@/components/i18n/language-provider";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
-
-const shellStats = buildWorkspaceStats(events);
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -61,9 +58,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </nav>
         <div className="border-t border-[var(--border)] p-3">
           <div className="rounded-xl border border-[var(--border)] bg-[var(--panel-soft)] p-3">
-            <div className="flex items-center justify-between text-xs"><span className="text-[var(--muted)]">{t("Workspace health", "Salud del workspace")}</span><span className="font-semibold text-teal-300">{shellStats.virroScore}</span></div>
-            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[var(--ring-track)]"><div className="h-full rounded-full bg-gradient-to-r from-cyan-400 to-teal-300" style={{ width: `${shellStats.virroScore}%` }} /></div>
-            <p className="mt-2 text-[10px] leading-relaxed text-[var(--subtle)]">{t(`Estimated from ${events.length} active Understanding Events.`, `Estimado a partir de ${events.length} Understanding Events activos.`)}</p>
+            <div className="flex items-center justify-between gap-3 text-xs"><span className="text-[var(--muted)]">{t("Evidence confidence", "Confianza de evidencia")}</span><span className="font-semibold text-amber-300">{t("Low", "Baja")}</span></div>
+            <p className="mt-2 text-[10px] leading-relaxed text-[var(--subtle)]">{t(`${events.length} simulated events: insufficient sample for workspace health.`, `${events.length} eventos simulados: muestra insuficiente para medir salud del workspace.`)}</p>
           </div>
           <Link href="/" className="mt-2 flex items-center justify-between rounded-lg px-3 py-2 text-[10px] font-medium text-[var(--subtle)] transition hover:bg-[var(--hover)] hover:text-[var(--text)]"><span>{t("Back to public site", "Volver al sitio público")}</span><ArrowUpRight size={12} /></Link>
         </div>

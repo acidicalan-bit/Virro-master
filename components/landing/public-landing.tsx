@@ -9,6 +9,7 @@ import { VirroCoreSection } from "@/components/landing/virro-core-section";
 import { EnterprisePrivacySection, FinalEnterpriseCta, FutureApplicationsSection, InitialProductSection, NonJiraSection, ShadowScanOfferSection, UnderstandingEventDemo } from "@/components/landing/enterprise-home-sections";
 import { PublicAnalyticsObserver } from "@/components/landing/public-analytics-observer";
 import { useLanguage } from "@/components/i18n/language-provider";
+import { SignalSufficiencySection } from "@/components/evidence/signal-sufficiency-status";
 
 export function PublicLanding() {
   const { t } = useLanguage();
@@ -20,6 +21,7 @@ export function PublicLanding() {
       <HeroUnderstandingFilter />
       <ProblemSection />
       <VirroCoreSection />
+      <SignalSufficiencySection />
       <InitialProductSection />
       <FutureApplicationsSection />
       <UnderstandingEventDemo />

@@ -13,8 +13,9 @@ export function PackHeader({ order, eyebrow, title, description, statement, icon
 
 export function ScoreHero({ label, value, detail }: { label: string; value: number; detail: string }) {
   const { locale, t } = useLanguage();
+  const band = value >= 75 ? t("Stronger signal", "Señal más sólida") : value >= 55 ? t("Needs context", "Necesita contexto") : t("Insufficient for a verdict", "Insuficiente para un veredicto");
   const color = value >= 75 ? "text-teal-300" : value >= 55 ? "text-amber-300" : "text-rose-300";
-  return <div className="panel p-5"><p className="text-[10px] font-semibold uppercase tracking-[.11em] text-[var(--subtle)]">{packUiText(locale, label)}</p><div className="mt-3 flex items-end gap-2"><span className={`text-5xl font-semibold tracking-[-.06em] ${color}`}>{value}</span><span className="mb-1 text-xs text-[var(--subtle)]">/100 {t("estimated", "estimado")}</span></div><div className="mt-4 h-2 overflow-hidden rounded-full bg-[var(--ring-track)]"><div className={`${value >= 75 ? "bg-teal-300" : value >= 55 ? "bg-amber-300" : "bg-rose-400"} h-full rounded-full`} style={{ width: `${value}%` }} /></div><p className="mt-3 text-[10px] leading-4 text-[var(--muted)]">{packUiText(locale, detail)}</p></div>;
+  return <div className="panel p-5"><p className="text-[10px] font-semibold uppercase tracking-[.11em] text-[var(--subtle)]">{packUiText(locale, label)}</p><p className={`mt-4 text-2xl font-semibold tracking-[-.04em] ${color}`}>{band}</p><p className="mt-2 text-[9px] font-semibold uppercase tracking-[.1em] text-[var(--subtle)]">{t("Directional demo finding", "Hallazgo direccional de demo")}</p><p className="mt-4 text-[10px] leading-4 text-[var(--muted)]">{packUiText(locale, detail)}</p></div>;
 }
 
 export function SectionCard({ title, subtitle, icon, children, className = "" }: { title: string; subtitle?: string; icon?: ReactNode; children: ReactNode; className?: string }) {

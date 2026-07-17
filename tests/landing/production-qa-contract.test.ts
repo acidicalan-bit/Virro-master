@@ -84,7 +84,9 @@ describe("production landing QA contract", () => {
 
     expect(landing).toContain("<EnterprisePrivacySection />");
     expect(landing).toContain("<UnderstandingEventDemo />");
-    expect(enterprise).toContain("Acceso mínimo, procesamiento limitado y señales seguras");
+    expect(enterprise).toContain("Las afirmaciones de privacidad dependen del runtime utilizado.");
+    expect(enterprise).toContain("Formulario público");
+    expect(enterprise).toContain("Auditoría asistida");
     expect(enterprise).toContain("Revisión humana");
     expect(enterprise).toContain("Change Integrity");
     expect(registry).toContain("Brief → diseño → revisión → aprobación → producción");

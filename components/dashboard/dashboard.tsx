@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import {
   ArrowRight,
-  Bot,
   Braces,
   CircleAlert,
   Database,
@@ -13,8 +12,6 @@ import {
   Handshake,
   PackagePlus,
   ShieldCheck,
-  Sparkles,
-  UsersRound,
 } from "lucide-react";
 import { mockEvents } from "@/lib/data/mock-events";
 import { buildDashboardInsights } from "@/lib/services/dashboard-insights";
@@ -34,14 +31,12 @@ export function Dashboard() {
     return () => { window.clearTimeout(timer); unsubscribe(); };
   }, []);
   const insights = useMemo(() => buildDashboardInsights([...assistantEvents, ...mockEvents]), [assistantEvents]);
+  const sampleIsSufficient = insights.metrics.totalEvents >= 12;
   const metrics = [
     { label: t("Total Understanding Events", "Total de Understanding Events"), detail: t("Events where information needed to be understood before someone could act.", "Eventos donde una información necesitó ser entendida para poder actuar."), value: insights.metrics.totalEvents, suffix: "", icon: Braces, tone: "blue" },
-    { label: t("Average DoU Score", "DoU Score promedio"), detail: t("Estimated average degree of operational understanding across analyzed events.", "Estimación del grado de entendimiento operativo promedio en los eventos analizados."), value: insights.metrics.averageDoU, suffix: "/100", icon: Sparkles, tone: "teal" },
-    { label: t("Average Meaning Loss Risk", "Riesgo promedio de Meaning Loss"), detail: t("Estimated risk that original intent is interpreted differently by the next receiver.", "Riesgo estimado de distorsión entre la intención original y la comprensión del siguiente receptor."), value: insights.metrics.averageMeaningLossRisk, suffix: "/100", icon: CircleAlert, tone: "rose" },
+    { label: t("Consolidated score", "Score consolidado"), detail: t("A consolidated score is withheld when the sample does not support that precision.", "El score consolidado se oculta cuando la muestra no sostiene esa precisión."), value: sampleIsSufficient ? t("Directional", "Direccional") : t("Not determinable", "No determinable"), suffix: "", icon: ShieldCheck, tone: "teal" },
+    { label: t("Evidence confidence", "Confianza de evidencia"), detail: t("Confidence reflects sample size, coverage and absent sources.", "La confianza refleja muestra, cobertura y fuentes ausentes."), value: sampleIsSufficient ? t("Medium", "Media") : t("Low", "Baja"), suffix: "", icon: CircleAlert, tone: "rose" },
     { label: t("Handoffs at risk", "Handoffs en riesgo"), detail: t("Transfers that may not be ready for the next team to execute.", "Entregas entre áreas que podrían no estar listas para que el siguiente equipo ejecute."), value: insights.metrics.handoffsAtRisk, suffix: "", icon: Handshake, tone: "violet" },
-    { label: "AI Understanding Debt", detail: t("Debt caused by context or instructions that AI may not understand correctly.", "Deuda causada por instrucciones, contexto o procesos que la IA podría no entender correctamente."), value: insights.metrics.aiUnderstandingDebt, suffix: "/100", icon: Bot, tone: "rose" },
-    { label: t("Technical Understanding Readiness", "Readiness de entendimiento técnico"), detail: t("How ready technical documentation is for another team to understand, test, maintain or modify a system.", "Estima si la documentación técnica permite que otro equipo entienda, pruebe, mantenga o modifique un sistema."), value: insights.metrics.technicalReadiness, suffix: "%", icon: ShieldCheck, tone: "blue" },
-    { label: t("Onboarding Readiness", "Readiness de onboarding"), detail: t("How prepared the context is for a new member, consultant or provider.", "Qué tan preparado está el contexto para que un nuevo miembro, consultora o proveedor pueda incorporarse con claridad."), value: insights.metrics.onboardingReadiness, suffix: "%", icon: UsersRound, tone: "teal" },
   ];
   const demoSteps = [
     { number: "01", label: t("Review the executive dashboard", "Revisa el tablero ejecutivo"), href: "/app" },
@@ -80,7 +75,7 @@ export function Dashboard() {
           <article key={label} className="panel p-4" title={detail}>
             <div className={`grid size-8 place-items-center rounded-lg metric-${tone}`}><Icon size={16} /></div>
             <p className="mt-4 min-h-8 text-[11px] leading-4 text-[var(--muted)]">{label}</p>
-            <div className="mt-1 flex items-baseline gap-1"><span className="text-3xl font-semibold tracking-[-0.04em]">{value}</span><span className="text-[10px] text-[var(--subtle)]">{suffix}</span></div>
+            <div className="mt-1 flex items-baseline gap-1"><span className={`${typeof value === "number" ? "text-3xl" : "text-lg"} font-semibold tracking-[-0.04em]`}>{value}</span><span className="text-[10px] text-[var(--subtle)]">{suffix}</span></div>
             <p className="mt-2 text-[9px] leading-4 text-[var(--subtle)]">{detail}</p>
           </article>
         ))}
@@ -94,7 +89,8 @@ export function Dashboard() {
           <div className="mt-6 space-y-4">
             {insights.areaRisk.map((area) => {
               const areaModule = moduleMap.get(area.pack);
-              return <div key={area.pack}><div className="mb-2 flex items-center justify-between text-xs"><span className="text-[var(--muted)]">{areaModule ? localizeModule(areaModule, locale).label : area.label}</span><span className="font-semibold">{area.risk}</span></div><div className="h-2 overflow-hidden rounded-full bg-[var(--ring-track)]"><div className={`h-full rounded-full ${area.risk >= 55 ? "bg-rose-400" : area.risk >= 35 ? "bg-amber-300" : "bg-teal-300"}`} style={{ width: `${area.risk}%` }} /></div></div>;
+              const band = area.risk >= 55 ? { label: t("High directional signal", "Señal direccional alta"), width: "75%", tone: "bg-rose-400" } : area.risk >= 35 ? { label: t("Medium directional signal", "Señal direccional media"), width: "50%", tone: "bg-amber-300" } : { label: t("Low directional signal", "Señal direccional baja"), width: "25%", tone: "bg-teal-300" };
+              return <div key={area.pack}><div className="mb-2 flex items-center justify-between gap-3 text-xs"><span className="text-[var(--muted)]">{areaModule ? localizeModule(areaModule, locale).label : area.label}</span><span className="text-[9px] font-semibold">{band.label} · n={area.eventCount}</span></div><div className="h-2 overflow-hidden rounded-full bg-[var(--ring-track)]"><div className={`h-full rounded-full ${band.tone}`} style={{ width: band.width }} /></div></div>;
             })}
           </div>
         </article>
@@ -109,11 +105,11 @@ export function Dashboard() {
 
       <section className="panel overflow-hidden">
         <div className="border-b border-[var(--border)] px-5 py-4"><h2 className="text-sm font-semibold">{t("Understanding Debt Backlog", "Backlog de deuda de entendimiento")}</h2><p className="mt-1 text-[11px] text-[var(--subtle)]">{t("Missing context ranked by current operational exposure", "Contexto faltante priorizado por exposición operativa actual")}</p></div>
-        <div className="overflow-x-auto"><table className="w-full min-w-[720px] text-left"><thead><tr className="border-b border-[var(--border)] text-[9px] uppercase tracking-[.12em] text-[var(--subtle)]"><th className="px-5 py-3 font-medium">{t("Context debt", "Deuda de contexto")}</th><th className="px-4 py-3 font-medium">{t("Priority", "Prioridad")}</th><th className="px-4 py-3 font-medium">{t("Exposure", "Exposición")}</th><th className="px-4 py-3 font-medium">{t("Affected events", "Eventos afectados")}</th><th className="px-5 py-3 font-medium">{t("First move", "Primer paso")}</th></tr></thead><tbody>{insights.backlog.slice(0, 6).map((item) => <tr key={item.gap} className="border-b border-[var(--border)] last:border-0"><td className="px-5 py-3 text-xs font-medium">{operationalText(locale, item.gap)}</td><td className="px-4 py-3"><span className={`rounded-full border px-2 py-1 text-[9px] ${item.priority === "Critical" ? "border-rose-400/20 bg-rose-400/[.08] text-rose-300" : "border-amber-400/20 bg-amber-400/[.08] text-amber-300"}`}>{item.priority === "Critical" ? t("Critical", "Crítica") : item.priority === "High" ? t("High", "Alta") : t("Medium", "Media")}</span></td><td className="px-4 py-3 text-xs">{item.exposure}/100</td><td className="px-4 py-3 text-[10px] text-[var(--muted)]">{item.events.join(", ")}</td><td className="px-5 py-3 text-[10px] text-[var(--muted)]">{t("Assign an owner and answer the blocking question", "Asignar responsable y responder la pregunta bloqueante")}</td></tr>)}</tbody></table></div>
+        <div className="overflow-x-auto"><table className="w-full min-w-[720px] text-left"><thead><tr className="border-b border-[var(--border)] text-[9px] uppercase tracking-[.12em] text-[var(--subtle)]"><th className="px-5 py-3 font-medium">{t("Context debt", "Deuda de contexto")}</th><th className="px-4 py-3 font-medium">{t("Priority", "Prioridad")}</th><th className="px-4 py-3 font-medium">{t("Evidence", "Evidencia")}</th><th className="px-4 py-3 font-medium">{t("Affected events", "Eventos afectados")}</th><th className="px-5 py-3 font-medium">{t("First move", "Primer paso")}</th></tr></thead><tbody>{insights.backlog.slice(0, 6).map((item) => <tr key={item.gap} className="border-b border-[var(--border)] last:border-0"><td className="px-5 py-3 text-xs font-medium">{operationalText(locale, item.gap)}</td><td className="px-4 py-3"><span className={`rounded-full border px-2 py-1 text-[9px] ${item.priority === "Critical" ? "border-rose-400/20 bg-rose-400/[.08] text-rose-300" : "border-amber-400/20 bg-amber-400/[.08] text-amber-300"}`}>{item.priority === "Critical" ? t("Critical", "Crítica") : item.priority === "High" ? t("High", "Alta") : t("Medium", "Media")}</span></td><td className="px-4 py-3 text-[10px]">{t("Exploratory finding", "Hallazgo exploratorio")}</td><td className="px-4 py-3 text-[10px] text-[var(--muted)]">{item.events.join(", ")}</td><td className="px-5 py-3 text-[10px] text-[var(--muted)]">{t("Assign an owner and answer the blocking question", "Asignar responsable y responder la pregunta bloqueante")}</td></tr>)}</tbody></table></div>
       </section>
 
       <section className="grid gap-4 lg:grid-cols-2">
-        <article className="panel p-5"><div className="flex items-center gap-2"><Handshake size={16} className="text-amber-300" /><h2 className="text-sm font-semibold">{t("Handoffs not ready", "Handoffs no listos")}</h2></div><div className="mt-4 space-y-3">{insights.handoffsAtRisk.length ? insights.handoffsAtRisk.map((event) => <div key={event.id} className="rounded-xl border border-[var(--border)] bg-[var(--panel-soft)] p-4"><div className="flex items-center justify-between"><p className="text-xs font-medium">{operationalText(locale, event.title)}</p><span className="text-xs font-semibold text-amber-300">{event.scores.handoffReadiness}/100</span></div><p className="mt-2 text-[10px] text-[var(--subtle)]">{event.sourceRole} → {event.targetRole} · {t("Missing", "Falta")}: {event.missingContext.map((gap) => operationalText(locale, gap)).join(", ")}</p></div>) : <p className="text-xs text-emerald-300">{t("No active handoff is currently below the readiness threshold.", "Ningún handoff activo está por debajo del umbral de readiness.")}</p>}</div></article>
+        <article className="panel p-5"><div className="flex items-center gap-2"><Handshake size={16} className="text-amber-300" /><h2 className="text-sm font-semibold">{t("Handoffs requiring review", "Handoffs que requieren revisión")}</h2></div><div className="mt-4 space-y-3">{insights.handoffsAtRisk.length ? insights.handoffsAtRisk.map(event => <div key={event.id} className="rounded-xl border border-[var(--border)] bg-[var(--panel-soft)] p-4"><div className="flex items-center justify-between gap-3"><p className="text-xs font-medium">{operationalText(locale, event.title)}</p><span className="text-[9px] font-semibold text-amber-300">{t("Needs context", "Necesita contexto")}</span></div><p className="mt-2 text-[10px] text-[var(--subtle)]">{event.sourceRole} → {event.targetRole} · {t("Missing", "Falta")}: {event.missingContext.map(gap => operationalText(locale, gap)).join(", ")}</p></div>) : <p className="text-xs text-emerald-300">{t("No active handoff requires review in this demo sample.", "Ningún handoff requiere revisión en esta muestra demo.")}</p>}</div></article>
         <article className="panel p-5"><div className="flex items-center gap-2"><ShieldCheck size={16} className="text-teal-300" /><h2 className="text-sm font-semibold">{t("Recommended Next Actions", "Próximas acciones recomendadas")}</h2></div><div className="mt-4 space-y-3">{insights.recommendedActions.map((action, index) => <div key={action} className="flex items-start gap-3"><span className="grid size-6 shrink-0 place-items-center rounded-full bg-teal-400/10 text-[10px] font-semibold text-teal-300">{index + 1}</span><p className="pt-0.5 text-xs leading-5 text-[var(--muted)]">{operationalText(locale, action)}</p></div>)}</div></article>
       </section>
 

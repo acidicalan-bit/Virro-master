@@ -33,6 +33,7 @@ export const reportBuilder = {
     const risks = [...new Set(analyzed.flatMap((event) => event.risks))];
     const missingContext = [...new Set(analyzed.flatMap((event) => event.missingContext))];
     const criticalQuestions = [...new Set(analyzed.flatMap((event) => event.criticalQuestions))];
+    const sufficientSample = analyzed.length >= 12;
 
     return {
       id: `VR-${crypto.randomUUID().slice(0, 8).toUpperCase()}`,
@@ -40,8 +41,8 @@ export const reportBuilder = {
       reportType,
       title: definition.label,
       summary: locale === "es"
-        ? `Se analizaron ${analyzed.length} Understanding Event${analyzed.length === 1 ? "" : "s"}. El Virro Score estimado es ${stats.virroScore}/100, con un Meaning Loss Risk promedio de ${average(analyzed, "meaningLossRisk")}/100. ${missingContext.length} brechas de contexto requieren revisión operativa.`
-        : `${analyzed.length} Understanding Event${analyzed.length === 1 ? " was" : "s were"} analyzed. The estimated Virro Score is ${stats.virroScore}/100, with average Meaning Loss Risk of ${average(analyzed, "meaningLossRisk")}/100. ${missingContext.length} context gaps require operational review.`,
+        ? `Se revisaron ${analyzed.length} Understanding Event${analyzed.length === 1 ? "" : "s"}. La muestra es ${sufficientSample ? "suficiente para una tendencia direccional" : "insuficiente para publicar un score consolidado"}. ${missingContext.length} brechas de contexto requieren revisión operativa.`
+        : `${analyzed.length} Understanding Event${analyzed.length === 1 ? " was" : "s were"} reviewed. The sample is ${sufficientSample ? "sufficient for a directional trend" : "insufficient for a consolidated score"}. ${missingContext.length} context gaps require operational review.`,
       findings: risks.slice(0, 6),
       recommendations: locale === "es" ? [
         missingContext[0] ? `Resolver “${missingContext[0]}” antes del siguiente handoff operativo.` : "Mantener la práctica actual de validación de contexto.",
@@ -53,7 +54,7 @@ export const reportBuilder = {
         "Re-run the relevant Analysis Pack after blocking questions are answered.",
       ],
       whatWasAnalyzed: analyzed.map((event) => `${event.id} · ${event.title} · ${event.packType}`),
-      scores: {
+      scores: sufficientSample ? {
         degreeOfUnderstanding: average(analyzed, "degreeOfUnderstanding"),
         meaningLossRisk: average(analyzed, "meaningLossRisk"),
         handoffReadiness: average(analyzed, "handoffReadiness"),
@@ -62,6 +63,14 @@ export const reportBuilder = {
         technicalReadiness: average(analyzed, "technicalReadiness"),
         onboardingReadiness: average(analyzed, "onboardingReadiness"),
         virroScore: stats.virroScore,
+      } : {},
+      evidenceContext: {
+        sampleSize: analyzed.length,
+        period: locale === "es" ? "Periodo demo; no corresponde a observación productiva" : "Demo period; not a production observation",
+        coverage: locale === "es" ? `${analyzed.length} eventos simulados dentro del alcance seleccionado` : `${analyzed.length} simulated events in the selected scope`,
+        sourcesAbsent: locale === "es" ? ["Sistemas productivos", "Reuniones", "Outcomes confirmados por cliente"] : ["Production systems", "Meetings", "Client-confirmed outcomes"],
+        confidence: sufficientSample ? "medium" : "low",
+        limitations: locale === "es" ? ["Datos simulados", "Sin causalidad atribuible", "Sin outcome productivo confirmado"] : ["Simulated data", "No attributable causality", "No confirmed production outcome"],
       },
       missingContext: missingContext.slice(0, 8),
       criticalQuestions: criticalQuestions.slice(0, 8),

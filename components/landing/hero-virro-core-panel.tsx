@@ -24,11 +24,10 @@ export function HeroVirroCorePanel() {
 
       <div className="hero-core-panel-readiness">
         <div>
-          <span>Readiness</span>
+          <span>{t("Signal sufficiency", "Suficiencia de señal")}</span>
           {" "}
-          <strong>64<small>/100</small></strong>
+          <strong>{t("Needs context", "Necesita contexto")}</strong>
         </div>
-        <i><b /></i>
       </div>
 
       <div className="hero-core-panel-signals">
