@@ -12,7 +12,7 @@ Producción: sin cambios ni despliegue durante este ciclo.
 
 El endurecimiento técnico del Ciclo 5 queda implementado y cubierto por lint, pruebas automatizadas, build de producción, comprobaciones HTTP locales y QA visual en Chrome. Se alinearon metadata, canonical, Open Graph, datos estructurados, sitemap, robots, redirects, foco visible, reducción de movimiento, carga diferida del video del hero y veracidad de claims públicos.
 
-La conexión de navegador se recuperó usando Chrome con el runtime actualizado `26.715.21425`. Se verificaron capturas desktop/mobile, navegación por teclado inicial, ausencia de overflow horizontal en home e inbox, scroll del CTA del hero hacia Virro Core y CTA secundario de Virro Core hacia `/app/scenarios`.
+La conexión de navegador se recuperó usando Chrome con el runtime actualizado `26.715.21425`. Se verificaron capturas desktop/mobile, navegación por teclado inicial, ausencia de overflow horizontal en home e inbox, scroll del CTA del hero hacia Virro Core, CTA secundario de Virro Core hacia `/app/scenarios` y auditoría axe automatizada.
 
 ## Matriz de validación
 
@@ -29,7 +29,7 @@ La conexión de navegador se recuperó usando Chrome con el runtime actualizado 
 | Accesibilidad estática | Contratos automatizados y revisión de fuente | Aprobado |
 | Teclado interactivo | Chrome | Aprobado en recorrido inicial de foco |
 | Responsive visual | Capturas Chrome desktop/mobile | Aprobado |
-| Axe interactivo | Runner no instalado en la base | Pendiente |
+| Axe automatizado | `pnpm dlx @axe-core/cli` en 4 rutas | Aprobado: 0 violaciones |
 
 ## Rutas validadas
 
@@ -85,13 +85,15 @@ Redirects permanentes comprobados:
 - La home y `/app/inbox` no presentan overflow horizontal en 1440px ni en 390px.
 - El enlace `Ver cómo funciona` del hero apunta a `#virro-core`, desplaza hasta la sección y respeta `scroll-margin-top: 96px`.
 - El CTA secundario dentro de Virro Core queda como `Explorar demo enterprise` y apunta a `/app/scenarios`.
+- Axe reportó 0 violaciones en `/`, `/demo`, `/app/inbox` y `/legal/privacy` después de ajustar contraste de texto secundario y el contenedor semántico de tabs de inbox.
 
-La lectura con tecnología asistiva y auditoría axe deben repetirse con un runner dedicado antes de aprobar publicación.
+La lectura con tecnología asistiva sigue requiriendo revisión manual antes de aprobar publicación.
 
 ## Evidencia visual
 
 - Desktop Chrome: `docs/qa/artifacts/cycle-5-home-desktop-chrome.png`
 - Mobile Chrome 390x844: `docs/qa/artifacts/cycle-5-home-mobile-chrome.png`
+- Axe summary: `docs/qa/axe-cli/axe-results-summary.json`
 
 ## Performance del hero
 
@@ -116,8 +118,7 @@ La política de estados, claims y limitaciones queda en `docs/public-claims-and-
 ## Evidencia pendiente antes de producción
 
 1. Recorrido completo por teclado en todas las rutas prioritarias, no sólo muestra inicial.
-2. Auditoría axe en home, demo, formulario y aplicación.
-3. Comprobación de Core Web Vitals en build servido en modo producción.
-4. Revisión y aprobación humana de claims comerciales y legales.
+2. Comprobación de Core Web Vitals en build servido en modo producción.
+3. Revisión y aprobación humana de claims comerciales y legales.
 
 No se recomienda desplegar esta rama hasta completar los puntos anteriores y aprobar explícitamente la publicación.

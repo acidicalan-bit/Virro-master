@@ -1,0 +1,34 @@
+{
+  "generatedAt": "2026-07-17T12:57:02.5879262Z",
+  "tool": "@axe-core/cli",
+  "routes": [
+    {
+      "url": "http://localhost:3100/",
+      "violations": 0,
+      "passes": 49,
+      "incomplete": 2,
+      "inapplicable": 40
+    },
+    {
+      "url": "http://localhost:3100/demo",
+      "violations": 0,
+      "passes": 36,
+      "incomplete": 1,
+      "inapplicable": 53
+    },
+    {
+      "url": "http://localhost:3100/app/inbox",
+      "violations": 0,
+      "passes": 44,
+      "incomplete": 2,
+      "inapplicable": 45
+    },
+    {
+      "url": "http://localhost:3100/legal/privacy",
+      "violations": 0,
+      "passes": 34,
+      "incomplete": 1,
+      "inapplicable": 55
+    }
+  ]
+}
