@@ -366,6 +366,7 @@ html[data-theme="light"] .landing-hero.has-video-hero .brand-secondary-button { 
 .public-landing a:focus-visible,
 .public-landing button:focus-visible,
 .field-control:focus-visible { outline: 2px solid color-mix(in srgb, var(--brand-blue) 72%, white); outline-offset: 3px; }
+:where(a, button, input, select, textarea, [role="tab"]):focus-visible { outline: 2px solid color-mix(in srgb, var(--brand-blue) 72%, white); outline-offset: 3px; }
 .public-landing .brand-primary-button svg { transition: transform var(--motion-fast) var(--premium-ease); }
 .public-landing .brand-primary-button:hover svg { transform: translateX(3px); }
 

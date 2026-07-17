@@ -97,17 +97,21 @@ describe("production landing QA contract", () => {
     const layout = read("app/layout.tsx");
     const sitemap = read("app/sitemap.ts");
 
-    for (const [source, destination] of [["/es", "/"], ["/terms", "/legal/terms"], ["/es/privacy", "/legal/privacy"], ["/es/terms", "/legal/terms"]]) {
-      expect(config).toContain(`source: "${source}", destination: "${destination}", permanent: true`);
+    for (const [source, destination] of [["/es", "/"], ["/privacy", "/legal/privacy"], ["/terms", "/legal/terms"], ["/es/privacy", "/legal/privacy"], ["/es/terms", "/legal/terms"]]) {
+      expect(config).toMatch(new RegExp(`source: "${source.replace("/", "\\/")}"[\\s\\S]*?destination: "${destination.replaceAll("/", "\\/")}"[\\s\\S]*?permanent: true`));
     }
-    expect(config).toContain('source: "/inbox", destination: "/app/inbox", permanent: true');
-    expect(config).toContain('source: "/demo-scenarios", destination: "/app/demo-scenarios", permanent: true');
+    expect(config).toMatch(/source: "\/inbox"[\s\S]*?destination: "\/app\/inbox"[\s\S]*?permanent: true/);
+    expect(config).toMatch(/source: "\/demo-scenarios"[\s\S]*?destination: "\/demo"[\s\S]*?permanent: true/);
     expect(layout).toContain('alternates: { canonical: "/" }');
-    expect(layout).toContain("Virro — Infraestructura de entendimiento operativo");
+    expect(layout).toContain("Virro — Infraestructura de Entendimiento Operativo Digital");
     expect(sitemap).toContain('`${base}/jira-readiness`');
     expect(sitemap).toContain('`${base}/change-integrity`');
     expect(sitemap).toContain('`${base}/flow-audit`');
     expect(sitemap).toContain('`${base}/design-delivery`');
+    expect(sitemap).toContain('`${base}/how-it-works`');
+    expect(sitemap).toContain('`${base}/demo`');
+    expect(sitemap).toContain('`${base}/operational-handoff`');
+    expect(sitemap).not.toContain('`${base}/privacy`');
     expect(layout).not.toContain("Claridad operativa para Product Delivery");
     expect(sitemap).not.toMatch(/\$\{base\}\/es(?:[\"`/])/);
   });

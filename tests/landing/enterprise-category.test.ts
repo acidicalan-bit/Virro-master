@@ -87,7 +87,9 @@ describe("Virro enterprise category experience", () => {
     const layout = readFileSync(join(root, "app/layout.tsx"), "utf8");
     expect(capabilities).toContain("FAQ");
     expect(capabilities).toContain("Operational glossary");
-    expect(layout).toContain('"@type": "FAQPage"');
-    expect(layout).toContain('"@type": "SoftwareApplication"');
+    expect(layout).toContain('"@type": "Organization"');
+    expect(layout).toContain('"@type": "WebSite"');
+    expect(layout).toContain('"@type": "WebPage"');
+    expect(layout).not.toContain('"@type": "SoftwareApplication"');
   });
 });
