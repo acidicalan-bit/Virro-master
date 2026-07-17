@@ -3,6 +3,7 @@ import { moduleMap } from "@/lib/config/modules";
 import { ModuleOverview } from "@/components/modules/module-overview";
 import { DemoScenarioLibrary } from "@/components/scenarios/demo-scenario-library";
 import { ProductDeliveryPack } from "@/components/packs/product-delivery-pack";
+import { DesignDeliveryPack } from "@/components/packs/design-delivery-pack";
 import { AIUnderstandingPack } from "@/components/packs/ai-understanding-pack";
 import { HandoffIntelligencePack } from "@/components/packs/handoff-intelligence-pack";
 import { ProcessUnderstandingPack } from "@/components/packs/process-understanding-pack";
@@ -24,6 +25,7 @@ export default async function ModulePage({ params }: { params: Promise<{ module:
   if (!definition || moduleId === "dashboard" || moduleId === "inbox") notFound();
   if (moduleId === "demo-scenarios") return <DemoScenarioLibrary />;
   if (moduleId === "product-delivery") return <ProductDeliveryPack />;
+  if (moduleId === "design-delivery") return <DesignDeliveryPack />;
   if (moduleId === "ai-understanding") return <AIUnderstandingPack />;
   if (moduleId === "handoff-intelligence") return <HandoffIntelligencePack />;
   if (moduleId === "process-understanding") return <ProcessUnderstandingPack />;

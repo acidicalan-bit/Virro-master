@@ -36,7 +36,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <button aria-label={t("Close navigation", "Cerrar navegación")} className="rounded-lg p-2 text-[var(--muted)] lg:hidden" onClick={() => setOpen(false)}><X size={18} /></button>
         </div>
         <nav className="flex-1 overflow-y-auto px-3 py-4">
-          <p className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--subtle)]">{t("Understanding system", "Sistema de entendimiento")}</p>
+          <p className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--subtle)]">{t("Six demo areas", "Seis áreas demo")}</p>
           <div className="space-y-0.5">
             {modules.filter((module) => module.showInNavigation !== false).map((module) => {
               const localizedModule = localizeModule(module, locale);
@@ -44,7 +44,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               const Icon = module.icon;
               return (
                 <div key={module.id}>
-                  {module.id === "product-delivery" && <p className="mb-2 mt-5 px-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--subtle)]">{t("Analysis packs", "Packs de análisis")}</p>}
+                  {module.id === "product-delivery" && <p className="mb-2 mt-5 px-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--subtle)]">{t("Priority flows", "Flujos prioritarios")}</p>}
                   {module.id === "reports" && <div className="my-3 border-t border-[var(--border)]" />}
                   <Link href={module.href} onClick={() => setOpen(false)} className={`group flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] transition ${active ? "bg-[var(--active)] font-medium text-[var(--text)] shadow-sm" : "text-[var(--muted)] hover:bg-[var(--hover)] hover:text-[var(--text)]"}`}>
                     <Icon size={17} strokeWidth={active ? 2 : 1.7} className={active ? "text-teal-300" : "text-[var(--subtle)] group-hover:text-[var(--muted)]"} />

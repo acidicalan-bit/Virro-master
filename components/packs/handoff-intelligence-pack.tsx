@@ -2,21 +2,251 @@
 
 import { CheckSquare2, Handshake, ShieldAlert, Workflow } from "lucide-react";
 import { useLanguage } from "@/components/i18n/language-provider";
+import { EvidenceSection } from "@/components/evidence/evidence-section";
+import { LimitationsPanel } from "@/components/evidence/limitations-panel";
+import { OutcomePanel } from "@/components/evidence/outcome-panel";
 import { demoScenarios } from "@/lib/data/demo-scenarios";
-import { FactGrid, InsightList, LabeledList, PackHeader, ScoreHero, SectionCard } from "./shared";
+import {
+  FactGrid,
+  InsightList,
+  LabeledList,
+  PackHeader,
+  ScoreHero,
+  SectionCard,
+} from "./shared";
 
 export function HandoffIntelligencePack() {
-  const { locale, t } = useLanguage(); const es = locale === "es"; const scenario = demoScenarios[1];
-  const paths = es ? ["Producto → Desarrollo", "Desarrollo → QA", "QA → Automatización QA", "QA → DevOps", "Negocio → Datos", "Empresa → Consultora", "Proceso → IA"] : ["Product → Development", "Development → QA", "QA → QA Automation", "QA → DevOps", "Business → Data", "Company → Consultant", "Process → AI"];
-  const clear = es ? ["Equipo origen: QA", "Capacidad destino: regresión automatizada", "Momento de negocio: antes del release", "Área funcional: checkout"] : ["Source team: QA", "Target capability: automated regression", "Business moment: before release", "Functional area: checkout"];
-  const blockers = es ? ["No hay prioridad de automatización", "El ownership de datos de prueba no está definido", "El readiness del ambiente es desconocido"] : ["No automation priority", "Test data ownership is undefined", "Environment readiness is unknown"];
-  const questions = es ? ["¿Qué casos protegen el mayor riesgo de negocio?", "¿Quién provee datos de prueba estables?", "¿Qué condición hace que el handoff sea aceptado?"] : ["Which cases protect the highest business risk?", "Who supplies stable test data?", "What makes the handoff accepted?"];
-  const checklist = es ? ["Existe un receptor responsable definido", "Prioridad y alcance son explícitos", "Dependencias y accesos están confirmados", "La definición de terminado es medible", "Las preguntas bloqueantes están respondidas"] : ["One accountable receiver is named", "Priority and scope are explicit", "Dependencies and access are confirmed", "Definition of done is measurable", "Blocking questions are answered"];
-  return <div className="space-y-6"><PackHeader order="09" eyebrow="Handoff Intelligence Pack" title={t("Is this ready for the next team to execute?", "¿Esto está listo para que el siguiente equipo pueda ejecutar?")} description={t("Validate whether the information one team delivers is ready for the next team to work without rework.", "Valida si la información que un equipo entrega está lista para que el siguiente equipo pueda trabajar sin retrabajo.")} statement={t("A handoff is ready when the receiver can act without reconstructing the sender’s intent.", "Un handoff está listo cuando el receptor puede actuar sin reconstruir la intención del emisor.")} icon={<Handshake size={15} />} />
-    <section className="grid gap-4 xl:grid-cols-[.68fr_1.32fr]"><ScoreHero label="Handoff Readiness Score" value={scenario.mockScores.handoffReadiness} detail={t("Estimated from receiver fit, ownership, dependencies, timing and definition of done.", "Estimado a partir del ajuste al receptor, ownership, dependencias, timing y definición de terminado.")} /><SectionCard title="Supported handoff paths" icon={<Workflow size={15} />}><div className="grid gap-2 sm:grid-cols-2">{paths.map((path) => <div key={path} className="rounded-lg border border-[var(--border)] bg-[var(--panel-soft)] px-3 py-2.5 text-[10px] font-medium">{path}</div>)}</div></SectionCard></section>
-    <section className="grid gap-4 lg:grid-cols-2"><LabeledList label="What is clear" items={clear} /><LabeledList label="What is missing" items={scenario.expectedAnalysis.missingInformation} tone="rose" /></section>
-    <section className="grid gap-4 lg:grid-cols-3"><LabeledList label="Blockers" items={blockers} tone="rose" /><LabeledList label="Rework risks" items={scenario.expectedAnalysis.risks} tone="amber" /><LabeledList label="Critical questions to validate" items={questions} /></section>
-    <section className="grid gap-4 lg:grid-cols-2"><SectionCard title="Pre-handoff checklist" icon={<CheckSquare2 size={15} />}><InsightList items={checklist} /></SectionCard><SectionCard title="Handoff-ready version" icon={<ShieldAlert size={15} />}><div className="rounded-xl border border-teal-400/15 bg-teal-400/[.045] p-4 text-xs leading-6 text-[var(--muted)]">{t("QA Automation owns the top 12 checkout regression scenarios before release R24. Test data is provided by QA in the staging dataset. Automation is complete when the suite runs in CI, failures link to the manual evidence, and the QA Lead accepts coverage.", "Automatización QA es responsable de los 12 escenarios prioritarios de regresión del checkout antes del release R24. QA provee los datos en staging. La automatización termina cuando la suite corre en CI, los fallos enlazan evidencia manual y el líder de QA acepta la cobertura.")}</div></SectionCard></section>
-    <SectionCard title="Current handoff profile"><FactGrid facts={[{ label: "Probable intent", value: scenario.expectedAnalysis.probableIntent }, { label: "Target receiver", value: scenario.targetReceiver }, { label: "Source → Target", value: "QA → QA Automation" }, { label: "Recommended output", value: scenario.generatedOutput.title }]} /></SectionCard>
-  </div>;
+  const { locale, t } = useLanguage();
+  const es = locale === "es";
+  const scenario = demoScenarios[1];
+  const paths = es
+    ? [
+        "Producto → Desarrollo",
+        "Desarrollo → QA",
+        "QA → Automatización QA",
+        "QA → DevOps",
+        "Negocio → Datos",
+        "Empresa → Consultora",
+        "Proceso → IA",
+      ]
+    : [
+        "Product → Development",
+        "Development → QA",
+        "QA → QA Automation",
+        "QA → DevOps",
+        "Business → Data",
+        "Company → Consultant",
+        "Process → AI",
+      ];
+  const clear = es
+    ? [
+        "Equipo origen: QA",
+        "Capacidad destino: regresión automatizada",
+        "Momento de negocio: antes del release",
+        "Área funcional: checkout",
+      ]
+    : [
+        "Source team: QA",
+        "Target capability: automated regression",
+        "Business moment: before release",
+        "Functional area: checkout",
+      ];
+  const blockers = es
+    ? [
+        "No hay prioridad de automatización",
+        "El ownership de datos de prueba no está definido",
+        "El readiness del ambiente es desconocido",
+      ]
+    : [
+        "No automation priority",
+        "Test data ownership is undefined",
+        "Environment readiness is unknown",
+      ];
+  const questions = es
+    ? [
+        "¿Qué casos protegen el mayor riesgo de negocio?",
+        "¿Quién provee datos de prueba estables?",
+        "¿Qué condición hace que el handoff sea aceptado?",
+      ]
+    : [
+        "Which cases protect the highest business risk?",
+        "Who supplies stable test data?",
+        "What makes the handoff accepted?",
+      ];
+  const checklist = es
+    ? [
+        "Existe un receptor responsable definido",
+        "Prioridad y alcance son explícitos",
+        "Dependencias y accesos están confirmados",
+        "La definición de terminado es medible",
+        "Las preguntas bloqueantes están respondidas",
+      ]
+    : [
+        "One accountable receiver is named",
+        "Priority and scope are explicit",
+        "Dependencies and access are confirmed",
+        "Definition of done is measurable",
+        "Blocking questions are answered",
+      ];
+  return (
+    <div className="space-y-6">
+      <PackHeader
+        order="05"
+        eyebrow="Operational Handoff"
+        title={t(
+          "Is this ready for the next team to execute?",
+          "¿Esto está listo para que el siguiente equipo pueda ejecutar?",
+        )}
+        description={t(
+          "Validate whether the information one team delivers is ready for the next team to work without rework.",
+          "Valida si la información que un equipo entrega está lista para que el siguiente equipo pueda trabajar sin retrabajo.",
+        )}
+        statement={t(
+          "Simulated surface · a handoff becomes accepted only when the receiver confirms it can act.",
+          "Superficie simulada · un handoff se acepta solo cuando el receptor confirma que puede actuar.",
+        )}
+        icon={<Handshake size={15} />}
+      />
+      <section className="grid gap-4 xl:grid-cols-[.68fr_1.32fr]">
+        <ScoreHero
+          label="Handoff Readiness Score"
+          value={scenario.mockScores.handoffReadiness}
+          detail={t(
+            "Estimated from receiver fit, ownership, dependencies, timing and definition of done.",
+            "Estimado a partir del ajuste al receptor, ownership, dependencias, timing y definición de terminado.",
+          )}
+        />
+        <SectionCard
+          title="Supported handoff paths"
+          icon={<Workflow size={15} />}
+        >
+          <div className="grid gap-2 sm:grid-cols-2">
+            {paths.map((path) => (
+              <div
+                key={path}
+                className="rounded-lg border border-[var(--border)] bg-[var(--panel-soft)] px-3 py-2.5 text-[10px] font-medium"
+              >
+                {path}
+              </div>
+            ))}
+          </div>
+        </SectionCard>
+      </section>
+      <section className="grid gap-4 lg:grid-cols-2">
+        <LabeledList label="What is clear" items={clear} />
+        <LabeledList
+          label="What is missing"
+          items={scenario.expectedAnalysis.missingInformation}
+          tone="rose"
+        />
+      </section>
+      <section className="grid gap-4 lg:grid-cols-3">
+        <LabeledList label="Blockers" items={blockers} tone="rose" />
+        <LabeledList
+          label="Rework risks"
+          items={scenario.expectedAnalysis.risks}
+          tone="amber"
+        />
+        <LabeledList label="Critical questions to validate" items={questions} />
+      </section>
+      <section className="grid gap-4 lg:grid-cols-2">
+        <SectionCard
+          title="Pre-handoff checklist"
+          icon={<CheckSquare2 size={15} />}
+        >
+          <InsightList items={checklist} />
+        </SectionCard>
+        <SectionCard
+          title="Handoff-ready version"
+          icon={<ShieldAlert size={15} />}
+        >
+          <div className="rounded-xl border border-teal-400/15 bg-teal-400/[.045] p-4 text-xs leading-6 text-[var(--muted)]">
+            {t(
+              "QA Automation owns the top 12 checkout regression scenarios before release R24. Test data is provided by QA in the staging dataset. Automation is complete when the suite runs in CI, failures link to the manual evidence, and the QA Lead accepts coverage.",
+              "Automatización QA es responsable de los 12 escenarios prioritarios de regresión del checkout antes del release R24. QA provee los datos en staging. La automatización termina cuando la suite corre en CI, los fallos enlazan evidencia manual y el líder de QA acepta la cobertura.",
+            )}
+          </div>
+        </SectionCard>
+      </section>
+      <SectionCard title="Current handoff profile">
+        <FactGrid
+          facts={[
+            {
+              label: "Probable intent",
+              value: scenario.expectedAnalysis.probableIntent,
+            },
+            { label: "Target receiver", value: scenario.targetReceiver },
+            { label: "Source → Target", value: "QA → QA Automation" },
+            {
+              label: "Recommended output",
+              value: scenario.generatedOutput.title,
+            },
+          ]}
+        />
+      </SectionCard>
+      <section className="grid gap-4 lg:grid-cols-3">
+        <EvidenceSection
+          items={[
+            {
+              id: "handoff-source",
+              classification: "observed",
+              title: t("Source handoff", "Handoff de origen"),
+              detail: t(
+                "QA states that manual cases are complete.",
+                "QA declara que los casos manuales están terminados.",
+              ),
+            },
+            {
+              id: "handoff-priority",
+              classification: "insufficient",
+              title: t("Automation priority", "Prioridad de automatización"),
+              detail: t(
+                "No ordered scenario list or business-risk rule is available.",
+                "No existe una lista ordenada de escenarios ni una regla de riesgo de negocio.",
+              ),
+            },
+            {
+              id: "handoff-acceptance",
+          classification: "limitation",
+              title: t("Acceptance required", "Aceptación requerida"),
+              detail: t(
+                "The receiver must confirm data, environment and completion criteria.",
+                "El receptor debe confirmar datos, ambiente y criterios de finalización.",
+              ),
+            },
+          ]}
+        />
+        <LimitationsPanel
+          limitations={
+            es
+              ? [
+                  "El escenario es simulado.",
+                  "No se inspeccionaron suites, ambientes ni datos reales.",
+                  "El handoff no se considera listo sin aceptación del receptor.",
+                ]
+              : [
+                  "The scenario is simulated.",
+                  "No real suites, environments or data were inspected.",
+                  "The handoff is not considered ready without receiver acceptance.",
+                ]
+          }
+        />
+        <OutcomePanel
+          outcomes={
+            es
+              ? [
+                  "El receptor acepta alcance y prioridad.",
+                  "Datos y ambiente tienen ownership explícito.",
+                  "La finalización se valida con evidencia compartida.",
+                ]
+              : [
+                  "The receiver accepts scope and priority.",
+                  "Data and environment have explicit ownership.",
+                  "Completion is validated with shared evidence.",
+                ]
+          }
+        />
+      </section>
+    </div>
+  );
 }

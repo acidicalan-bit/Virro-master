@@ -33,12 +33,12 @@ export function PublicNavbar() {
   }, [mobileOpen]);
 
   const anchors = [
-    ["/#virro-core", t("How it works", "Cómo funciona")],
+    ["/how-it-works", t("How it works", "Cómo funciona")],
     ["/flow-audit", t("Workflow audit", "Auditoría de flujo")],
     ["/#casos-uso", t("Use cases", "Casos de uso")],
     ["/#formas-entrada", t("Ways to begin", "Formas de entrada")],
     ["/#privacidad", t("Trust", "Confianza")],
-    ["/app/demo-scenarios", t("Demo", "Demo")],
+    ["/demo", t("Demo", "Demo")],
   ];
 
   return (

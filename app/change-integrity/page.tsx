@@ -1,4 +1,36 @@
 import type { Metadata } from "next";
 import { CommercialSeoPage } from "@/components/landing/commercial-seo-page";
-export const metadata: Metadata = { title: "Change Integrity para equipos empresariales | Virro", description: "Identifica qué artefactos y equipos pueden quedar atrás cuando cambia una prioridad, alcance o decisión.", alternates: { canonical: "/change-integrity" } };
-export default function Page() { return <CommercialSeoPage eyebrow="Change Integrity" title="Cuando una prioridad cambia, ¿qué información queda atrás?" description="Virro identifica qué cambió, qué artefactos podrían dejar de ser válidos, qué equipos necesitan confirmación y qué regularización sigue pendiente." cta="Analizar un flujo crítico" sections={[{title:"Cambio detectado",copy:"Separa la nueva decisión de la información que todavía representa el estado anterior.",points:["Prioridad","Alcance","Fecha","Dependencias"]},{title:"Impacto probable",copy:"Ubica artefactos y receptores que requieren confirmación humana.",points:["Historias","Pruebas","Documentación","Soporte"]},{title:"Regularización",copy:"Propone preguntas y responsables sin modificar sistemas en Shadow Mode.",points:["Fuente vigente","Responsable","Siguiente acción"]}]} />; }
+export const metadata: Metadata = {
+  title: "Change Integrity para equipos empresariales | Virro",
+  description:
+    "Identifica qué artefactos y equipos pueden quedar atrás cuando cambia una prioridad, alcance o decisión.",
+  alternates: { canonical: "/change-integrity" },
+};
+export default function Page() {
+  return (
+    <CommercialSeoPage
+      capabilityStatus="assisted"
+      eyebrow="Change Integrity"
+      title="Cuando una prioridad cambia, ¿qué información queda atrás?"
+      description="Virro identifica qué cambió, qué artefactos podrían dejar de ser válidos, qué equipos necesitan confirmación y qué regularización sigue pendiente."
+      cta="Analizar un flujo crítico"
+      sections={[
+        {
+          title: "Cambio detectado",
+          copy: "Separa la nueva decisión de la información que todavía representa el estado anterior.",
+          points: ["Prioridad", "Alcance", "Fecha", "Dependencias"],
+        },
+        {
+          title: "Impacto probable",
+          copy: "Ubica artefactos y receptores que requieren confirmación humana.",
+          points: ["Historias", "Pruebas", "Documentación", "Soporte"],
+        },
+        {
+          title: "Regularización",
+          copy: "Propone preguntas y responsables sin modificar sistemas en Shadow Mode.",
+          points: ["Fuente vigente", "Responsable", "Siguiente acción"],
+        },
+      ]}
+    />
+  );
+}
