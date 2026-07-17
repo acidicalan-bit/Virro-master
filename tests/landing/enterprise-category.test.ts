@@ -49,8 +49,9 @@ describe("Virro enterprise category experience", () => {
   it("uses enterprise audit and pilot conversion actions", () => {
     const source = readFileSync(join(root, "components/landing/diagnosis-request-form.tsx"), "utf8");
     expect(source).toContain('t("Request workflow audit", "Solicitar auditoría de flujo")');
-    expect(source).toContain('t("Schedule a conversation", "Agendar conversación")');
+    expect(source).toContain('t("Explore the enterprise demo", "Explorar demo enterprise")');
     expect(source).toContain('fetch("/api/audit-requests"');
+    expect(source).not.toContain("mailto:");
   });
 
   it("keeps executive preview scores visible from the first render", () => {
