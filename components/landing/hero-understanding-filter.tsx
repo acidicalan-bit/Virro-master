@@ -14,6 +14,7 @@ const heroVideos = [
 
 const CROSSFADE_MS = 1000;
 const CROSSFADE_LEAD_SECONDS = 1.15;
+const FALLBACK_CLIP_MS = 7000;
 
 export function HeroUnderstandingFilter() {
   const { t } = useLanguage();
@@ -21,6 +22,7 @@ export function HeroUnderstandingFilter() {
   const currentVideoIndex = useRef(0);
   const isTransitioning = useRef(false);
   const transitionTimer = useRef<number | undefined>(undefined);
+  const nextVideoTimer = useRef<number | undefined>(undefined);
   const [activeVideoIndex, setActiveVideoIndex] = useState(0);
   const [videosEnabled, setVideosEnabled] = useState(false);
 
@@ -46,9 +48,22 @@ export function HeroUnderstandingFilter() {
 
     const videos = videoRefs.current;
     const play = (video: HTMLVideoElement) => { void video.play().catch(() => undefined); };
+    const clearNextVideoTimer = () => {
+      if (nextVideoTimer.current !== undefined) window.clearTimeout(nextVideoTimer.current);
+      nextVideoTimer.current = undefined;
+    };
+
+    const scheduleNextVideo = (video: HTMLVideoElement) => {
+      clearNextVideoTimer();
+      const durationMs = Number.isFinite(video.duration) && video.duration > CROSSFADE_LEAD_SECONDS
+        ? Math.max(1200, (video.duration - CROSSFADE_LEAD_SECONDS) * 1000)
+        : FALLBACK_CLIP_MS;
+      nextVideoTimer.current = window.setTimeout(() => transitionToNext(), durationMs);
+    };
 
     const transitionToNext = () => {
       if (isTransitioning.current) return;
+      clearNextVideoTimer();
 
       const outgoingIndex = currentVideoIndex.current;
       const incomingIndex = (outgoingIndex + 1) % heroVideos.length;
@@ -57,9 +72,10 @@ export function HeroUnderstandingFilter() {
       if (!outgoing || !incoming) return;
 
       isTransitioning.current = true;
-      incoming.currentTime = 0;
+      incoming.load();
 
       const beginCrossfade = () => {
+        incoming.currentTime = 0;
         play(incoming);
         currentVideoIndex.current = incomingIndex;
         setActiveVideoIndex(incomingIndex);
@@ -67,6 +83,7 @@ export function HeroUnderstandingFilter() {
           outgoing.pause();
           outgoing.currentTime = 0;
           isTransitioning.current = false;
+          scheduleNextVideo(incoming);
         }, CROSSFADE_MS);
       };
 
@@ -97,10 +114,12 @@ export function HeroUnderstandingFilter() {
     if (initialVideo) {
       initialVideo.currentTime = 0;
       play(initialVideo);
+      scheduleNextVideo(initialVideo);
     }
 
     return () => {
       if (transitionTimer.current) window.clearTimeout(transitionTimer.current);
+      clearNextVideoTimer();
       videos.forEach((video, index) => {
         const listener = listeners[index];
         if (!video || !listener) return;
@@ -112,7 +131,7 @@ export function HeroUnderstandingFilter() {
 
   return <section id="plataforma" className="landing-hero has-video-hero relative min-h-[820px] scroll-mt-24 overflow-hidden px-5 pb-24 pt-36 md:px-8 md:pt-44">
     <div className="hero-video-poster" aria-hidden="true" />
-    {videosEnabled && heroVideos.map((video, index) => <video key={video.src} ref={(element) => { videoRefs.current[index] = element; }} className={`hero-video-media${activeVideoIndex === index ? " is-active" : ""}`} muted loop playsInline preload={index === 0 ? "metadata" : "none"} poster="/hero/virro-flow-poster.webp" aria-hidden="true" tabIndex={-1} src={video.src} />)}
+    {videosEnabled && heroVideos.map((video, index) => <video key={video.src} ref={(element) => { videoRefs.current[index] = element; }} className={`hero-video-media${activeVideoIndex === index ? " is-active" : ""}`} muted playsInline preload={index === 0 ? "metadata" : "none"} poster="/hero/virro-flow-poster.webp" aria-hidden="true" tabIndex={-1} src={video.src} />)}
     <div className="hero-video-scrim" aria-hidden="true" />
     <div className="hero-glow hero-glow-one" /><div className="hero-glow hero-glow-two" /><div className="hero-grid-fade" />
     <div className="relative mx-auto grid max-w-[1380px] gap-14 xl:grid-cols-[.88fr_1.12fr] xl:items-center">
