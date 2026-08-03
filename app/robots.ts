@@ -1,13 +1,2 @@
 import type { MetadataRoute } from "next";
-
-export default function robots(): MetadataRoute.Robots {
-  return {
-    rules: {
-      userAgent: "*",
-      allow: "/",
-      disallow: ["/app", "/app/", "/internal", "/internal/", "/api/"],
-    },
-    sitemap: "https://www.virro.app/sitemap.xml",
-    host: "https://www.virro.app",
-  };
-}
+export default function robots(): MetadataRoute.Robots { return { rules: { userAgent: "*", allow: "/", disallow: ["/admin"] }, sitemap: "https://www.virro.app/sitemap.xml" }; }

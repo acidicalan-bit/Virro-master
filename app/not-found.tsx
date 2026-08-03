@@ -1,6 +1,3 @@
 import Link from "next/link";
-import { ArrowLeft, ArrowRight } from "lucide-react";
-
-export default function NotFound() {
-  return <main className="grid min-h-screen place-items-center bg-[var(--app-bg)] px-5 text-[var(--text)]"><section className="max-w-xl text-center"><p className="section-kicker">Virro · 404</p><h1 className="mt-5 text-4xl font-semibold tracking-[-.055em] md:text-6xl">Esta ruta no está disponible.</h1><p className="mx-auto mt-5 max-w-md text-sm leading-7 text-[var(--muted)]">Vuelve al sitio público o inicia una solicitud de auditoría de entendimiento operativo.</p><div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row"><Link href="/" className="brand-secondary-button"><ArrowLeft size={15} />Volver al inicio</Link><Link href="/#solicitar-diagnostico" className="brand-primary-button">Solicitar auditoría<ArrowRight size={15} /></Link></div></section></main>;
-}
+import { Button } from "@/components/ui/button";
+export default function NotFound() { return <main id="main-content"><section className="page-hero section"><div className="shell"><span className="eyebrow">404 · Ruta no encontrada</span><h1 className="display">Esta ruta todavía no forma parte del sistema.</h1><p className="lead">Vuelve al inicio o explora una transformación conceptual.</p><div className="actions"><Button asChild variant="acid"><Link href="/">Volver al inicio</Link></Button><Button asChild variant="outline"><Link href="/transformaciones">Ver transformaciones</Link></Button></div></div></section></main>; }
