@@ -1,0 +1,18 @@
+{
+  "schema_version": "1.0.0",
+  "slug": "demo-build-001-1",
+  "name": "DEMO — Blind evaluation harness",
+  "description": "Un solo caso sintético para verificar el flujo. No es el set ciego real y no debe usarse para medir precisión.",
+  "source_label": "Intent Lab Build 001.1 demo",
+  "is_demo": true,
+  "cases": [
+    {
+      "id": "demo-ambiguous-tone",
+      "raw_input": "Se siente como presentación de banco de hace años, pero no sé qué mover.",
+      "context": "landing page de una marca joven",
+      "domain": "diseño web",
+      "private_evaluator_notes": "DEMO: observar si explora tono, jerarquía y contemporaneidad sin inventar un rediseño total.",
+      "expected_high_level_behavior": "Reconocer rechazo indirecto y proponer pocas hipótesis reversibles antes de rehacer todo."
+    }
+  ]
+}

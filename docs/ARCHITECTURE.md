@@ -1,4 +1,4 @@
-# Arquitectura — Build 001
+# Arquitectura — Build 001.1
 
 Intent Lab es un monolito modular en Next.js App Router.
 
@@ -11,7 +11,7 @@ Domain (Intent Contract, pragmática, benchmark scoring)
         ↓
 Ports (IntentModel, repositories)
         ↓
-Adapters (HTTP structured model, heurístico, Supabase, memoria)
+Adapters (OpenAI Responses, baseline heurístico, Supabase, memoria)
 ```
 
 ## Límites
@@ -33,9 +33,11 @@ Adapters (HTTP structured model, heurístico, Supabase, memoria)
 6. La UI recibe contrato, ID del run y metadatos no sensibles.
 7. El feedback se guarda por medio de `IntentFeedbackRepository`.
 
+OpenAI y el baseline implementan el mismo `IntentModel`. La instrucción OpenAI vive en un módulo versionado independiente y el schema estructurado se deriva directamente del contrato Zod del dominio.
+
 ## Persistencia y RLS
 
-Supabase PostgreSQL es la fuente de verdad configurada. Las cuatro tablas tienen RLS habilitado y no son accesibles para roles públicos. Build 001 escribe desde el servidor con service role. Al añadir Auth deberán crearse políticas por propietario/tenant y reemplazar las escrituras elevadas donde corresponda.
+Supabase PostgreSQL es la fuente de verdad configurada. Todas las tablas tienen RLS habilitado y no son accesibles para roles públicos. Build 001.1 escribe desde el servidor con service role. Al añadir Auth deberán crearse políticas por propietario/tenant y reemplazar las escrituras elevadas donde corresponda.
 
 El modo memoria existe solamente en desarrollo y test para permitir una instalación sin secretos. Producción falla de forma explícita si Supabase no está configurado.
 
@@ -44,3 +46,23 @@ El modo memoria existe solamente en desarrollo y test para permitir una instalac
 Las métricas se basan en coincidencias deterministas declaradas por cada fixture: modo exacto, conceptos esperados, preguntas prohibidas e interpretaciones prohibidas. Una ausencia de concepto activa `manualReview`; no se presenta como precisión semántica científica.
 
 Métricas futuras como Intent Accuracy, Contextual Meaning Accuracy y Human Correction Rate requieren etiquetas humanas suficientes antes de ser útiles.
+
+## Evaluación ciega
+
+```text
+set externo inmutable
+        ↓
+sesión con versiones congeladas
+        ↓
+baseline + OpenAI en paralelo
+        ↓
+mapeo A/B aleatorio persistido solo en servidor
+        ↓
+preferencia + ratings + corrección humana
+        ↓
+revelado al completar todos los casos
+```
+
+Las notas privadas y el comportamiento esperado no cruzan la frontera HTTP antes del cierre. Cada salida se enlaza a un `intent_run`; un fallo enlaza a `intent_model_failures` y no se sustituye por otro proveedor.
+
+El contenido importado se identifica mediante SHA-256 y no existen operaciones de actualización. Una sesión compara su configuración actual contra las versiones congeladas antes de ejecutar cada caso para impedir mezclas de compiler, modelo o instrucción.

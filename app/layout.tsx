@@ -21,6 +21,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           <nav aria-label="Principal">
             <Link href="/">Compiler</Link>
             <Link href="/benchmarks">Benchmarks</Link>
+            <Link href="/blind-eval">Blind Eval</Link>
           </nav>
         </header>
         <div id="main-content">{children}</div>

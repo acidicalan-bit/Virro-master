@@ -17,7 +17,7 @@ describe("Intent Lab critical path", () => {
             contract: validContract(),
             runId: "09016489-1647-4f3b-9e9a-c7f1d8d858c2",
             storageMode: "supabase",
-            metadata: { provider: "test", modelName: "mock", modelVersion: null, latencyMs: 4, compilerVersion: "0.1.0", schemaVersion: "1.0.0", usage: null },
+            metadata: { provider: "test", modelName: "mock", modelVersion: null, latencyMs: 4, providerLatencyMs: 2, compilerVersion: "0.1.1", systemInstructionVersion: "test-system-1", schemaVersion: "1.0.0", usage: null, estimatedCostUsd: null, pricingVersion: null },
           }),
         } as Response;
       }

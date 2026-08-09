@@ -14,9 +14,13 @@ type CompileResponse = {
     modelName: string;
     modelVersion: string | null;
     latencyMs: number;
+    providerLatencyMs: number | null;
     compilerVersion: string;
+    systemInstructionVersion: string;
     schemaVersion: string;
-    usage: { inputTokens: number | null; outputTokens: number | null; totalTokens: number | null } | null;
+    usage: { inputTokens: number | null; cachedInputTokens: number | null; outputTokens: number | null; reasoningTokens: number | null; totalTokens: number | null } | null;
+    estimatedCostUsd: number | null;
+    pricingVersion: string | null;
   };
 };
 
@@ -201,8 +205,13 @@ function IntentResult({ result }: { result: CompileResponse }) {
           <div><dt>Provider</dt><dd>{result.metadata.provider}</dd></div>
           <div><dt>Modelo</dt><dd>{result.metadata.modelName}</dd></div>
           <div><dt>Latencia</dt><dd>{result.metadata.latencyMs} ms</dd></div>
+          <div><dt>Latencia provider</dt><dd>{result.metadata.providerLatencyMs ?? "—"} ms</dd></div>
           <div><dt>Compiler</dt><dd>{result.metadata.compilerVersion}</dd></div>
+          <div><dt>System instruction</dt><dd>{result.metadata.systemInstructionVersion}</dd></div>
           <div><dt>Schema</dt><dd>{result.metadata.schemaVersion}</dd></div>
+          <div><dt>Tokens</dt><dd>{result.metadata.usage?.totalTokens ?? "—"}</dd></div>
+          <div><dt>Reasoning tokens</dt><dd>{result.metadata.usage?.reasoningTokens ?? "—"}</dd></div>
+          <div><dt>Costo estimado</dt><dd>{result.metadata.estimatedCostUsd === null ? "—" : `$${result.metadata.estimatedCostUsd.toFixed(6)} USD`}</dd></div>
         </dl>
         <pre>{JSON.stringify(contract, null, 2)}</pre>
       </details>

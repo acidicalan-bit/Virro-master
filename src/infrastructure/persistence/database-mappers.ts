@@ -11,10 +11,16 @@ export type IntentRunRow = {
   model_provider: string;
   model_name: string;
   model_version: string | null;
+  system_instruction_version: string;
   latency_ms: number;
+  provider_latency_ms: number | null;
   input_tokens: number | null;
+  cached_input_tokens: number | null;
   output_tokens: number | null;
+  reasoning_tokens: number | null;
   total_tokens: number | null;
+  estimated_cost_usd: number | string | null;
+  pricing_version: string | null;
   created_at: string;
 };
 
@@ -27,10 +33,16 @@ export function toIntentRunInsert(input: CreateIntentRun) {
     model_provider: input.modelProvider,
     model_name: input.modelName,
     model_version: input.modelVersion,
+    system_instruction_version: input.systemInstructionVersion,
     latency_ms: input.latencyMs,
+    provider_latency_ms: input.providerLatencyMs,
     input_tokens: input.usage?.inputTokens ?? null,
+    cached_input_tokens: input.usage?.cachedInputTokens ?? null,
     output_tokens: input.usage?.outputTokens ?? null,
+    reasoning_tokens: input.usage?.reasoningTokens ?? null,
     total_tokens: input.usage?.totalTokens ?? null,
+    estimated_cost_usd: input.estimatedCostUsd,
+    pricing_version: input.pricingVersion,
   };
 }
 
@@ -44,11 +56,26 @@ export function fromIntentRunRow(row: IntentRunRow): IntentRunRecord {
     modelProvider: row.model_provider,
     modelName: row.model_name,
     modelVersion: row.model_version,
+    systemInstructionVersion: row.system_instruction_version,
     latencyMs: row.latency_ms,
+    providerLatencyMs: row.provider_latency_ms,
     usage:
-      row.input_tokens === null && row.output_tokens === null && row.total_tokens === null
+      row.input_tokens === null &&
+      row.cached_input_tokens === null &&
+      row.output_tokens === null &&
+      row.reasoning_tokens === null &&
+      row.total_tokens === null
         ? null
-        : { inputTokens: row.input_tokens, outputTokens: row.output_tokens, totalTokens: row.total_tokens },
+        : {
+            inputTokens: row.input_tokens,
+            cachedInputTokens: row.cached_input_tokens,
+            outputTokens: row.output_tokens,
+            reasoningTokens: row.reasoning_tokens,
+            totalTokens: row.total_tokens,
+          },
+    estimatedCostUsd:
+      row.estimated_cost_usd === null ? null : Number(row.estimated_cost_usd),
+    pricingVersion: row.pricing_version,
     createdAt: row.created_at,
   };
 }

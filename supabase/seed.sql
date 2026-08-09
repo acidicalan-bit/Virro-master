@@ -44,3 +44,32 @@ on conflict (slug) do update set
   forbidden_questions = excluded.forbidden_questions,
   notes = excluded.notes,
   active = excluded.active;
+
+insert into public.blind_evaluation_sets (
+  slug, name, description, source_label, is_demo, content_hash
+) values (
+  'demo-build-001-1',
+  'DEMO — Blind evaluation harness',
+  'Un solo caso sintético para verificar el flujo. No es el set ciego real y no debe usarse para medir precisión.',
+  'Intent Lab Build 001.1 demo',
+  true,
+  'demo-build-001-1-v1'
+)
+on conflict (slug) do nothing;
+
+insert into public.blind_evaluation_cases (
+  evaluation_set_id, external_id, raw_input, context, domain,
+  private_evaluator_notes, expected_high_level_behavior, position
+)
+select
+  id,
+  'demo-ambiguous-tone',
+  'Se siente como presentación de banco de hace años, pero no sé qué mover.',
+  'landing page de una marca joven',
+  'diseño web',
+  'DEMO: observar si explora tono, jerarquía y contemporaneidad sin inventar un rediseño total.',
+  'Reconocer rechazo indirecto y proponer pocas hipótesis reversibles antes de rehacer todo.',
+  0
+from public.blind_evaluation_sets
+where slug = 'demo-build-001-1'
+on conflict (evaluation_set_id, external_id) do nothing;

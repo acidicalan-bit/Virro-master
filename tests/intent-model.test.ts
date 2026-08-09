@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { IntentCompiler } from "@/src/application/intent-compiler";
+import { IntentCompilationFailure, IntentCompiler } from "@/src/application/intent-compiler";
 import type { IntentModel } from "@/src/application/ports/intent-model";
 import { analyzePragmatics } from "@/src/domain/human-pragmatics";
 import { HttpStructuredIntentModel, IntentModelError } from "@/src/infrastructure/models/http-structured-intent-model";
-import { InMemoryIntentRunRepository } from "@/src/infrastructure/persistence/in-memory-repositories";
+import { InMemoryIntentModelFailureRepository, InMemoryIntentRunRepository } from "@/src/infrastructure/persistence/in-memory-repositories";
 import { validContract } from "@/tests/helpers";
 
 const successfulModel: IntentModel = {
@@ -31,6 +31,23 @@ describe("IntentModel abstraction", () => {
     const model: IntentModel = { compile: async () => { throw new Error("provider unavailable"); } };
     await expect(new IntentCompiler(model, runs).compile({ rawInput: "Hola", context: null })).rejects.toThrow("provider unavailable");
     expect(runs.records).toHaveLength(0);
+  });
+
+  it("persists an explicit failure record when a versioned provider fails", async () => {
+    const runs = new InMemoryIntentRunRepository();
+    const failures = new InMemoryIntentModelFailureRepository();
+    const model: IntentModel = {
+      descriptor: { provider: "openai", modelName: "gpt-5.6-luna", modelVersion: null, systemInstructionVersion: "system-1" },
+      compile: async () => { throw new Error("provider unavailable"); },
+    };
+    const compiler = new IntentCompiler(model, runs, "0.1.1", failures);
+    await expect(compiler.compile({ rawInput: "Hola", context: null })).rejects.toBeInstanceOf(IntentCompilationFailure);
+    expect(runs.records).toHaveLength(0);
+    expect(failures.records[0]).toMatchObject({
+      modelProvider: "openai",
+      modelName: "gpt-5.6-luna",
+      systemInstructionVersion: "system-1",
+    });
   });
 
   it("rejects an invalid structured contract without persisting it", async () => {

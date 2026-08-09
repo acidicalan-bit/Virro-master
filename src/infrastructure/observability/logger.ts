@@ -2,6 +2,7 @@ type LogEvent =
   | "compilation_started"
   | "compilation_succeeded"
   | "compilation_failed"
+  | "failure_persistence_failed"
   | "validation_failed"
   | "human_feedback";
 

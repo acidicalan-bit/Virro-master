@@ -70,7 +70,9 @@ export class HttpStructuredIntentModel implements IntentModel {
           usage: raw.usage
             ? {
                 inputTokens: raw.usage.prompt_tokens ?? null,
+                cachedInputTokens: null,
                 outputTokens: raw.usage.completion_tokens ?? null,
+                reasoningTokens: null,
                 totalTokens: raw.usage.total_tokens ?? null,
               }
             : null,
