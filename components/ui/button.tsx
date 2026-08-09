@@ -15,7 +15,8 @@ const buttonVariants = cva(
         outline:
           "border border-white/15 bg-white/[.035] text-white hover:-translate-y-0.5 hover:border-white/30 hover:bg-white/[.08]",
         ghost: "text-white/70 hover:bg-white/[.06] hover:text-white",
-        acid: "bg-[var(--acid)] text-[#0a0d12] hover:-translate-y-0.5 hover:shadow-[0_16px_50px_rgba(216,255,91,.2)]",
+        coral: "bg-[var(--coral)] text-[#07101f] hover:-translate-y-0.5 hover:shadow-[0_16px_50px_rgba(255,111,97,.28)]",
+        acid: "bg-[var(--coral)] text-[#07101f] hover:-translate-y-0.5 hover:shadow-[0_16px_50px_rgba(255,111,97,.28)]",
       },
       size: {
         default: "h-11 px-5",

@@ -8,10 +8,9 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 
 const nav = [
-  ["Cómo funciona", "/impulsa"],
-  ["Transformaciones", "/transformaciones"],
-  ["Sectores", "/sectores"],
+  ["Transformación", "/#transformacion"],
   ["Capacidades", "/motor-virro"],
+  ["Casos", "/transformaciones"],
 ] as const;
 
 export function SiteHeader() {
@@ -26,17 +25,15 @@ export function SiteHeader() {
         </Link>
         <nav className="desktop-nav" aria-label="Navegación principal">
           {nav.map(([label, href]) => <Link href={href} key={href}>{label}</Link>)}
-          <Link className="core-link" href="/labs">Virro Core ↗</Link>
         </nav>
-        <Button className="header-cta" asChild size="sm"><Link href="/diagnostico">Ver mi negocio transformado</Link></Button>
+        <Button className="header-cta" asChild variant="coral" size="sm"><Link href="/diagnostico">Ver mi negocio transformado</Link></Button>
         <button className="menu-toggle" type="button" aria-expanded={open} aria-controls="mobile-nav" onClick={() => setOpen((value) => !value)}>
           {open ? <X aria-hidden="true" /> : <Menu aria-hidden="true" />}<span className="sr-only">{open ? "Cerrar menú" : "Abrir menú"}</span>
         </button>
       </div>
       <nav id="mobile-nav" className={`mobile-nav ${open ? "is-open" : ""}`} aria-label="Navegación móvil">
         {nav.map(([label, href]) => <Link href={href} key={href} onClick={() => setOpen(false)}>{label}</Link>)}
-        <Link href="/labs" onClick={() => setOpen(false)}>Virro Core ↗</Link>
-        <Button asChild variant="acid"><Link href="/diagnostico" onClick={() => setOpen(false)}>Quiero iniciar</Link></Button>
+        <Button asChild variant="coral"><Link href="/diagnostico" onClick={() => setOpen(false)}>Quiero iniciar</Link></Button>
       </nav>
     </header>
   );
