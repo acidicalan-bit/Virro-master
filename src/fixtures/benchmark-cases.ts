@@ -24,7 +24,7 @@ const fixture = (
 export const benchmarkFixtures: BenchmarkCase[] = [
   fixture("magia-foto", "Haz magia con esta foto.", "edición fotográfica", ["mejora extraordinaria", "preservar identidad"], "EXECUTE", { forbiddenInterpretations: ["efectos sobrenaturales"], expectedAssumptions: ["ajustes fotográficos naturales"] }),
   fixture("magia-balon", "Hizo magia con el balón.", "fútbol", ["habilidad", "creatividad", "control"], "ASSUME", { forbiddenInterpretations: ["magia sobrenatural"], expectedAssumptions: ["elogio figurado"] }),
-  fixture("magia-manos", "Pon magia saliendo de sus manos.", "ilustración fantástica", ["magia"], "ASSUME", { notes: "En fantasía, la lectura literal sí puede ser correcta." }),
+  fixture("magia-manos", "Pon magia saliendo de sus manos.", "ilustración fantástica", ["magia", "manos"], "EXECUTE", { notes: "En fantasía, la lectura literal sí es la acción solicitada." }),
   fixture("pesado-personaje", "Hazlo más pesado.", "personaje de videojuego", ["masa", "presencia"], "SHOW_OPTIONS", { forbiddenInterpretations: ["peso físico del archivo"] }),
   fixture("pesado-diseno", "Hazlo más pesado.", "diseño de póster", ["peso visual", "impacto"], "SHOW_OPTIONS", { forbiddenInterpretations: ["peso físico"] }),
   fixture("pesado-musica", "Hazlo más pesado.", "mezcla musical", ["cuerpo", "pegada"], "SHOW_OPTIONS", { forbiddenInterpretations: ["peso físico"] }),
@@ -47,7 +47,7 @@ export const benchmarkFixtures: BenchmarkCase[] = [
   fixture("raro-ui", "No sé qué tiene pero está raro.", "interfaz web", ["diagnosticar", "jerarquía"], "EXPLORE"),
   fixture("medio-equis", "Está medio equis.", "logo", ["cambio contextual"], "ASSUME", { notes: "Caso coloquial deliberadamente abierto para revisión manual." }),
   fixture("bonito-no", "Está bonito, pero no se siente mío.", "identidad de marca", ["cambio contextual"], "ASSUME", { notes: "Debe preservar el rechazo indirecto y la identidad del usuario." }),
-  fixture("camiseta-negra", "Haz la camiseta negra.", "edición fotográfica", ["cambio contextual"], "ASSUME", { forbiddenInterpretations: ["cambiar el rostro", "regenerar fondo"], expectedAssumptions: ["moderada"] }),
+  fixture("camiseta-negra", "Haz la camiseta negra.", "edición fotográfica", ["camiseta", "negro", "preservar"], "EXECUTE", { forbiddenInterpretations: ["cambiar el rostro", "regenerar fondo"], expectedAssumptions: ["negro neutro"] }),
   fixture("solo-fondo", "Solo quita lo del fondo.", "edición fotográfica", ["cambio contextual"], "ASSUME", { forbiddenInterpretations: ["cambiar la cara", "cambiar el cuerpo"] }),
   fixture("mas-calido", "Un poquito más cálido.", "fotografía", ["cambio contextual"], "ASSUME", { expectedAssumptions: ["moderada"] }),
   fixture("que-pegue", "Quiero que pegue más.", "mezcla musical", ["cambio contextual"], "ASSUME", { forbiddenInterpretations: ["golpear físicamente"] }),

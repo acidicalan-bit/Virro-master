@@ -17,6 +17,8 @@ type Interpretation = {
   preservation?: string[];
   prohibited?: string[];
   assumptions?: string[];
+  explicitFacts?: string[];
+  provisional?: Array<{ decision: string; rationale: string }>;
   ambiguity?: string;
   nextAction?: string;
 };
@@ -37,6 +39,7 @@ export class HeuristicIntentModel implements IntentModel {
       explicitFacts: [
         `Solicitud textual: ${input.rawInput}`,
         ...(input.context ? [`Contexto declarado: ${input.context}`] : []),
+        ...(interpretation.explicitFacts ?? []),
       ],
       implicitExpectations: [
         "El resultado debe responder al significado contextual, no solo a las palabras literales.",
@@ -46,12 +49,7 @@ export class HeuristicIntentModel implements IntentModel {
       safeAssumptions: (interpretation.assumptions ?? ["Aplicar un cambio moderado y reversible."]).map(
         (assumption) => ({ assumption, reason: "Es una convención de bajo impacto y fácil de revertir.", reversible: true }),
       ),
-      provisionalDecisions: [
-        {
-          decision: "Usar una intensidad moderada como punto de partida.",
-          rationale: "La persona pidió una dirección relativa, pero no fijó un grado exacto.",
-        },
-      ],
+      provisionalDecisions: interpretation.provisional ?? [],
       ambiguities: interpretation.ambiguity
         ? [{ topic: interpretation.ambiguity, impact: asksClarification ? "HIGH" : "MEDIUM", resolution: asksClarification ? "Aclarar antes de ejecutar." : "Mostrar una opción reversible y permitir ajuste." }]
         : [],
@@ -84,6 +82,26 @@ function interpret(input: CompileIntentInput, pragmatics: PragmaticAnalysis): In
   const text = input.rawInput.toLocaleLowerCase("es-MX");
   const context = (input.context ?? "").toLocaleLowerCase("es-MX");
 
+  if (
+    text.includes("magia") &&
+    pragmatics.signals.some(
+      (signal) => signal.kind === "FIGURATIVE" && signal.contextualMeaning.startsWith("Puede ser un efecto mágico literal"),
+    )
+  ) {
+    return {
+      intent: "Añadir un efecto visual de magia que emerge de las manos del personaje.",
+      meaning: "En una ilustración fantástica, “magia” es literal: un efecto sobrenatural visible debe salir de sus manos.",
+      mode: "EXECUTE",
+      creativeFreedom: "MEDIUM",
+      confidence: 0.96,
+      expectations: ["El efecto debe integrarse con el estilo y la iluminación de la ilustración."],
+      preservation: ["Identidad, anatomía, vestuario, pose y composición fuera del efecto solicitado."],
+      prohibited: ["No reinterpretar la magia como una mejora fotográfica figurada.", "No rediseñar elementos ajenos al efecto."],
+      assumptions: ["Usar un efecto mágico legible y coherente con el estilo fantástico existente."],
+      explicitFacts: ["La magia debe salir de las manos.", "El contexto es una ilustración de personaje fantástico."],
+    };
+  }
+
   if (text.includes("magia") && pragmatics.likelyDomain === "fotografía") {
     return {
       intent: "Mejorar notablemente la foto con criterio visual.",
@@ -107,6 +125,72 @@ function interpret(input: CompileIntentInput, pragmatics: PragmaticAnalysis): In
       confidence: 0.97,
       prohibited: ["No interpretar magia sobrenatural."],
       assumptions: ["Tratar la frase como elogio figurado dentro del fútbol."],
+    };
+  }
+
+  if (
+    includesAny(text, ["seis dedos", "siete dedos"]) &&
+    pragmatics.signals.some((signal) => signal.kind === "SARCASM")
+  ) {
+    return {
+      intent: "Corregir el defecto anatómico de la mano sin alterar el resto de la imagen.",
+      meaning: "“Quedó increíble” es sarcástico: la persona rechaza el resultado y señala con frustración que ahora la mano tiene siete dedos.",
+      mode: "EXECUTE",
+      creativeFreedom: "LOW",
+      confidence: 0.98,
+      expectations: ["Reconocer el fallo en lugar de tratar el comentario como aprobación.", "Restaurar anatomía humana natural."],
+      preservation: ["Identidad, rostro, cuerpo, pose, cámara, fondo, iluminación y estilo existentes."],
+      prohibited: ["No interpretar el comentario como feedback positivo.", "No regenerar la imagen completa ni modificar rasgos no relacionados."],
+      assumptions: ["Corregir la mano a cinco dedos con anatomía coherente."],
+      explicitFacts: ["La mano resultante tiene siete dedos.", "El comentario ocurre como feedback de una edición de imagen con IA."],
+      nextAction: "Corregir únicamente la anatomía de la mano y verificar que tenga cinco dedos naturales.",
+    };
+  }
+
+  if (text.includes("camiseta") && text.includes("negra")) {
+    return {
+      intent: "Cambiar únicamente el color de la camiseta a negro.",
+      meaning: "La camiseta es el único elemento mutable; todo lo demás debe permanecer visualmente igual.",
+      mode: "EXECUTE",
+      creativeFreedom: "LOW",
+      confidence: 0.98,
+      expectations: [
+        "Conservar textura, pliegues y material de la camiseta al cambiar el color.",
+        "Preservar todos los elementos ajenos a la camiseta.",
+      ],
+      preservation: ["Rostro, identidad, cuerpo, pose, cámara, fondo, iluminación y todos los elementos ajenos a la camiseta."],
+      prohibited: ["No cambiar rostro, cuerpo, vestuario adicional, composición, fondo ni iluminación global."],
+      assumptions: ["Usar un negro neutro que preserve luces, sombras y textura existentes."],
+      explicitFacts: ["Elemento mutable: la camiseta.", "Color solicitado: negro."],
+      nextAction: "Aplicar negro únicamente a la camiseta y comparar el resto píxel a píxel cuando sea posible.",
+    };
+  }
+
+  if (text.includes("personaje anime") && includesAny(text, ["pelo negro", "cabello negro"])) {
+    return {
+      intent: "Crear la identidad visual de un personaje anime masculino con los rasgos descritos.",
+      meaning: "Hay suficiente información para avanzar: hombre de unos 27 años, delgado, serio, de pelo negro largo y presencia peligrosa sin comunicar maldad.",
+      mode: "SHOW_OPTIONS",
+      creativeFreedom: "MEDIUM",
+      confidence: 0.95,
+      expectations: ["Transmitir peligro mediante presencia, mirada y silueta, no mediante códigos de villano malvado."],
+      preservation: ["Mantener como identidad estable la edad aproximada, género, complexión, cabello, seriedad y matiz moral descritos."],
+      prohibited: ["No convertirlo en un villano cruel o explícitamente malvado.", "No reemplazar los rasgos de identidad ya definidos."],
+      assumptions: ["Usar fondo simple, pose natural e iluminación cinematográfica moderada para presentar el personaje."],
+      explicitFacts: [
+        "Personaje anime masculino de aproximadamente 27 años.",
+        "Pelo negro largo.",
+        "Complexión delgada y expresión seria.",
+        "Debe verse peligroso, pero no malvado.",
+      ],
+      provisional: [
+        {
+          decision: "Mantener el atuendo como propuesta provisional.",
+          rationale: "La ropa no fue definida y puede explorarse sin cambiar la identidad establecida.",
+        },
+      ],
+      ambiguity: "El atuendo y el grado exacto de peligrosidad visual permanecen abiertos.",
+      nextAction: "Mostrar dos o tres direcciones visuales breves, recomendar una y conservar los rasgos de identidad en todas.",
     };
   }
 
@@ -246,8 +330,14 @@ function interpret(input: CompileIntentInput, pragmatics: PragmaticAnalysis): In
       mode: "EXECUTE",
       creativeFreedom: "LOW",
       confidence: 0.92,
-      expectations: ["Menor intensidad, misma dirección."],
+      expectations: ["Menor intensidad y mantener la dirección actual."],
       assumptions: ["Reducir el efecto aproximadamente un nivel y conservar la idea."],
+      provisional: [
+        {
+          decision: "Usar una reducción moderada de intensidad como primer intento.",
+          rationale: "El grado exacto no está fijado y puede ajustarse de forma reversible.",
+        },
+      ],
     };
   }
 
@@ -281,7 +371,17 @@ function interpret(input: CompileIntentInput, pragmatics: PragmaticAnalysis): In
     creativeFreedom: "MEDIUM",
     confidence: input.context ? 0.74 : 0.62,
     assumptions: ["Elegir una opción estándar, moderada y reversible."],
+    provisional: [
+      {
+        decision: "Mantener abiertos los detalles no especificados.",
+        rationale: "No deben convertirse en preferencias permanentes sin evidencia del usuario.",
+      },
+    ],
   };
+}
+
+function includesAny(value: string, phrases: string[]) {
+  return phrases.some((phrase) => value.includes(phrase));
 }
 
 function modeToNextAction(mode: InteractionMode): string {

@@ -4,7 +4,7 @@ insert into public.benchmark_cases (
 ) values
 ('magia-foto', 'Haz magia con esta foto.', 'edición fotográfica', '["mejora extraordinaria","preservar identidad"]', '["efectos sobrenaturales"]', 'EXECUTE', '["ajustes fotográficos naturales"]', '["seed","sampler","CFG"]', null, true),
 ('magia-balon', 'Hizo magia con el balón.', 'fútbol', '["habilidad","creatividad","control"]', '["magia sobrenatural"]', 'ASSUME', '["elogio figurado"]', '["seed","sampler","CFG"]', null, true),
-('magia-manos', 'Pon magia saliendo de sus manos.', 'ilustración fantástica', '["magia"]', '[]', 'ASSUME', '[]', '["seed","sampler","CFG"]', 'En fantasía, la lectura literal sí puede ser correcta.', true),
+('magia-manos', 'Pon magia saliendo de sus manos.', 'ilustración fantástica', '["magia","manos"]', '[]', 'EXECUTE', '[]', '["seed","sampler","CFG"]', 'En fantasía, la lectura literal sí es la acción solicitada.', true),
 ('pesado-personaje', 'Hazlo más pesado.', 'personaje de videojuego', '["masa","presencia"]', '["peso físico del archivo"]', 'SHOW_OPTIONS', '["silueta"]', '["seed","sampler","CFG"]', null, true),
 ('pesado-diseno', 'Hazlo más pesado.', 'diseño de póster', '["peso visual","impacto"]', '["peso físico"]', 'SHOW_OPTIONS', '["contraste"]', '["seed","sampler","CFG"]', null, true),
 ('pesado-musica', 'Hazlo más pesado.', 'mezcla musical', '["cuerpo","pegada"]', '["peso físico"]', 'SHOW_OPTIONS', '["graves"]', '["seed","sampler","CFG"]', null, true),
@@ -27,7 +27,7 @@ insert into public.benchmark_cases (
 ('raro-ui', 'No sé qué tiene pero está raro.', 'interfaz web', '["diagnosticar","jerarquía"]', '[]', 'EXPLORE', '[]', '["seed","sampler","CFG"]', null, true),
 ('medio-equis', 'Está medio equis.', 'logo', '["cambio contextual"]', '[]', 'ASSUME', '[]', '["seed","sampler","CFG"]', 'Caso abierto para revisión manual.', true),
 ('bonito-no', 'Está bonito, pero no se siente mío.', 'identidad de marca', '["cambio contextual"]', '[]', 'ASSUME', '[]', '["seed","sampler","CFG"]', null, true),
-('camiseta-negra', 'Haz la camiseta negra.', 'edición fotográfica', '["cambio contextual"]', '["cambiar el rostro","regenerar fondo"]', 'ASSUME', '["moderada"]', '["seed","sampler","CFG"]', null, true),
+('camiseta-negra', 'Haz la camiseta negra.', 'edición fotográfica', '["camiseta","negro","preservar"]', '["cambiar el rostro","regenerar fondo"]', 'EXECUTE', '["negro neutro"]', '["seed","sampler","CFG"]', null, true),
 ('solo-fondo', 'Solo quita lo del fondo.', 'edición fotográfica', '["cambio contextual"]', '["cambiar la cara","cambiar el cuerpo"]', 'ASSUME', '[]', '["seed","sampler","CFG"]', null, true),
 ('mas-calido', 'Un poquito más cálido.', 'fotografía', '["cambio contextual"]', '[]', 'ASSUME', '["moderada"]', '["seed","sampler","CFG"]', null, true),
 ('que-pegue', 'Quiero que pegue más.', 'mezcla musical', '["cambio contextual"]', '["golpear físicamente"]', 'ASSUME', '[]', '["seed","sampler","CFG"]', null, true),

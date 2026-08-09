@@ -1,7 +1,7 @@
 import type { CompileIntentInput } from "@/src/domain/intent-contract";
 
 export type PragmaticSignal = {
-  kind: "FIGURATIVE" | "SLANG" | "INTENSITY" | "FRUSTRATION" | "REJECTION" | "PRESERVATION";
+  kind: "FIGURATIVE" | "SLANG" | "INTENSITY" | "FRUSTRATION" | "SARCASM" | "REJECTION" | "PRESERVATION";
   evidence: string;
   contextualMeaning: string;
 };
@@ -23,7 +23,16 @@ export function analyzePragmatics(input: CompileIntentInput): PragmaticAnalysis 
   const likelyDomain = inferDomain(combined);
 
   if (text.includes("magia")) {
-    const literal = includesAny(context, ["fantasía", "fantasia", "ilustración", "ilustracion", "hechizo"]);
+    const literal = includesAny(context, [
+      "fantasía",
+      "fantasia",
+      "ilustración",
+      "ilustracion",
+      "hechizo",
+      "fantasy",
+      "illustration",
+      "magic effect",
+    ]);
     signals.push({
       kind: "FIGURATIVE",
       evidence: "magia",
@@ -49,11 +58,22 @@ export function analyzePragmatics(input: CompileIntentInput): PragmaticAnalysis 
     });
   }
 
-  if (includesAny(text, ["otra vez", "me cambiaste", "ya te dije", "sigue mal"])) {
+  if (includesAny(text, ["otra vez", "me cambiaste", "ya te dije", "sigue mal", "seis dedos", "siete dedos"])) {
     signals.push({
       kind: "FRUSTRATION",
       evidence: input.rawInput,
       contextualMeaning: "Hay frustración por un fallo repetido; se debe reconocer y corregir sin volver a preguntar lo ya conocido.",
+    });
+  }
+
+  if (
+    includesAny(text, ["quedó increíble", "quedo increíble", "quedó perfecto", "quedo perfecto"]) &&
+    includesAny(text, ["seis dedos", "siete dedos", "tres brazos", "dos cabezas"])
+  ) {
+    signals.push({
+      kind: "SARCASM",
+      evidence: input.rawInput,
+      contextualMeaning: "El elogio aparente contradice un defecto evidente: expresa sarcasmo, rechazo y frustración, no aceptación.",
     });
   }
 
@@ -65,7 +85,7 @@ export function analyzePragmatics(input: CompileIntentInput): PragmaticAnalysis 
     });
   }
 
-  if (includesAny(text, ["déjalo igual", "dejalo igual", "nomás arregla", "nomas arregla", "solo cambia"])) {
+  if (includesAny(text, ["déjalo igual", "dejalo igual", "nomás arregla", "nomas arregla", "solo cambia", "solo haz"])) {
     signals.push({
       kind: "PRESERVATION",
       evidence: input.rawInput,
@@ -88,12 +108,12 @@ export function analyzePragmatics(input: CompileIntentInput): PragmaticAnalysis 
 
 function inferDomain(combined: string): string {
   const domains: Array<[string, string[]]> = [
-    ["fotografía", ["foto", "imagen", "cara", "rostro", "camiseta"]],
+    ["fotografía", ["foto", "imagen", "cara", "rostro", "camiseta", "photo", "image editing"]],
     ["diseño gráfico", ["póster", "poster", "branding", "logo", "tipografía", "diseño"]],
-    ["fútbol", ["balón", "balon", "fútbol", "futbol", "cancha"]],
+    ["fútbol", ["balón", "balon", "fútbol", "futbol", "cancha", "football", "soccer"]],
     ["música", ["música", "musica", "mezcla", "bajo", "beat", "canción", "cancion"]],
     ["programación", ["código", "codigo", "bug", "app", "api", "web"]],
-    ["ilustración", ["anime", "personaje", "ilustración", "ilustracion", "fantasía", "fantasia"]],
+    ["ilustración", ["anime", "personaje", "ilustración", "ilustracion", "fantasía", "fantasia", "fantasy", "illustration", "character"]],
   ];
 
   return domains.find(([, terms]) => includesAny(combined, terms))?.[0] ?? "general";
