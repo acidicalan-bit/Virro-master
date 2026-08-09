@@ -6,7 +6,10 @@ export async function POST(request: Request) {
   try {
     const body: unknown = await request.json();
     const { blindEvaluations } = createBlindEvaluationServices();
-    return Response.json({ session: await blindEvaluations.submitJudgment(body) }, { status: 201 });
+    return Response.json(
+      { session: await blindEvaluations.submitJudgment(body) },
+      { status: 201, headers: { "Cache-Control": "private, no-store" } },
+    );
   } catch (error) {
     if (error instanceof ZodError) {
       return Response.json(

@@ -11,6 +11,7 @@ import type {
   BlindEvaluationRepository,
   BlindEvaluationSessionRecord,
   BlindEvaluationSetRecord,
+  IntentModelFailureRecord,
   IntentModelFailureRepository,
   IntentRunRecord,
   IntentRunRepository,
@@ -35,6 +36,8 @@ export type BlindEvaluationSetSummary = Pick<
 
 export type BlindComparisonView = {
   id: string;
+  sessionId: string;
+  evaluationCaseId: string;
   caseNumber: number;
   totalCases: number;
   case: {
@@ -178,7 +181,7 @@ export class BlindEvaluationService {
         sessionId: session.id,
         status: "IN_PROGRESS",
         progress: { completed, total: cases.length },
-        comparison: await this.buildComparisonView(openComparison, cases),
+        comparison: await this.buildComparisonView(openComparison, cases, session),
         reveal: null,
       };
     }
@@ -193,7 +196,7 @@ export class BlindEvaluationService {
       sessionId: session.id,
       status: "IN_PROGRESS",
       progress: { completed, total: cases.length },
-      comparison: await this.buildComparisonView(comparison, cases),
+      comparison: await this.buildComparisonView(comparison, cases, session),
       reveal: null,
     };
   }
@@ -213,7 +216,11 @@ export class BlindEvaluationService {
     session: BlindEvaluationSessionRecord,
     evaluationCase: BlindEvaluationCaseRecord,
   ) {
-    const input = { rawInput: evaluationCase.rawInput, context: evaluationCase.context };
+    const input = {
+      rawInput: evaluationCase.rawInput,
+      context: evaluationCase.context,
+      domain: evaluationCase.domain,
+    };
     const baselineCompiler = new IntentCompiler(
       this.baseline,
       this.runs,
@@ -249,15 +256,31 @@ export class BlindEvaluationService {
   private async buildComparisonView(
     comparison: BlindEvaluationComparisonRecord,
     cases: BlindEvaluationCaseRecord[],
+    session: BlindEvaluationSessionRecord,
   ): Promise<BlindComparisonView> {
     const evaluationCase = cases.find((item) => item.id === comparison.evaluationCaseId);
     if (!evaluationCase) throw new Error("La comparación apunta a un caso inexistente.");
+    assertDistinctResponseReferences(comparison);
     const [responseA, responseB] = await Promise.all([
-      this.loadBlindResponse(comparison.responseARunId, comparison.responseAFailureId),
-      this.loadBlindResponse(comparison.responseBRunId, comparison.responseBFailureId),
+      this.loadBlindResponse(
+        comparison.responseARunId,
+        comparison.responseAFailureId,
+        comparison.responseASource,
+        evaluationCase,
+        session,
+      ),
+      this.loadBlindResponse(
+        comparison.responseBRunId,
+        comparison.responseBFailureId,
+        comparison.responseBSource,
+        evaluationCase,
+        session,
+      ),
     ]);
     return {
       id: comparison.id,
+      sessionId: comparison.sessionId,
+      evaluationCaseId: comparison.evaluationCaseId,
       caseNumber: evaluationCase.position + 1,
       totalCases: cases.length,
       case: {
@@ -273,15 +296,20 @@ export class BlindEvaluationService {
   private async loadBlindResponse(
     runId: string | null,
     failureId: string | null,
+    source: "BASELINE" | "CANDIDATE",
+    evaluationCase: BlindEvaluationCaseRecord,
+    session: BlindEvaluationSessionRecord,
   ): Promise<BlindResponse> {
     if (runId) {
       const run = await this.runs.findById(runId);
       if (!run) throw new Error("No se encontró el resultado de la comparación.");
+      assertRunMatchesComparison(run, source, evaluationCase, session);
       return { status: "SUCCESS", contract: run.compiledContract };
     }
     if (failureId) {
       const failure = await this.failures.findById(failureId);
       if (!failure) throw new Error("No se encontró el fallo de la comparación.");
+      assertFailureMatchesComparison(failure, source, evaluationCase, session);
       return {
         status: "PROVIDER_FAILURE",
         message: "Esta respuesta no produjo un Intent Contract válido.",
@@ -386,7 +414,7 @@ function requireDescriptor(model: IntentModel, role: string) {
 
 async function compileReference(
   compiler: IntentCompiler,
-  input: { rawInput: string; context: string | null },
+  input: { rawInput: string; context: string | null; domain: string | null },
 ): Promise<CompilationReference> {
   try {
     const result = await compiler.compile(input);
@@ -396,6 +424,76 @@ async function compileReference(
       return { runId: null, failureId: error.failureId };
     }
     throw error;
+  }
+}
+
+function assertDistinctResponseReferences(comparison: BlindEvaluationComparisonRecord) {
+  if (
+    (comparison.responseARunId && comparison.responseARunId === comparison.responseBRunId) ||
+    (comparison.responseAFailureId &&
+      comparison.responseAFailureId === comparison.responseBFailureId)
+  ) {
+    throw new Error("La comparación reutiliza la misma respuesta para A y B.");
+  }
+}
+
+function assertRunMatchesComparison(
+  run: IntentRunRecord,
+  source: "BASELINE" | "CANDIDATE",
+  evaluationCase: BlindEvaluationCaseRecord,
+  session: BlindEvaluationSessionRecord,
+) {
+  assertCaseIdentity(
+    run.rawInput,
+    run.context,
+    run.compiledContract.rawInput,
+    run.compiledContract.context,
+    evaluationCase,
+  );
+  assertSourceIdentity(run.modelProvider, source, session);
+}
+
+function assertFailureMatchesComparison(
+  failure: IntentModelFailureRecord,
+  source: "BASELINE" | "CANDIDATE",
+  evaluationCase: BlindEvaluationCaseRecord,
+  session: BlindEvaluationSessionRecord,
+) {
+  if (
+    failure.rawInput !== evaluationCase.rawInput ||
+    failure.context !== evaluationCase.context
+  ) {
+    throw new Error("El fallo cargado pertenece a un caso de evaluación distinto.");
+  }
+  assertSourceIdentity(failure.modelProvider, source, session);
+}
+
+function assertCaseIdentity(
+  runRawInput: string,
+  runContext: string | null,
+  contractRawInput: string,
+  contractContext: string | null,
+  evaluationCase: BlindEvaluationCaseRecord,
+) {
+  if (
+    runRawInput !== evaluationCase.rawInput ||
+    runContext !== evaluationCase.context ||
+    contractRawInput !== evaluationCase.rawInput ||
+    contractContext !== evaluationCase.context
+  ) {
+    throw new Error("El Intent Contract cargado pertenece a un caso de evaluación distinto.");
+  }
+}
+
+function assertSourceIdentity(
+  provider: string,
+  source: "BASELINE" | "CANDIDATE",
+  session: BlindEvaluationSessionRecord,
+) {
+  const expectedProvider =
+    source === "BASELINE" ? session.baselineProvider : session.candidateProvider;
+  if (provider !== expectedProvider) {
+    throw new Error("La identidad A/B persistida no coincide con el run cargado.");
   }
 }
 

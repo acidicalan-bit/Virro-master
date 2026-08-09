@@ -105,7 +105,11 @@ export class HttpStructuredIntentModel implements IntentModel {
           {
             role: "user",
             content: JSON.stringify({
-              case: { rawInput: input.rawInput, context: input.context },
+              case: {
+                rawInput: input.rawInput,
+                context: input.context,
+                domain: input.domain ?? null,
+              },
               pragmaticSignals: pragmatics,
               ...(invalidOutput
                 ? { repair: { invalidOutput, validationSummary } }

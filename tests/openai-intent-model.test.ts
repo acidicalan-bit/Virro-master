@@ -29,7 +29,11 @@ describe("OpenAI Responses IntentModel", () => {
       return response(JSON.stringify(validContract()));
     });
     const model = new OpenAIIntentModel({ apiKey: "test", createResponse });
-    const input = { rawInput: "Hazlo más limpio.", context: "diseño" };
+    const input = {
+      rawInput: "Hazlo más limpio.",
+      context: "diseño",
+      domain: "graphic_design",
+    };
 
     const result = await model.compile(input, analyzePragmatics(input));
     const request = createResponse.mock.calls[0][0];
@@ -42,6 +46,15 @@ describe("OpenAI Responses IntentModel", () => {
       schema: intentContractJsonSchema,
     });
     expect(JSON.stringify(request.input)).toContain("Preguntar tiene un costo");
+    const messages = request.input as Array<{ role: string; content: string }>;
+    const userPayload = JSON.parse(messages[1].content) as {
+      case: { rawInput: string; context: string | null; domain: string | null };
+    };
+    expect(userPayload.case).toEqual({
+      rawInput: "Hazlo más limpio.",
+      context: "diseño",
+      domain: "graphic_design",
+    });
     expect(result.systemInstructionVersion).toBe("intent-compiler-system-1.0.0");
     expect(result.usage).toEqual({
       inputTokens: 120,

@@ -71,6 +71,7 @@ export const CompileIntentInputSchema = z
   .object({
     rawInput: z.string().trim().min(1).max(8_000),
     context: z.string().trim().max(4_000).nullable().default(null),
+    domain: z.string().trim().max(200).nullable().optional(),
   })
   .strict();
 

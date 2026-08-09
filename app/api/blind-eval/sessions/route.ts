@@ -11,7 +11,7 @@ export async function POST(request: Request) {
     const { blindEvaluations } = createBlindEvaluationServices();
     return Response.json(
       { session: await blindEvaluations.startSession(evaluationSetId) },
-      { status: 201 },
+      { status: 201, headers: { "Cache-Control": "private, no-store" } },
     );
   } catch (error) {
     if (error instanceof ZodError) {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ChangeEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent } from "react";
 
 import type {
   BlindComparisonView,
@@ -186,6 +186,7 @@ export function BlindEvaluationLab() {
       {session?.comparison ? (
         <BlindComparison
           key={session.comparison.id}
+          sessionId={session.sessionId}
           comparison={session.comparison}
           progress={session.progress}
           onSessionChange={setSession}
@@ -200,24 +201,47 @@ export function BlindEvaluationLab() {
 }
 
 function BlindComparison({
+  sessionId,
   comparison,
   progress,
   onSessionChange,
 }: {
+  sessionId: string;
   comparison: BlindComparisonView;
   progress: BlindSessionView["progress"];
   onSessionChange: (session: BlindSessionView) => void;
 }) {
+  const titleRef = useRef<HTMLHeadingElement>(null);
+
+  useEffect(() => {
+    const title = titleRef.current;
+    if (typeof title?.scrollIntoView === "function") {
+      title.scrollIntoView({ block: "start" });
+      title.focus({ preventScroll: true });
+    }
+  }, [comparison.id]);
+
   return (
     <section className="blind-comparison" aria-labelledby="comparison-title">
       <header className="comparison-context">
         <div>
           <p className="eyebrow">Caso {comparison.caseNumber} de {comparison.totalCases}</p>
-          <h2 id="comparison-title">“{comparison.case.rawInput}”</h2>
+          <h2 id="comparison-title" ref={titleRef} tabIndex={-1}>“{comparison.case.rawInput}”</h2>
           <p>{comparison.case.context ? `Contexto: ${comparison.case.context}` : "Sin contexto adicional."}</p>
         </div>
         <span>{progress.completed} evaluados</span>
       </header>
+      <details className="comparison-integrity">
+        <summary>Integridad técnica del caso</summary>
+        <dl>
+          <div><dt>Session ID</dt><dd>{sessionId}</dd></div>
+          <div><dt>Evaluation case ID</dt><dd>{comparison.evaluationCaseId}</dd></div>
+          <div><dt>Comparison ID</dt><dd>{comparison.id}</dd></div>
+          <div><dt>Raw input</dt><dd>{comparison.case.rawInput}</dd></div>
+          <div><dt>Context</dt><dd>{comparison.case.context ?? "null"}</dd></div>
+          <div><dt>Domain</dt><dd>{comparison.case.domain ?? "null"}</dd></div>
+        </dl>
+      </details>
       <div className="response-grid">
         <BlindResponseCard label="Response A" response={comparison.responseA} />
         <BlindResponseCard label="Response B" response={comparison.responseB} />
@@ -241,7 +265,9 @@ function BlindResponseCard({ label, response }: { label: string; response: Blind
   return (
     <article className="blind-response">
       <p className="eyebrow">{label}</p>
+      <p className="response-field-label">Intención interpretada</p>
       <h3>{contract.interpretedIntent}</h3>
+      <p className="response-field-label">Significado interpretado</p>
       <p className="response-meaning">{contract.interpretedMeaning}</p>
       <dl className="response-signals">
         <div><dt>Modo</dt><dd>{contract.recommendedInteractionMode}</dd></div>

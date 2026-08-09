@@ -12,7 +12,10 @@ export async function GET(
     const { id } = await context.params;
     const sessionId = SessionIdSchema.parse(id);
     const { blindEvaluations } = createBlindEvaluationServices();
-    return Response.json({ session: await blindEvaluations.getSessionView(sessionId) });
+    return Response.json(
+      { session: await blindEvaluations.getSessionView(sessionId) },
+      { headers: { "Cache-Control": "private, no-store" } },
+    );
   } catch (error) {
     if (error instanceof ZodError) {
       return Response.json({ error: "La sesión no es válida." }, { status: 400 });
