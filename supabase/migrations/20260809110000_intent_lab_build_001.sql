@@ -71,6 +71,14 @@ revoke all on table public.intent_feedback from anon, authenticated;
 revoke all on table public.benchmark_cases from anon, authenticated;
 revoke all on table public.benchmark_runs from anon, authenticated;
 
+-- Automatic table exposure is disabled for this project. Grant only the
+-- server role the table privileges needed by the repository layer.
+grant usage on schema public to service_role;
+grant select, insert, update, delete on table public.intent_runs to service_role;
+grant select, insert, update, delete on table public.intent_feedback to service_role;
+grant select, insert, update, delete on table public.benchmark_cases to service_role;
+grant select, insert, update, delete on table public.benchmark_runs to service_role;
+
 comment on table public.intent_runs is 'Validated Intent Contracts and compiler metadata.';
 comment on table public.intent_feedback is 'Human acceptance and corrections linked to an Intent Run.';
 comment on table public.benchmark_cases is 'Versioned human-language evaluation fixtures.';
