@@ -1,3 +1,11 @@
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
-export default function NotFound() { return <main id="main-content"><section className="page-hero section"><div className="shell"><span className="eyebrow">404 · Ruta no encontrada</span><h1 className="display">Esta ruta todavía no forma parte del sistema.</h1><p className="lead">Vuelve al inicio o explora una transformación conceptual.</p><div className="actions"><Button asChild variant="acid"><Link href="/">Volver al inicio</Link></Button><Button asChild variant="outline"><Link href="/transformaciones">Ver transformaciones</Link></Button></div></div></section></main>; }
+
+export default function NotFoundPage() {
+  return (
+    <main className="message-page">
+      <p className="eyebrow">404</p>
+      <h1>Esta ruta no existe.</h1>
+      <Link className="primary-button" href="/">Volver al compiler</Link>
+    </main>
+  );
+}

@@ -1,35 +1,29 @@
-import type { Metadata, Viewport } from "next";
-import localFont from "next/font/local";
+import type { Metadata } from "next";
+import Link from "next/link";
+
 import "./globals.css";
 
-import { SiteFooter } from "@/components/site-footer";
-import { SiteHeader } from "@/components/site-header";
-
-const virroInter = localFont({
-  src: "./virro-inter.woff2",
-  variable: "--font-virro",
-  display: "swap",
-});
-
 export const metadata: Metadata = {
-  metadataBase: new URL("https://www.virro.app"),
-  title: { default: "VIRRO IMPULSA — Transforma cómo se ve, trabaja y vende tu negocio", template: "%s | VIRRO IMPULSA" },
-  description: "Diseño, tecnología y acompañamiento en un solo sistema para modernizar negocios en México.",
-  applicationName: "VIRRO IMPULSA",
-  alternates: { canonical: "/" },
-  openGraph: { title: "VIRRO IMPULSA", description: "La siguiente versión de tu negocio, visible y operable.", type: "website", locale: "es_MX" },
+  title: "Intent Lab",
+  description: "Compilador de lenguaje humano natural a contratos ejecutables para IA.",
 };
-
-export const viewport: Viewport = { colorScheme: "dark", themeColor: "#080b10", width: "device-width", initialScale: 1 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="es" className={virroInter.variable}>
+    <html lang="es">
       <body>
         <a className="skip-link" href="#main-content">Saltar al contenido</a>
-        <SiteHeader />
-        {children}
-        <SiteFooter />
+        <header className="site-header">
+          <Link className="brand" href="/" aria-label="Intent Lab, inicio">
+            <span aria-hidden="true">⌁</span>
+            Intent Lab
+          </Link>
+          <nav aria-label="Principal">
+            <Link href="/">Compiler</Link>
+            <Link href="/benchmarks">Benchmarks</Link>
+          </nav>
+        </header>
+        <div id="main-content">{children}</div>
       </body>
     </html>
   );

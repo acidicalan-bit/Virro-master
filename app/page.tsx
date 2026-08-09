@@ -1,6 +1,5 @@
-import { RebuildHero } from "@/components/rebuild-hero";
-import { TransformationStory } from "@/components/transformation-story";
+import { IntentLab } from "@/src/ui/intent-lab";
 
-export default function Home() {
-  return <main id="main-content"><RebuildHero /><TransformationStory /></main>;
+export default function HomePage() {
+  return <IntentLab />;
 }

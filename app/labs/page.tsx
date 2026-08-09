@@ -1,6 +1,0 @@
-import type { Metadata } from "next";
-import Image from "next/image";
-import { ArrowUpRight, LockKeyhole } from "lucide-react";
-import { Button } from "@/components/ui/button";
-export const metadata: Metadata = { title: "Virro Core / Labs", description: "Acceso preservado al producto original Virro Core." };
-export default function Page() { return <main id="main-content"><section className="page-hero section"><div className="shell preservation"><div><span className="eyebrow">Virro Core · Producto preservado</span><h1 className="display">El producto original permanece intacto.</h1><p className="lead">Virro Core es la infraestructura de entendimiento operativo. VIRRO IMPULSA es un ramal comercial separado: no absorbe su teoría, código ni datos.</p><div className="preservation-note"><LockKeyhole /><p><strong>Separación no negociable.</strong> Esta página enlaza la experiencia desplegada; no la reescribe ni la presenta como parte de Impulsa.</p></div><Button asChild variant="outline" size="lg"><a href="https://www.virro.app/" target="_blank" rel="noreferrer">Abrir Virro Core <ArrowUpRight /></a></Button></div><div className="core-poster"><Image src="/hero/virro-core-flow.webp" fill sizes="(max-width: 900px) 100vw, 48vw" alt="Visual de flujo operativo de Virro Core" /></div></div></section></main>; }

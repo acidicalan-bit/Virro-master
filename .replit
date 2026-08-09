@@ -1,5 +1,0 @@
-run = "pnpm dev"
-
-[deployment]
-run = ["pnpm", "start"]
-build = ["pnpm", "build"]

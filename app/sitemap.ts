@@ -1,3 +1,0 @@
-import type { MetadataRoute } from "next";
-import { cases, sectors } from "@/content/site";
-export default function sitemap(): MetadataRoute.Sitemap { const base="https://www.virro.app"; const routes=["","/impulsa","/studio","/systems","/academy","/motor-virro","/transformaciones","/sectores","/demo","/diagnostico","/planes","/privacidad","/terminos","/labs"]; return [...routes.map((route)=>({url:`${base}${route}`,changeFrequency:"weekly" as const,priority:route===""?1:.7})),...cases.map(({slug})=>({url:`${base}/transformaciones/${slug}`,changeFrequency:"monthly" as const,priority:.6})),...sectors.map(({slug})=>({url:`${base}/sectores/${slug}`,changeFrequency:"monthly" as const,priority:.6}))]; }
