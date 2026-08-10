@@ -33,12 +33,36 @@ const ratingDimensions: Array<[RatingKey, string]> = [
    ["overallUsefulness", "Utilidad general"],
 ];
 
-const interactionModeOptions: Array<[InteractionMode, string]> = [
-  ["ASSUME", "Asumir y proceder"],
-  ["SHOW_OPTIONS", "Mostrar opciones"],
-  ["ASK", "Preguntar"],
-  ["EXECUTE", "Ejecutar"],
-  ["EXPLORE", "Explorar"],
+const interactionModeOptions: Array<{
+  value: InteractionMode;
+  label: string;
+  description: string;
+}> = [
+  {
+    value: "EXECUTE",
+    label: "Ejecutar",
+    description: "La instrucción ya es clara: realizarla tal como está.",
+  },
+  {
+    value: "ASSUME",
+    label: "Asumir y proceder",
+    description: "Falta un detalle menor: elegir una opción segura y reversible y continuar.",
+  },
+  {
+    value: "SHOW_OPTIONS",
+    label: "Mostrar opciones",
+    description: "La persona elegiría mejor viendo alternativas concretas.",
+  },
+  {
+    value: "ASK",
+    label: "Preguntar",
+    description: "Falta una decisión de alto impacto que no debe suponerse.",
+  },
+  {
+    value: "EXPLORE",
+    label: "Explorar",
+    description: "Hay una meta abierta o insatisfacción, pero todavía no una acción precisa.",
+  },
 ];
 
 const preferences: Array<[BlindPreference, string]> = [
@@ -332,8 +356,11 @@ function HumanIntentStep({
 
         <fieldset className="interaction-mode-fieldset">
           <legend>Próxima acción esperada</legend>
+          <p className="interaction-mode-hint">
+            Elige qué debería hacer el sistema ahora, no qué información podría inferir.
+          </p>
           <div className="interaction-mode-options">
-            {interactionModeOptions.map(([value, label]) => (
+            {interactionModeOptions.map(({ value, label, description }) => (
               <label key={value} className="mode-option">
                 <input
                   type="radio"
@@ -343,8 +370,11 @@ function HumanIntentStep({
                   onChange={() => setExpectedNextAction(value)}
                   required
                 />
-                <span className="mode-value">{value}</span>
-                <span className="mode-label">{label}</span>
+                <span className="mode-copy">
+                  <span className="mode-value">{value}</span>
+                  <span className="mode-label">{label}</span>
+                  <span className="mode-description">{description}</span>
+                </span>
               </label>
             ))}
           </div>

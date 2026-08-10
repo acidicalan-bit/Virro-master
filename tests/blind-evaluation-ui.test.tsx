@@ -210,6 +210,19 @@ describe("blind evaluation UI", () => {
 
     expect(await screen.findByText("¿Qué cree que quiere esta persona?")).toBeInTheDocument();
     expect(screen.queryByText("Interpretación A")).not.toBeInTheDocument();
+    expect(
+      screen.getByText("La instrucción ya es clara: realizarla tal como está."),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Falta un detalle menor: elegir una opción segura y reversible y continuar.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Elige qué debería hacer el sistema ahora, no qué información podría inferir.",
+      ),
+    ).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("Significado intencional"), {
       target: { value: humanIntent.intendedMeaning },
     });
