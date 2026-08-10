@@ -90,17 +90,45 @@ async function createHarness(randomizeAFirst: () => boolean) {
   return { service, set, evaluations, runs, baselineCalls, candidateCalls };
 }
 
+async function prepareCurrent(service: BlindEvaluationService, session: BlindSessionView) {
+  if (session.step !== "HUMAN_INTENT" || !session.evaluationCaseId || !session.case) {
+    throw new Error("Expected a human-intent step.");
+  }
+  return service.submitHumanIntent({
+    sessionId: session.sessionId,
+    evaluationCaseId: session.evaluationCaseId,
+    intendedMeaning: `Human meaning for ${session.case.rawInput}`,
+    expectedNextAction: "EXECUTE",
+    preservationNotes: null,
+  });
+}
+
 async function judgeCurrent(service: BlindEvaluationService, session: BlindSessionView) {
-  if (!session.comparison) throw new Error("Expected an open comparison.");
-  return service.submitJudgment({
-    comparisonId: session.comparison.id,
+  const prepared = await prepareCurrent(service, session);
+  if (!prepared.comparison) throw new Error("Expected an open comparison.");
+  const comparisonId = prepared.comparison.id;
+  await service.submitStepRating({
+    comparisonId,
+    outputPosition: 1,
+    ratings,
+    evaluatorNotes: null,
+    errorTags: [],
+  });
+  await service.submitStepRating({
+    comparisonId,
+    outputPosition: 2,
+    ratings,
+    evaluatorNotes: null,
+    errorTags: [],
+  });
+  const next = await service.submitJudgment({
+    comparisonId,
     preference: "TIE",
-    ratingsA: ratings,
-    ratingsB: ratings,
     evaluatorNotes: null,
     errorTags: [],
     correctedIntent: null,
   });
+  return { prepared, next };
 }
 
 describe("blind evaluation data and rendering integrity", () => {
@@ -110,10 +138,15 @@ describe("blind evaluation data and rendering integrity", () => {
     const harness = await createHarness(() => assignments[assignmentIndex++]);
 
     const first = await harness.service.startSession(harness.set.id);
-    const second = await judgeCurrent(harness.service, first);
-    const third = await judgeCurrent(harness.service, second);
-    const completed = await judgeCurrent(harness.service, third);
-    const displayed = [first, second, third].map((view) => view.comparison);
+    const firstResult = await judgeCurrent(harness.service, first);
+    const secondResult = await judgeCurrent(harness.service, firstResult.next);
+    const thirdResult = await judgeCurrent(harness.service, secondResult.next);
+    const completed = thirdResult.next;
+    const displayed = [
+      firstResult.prepared.comparison,
+      secondResult.prepared.comparison,
+      thirdResult.prepared.comparison,
+    ];
 
     expect(displayed.map((comparison) => comparison?.case.rawInput)).toEqual(
       technicalSet.cases.map((item) => item.raw_input),
@@ -148,7 +181,8 @@ describe("blind evaluation data and rendering integrity", () => {
   it("stores two distinct runs per case and rejects a run linked to a different case", async () => {
     const harness = await createHarness(() => true);
     const first = await harness.service.startSession(harness.set.id);
-    const second = await judgeCurrent(harness.service, first);
+    const firstResult = await judgeCurrent(harness.service, first);
+    const second = await prepareCurrent(harness.service, firstResult.next);
 
     expect(harness.runs.records).toHaveLength(4);
     expect(new Set(harness.runs.records.map((run) => run.id)).size).toBe(4);
@@ -183,7 +217,12 @@ describe("blind evaluation data and rendering integrity", () => {
       expect(blindPayload).not.toContain("responseASource");
       expect(blindPayload).not.toContain("responseBSource");
       expect(blindPayload).not.toContain("gpt-5.6-luna");
-      session = await judgeCurrent(harness.service, session);
+      const result = await judgeCurrent(harness.service, session);
+      const outputPayload = JSON.stringify(result.prepared);
+      expect(outputPayload).not.toContain("responseASource");
+      expect(outputPayload).not.toContain("responseBSource");
+      expect(outputPayload).not.toContain("gpt-5.6-luna");
+      session = result.next;
     }
 
     expect(session.reveal?.cases.map((item) => item.responseASource)).toEqual([

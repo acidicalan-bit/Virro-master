@@ -5,14 +5,18 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type {
   BlindEvaluationCaseRecord,
   BlindEvaluationComparisonRecord,
+  BlindEvaluationHumanIntentRecord,
   BlindEvaluationJudgmentRecord,
   BlindEvaluationRepository,
   BlindEvaluationSessionRecord,
   BlindEvaluationSetRecord,
+  BlindEvaluationStepRatingRecord,
   BenchmarkRepository,
   CreateBlindEvaluationComparison,
+  CreateBlindEvaluationHumanIntent,
   CreateBlindEvaluationJudgment,
   CreateBlindEvaluationSession,
+  CreateBlindEvaluationStepRating,
   CreateBenchmarkRun,
   CreateIntentFeedback,
   CreateIntentModelFailure,
@@ -221,6 +225,16 @@ class SupabaseBlindEvaluationRepository implements BlindEvaluationRepository {
     return data.map(fromCaseRow);
   }
 
+  async findCaseById(id: string) {
+    const { data, error } = await this.client
+      .from("blind_evaluation_cases")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle();
+    if (error) throw new Error("No se pudo leer el caso de evaluación.");
+    return data ? fromCaseRow(data) : null;
+  }
+
   async createSession(input: CreateBlindEvaluationSession) {
     const { data, error } = await this.client
       .from("blind_evaluation_sessions")
@@ -329,6 +343,77 @@ class SupabaseBlindEvaluationRepository implements BlindEvaluationRepository {
       .single();
     if (error || !data) throw new Error("No se pudo guardar el juicio humano.");
     return fromJudgmentRow(data);
+  }
+
+  async createHumanIntent(input: CreateBlindEvaluationHumanIntent) {
+    const { data, error } = await this.client
+      .from("blind_evaluation_human_intents")
+      .insert({
+        session_id: input.sessionId,
+        evaluation_case_id: input.evaluationCaseId,
+        intended_meaning: input.intendedMeaning,
+        expected_next_action: input.expectedNextAction,
+        preservation_notes: input.preservationNotes,
+      })
+      .select("*")
+      .single();
+    if (error || !data) throw new Error("No se pudo guardar el intent humano.");
+    return fromHumanIntentRow(data);
+  }
+
+  async findHumanIntentBySessionAndCaseId(sessionId: string, evaluationCaseId: string) {
+    const { data, error } = await this.client
+      .from("blind_evaluation_human_intents")
+      .select("*")
+      .eq("session_id", sessionId)
+      .eq("evaluation_case_id", evaluationCaseId)
+      .maybeSingle();
+    if (error) throw new Error("No se pudo leer el intent humano.");
+    return data ? fromHumanIntentRow(data) : null;
+  }
+
+  async linkHumanIntentToComparison(humanIntentId: string, comparisonId: string) {
+    const { error } = await this.client
+      .from("blind_evaluation_human_intents")
+      .update({ comparison_id: comparisonId })
+      .eq("id", humanIntentId);
+    if (error) throw new Error("No se pudo enlazar el intent humano a la comparación.");
+  }
+
+  async findHumanIntentByComparisonId(comparisonId: string) {
+    const { data, error } = await this.client
+      .from("blind_evaluation_human_intents")
+      .select("*")
+      .eq("comparison_id", comparisonId)
+      .maybeSingle();
+    if (error) throw new Error("No se pudo leer el intent humano por comparación.");
+    return data ? fromHumanIntentRow(data) : null;
+  }
+
+  async createStepRating(input: CreateBlindEvaluationStepRating) {
+    const { data, error } = await this.client
+      .from("blind_evaluation_step_ratings")
+      .insert({
+        comparison_id: input.comparisonId,
+        output_position: input.outputPosition,
+        ratings: input.ratings,
+        error_tags: input.errorTags,
+        evaluator_notes: input.evaluatorNotes,
+      })
+      .select("*")
+      .single();
+    if (error || !data) throw new Error("No se pudo guardar la calificación escalonada.");
+    return fromStepRatingRow(data);
+  }
+
+  async findStepRatingsByComparisonId(comparisonId: string) {
+    const { data, error } = await this.client
+      .from("blind_evaluation_step_ratings")
+      .select("*")
+      .eq("comparison_id", comparisonId)
+      .order("output_position");
+    if (error || !data) throw new Error("No se pudieron leer las calificaciones escalonadas.");
+    return data.map(fromStepRatingRow);
   }
 }
 
@@ -453,12 +538,38 @@ function fromJudgmentRow(row: Record<string, unknown>): BlindEvaluationJudgmentR
   return {
     id: String(row.id),
     comparisonId: String(row.comparison_id),
-    preference: BlindPreferenceSchema.parse(row.preference),
+    preference: row.preference === null ? null : BlindPreferenceSchema.parse(row.preference),
     ratingsA: BlindRatingsSchema.parse(row.ratings_a),
     ratingsB: BlindRatingsSchema.parse(row.ratings_b),
     evaluatorNotes: row.evaluator_notes === null ? null : String(row.evaluator_notes),
     errorTags: BlindEvaluationErrorTagSchema.array().parse(row.error_tags),
     correctedIntent: row.corrected_intent === null ? null : String(row.corrected_intent),
+    createdAt: String(row.created_at),
+  };
+}
+
+function fromHumanIntentRow(row: Record<string, unknown>): BlindEvaluationHumanIntentRecord {
+  return {
+    id: String(row.id),
+    sessionId: String(row.session_id),
+    evaluationCaseId: String(row.evaluation_case_id),
+    comparisonId: row.comparison_id === null ? null : String(row.comparison_id),
+    intendedMeaning: String(row.intended_meaning),
+    expectedNextAction: String(row.expected_next_action),
+    preservationNotes: row.preservation_notes === null ? null : String(row.preservation_notes),
+    recordedAt: String(row.recorded_at),
+    lockedAt: String(row.locked_at),
+  };
+}
+
+function fromStepRatingRow(row: Record<string, unknown>): BlindEvaluationStepRatingRecord {
+  return {
+    id: String(row.id),
+    comparisonId: String(row.comparison_id),
+    outputPosition: Number(row.output_position),
+    ratings: BlindRatingsSchema.parse(row.ratings),
+    errorTags: BlindEvaluationErrorTagSchema.array().parse(row.error_tags),
+    evaluatorNotes: row.evaluator_notes === null ? null : String(row.evaluator_notes),
     createdAt: String(row.created_at),
   };
 }

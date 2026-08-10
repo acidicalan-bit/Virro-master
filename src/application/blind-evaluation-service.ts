@@ -8,9 +8,11 @@ import type { IntentModel } from "@/src/application/ports/intent-model";
 import type {
   BlindEvaluationCaseRecord,
   BlindEvaluationComparisonRecord,
+  BlindEvaluationHumanIntentRecord,
   BlindEvaluationRepository,
   BlindEvaluationSessionRecord,
   BlindEvaluationSetRecord,
+  BlindEvaluationStepRatingRecord,
   IntentModelFailureRecord,
   IntentModelFailureRepository,
   IntentRunRecord,
@@ -19,11 +21,16 @@ import type {
 import {
   BlindEvaluationSetImportSchema,
   BlindJudgmentInputSchema,
+  HumanIntentSubmissionSchema,
+  StepRatingSubmissionSchema,
+  type BlindEvaluationErrorTag,
   type BlindEvaluationSetImport,
-  type BlindJudgmentInput,
+  type BlindRatings,
   type BlindResponse,
+  type EvaluationStep,
 } from "@/src/domain/blind-evaluation";
 import { HEURISTIC_BASELINE_REVISION } from "@/src/infrastructure/models/frozen-heuristic-baseline-model";
+import type { InteractionMode, IntentContract } from "@/src/domain/intent-contract";
 
 type CompilationReference =
   | { runId: string; failureId: null }
@@ -34,19 +41,46 @@ export type BlindEvaluationSetSummary = Pick<
   "id" | "slug" | "name" | "description" | "sourceLabel" | "isDemo" | "caseCount" | "frozenAt"
 >;
 
+export type BlindCaseView = {
+  rawInput: string;
+  context: string | null;
+  domain: string | null;
+};
+
+export type HumanIntentSummary = {
+  intendedMeaning: string;
+  expectedNextAction: InteractionMode;
+  preservationNotes: string | null;
+  recordedAt: string;
+  lockedAt: string;
+};
+
+export type StepRatingSummary = {
+  ratings: BlindRatings;
+  errorTags: BlindEvaluationErrorTag[];
+  evaluatorNotes: string | null;
+  recordedAt: string;
+};
+
 export type BlindComparisonView = {
   id: string;
   sessionId: string;
   evaluationCaseId: string;
   caseNumber: number;
   totalCases: number;
-  case: {
-    rawInput: string;
-    context: string | null;
-    domain: string | null;
-  };
+  case: BlindCaseView;
   responseA: BlindResponse;
   responseB: BlindResponse;
+};
+
+export type BlindSessionMetrics = {
+  humanIntentMatchScore: { baseline: number | null; candidate: number | null };
+  interactionModeAccuracy: { baseline: number | null; candidate: number | null };
+  humanPreservationScore: { baseline: number | null; candidate: number | null };
+  averageIndependentScore: { baseline: number; candidate: number };
+  bothGoodRate: number;
+  bothBadRate: number;
+  providerFailureRate: number;
 };
 
 export type BlindSessionReveal = {
@@ -63,6 +97,7 @@ export type BlindSessionReveal = {
     modelVersion: string | null;
     systemInstructionVersion: string;
   };
+  metrics: BlindSessionMetrics;
   cases: Array<{
     comparisonId: string;
     externalId: string;
@@ -70,6 +105,9 @@ export type BlindSessionReveal = {
     responseBSource: "BASELINE" | "CANDIDATE";
     privateEvaluatorNotes: string | null;
     expectedHighLevelBehavior: string | null;
+    humanIntent: HumanIntentSummary | null;
+    stepRating1: StepRatingSummary | null;
+    stepRating2: StepRatingSummary | null;
     responseAMetadata: RevealedRunMetadata | null;
     responseBMetadata: RevealedRunMetadata | null;
   }>;
@@ -90,7 +128,13 @@ export type BlindSessionView = {
   sessionId: string;
   status: "IN_PROGRESS" | "COMPLETED";
   progress: { completed: number; total: number };
+  step: EvaluationStep | null;
+  evaluationCaseId: string | null;
+  case: BlindCaseView | null;
+  humanIntent: HumanIntentSummary | null;
   comparison: BlindComparisonView | null;
+  stepRating1: StepRatingSummary | null;
+  stepRating2: StepRatingSummary | null;
   reveal: BlindSessionReveal | null;
 };
 
@@ -148,7 +192,7 @@ export class BlindEvaluationService {
   }
 
   async getSessionView(sessionId: string): Promise<BlindSessionView> {
-    let session = await this.requireSession(sessionId);
+    const session = await this.requireSession(sessionId);
     const cases = await this.evaluations.listCases(session.evaluationSetId);
     const comparisons = await this.evaluations.listComparisons(session.id);
     const judgments = await Promise.all(
@@ -160,14 +204,22 @@ export class BlindEvaluationService {
 
     if (completed === cases.length && cases.length > 0) {
       if (session.status !== "COMPLETED") {
-        session = await this.evaluations.completeSession(session.id);
+        await this.evaluations.completeSession(session.id);
       }
+      const completedSession = await this.evaluations.findSessionById(session.id);
+      if (!completedSession) throw new Error("La sesión desapareció tras completarse.");
       return {
-        sessionId: session.id,
+        sessionId: completedSession.id,
         status: "COMPLETED",
         progress: { completed, total: cases.length },
+        step: null,
+        evaluationCaseId: null,
+        case: null,
+        humanIntent: null,
         comparison: null,
-        reveal: await this.buildReveal(session, cases, comparisons),
+        stepRating1: null,
+        stepRating2: null,
+        reveal: await this.buildReveal(completedSession, cases, comparisons),
       };
     }
 
@@ -175,30 +227,94 @@ export class BlindEvaluationService {
       throw new Error("La sesión completada tiene un conteo de juicios inconsistente.");
     }
 
-    const openComparison = comparisons.find((_, index) => !judgments[index]);
+    const openComparisonIndex = comparisons.findIndex(
+      (_, index) => !judgments[index],
+    );
+    const openComparison =
+      openComparisonIndex >= 0 ? comparisons[openComparisonIndex] : null;
+
     if (openComparison) {
-      return {
-        sessionId: session.id,
-        status: "IN_PROGRESS",
-        progress: { completed, total: cases.length },
-        comparison: await this.buildComparisonView(openComparison, cases, session),
-        reveal: null,
-      };
+      return this.buildActiveCaseView(session, cases, openComparison, completed);
     }
 
     const comparedCaseIds = new Set(comparisons.map((comparison) => comparison.evaluationCaseId));
     const nextCase = cases.find((item) => !comparedCaseIds.has(item.id));
     if (!nextCase) throw new Error("No quedan casos, pero la sesión no puede completarse.");
 
-    this.assertFrozenVersions(session);
-    const comparison = await this.compileComparison(session, nextCase);
     return {
       sessionId: session.id,
       status: "IN_PROGRESS",
       progress: { completed, total: cases.length },
-      comparison: await this.buildComparisonView(comparison, cases, session),
+      step: "HUMAN_INTENT",
+      evaluationCaseId: nextCase.id,
+      case: toCaseView(nextCase),
+      humanIntent: null,
+      comparison: null,
+      stepRating1: null,
+      stepRating2: null,
       reveal: null,
     };
+  }
+
+  async submitHumanIntent(untrustedInput: unknown): Promise<BlindSessionView> {
+    const input = HumanIntentSubmissionSchema.parse(untrustedInput);
+    const session = await this.requireSession(input.sessionId);
+
+    const cases = await this.evaluations.listCases(session.evaluationSetId);
+    const evaluationCase = cases.find((item) => item.id === input.evaluationCaseId);
+    if (!evaluationCase) {
+      throw new Error("El caso de evaluación no pertenece a esta sesión.");
+    }
+
+    const existingIntent = await this.evaluations.findHumanIntentBySessionAndCaseId(
+      input.sessionId,
+      input.evaluationCaseId,
+    );
+    if (existingIntent) {
+      throw new Error("El intent humano ya fue registrado e inmutablemente para este caso.");
+    }
+
+    this.assertFrozenVersions(session);
+    const comparison = await this.compileComparison(session, evaluationCase);
+
+    const humanIntent = await this.evaluations.createHumanIntent({
+      sessionId: input.sessionId,
+      evaluationCaseId: input.evaluationCaseId,
+      intendedMeaning: input.intendedMeaning,
+      expectedNextAction: input.expectedNextAction,
+      preservationNotes: input.preservationNotes ?? null,
+    });
+
+    await this.evaluations.linkHumanIntentToComparison(humanIntent.id, comparison.id);
+
+    return this.getSessionView(session.id);
+  }
+
+  async submitStepRating(untrustedInput: unknown): Promise<BlindSessionView> {
+    const input = StepRatingSubmissionSchema.parse(untrustedInput);
+    const comparison = await this.evaluations.findComparisonById(input.comparisonId);
+    if (!comparison) throw new Error("La comparación no existe.");
+    const session = await this.requireSession(comparison.sessionId);
+    if (session.status !== "IN_PROGRESS") throw new Error("La sesión ya está cerrada.");
+
+    const humanIntent = await this.evaluations.findHumanIntentByComparisonId(comparison.id);
+    if (!humanIntent) throw new Error("El intent humano no está registrado.");
+
+    const existingRatings = await this.evaluations.findStepRatingsByComparisonId(comparison.id);
+    const expectedStep = existingRatings.length + 1;
+    if (input.outputPosition !== expectedStep) {
+      throw new Error("La calificación escalonada fuera de secuencia.");
+    }
+
+    await this.evaluations.createStepRating({
+      comparisonId: comparison.id,
+      outputPosition: input.outputPosition,
+      ratings: input.ratings,
+      errorTags: input.errorTags,
+      evaluatorNotes: input.evaluatorNotes ?? null,
+    });
+
+    return this.getSessionView(session.id);
   }
 
   async submitJudgment(untrustedInput: unknown): Promise<BlindSessionView> {
@@ -208,8 +324,75 @@ export class BlindEvaluationService {
     const session = await this.requireSession(comparison.sessionId);
     if (session.status !== "IN_PROGRESS") throw new Error("La sesión ya está cerrada.");
 
-    await this.evaluations.createJudgment(toJudgmentCreate(input));
+    const stepRatings = await this.evaluations.findStepRatingsByComparisonId(comparison.id);
+    if (stepRatings.length !== 2) {
+      throw new Error("Ambas salidas deben calificarse antes del juicio final.");
+    }
+
+    const ratingA = stepRatings.find((r) => r.outputPosition === 1);
+    const ratingB = stepRatings.find((r) => r.outputPosition === 2);
+    if (!ratingA || !ratingB) {
+      throw new Error("Las calificaciones escalonadas no están completas.");
+    }
+
+    await this.evaluations.createJudgment({
+      comparisonId: input.comparisonId,
+      preference: input.preference ?? null,
+      ratingsA: ratingA.ratings,
+      ratingsB: ratingB.ratings,
+      evaluatorNotes: input.evaluatorNotes ?? null,
+      errorTags: input.errorTags,
+      correctedIntent: input.correctedIntent ?? null,
+    });
+
     return this.getSessionView(session.id);
+  }
+
+  private async buildActiveCaseView(
+    session: BlindEvaluationSessionRecord,
+    cases: BlindEvaluationCaseRecord[],
+    comparison: BlindEvaluationComparisonRecord,
+    completed: number,
+  ): Promise<BlindSessionView> {
+    const evaluationCase = cases.find((item) => item.id === comparison.evaluationCaseId);
+    if (!evaluationCase) throw new Error("La comparación apunta a un caso inexistente.");
+
+    const humanIntentRecord = await this.evaluations.findHumanIntentByComparisonId(comparison.id);
+    const stepRatingRecords = await this.evaluations.findStepRatingsByComparisonId(comparison.id);
+
+    let step: EvaluationStep;
+
+    if (!humanIntentRecord) {
+      step = "HUMAN_INTENT";
+    } else if (stepRatingRecords.length === 0) {
+      step = "RATING_OUTPUT_1";
+    } else if (stepRatingRecords.length === 1) {
+      step = "RATING_OUTPUT_2";
+    } else {
+      step = "PREFERENCE";
+    }
+
+    let comparisonView: BlindComparisonView | null = null;
+    if (step !== "HUMAN_INTENT") {
+      comparisonView = await this.buildComparisonView(comparison, cases, session);
+    }
+
+    const stepRating1 = stepRatingRecords.find((r) => r.outputPosition === 1);
+    const stepRating2 = stepRatingRecords.find((r) => r.outputPosition === 2);
+
+    return {
+      sessionId: session.id,
+      status: "IN_PROGRESS",
+      progress: { completed, total: cases.length },
+      step,
+      evaluationCaseId: comparison.evaluationCaseId,
+      case: toCaseView(evaluationCase),
+      humanIntent: humanIntentRecord ? toHumanIntentSummary(humanIntentRecord) : null,
+      comparison: comparisonView,
+      stepRating1: stepRating1 ? toStepRatingSummary(stepRating1) : null,
+      stepRating2: stepRating2 ? toStepRatingSummary(stepRating2) : null,
+      reveal: null,
+    };
   }
 
   private async compileComparison(
@@ -323,6 +506,32 @@ export class BlindEvaluationService {
     cases: BlindEvaluationCaseRecord[],
     comparisons: BlindEvaluationComparisonRecord[],
   ): Promise<BlindSessionReveal> {
+    const comparisonDetails = await Promise.all(
+      comparisons.map(async (comparison) => {
+        const evaluationCase = cases.find((item) => item.id === comparison.evaluationCaseId);
+        if (!evaluationCase) throw new Error("La comparación apunta a un caso inexistente.");
+        const humanIntent = await this.evaluations.findHumanIntentByComparisonId(comparison.id);
+        const stepRatingRecords = await this.evaluations.findStepRatingsByComparisonId(comparison.id);
+        const stepRating1 = stepRatingRecords.find((r) => r.outputPosition === 1) ?? null;
+        const stepRating2 = stepRatingRecords.find((r) => r.outputPosition === 2) ?? null;
+
+        const contractA = await this.loadContract(comparison.responseARunId);
+        const contractB = await this.loadContract(comparison.responseBRunId);
+
+        return {
+          comparison,
+          evaluationCase,
+          humanIntent,
+          stepRating1,
+          stepRating2,
+          contractA,
+          contractB,
+        };
+      }),
+    );
+
+    const metrics = buildMetrics(session, comparisons, comparisonDetails);
+
     return {
       baseline: {
         provider: session.baselineProvider,
@@ -337,23 +546,30 @@ export class BlindEvaluationService {
         modelVersion: session.candidateModelVersion,
         systemInstructionVersion: session.candidateSystemInstructionVersion,
       },
+      metrics,
       cases: await Promise.all(
-        comparisons.map(async (comparison) => {
-          const evaluationCase = cases.find((item) => item.id === comparison.evaluationCaseId);
-          if (!evaluationCase) throw new Error("La comparación apunta a un caso inexistente.");
-          return {
-            comparisonId: comparison.id,
-            externalId: evaluationCase.externalId,
-            responseASource: comparison.responseASource,
-            responseBSource: comparison.responseBSource,
-            privateEvaluatorNotes: evaluationCase.privateEvaluatorNotes,
-            expectedHighLevelBehavior: evaluationCase.expectedHighLevelBehavior,
-            responseAMetadata: await this.loadRevealedMetadata(comparison.responseARunId),
-            responseBMetadata: await this.loadRevealedMetadata(comparison.responseBRunId),
-          };
-        }),
+        comparisonDetails.map(async (detail) => ({
+          comparisonId: detail.comparison.id,
+          externalId: detail.evaluationCase.externalId,
+          responseASource: detail.comparison.responseASource,
+          responseBSource: detail.comparison.responseBSource,
+          privateEvaluatorNotes: detail.evaluationCase.privateEvaluatorNotes,
+          expectedHighLevelBehavior: detail.evaluationCase.expectedHighLevelBehavior,
+          humanIntent: detail.humanIntent ? toHumanIntentSummary(detail.humanIntent) : null,
+          stepRating1: detail.stepRating1 ? toStepRatingSummary(detail.stepRating1) : null,
+          stepRating2: detail.stepRating2 ? toStepRatingSummary(detail.stepRating2) : null,
+          responseAMetadata: await this.loadRevealedMetadata(detail.comparison.responseARunId),
+          responseBMetadata: await this.loadRevealedMetadata(detail.comparison.responseBRunId),
+        })),
       ),
     };
+  }
+
+  private async loadContract(runId: string | null): Promise<IntentContract | null> {
+    if (!runId) return null;
+    const run = await this.runs.findById(runId);
+    if (!run) return null;
+    return run.compiledContract;
   }
 
   private async loadRevealedMetadata(runId: string | null): Promise<RevealedRunMetadata | null> {
@@ -510,14 +726,194 @@ function toSetSummary(set: BlindEvaluationSetRecord): BlindEvaluationSetSummary 
   };
 }
 
-function toJudgmentCreate(input: BlindJudgmentInput) {
+function toCaseView(c: BlindEvaluationCaseRecord): BlindCaseView {
   return {
-    comparisonId: input.comparisonId,
-    preference: input.preference,
-    ratingsA: input.ratingsA,
-    ratingsB: input.ratingsB,
-    evaluatorNotes: input.evaluatorNotes,
-    errorTags: input.errorTags,
-    correctedIntent: input.correctedIntent,
+    rawInput: c.rawInput,
+    context: c.context,
+    domain: c.domain,
+  };
+}
+
+function toHumanIntentSummary(r: BlindEvaluationHumanIntentRecord): HumanIntentSummary {
+  return {
+    intendedMeaning: r.intendedMeaning,
+    expectedNextAction: r.expectedNextAction as InteractionMode,
+    preservationNotes: r.preservationNotes,
+    recordedAt: r.recordedAt,
+    lockedAt: r.lockedAt,
+  };
+}
+
+function toStepRatingSummary(r: BlindEvaluationStepRatingRecord): StepRatingSummary {
+  return {
+    ratings: r.ratings,
+    errorTags: r.errorTags,
+    evaluatorNotes: r.evaluatorNotes,
+    recordedAt: r.createdAt,
+  };
+}
+
+function averageRating(r: BlindRatings): number {
+  return (
+    r.intendedMeaning +
+    r.contextualUnderstanding +
+    r.implicitExpectations +
+    r.assumptionSafety +
+    r.clarificationQuality +
+    r.interactionMode +
+    r.preservationIntent +
+    r.overallUsefulness
+  ) / 8;
+}
+
+function buildMetrics(
+  _session: BlindEvaluationSessionRecord,
+  comparisons: BlindEvaluationComparisonRecord[],
+  details: Array<{
+    comparison: BlindEvaluationComparisonRecord;
+    humanIntent: BlindEvaluationHumanIntentRecord | null;
+    stepRating1: BlindEvaluationStepRatingRecord | null;
+    stepRating2: BlindEvaluationStepRatingRecord | null;
+    contractA: IntentContract | null;
+    contractB: IntentContract | null;
+  }>,
+): BlindSessionMetrics {
+  const total = comparisons.length;
+  if (total === 0) {
+    return {
+      humanIntentMatchScore: { baseline: null, candidate: null },
+      interactionModeAccuracy: { baseline: null, candidate: null },
+      humanPreservationScore: { baseline: null, candidate: null },
+      averageIndependentScore: { baseline: 0, candidate: 0 },
+      bothGoodRate: 0,
+      bothBadRate: 0,
+      providerFailureRate: 0,
+    };
+  }
+
+  let failureCount = 0;
+  let baselineScoreSum = 0;
+  let candidateScoreSum = 0;
+  let scoringCases = 0;
+  let bothGood = 0;
+  let bothBad = 0;
+  let baselineIntentMatchSum = 0;
+  let candidateIntentMatchSum = 0;
+  let baselineIntentMatchCount = 0;
+  let candidateIntentMatchCount = 0;
+  let baselinePreservationSum = 0;
+  let candidatePreservationSum = 0;
+  let baselinePreservationCount = 0;
+  let candidatePreservationCount = 0;
+  let interactionModeBaselineYes = 0;
+  let interactionModeCandidateYes = 0;
+  let interactionModeBaselineTotal = 0;
+  let interactionModeCandidateTotal = 0;
+
+  for (const detail of details) {
+    const isFailureA = detail.comparison.responseAFailureId !== null;
+    const isFailureB = detail.comparison.responseBFailureId !== null;
+    if (isFailureA) failureCount += 1;
+    if (isFailureB) failureCount += 1;
+
+    const ratingA = detail.stepRating1;
+    const ratingB = detail.stepRating2;
+    if (!ratingA || !ratingB) continue;
+
+    const avgScoreA = averageRating(ratingA.ratings);
+    const avgScoreB = averageRating(ratingB.ratings);
+
+    const sourceA = detail.comparison.responseASource;
+    const sourceB = detail.comparison.responseBSource;
+
+    if (sourceA === "BASELINE") {
+      baselineScoreSum += avgScoreA;
+      candidateScoreSum += avgScoreB;
+      baselineIntentMatchSum += ratingA.ratings.intendedMeaning;
+      candidateIntentMatchSum += ratingB.ratings.intendedMeaning;
+      baselinePreservationSum += ratingA.ratings.preservationIntent;
+      candidatePreservationSum += ratingB.ratings.preservationIntent;
+    } else {
+      baselineScoreSum += avgScoreB;
+      candidateScoreSum += avgScoreA;
+      baselineIntentMatchSum += ratingB.ratings.intendedMeaning;
+      candidateIntentMatchSum += ratingA.ratings.intendedMeaning;
+      baselinePreservationSum += ratingB.ratings.preservationIntent;
+      candidatePreservationSum += ratingA.ratings.preservationIntent;
+    }
+    baselineIntentMatchCount += 1;
+    candidateIntentMatchCount += 1;
+    baselinePreservationCount += 1;
+    candidatePreservationCount += 1;
+
+    scoringCases += 1;
+
+    if (avgScoreA >= 1.5 && avgScoreB >= 1.5) bothGood += 1;
+    if (avgScoreA <= 0.5 && avgScoreB <= 0.5) bothBad += 1;
+
+    const contractA = detail.contractA;
+    const contractB = detail.contractB;
+
+    if (detail.humanIntent && detail.humanIntent.expectedNextAction) {
+      if (sourceA === "BASELINE" && contractA) {
+        interactionModeBaselineTotal += 1;
+        if (contractA.recommendedInteractionMode === detail.humanIntent.expectedNextAction) {
+          interactionModeBaselineYes += 1;
+        }
+      }
+      if (sourceA === "CANDIDATE" && contractA) {
+        interactionModeCandidateTotal += 1;
+        if (contractA.recommendedInteractionMode === detail.humanIntent.expectedNextAction) {
+          interactionModeCandidateYes += 1;
+        }
+      }
+      if (sourceB === "BASELINE" && contractB) {
+        interactionModeBaselineTotal += 1;
+        if (contractB.recommendedInteractionMode === detail.humanIntent.expectedNextAction) {
+          interactionModeBaselineYes += 1;
+        }
+      }
+      if (sourceB === "CANDIDATE" && contractB) {
+        interactionModeCandidateTotal += 1;
+        if (contractB.recommendedInteractionMode === detail.humanIntent.expectedNextAction) {
+          interactionModeCandidateYes += 1;
+        }
+      }
+    }
+
+  }
+
+  return {
+    humanIntentMatchScore: {
+      baseline: baselineIntentMatchCount > 0
+        ? baselineIntentMatchSum / baselineIntentMatchCount
+        : null,
+      candidate: candidateIntentMatchCount > 0
+        ? candidateIntentMatchSum / candidateIntentMatchCount
+        : null,
+    },
+    interactionModeAccuracy: {
+      baseline: interactionModeBaselineTotal > 0
+        ? interactionModeBaselineYes / interactionModeBaselineTotal
+        : null,
+      candidate: interactionModeCandidateTotal > 0
+        ? interactionModeCandidateYes / interactionModeCandidateTotal
+        : null,
+    },
+    humanPreservationScore: {
+      baseline: baselinePreservationCount > 0
+        ? baselinePreservationSum / baselinePreservationCount
+        : null,
+      candidate: candidatePreservationCount > 0
+        ? candidatePreservationSum / candidatePreservationCount
+        : null,
+    },
+    averageIndependentScore: {
+      baseline: scoringCases > 0 ? baselineScoreSum / scoringCases : 0,
+      candidate: scoringCases > 0 ? candidateScoreSum / scoringCases : 0,
+    },
+    bothGoodRate: total > 0 ? bothGood / total : 0,
+    bothBadRate: total > 0 ? bothBad / total : 0,
+    providerFailureRate: total > 0 ? failureCount / (total * 2) : 0,
   };
 }

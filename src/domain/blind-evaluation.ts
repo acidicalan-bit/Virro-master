@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { IntentContractSchema } from "@/src/domain/intent-contract";
+import { IntentContractSchema, InteractionModeSchema } from "@/src/domain/intent-contract";
 
 export const BLIND_EVALUATION_IMPORT_SCHEMA_VERSION = "1.0.0" as const;
 
@@ -92,14 +92,39 @@ export const BlindEvaluationErrorTagSchema = z.enum([
 export const BlindJudgmentInputSchema = z
   .object({
     comparisonId: z.uuid(),
-    preference: BlindPreferenceSchema,
-    ratingsA: BlindRatingsSchema,
-    ratingsB: BlindRatingsSchema,
+    preference: BlindPreferenceSchema.optional(),
     evaluatorNotes: z.string().trim().max(8_000).nullable().default(null),
     errorTags: z.array(BlindEvaluationErrorTagSchema).max(13).default([]),
     correctedIntent: z.string().trim().max(8_000).nullable().default(null),
   })
   .strict();
+
+export const HumanIntentSubmissionSchema = z
+  .object({
+    sessionId: z.uuid(),
+    evaluationCaseId: z.uuid(),
+    intendedMeaning: z.string().trim().min(1).max(8_000),
+    expectedNextAction: InteractionModeSchema,
+    preservationNotes: z.string().trim().max(8_000).nullable().optional().default(null),
+  })
+  .strict();
+
+export const StepRatingSubmissionSchema = z
+  .object({
+    comparisonId: z.uuid(),
+    outputPosition: z.number().int().min(1).max(2),
+    ratings: BlindRatingsSchema,
+    errorTags: z.array(BlindEvaluationErrorTagSchema).max(13).default([]),
+    evaluatorNotes: z.string().trim().max(8_000).nullable().default(null),
+  })
+  .strict();
+
+export const EvaluationStepSchema = z.enum([
+  "HUMAN_INTENT",
+  "RATING_OUTPUT_1",
+  "RATING_OUTPUT_2",
+  "PREFERENCE",
+]);
 
 export const BlindResponseSchema = z.discriminatedUnion("status", [
   z.object({ status: z.literal("SUCCESS"), contract: IntentContractSchema }).strict(),
@@ -111,4 +136,7 @@ export type BlindRatings = z.infer<typeof BlindRatingsSchema>;
 export type BlindPreference = z.infer<typeof BlindPreferenceSchema>;
 export type BlindEvaluationErrorTag = z.infer<typeof BlindEvaluationErrorTagSchema>;
 export type BlindJudgmentInput = z.infer<typeof BlindJudgmentInputSchema>;
+export type HumanIntentSubmission = z.infer<typeof HumanIntentSubmissionSchema>;
+export type StepRatingSubmission = z.infer<typeof StepRatingSubmissionSchema>;
+export type EvaluationStep = z.infer<typeof EvaluationStepSchema>;
 export type BlindResponse = z.infer<typeof BlindResponseSchema>;

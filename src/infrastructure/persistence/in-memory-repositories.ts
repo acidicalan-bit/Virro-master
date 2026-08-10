@@ -1,15 +1,19 @@
 import { benchmarkFixtures } from "@/src/fixtures/benchmark-cases";
 import type {
+  BenchmarkRepository,
   BlindEvaluationCaseRecord,
   BlindEvaluationComparisonRecord,
+  BlindEvaluationHumanIntentRecord,
   BlindEvaluationJudgmentRecord,
   BlindEvaluationRepository,
   BlindEvaluationSessionRecord,
   BlindEvaluationSetRecord,
-  BenchmarkRepository,
+  BlindEvaluationStepRatingRecord,
   CreateBlindEvaluationComparison,
+  CreateBlindEvaluationHumanIntent,
   CreateBlindEvaluationJudgment,
   CreateBlindEvaluationSession,
+  CreateBlindEvaluationStepRating,
   CreateBenchmarkRun,
   CreateIntentFeedback,
   CreateIntentModelFailure,
@@ -79,6 +83,8 @@ export class InMemoryBlindEvaluationRepository implements BlindEvaluationReposit
   readonly cases: BlindEvaluationCaseRecord[] = [];
   readonly sessions: BlindEvaluationSessionRecord[] = [];
   readonly comparisons: BlindEvaluationComparisonRecord[] = [];
+  readonly humanIntents: BlindEvaluationHumanIntentRecord[] = [];
+  readonly stepRatings: BlindEvaluationStepRatingRecord[] = [];
   readonly judgments: BlindEvaluationJudgmentRecord[] = [];
 
   async importSet(
@@ -130,6 +136,10 @@ export class InMemoryBlindEvaluationRepository implements BlindEvaluationReposit
     return this.cases
       .filter((item) => item.evaluationSetId === setId)
       .sort((left, right) => left.position - right.position);
+  }
+
+  async findCaseById(id: string): Promise<BlindEvaluationCaseRecord | null> {
+    return this.cases.find((item) => item.id === id) ?? null;
   }
 
   async createSession(input: CreateBlindEvaluationSession): Promise<BlindEvaluationSessionRecord> {
@@ -195,6 +205,65 @@ export class InMemoryBlindEvaluationRepository implements BlindEvaluationReposit
     };
     this.judgments.push(judgment);
     return judgment;
+  }
+
+  async createHumanIntent(
+    input: CreateBlindEvaluationHumanIntent,
+  ): Promise<BlindEvaluationHumanIntentRecord> {
+    const now = new Date().toISOString();
+    const record: BlindEvaluationHumanIntentRecord = {
+      ...input,
+      id: crypto.randomUUID(),
+      comparisonId: null,
+      recordedAt: now,
+      lockedAt: now,
+    };
+    this.humanIntents.push(record);
+    return record;
+  }
+
+  async findHumanIntentBySessionAndCaseId(
+    sessionId: string,
+    evaluationCaseId: string,
+  ): Promise<BlindEvaluationHumanIntentRecord | null> {
+    return this.humanIntents.find(
+      (item) => item.sessionId === sessionId && item.evaluationCaseId === evaluationCaseId,
+    ) ?? null;
+  }
+
+  async linkHumanIntentToComparison(
+    humanIntentId: string,
+    comparisonId: string,
+  ): Promise<void> {
+    const record = this.humanIntents.find((item) => item.id === humanIntentId);
+    if (!record) throw new Error("Intent humano no encontrado para enlazar.");
+    record.comparisonId = comparisonId;
+  }
+
+  async findHumanIntentByComparisonId(
+    comparisonId: string,
+  ): Promise<BlindEvaluationHumanIntentRecord | null> {
+    return this.humanIntents.find((item) => item.comparisonId === comparisonId) ?? null;
+  }
+
+  async createStepRating(
+    input: CreateBlindEvaluationStepRating,
+  ): Promise<BlindEvaluationStepRatingRecord> {
+    const record: BlindEvaluationStepRatingRecord = {
+      ...input,
+      id: crypto.randomUUID(),
+      createdAt: new Date().toISOString(),
+    };
+    this.stepRatings.push(record);
+    return record;
+  }
+
+  async findStepRatingsByComparisonId(
+    comparisonId: string,
+  ): Promise<BlindEvaluationStepRatingRecord[]> {
+    return this.stepRatings
+      .filter((item) => item.comparisonId === comparisonId)
+      .sort((left, right) => left.outputPosition - right.outputPosition);
   }
 }
 

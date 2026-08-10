@@ -155,7 +155,7 @@ export type CreateBlindEvaluationComparison = Omit<
 export type BlindEvaluationJudgmentRecord = {
   id: string;
   comparisonId: string;
-  preference: BlindPreference;
+  preference: BlindPreference | null;
   ratingsA: BlindRatings;
   ratingsB: BlindRatings;
   evaluatorNotes: string | null;
@@ -169,17 +169,59 @@ export type CreateBlindEvaluationJudgment = Omit<
   "id" | "createdAt"
 >;
 
+export type BlindEvaluationHumanIntentRecord = {
+  id: string;
+  sessionId: string;
+  evaluationCaseId: string;
+  comparisonId: string | null;
+  intendedMeaning: string;
+  expectedNextAction: string;
+  preservationNotes: string | null;
+  recordedAt: string;
+  lockedAt: string;
+};
+
+export type CreateBlindEvaluationHumanIntent = Omit<
+  BlindEvaluationHumanIntentRecord,
+  "id" | "recordedAt" | "lockedAt" | "comparisonId"
+>;
+
+export type BlindEvaluationStepRatingRecord = {
+  id: string;
+  comparisonId: string;
+  outputPosition: number;
+  ratings: BlindRatings;
+  errorTags: BlindEvaluationErrorTag[];
+  evaluatorNotes: string | null;
+  createdAt: string;
+};
+
+export type CreateBlindEvaluationStepRating = Omit<
+  BlindEvaluationStepRatingRecord,
+  "id" | "createdAt"
+>;
+
 export interface BlindEvaluationRepository {
   importSet(input: BlindEvaluationSetImport, contentHash: string): Promise<BlindEvaluationSetRecord>;
   listSets(): Promise<BlindEvaluationSetRecord[]>;
   findSetById(id: string): Promise<BlindEvaluationSetRecord | null>;
   listCases(setId: string): Promise<BlindEvaluationCaseRecord[]>;
+  findCaseById(id: string): Promise<BlindEvaluationCaseRecord | null>;
   createSession(input: CreateBlindEvaluationSession): Promise<BlindEvaluationSessionRecord>;
   findSessionById(id: string): Promise<BlindEvaluationSessionRecord | null>;
   completeSession(id: string): Promise<BlindEvaluationSessionRecord>;
   listComparisons(sessionId: string): Promise<BlindEvaluationComparisonRecord[]>;
   findComparisonById(id: string): Promise<BlindEvaluationComparisonRecord | null>;
   createComparison(input: CreateBlindEvaluationComparison): Promise<BlindEvaluationComparisonRecord>;
+  createHumanIntent(input: CreateBlindEvaluationHumanIntent): Promise<BlindEvaluationHumanIntentRecord>;
+  findHumanIntentBySessionAndCaseId(
+    sessionId: string,
+    evaluationCaseId: string,
+  ): Promise<BlindEvaluationHumanIntentRecord | null>;
+  linkHumanIntentToComparison(humanIntentId: string, comparisonId: string): Promise<void>;
+  findHumanIntentByComparisonId(comparisonId: string): Promise<BlindEvaluationHumanIntentRecord | null>;
+  createStepRating(input: CreateBlindEvaluationStepRating): Promise<BlindEvaluationStepRatingRecord>;
+  findStepRatingsByComparisonId(comparisonId: string): Promise<BlindEvaluationStepRatingRecord[]>;
   findJudgmentByComparisonId(comparisonId: string): Promise<BlindEvaluationJudgmentRecord | null>;
   createJudgment(input: CreateBlindEvaluationJudgment): Promise<BlindEvaluationJudgmentRecord>;
 }

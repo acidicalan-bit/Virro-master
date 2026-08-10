@@ -57,9 +57,11 @@ El adaptador usa el mismo JSON Schema generado desde `IntentContractSchema`, val
 2. Configura `OPENAI_API_KEY` únicamente en el servidor.
 3. Abre `/blind-eval`.
 4. Usa el set marcado `DEMO` para validar el flujo o importa un JSON externo.
-5. Completa preferencia, puntuaciones A/B y, cuando corresponda, “¿Qué habrías querido decir?”.
+5. Antes de ver salidas, registra y bloquea el significado humano esperado, la próxima acción y las restricciones de preservación.
+6. Califica `Output 1` y `Output 2` por separado; la segunda calificación no muestra la puntuación de la primera.
+7. Con ambas calificaciones bloqueadas, compara las dos respuestas, registra una preferencia opcional y agrega una corrección cuando corresponda.
 
-La identidad de A/B, telemetría y notas privadas se revelan solamente cuando toda la sesión está completa. Los sets son inmutables y se congelan con SHA-256. Consulta [el formato de importación](./docs/BLIND_EVALUATION_FORMAT.md).
+La identidad de A/B, telemetría, métricas y notas privadas se revelan solamente cuando toda la sesión está completa. Los sets son inmutables y se congelan con SHA-256. Cada sesión conserva su propia interpretación humana, incluso cuando otra sesión evalúa el mismo caso. Consulta [el formato de importación](./docs/BLIND_EVALUATION_FORMAT.md).
 
 ## Telemetría
 
