@@ -15,33 +15,17 @@ export class FakeImageEditExecutor implements ImageEditExecutor {
 
   async execute(context: ImageEditContext): Promise<ImageEditResult> {
     const startedAt = Date.now();
-
-    const { data: sourceData, error: downloadError } = await this.storage.storage
-      .from("media")
-      .download(context.sourceStorageKey);
-
-    if (downloadError || !sourceData) {
-      throw new Error("Failed to download source image: " + (downloadError?.message || "unknown"));
-    }
-
-    const sourceBuffer = Buffer.from(await sourceData.arrayBuffer());
+    const sourceBuffer = context.sourceBytes
+      ? Buffer.from(context.sourceBytes)
+      : await this.downloadSource(context.sourceStorageKey);
     const candidateBuffer = await this.simulateEdit(sourceBuffer);
 
     const candidateKey = `candidates/${context.transactionId}/${crypto.randomUUID()}.png`;
-    const { error: uploadError } = await this.storage.storage
-      .from("media")
-      .upload(candidateKey, candidateBuffer, {
-        contentType: "image/png",
-        upsert: false,
-      });
-
-    if (uploadError) {
-      throw new Error("Failed to upload candidate: " + uploadError.message);
-    }
 
     const latencyMs = Date.now() - startedAt;
 
     return {
+      candidateBytes: new Uint8Array(candidateBuffer),
       candidateStorageKey: candidateKey,
       candidateMimeType: "image/png",
       candidateWidth: context.sourceWidth,
@@ -55,6 +39,14 @@ export class FakeImageEditExecutor implements ImageEditExecutor {
       costUsd: null,
       providerMetadata: { simulated: true, roi: context.roi },
     };
+  }
+
+  private async downloadSource(sourceStorageKey: string): Promise<Buffer> {
+    const { data, error } = await this.storage.storage.from("media").download(sourceStorageKey);
+    if (error || !data) {
+      throw new Error("Failed to download source image: " + (error?.message || "unknown"));
+    }
+    return Buffer.from(await data.arrayBuffer());
   }
 
   private async simulateEdit(sourceBuffer: Buffer): Promise<Buffer> {

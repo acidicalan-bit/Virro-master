@@ -10,3 +10,5 @@ export * from "./evidence-receipt";
 export * from "./verification-run";
 export * from "./state-commit";
 export * from "./cost-record";
+export * from "./media/media-asset-version";
+export * from "./media/preservation";

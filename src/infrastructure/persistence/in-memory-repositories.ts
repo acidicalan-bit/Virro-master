@@ -292,6 +292,9 @@ const memoryBundle: RepositoryBundle = {
   semanticSnapshots: outcomeRepos.semanticSnapshots,
   imageEvidence: outcomeRepos.imageEvidence,
   candidateAssets: outcomeRepos.candidateAssets,
+  preservationRuns: outcomeRepos.preservationRuns,
+  preservationEvidence: outcomeRepos.preservationEvidence,
+  candidatePreferences: outcomeRepos.candidatePreferences,
   storageMode: "memory",
 };
 

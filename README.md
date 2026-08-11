@@ -8,6 +8,7 @@ Laboratorio interno para transformar lenguaje humano natural, coloquial o incomp
 - pnpm 11
 - Un proyecto de Supabase para persistencia real
 - Una OpenAI API key para el proveedor real y la evaluación ciega
+- Una OpenAI image-capable project for the real Precision Edit smoke
 
 ## Ejecutar localmente
 
@@ -63,6 +64,22 @@ El adaptador usa el mismo JSON Schema generado desde `IntentContractSchema`, val
 
 La identidad de A/B, telemetría, métricas y notas privadas se revelan solamente cuando toda la sesión está completa. Los sets son inmutables y se congelan con SHA-256. Cada sesión conserva su propia interpretación humana, incluso cuando otra sesión evalúa el mismo caso. Consulta [el formato de importación](./docs/BLIND_EVALUATION_FORMAT.md).
 
+## Preservation & Verification v0.1
+
+`/precision-edit-lab` ejecuta una única edición de imagen y conserva dos candidatos inmutables: `RAW_PROVIDER` y `PRESERVED`. El segundo se deriva localmente del primero; nunca se solicita una segunda generación para producirlo.
+
+Configura únicamente en servidor:
+
+```text
+IMAGE_EDIT_PROVIDER=openai
+OPENAI_IMAGE_EDIT_MODEL=gpt-image-2
+OPENAI_API_KEY=...
+```
+
+Aplica `20260811120000_build_004_preservation_verification.sql` antes de ejecutar el laboratorio. La versión inicial acepta PNG de hasta 10 MB. Tras la verificación determinística, la preferencia `RAW/PRESERVED/TIE/BOTH_BAD` se registra por separado de la aprobación. Solo `APPROVE PRESERVED` puede crear la versión canónica siguiente.
+
+Consulta [la arquitectura y semántica completa de BUILD 004](./docs/BUILD_004_PRESERVATION_VERIFICATION_V0_1.md).
+
 ## Telemetría
 
 Cada intent run conserva proveedor, modelo, versiones, instrucción de sistema, latencia total y del proveedor, tokens de entrada/caché/salida/razonamiento y total cuando OpenAI los informa. El costo es una estimación separada basada en una configuración versionada; nunca se inventa cuando faltan datos.
@@ -81,6 +98,7 @@ pnpm build
 - `/`: compilador, lectura visual, debug progresivo, feedback y Execution Contract.
 - `/benchmarks`: fixtures, ejecución individual/conjunta y métricas deterministas.
 - `/blind-eval`: importación y evaluación humana A/B con revelado diferido.
+- `/precision-edit-lab`: comparación controlada RAW vs PRESERVED, métricas por zona, Creative Assertions y commit exclusivo de PRESERVED.
 - `/api/compile`, `/api/feedback`, `/api/execution-contract`, `/api/benchmarks`: frontera HTTP del monolito.
 - `/api/blind-eval/*`: sets inmutables, sesiones, comparaciones y juicios.
 

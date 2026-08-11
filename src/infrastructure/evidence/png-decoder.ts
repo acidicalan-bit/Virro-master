@@ -15,7 +15,9 @@ export function decodePngToPixels(pngBuffer: Buffer): RawPixels {
   let offset = 8;
   let width = 0;
   let height = 0;
+  let bitDepth = 0;
   let colorType = 0;
+  let interlaceMethod = 0;
   const idatChunks: Buffer[] = [];
 
   while (offset < pngBuffer.length) {
@@ -30,7 +32,9 @@ export function decodePngToPixels(pngBuffer: Buffer): RawPixels {
     if (type === "IHDR") {
       width = data.readUInt32BE(0);
       height = data.readUInt32BE(4);
+      bitDepth = data[8];
       colorType = data[9];
+      interlaceMethod = data[12];
     } else if (type === "IDAT") {
       idatChunks.push(data);
     } else if (type === "IEND") {
@@ -41,12 +45,24 @@ export function decodePngToPixels(pngBuffer: Buffer): RawPixels {
   if (width === 0 || height === 0) {
     throw new Error("Invalid PNG dimensions");
   }
+  if (bitDepth !== 8) {
+    throw new Error(`Unsupported PNG bit depth: ${bitDepth}`);
+  }
+  if (interlaceMethod !== 0) {
+    throw new Error("Interlaced PNGs are not supported.");
+  }
 
   const compressed = Buffer.concat(idatChunks);
   const decompressed = inflateSync(compressed);
 
-  const bytesPerPixel = colorType === 2 ? 3 : colorType === 6 ? 4 : colorType === 0 ? 1 : 3;
+  const bytesPerPixel = colorType === 0 ? 1 : colorType === 2 ? 3 : colorType === 4 ? 2 : colorType === 6 ? 4 : 0;
+  if (bytesPerPixel === 0) {
+    throw new Error(`Unsupported PNG color type: ${colorType}`);
+  }
   const stride = 1 + width * bytesPerPixel;
+  if (decompressed.length !== stride * height) {
+    throw new Error("PNG scanline data has an unexpected length.");
+  }
 
   const pixels = new Uint8ClampedArray(width * height * 4);
 
@@ -58,33 +74,32 @@ export function decodePngToPixels(pngBuffer: Buffer): RawPixels {
     const rawRow = decompressed.subarray(rowStart + 1, rowStart + stride);
     const currentRow = new Uint8ClampedArray(width * bytesPerPixel);
 
-    for (let x = 0; x < width; x++) {
-      const xOff = x * bytesPerPixel;
-      const raw = rawRow[xOff];
-
-      let a = 0, b = 0, c = 0;
-      if (x > 0) b = currentRow[xOff - bytesPerPixel];
-      if (y > 0) c = prevRow[xOff];
-      if (x > 0 && y > 0) a = prevRow[xOff - bytesPerPixel];
+    for (let byteIndex = 0; byteIndex < rawRow.length; byteIndex++) {
+      const raw = rawRow[byteIndex];
+      const left = byteIndex >= bytesPerPixel ? currentRow[byteIndex - bytesPerPixel] : 0;
+      const above = y > 0 ? prevRow[byteIndex] : 0;
+      const upperLeft = y > 0 && byteIndex >= bytesPerPixel
+        ? prevRow[byteIndex - bytesPerPixel]
+        : 0;
 
       let reconstructed: number;
       switch (filterType) {
         case 0: reconstructed = raw; break;
-        case 1: reconstructed = (raw + b) & 0xff; break;
-        case 2: reconstructed = (raw + c) & 0xff; break;
-        case 3: reconstructed = (raw + Math.floor((b + c) / 2)) & 0xff; break;
+        case 1: reconstructed = (raw + left) & 0xff; break;
+        case 2: reconstructed = (raw + above) & 0xff; break;
+        case 3: reconstructed = (raw + Math.floor((left + above) / 2)) & 0xff; break;
         case 4: {
-          const p = b + c - a;
-          const pa = Math.abs(p - a);
-          const pb = Math.abs(p - b);
-          const pc = Math.abs(p - c);
-          const pr = pa <= pb && pa <= pc ? a : pb <= pc ? b : c;
+          const p = left + above - upperLeft;
+          const pa = Math.abs(p - left);
+          const pb = Math.abs(p - above);
+          const pc = Math.abs(p - upperLeft);
+          const pr = pa <= pb && pa <= pc ? left : pb <= pc ? above : upperLeft;
           reconstructed = (raw + pr) & 0xff;
           break;
         }
-        default: reconstructed = raw;
+        default: throw new Error(`Unsupported PNG filter type: ${filterType}`);
       }
-      currentRow[xOff] = reconstructed;
+      currentRow[byteIndex] = reconstructed;
     }
 
     for (let x = 0; x < width; x++) {
@@ -107,11 +122,14 @@ export function decodePngToPixels(pngBuffer: Buffer): RawPixels {
         pixels[pIdx + 1] = v;
         pixels[pIdx + 2] = v;
         pixels[pIdx + 3] = 255;
+      } else if (colorType === 4) {
+        const v = currentRow[xOff];
+        pixels[pIdx] = v;
+        pixels[pIdx + 1] = v;
+        pixels[pIdx + 2] = v;
+        pixels[pIdx + 3] = currentRow[xOff + 1];
       } else {
-        pixels[pIdx] = currentRow[xOff] ?? 0;
-        pixels[pIdx + 1] = currentRow[xOff + 1] ?? 0;
-        pixels[pIdx + 2] = currentRow[xOff + 2] ?? 0;
-        pixels[pIdx + 3] = 255;
+        throw new Error(`Unsupported PNG color type: ${colorType}`);
       }
     }
 

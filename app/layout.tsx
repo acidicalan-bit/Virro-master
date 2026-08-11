@@ -22,6 +22,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             <Link href="/">Compiler</Link>
             <Link href="/benchmarks">Benchmarks</Link>
             <Link href="/blind-eval">Blind Eval</Link>
+            <Link href="/precision-edit-lab">Precision Edit</Link>
           </nav>
         </header>
         <div id="main-content">{children}</div>

@@ -8,11 +8,13 @@ export type ImageEditContext = {
   sourceMimeType: string;
   sourceWidth: number;
   sourceHeight: number;
+  sourceBytes?: Uint8Array;
   roi: ROI;
   instruction: string;
 };
 
 export type ImageEditResult = {
+  candidateBytes: Uint8Array;
   candidateStorageKey: string;
   candidateMimeType: string;
   candidateWidth: number;

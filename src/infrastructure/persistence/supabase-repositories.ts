@@ -49,6 +49,9 @@ import {
   SupabaseSemanticSnapshotRepository,
   SupabaseImageEvidenceRepository,
   SupabaseCandidateAssetRepository,
+  SupabasePreservationRunRepository,
+  SupabasePreservationEvidenceRepository,
+  SupabaseCandidatePreferenceRepository,
 } from "@/src/infrastructure/persistence/outcome/supabase-outcome-repositories";
 import {
   fromBenchmarkCaseRow,
@@ -468,6 +471,9 @@ export function createSupabaseRepositories(): RepositoryBundle {
     semanticSnapshots: new SupabaseSemanticSnapshotRepository(client),
     imageEvidence: new SupabaseImageEvidenceRepository(client),
     candidateAssets: new SupabaseCandidateAssetRepository(client),
+    preservationRuns: new SupabasePreservationRunRepository(client),
+    preservationEvidence: new SupabasePreservationEvidenceRepository(client),
+    candidatePreferences: new SupabaseCandidatePreferenceRepository(client),
     storageMode: "supabase",
   };
 }

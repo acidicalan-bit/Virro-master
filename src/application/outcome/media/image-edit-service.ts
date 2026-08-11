@@ -98,7 +98,7 @@ export class ImageEditService {
 
     const { error: uploadError } = await this.storage.storage
       .from("media")
-      .upload(result.candidateStorageKey, Buffer.from([]), {
+      .upload(result.candidateStorageKey, Buffer.from(result.candidateBytes), {
         contentType: result.candidateMimeType,
         upsert: false,
       });

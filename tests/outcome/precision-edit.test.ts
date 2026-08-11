@@ -29,6 +29,7 @@ function makeFakeImageExecutor(): ImageEditExecutor {
       const fakeBuffer = Buffer.from("fake-candidate-image-data-" + context.instruction);
       const sha256 = createHash("sha256").update(fakeBuffer).digest("hex");
       return {
+        candidateBytes: new Uint8Array(fakeBuffer),
         candidateStorageKey: `candidates/${context.transactionId}/fake.png`,
         candidateMimeType: "image/png",
         candidateWidth: context.sourceWidth,
@@ -289,6 +290,7 @@ describe("BUILD 003 — Precision Edit Integrity Gate", () => {
         provider: "bad",
         async execute() {
           return {
+            candidateBytes: new Uint8Array(),
             candidateStorageKey: "bad/key",
             candidateMimeType: "image/png",
             candidateWidth: 100,

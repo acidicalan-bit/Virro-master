@@ -44,3 +44,10 @@ next-env.d.ts
 
 # local Supabase state
 .supabase/
+
+# local BUILD 004 real-smoke handoff
+.build-004-smoke-report.json
+.build-004-smoke-source.png
+.build-004-smoke-raw.png
+.build-004-smoke-preserved.png
+.build-004-final-report.json

@@ -6,6 +6,7 @@ import type {
 
 import OpenAI from "openai";
 import { createHash } from "node:crypto";
+import { decodePngToPixels } from "@/src/infrastructure/evidence/png-decoder";
 
 export class OpenAIImageEditExecutor implements ImageEditExecutor {
   readonly name = "openai-image-edit";
@@ -26,17 +27,17 @@ export class OpenAIImageEditExecutor implements ImageEditExecutor {
   async execute(context: ImageEditContext): Promise<ImageEditResult> {
     const startedAt = Date.now();
 
-    const sourceResponse = await fetch(context.sourceStorageKey);
-    if (!sourceResponse.ok) {
-      throw new Error(`Failed to fetch source image from ${context.sourceStorageKey}: ${sourceResponse.status}`);
-    }
-    const sourceBuffer = Buffer.from(await sourceResponse.arrayBuffer());
+    const sourceBuffer = context.sourceBytes
+      ? Buffer.from(context.sourceBytes)
+      : await this.downloadSource(context.sourceStorageKey);
 
     const prompt = this.buildPrompt(context);
+    const sourceFileBytes = new Uint8Array(sourceBuffer.byteLength);
+    sourceFileBytes.set(sourceBuffer);
 
     const response = await this.client.images.edit({
       model: this.model,
-      image: new File([sourceBuffer], "source.png", { type: context.sourceMimeType }),
+      image: new File([sourceFileBytes], "source.png", { type: context.sourceMimeType }),
       prompt,
       size: this.resolveSize(context.sourceWidth, context.sourceHeight),
     });
@@ -63,12 +64,14 @@ export class OpenAIImageEditExecutor implements ImageEditExecutor {
     }
 
     const candidateKey = `candidates/${context.transactionId}/${crypto.randomUUID()}.png`;
+    const decodedCandidate = decodePngToPixels(candidateBuffer);
 
     return {
+      candidateBytes: new Uint8Array(candidateBuffer),
       candidateStorageKey: candidateKey,
       candidateMimeType: "image/png",
-      candidateWidth: context.sourceWidth,
-      candidateHeight: context.sourceHeight,
+      candidateWidth: decodedCandidate.width,
+      candidateHeight: decodedCandidate.height,
       candidateByteSize: candidateBuffer.length,
       candidateSha256: createHash("sha256").update(candidateBuffer).digest("hex"),
       provider: this.provider,
@@ -87,6 +90,14 @@ export class OpenAIImageEditExecutor implements ImageEditExecutor {
         revisedPrompt: imageData.revised_prompt ?? null,
       },
     };
+  }
+
+  private async downloadSource(sourceStorageKey: string): Promise<Buffer> {
+    const sourceResponse = await fetch(sourceStorageKey);
+    if (!sourceResponse.ok) {
+      throw new Error(`Failed to fetch source image from ${sourceStorageKey}: ${sourceResponse.status}`);
+    }
+    return Buffer.from(await sourceResponse.arrayBuffer());
   }
 
   private buildPrompt(context: ImageEditContext): string {

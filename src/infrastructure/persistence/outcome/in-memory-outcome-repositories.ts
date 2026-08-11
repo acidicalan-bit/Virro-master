@@ -47,7 +47,17 @@ import type {
   CandidateAssetRecord,
   CreateCandidateAssetRecord,
   CandidateAssetRepository,
+  PreservationRunRecord,
+  CreatePreservationRunRecord,
+  PreservationRunRepository,
+  PreservationEvidenceRecord,
+  CreatePreservationEvidenceRecord,
+  PreservationEvidenceRepository,
+  CandidatePreferenceRecord,
+  CreateCandidatePreferenceRecord,
+  CandidatePreferenceRepository,
 } from "@/src/application/ports/repositories";
+import type { CandidateType } from "@/src/domain/outcome/media/preservation";
 import type { TransactionStatus } from "@/src/domain/outcome";
 
 export class InMemoryProjectRepository implements ProjectRepository {
@@ -300,6 +310,9 @@ export function getInMemoryOutcomeRepositories(): Pick<
   | "semanticSnapshots"
   | "imageEvidence"
   | "candidateAssets"
+  | "preservationRuns"
+  | "preservationEvidence"
+  | "candidatePreferences"
 > {
   return {
     projects: new InMemoryProjectRepository(),
@@ -318,6 +331,9 @@ export function getInMemoryOutcomeRepositories(): Pick<
     semanticSnapshots: new InMemorySemanticSnapshotRepository(),
     imageEvidence: new InMemoryImageEvidenceRepository(),
     candidateAssets: new InMemoryCandidateAssetRepository(),
+    preservationRuns: new InMemoryPreservationRunRepository(),
+    preservationEvidence: new InMemoryPreservationEvidenceRepository(),
+    candidatePreferences: new InMemoryCandidatePreferenceRepository(),
   };
 }
 
@@ -380,14 +396,101 @@ export class InMemoryCandidateAssetRepository implements CandidateAssetRepositor
     return this.records.filter((r) => r.transactionId === transactionId);
   }
 
+  async findById(id: string): Promise<CandidateAssetRecord | null> {
+    return this.records.find((r) => r.id === id) ?? null;
+  }
+
   async findByExecutionRunId(executionRunId: string): Promise<CandidateAssetRecord | null> {
-    return this.records.find((r) => r.executionRunId === executionRunId) ?? null;
+    return this.records.find((r) => r.executionRunId === executionRunId && r.candidateType === "RAW_PROVIDER") ?? null;
+  }
+
+  async findByExecutionRunIdAndType(executionRunId: string, candidateType: CandidateType): Promise<CandidateAssetRecord | null> {
+    return this.records.find((r) => r.executionRunId === executionRunId && r.candidateType === candidateType) ?? null;
   }
 
   async markCommitted(id: string): Promise<CandidateAssetRecord> {
     const record = this.records.find((r) => r.id === id);
     if (!record) throw new Error("Candidate asset not found.");
     record.committed = true;
+    return record;
+  }
+}
+
+export class InMemoryPreservationRunRepository implements PreservationRunRepository {
+  readonly records: PreservationRunRecord[] = [];
+
+  async create(input: CreatePreservationRunRecord): Promise<PreservationRunRecord> {
+    const record = { ...structuredClone(input), id: crypto.randomUUID() };
+    this.records.push(record);
+    return record;
+  }
+
+  async findById(id: string): Promise<PreservationRunRecord | null> {
+    return this.records.find((record) => record.id === id) ?? null;
+  }
+
+  async findByTransactionId(transactionId: string): Promise<PreservationRunRecord[]> {
+    return this.records.filter((record) => record.transactionId === transactionId);
+  }
+
+  async update(id: string, input: Partial<Omit<PreservationRunRecord, "id" | "transactionId" | "executionRunId" | "sourceVersionId" | "rawCandidateId" | "startedAt">>): Promise<PreservationRunRecord> {
+    const record = this.records.find((item) => item.id === id);
+    if (!record) throw new Error("Preservation run not found.");
+    Object.assign(record, structuredClone(input));
+    return record;
+  }
+}
+
+export class InMemoryPreservationEvidenceRepository implements PreservationEvidenceRepository {
+  readonly records: PreservationEvidenceRecord[] = [];
+
+  async create(input: CreatePreservationEvidenceRecord): Promise<PreservationEvidenceRecord> {
+    const record = { ...structuredClone(input), id: crypto.randomUUID(), createdAt: new Date().toISOString() };
+    this.records.push(record);
+    return record;
+  }
+
+  async findByPreservationRunId(preservationRunId: string): Promise<PreservationEvidenceRecord[]> {
+    return this.records.filter((record) => record.preservationRunId === preservationRunId);
+  }
+
+  async findByCandidateId(candidateId: string): Promise<PreservationEvidenceRecord | null> {
+    return this.records.find((record) => record.candidateId === candidateId) ?? null;
+  }
+}
+
+export class InMemoryCandidatePreferenceRepository implements CandidatePreferenceRepository {
+  readonly records: CandidatePreferenceRecord[] = [];
+
+  async create(input: CreateCandidatePreferenceRecord): Promise<CandidatePreferenceRecord> {
+    if (this.records.some((record) => record.transactionId === input.transactionId)) {
+      throw new Error("Candidate preference already exists.");
+    }
+    const now = new Date().toISOString();
+    const record: CandidatePreferenceRecord = {
+      ...input,
+      evaluationTags: [...(input.evaluationTags ?? [])],
+      notes: input.notes ?? null,
+      id: crypto.randomUUID(),
+      humanAccepted: null,
+      acceptedCandidateId: null,
+      createdAt: now,
+      updatedAt: now,
+    };
+    this.records.push(record);
+    return record;
+  }
+
+  async findByTransactionId(transactionId: string): Promise<CandidatePreferenceRecord | null> {
+    return this.records.find((record) => record.transactionId === transactionId) ?? null;
+  }
+
+  async recordAcceptance(transactionId: string, humanAccepted: boolean, acceptedCandidateId: string | null): Promise<CandidatePreferenceRecord> {
+    const record = this.records.find((item) => item.transactionId === transactionId);
+    if (!record) throw new Error("Candidate preference not found.");
+    record.humanAccepted = humanAccepted;
+    record.acceptedCandidateId = acceptedCandidateId;
+    record.updatedAt = new Date().toISOString();
     return record;
   }
 }

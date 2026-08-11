@@ -51,8 +51,18 @@ import type {
   CandidateAssetRepository,
   CandidateAssetRecord,
   CreateCandidateAssetRecord,
+  PreservationRunRepository,
+  PreservationRunRecord,
+  CreatePreservationRunRecord,
+  PreservationEvidenceRepository,
+  PreservationEvidenceRecord,
+  CreatePreservationEvidenceRecord,
+  CandidatePreferenceRepository,
+  CandidatePreferenceRecord,
+  CreateCandidatePreferenceRecord,
 } from "@/src/application/ports/repositories";
 import type { TransactionStatus } from "@/src/domain/outcome";
+import type { CandidateType } from "@/src/domain/outcome/media/preservation";
 
 export class SupabaseProjectRepository implements ProjectRepository {
   constructor(private readonly client: SupabaseClient) {}
@@ -191,7 +201,7 @@ export class SupabasePartialIntentRepository implements PartialIntentRepository 
       .insert({ transaction_id: input.transactionId, raw_input: input.rawInput, target_path: input.targetPath, operation: input.operation, desired_value: input.desiredValue })
       .select("*")
       .single();
-    if (error || !data) throw new Error("No se pudo crear el intent parcial.");
+    if (error || !data) throw new Error("No se pudo crear el intent parcial.", { cause: error ?? undefined });
     return { id: String(data.id), transactionId: String(data.transaction_id), rawInput: String(data.raw_input), targetPath: String(data.target_path), operation: data.operation as PartialIntentRecord["operation"], desiredValue: data.desired_value, createdAt: String(data.created_at) };
   }
 
@@ -211,7 +221,7 @@ export class SupabaseSemanticPatchRepository implements SemanticPatchRepository 
       .insert({ transaction_id: input.transactionId, partial_intent_id: input.partialIntentId, operation: input.operation, target_path: input.targetPath, parameters: input.parameters })
       .select("*")
       .single();
-    if (error || !data) throw new Error("No se pudo crear el parche semántico.");
+    if (error || !data) throw new Error("No se pudo crear el parche semántico.", { cause: error ?? undefined });
     return { id: String(data.id), transactionId: String(data.transaction_id), partialIntentId: String(data.partial_intent_id), operation: data.operation as SemanticPatchRecord["operation"], targetPath: String(data.target_path), parameters: data.parameters as Record<string, unknown>, createdAt: String(data.created_at) };
   }
 
@@ -414,28 +424,204 @@ export class SupabaseCandidateAssetRepository implements CandidateAssetRepositor
   async create(input: CreateCandidateAssetRecord): Promise<CandidateAssetRecord> {
     const { data, error } = await this.client
       .from("candidate_assets")
-      .insert({ transaction_id: input.transactionId, execution_run_id: input.executionRunId, storage_key: input.storageKey, mime_type: input.mimeType, width: input.width, height: input.height, byte_size: input.byteSize, sha256: input.sha256, roi: input.roi, instruction: input.instruction, provider: input.provider, model: input.model, cost_usd: input.costUsd, committed: input.committed })
+      .insert({ transaction_id: input.transactionId, execution_run_id: input.executionRunId, storage_key: input.storageKey, mime_type: input.mimeType, width: input.width, height: input.height, byte_size: input.byteSize, sha256: input.sha256, roi: input.roi, instruction: input.instruction, provider: input.provider, model: input.model, cost_usd: input.costUsd, candidate_type: input.candidateType, source_version_id: input.sourceVersionId, raw_candidate_id: input.rawCandidateId, preservation_run_id: input.preservationRunId, committed: input.committed })
       .select("*")
       .single();
     if (error || !data) throw new Error("No se pudo crear el asset candidato.");
-    return { id: String(data.id), transactionId: String(data.transaction_id), executionRunId: String(data.execution_run_id), storageKey: String(data.storage_key), mimeType: String(data.mime_type), width: Number(data.width), height: Number(data.height), byteSize: Number(data.byte_size), sha256: String(data.sha256), roi: data.roi as Record<string, number>, instruction: String(data.instruction), provider: String(data.provider), model: String(data.model), costUsd: data.cost_usd ? Number(data.cost_usd) : null, committed: Boolean(data.committed), createdAt: String(data.created_at) };
+    return fromCandidateAssetRow(data);
+  }
+
+  async findById(id: string): Promise<CandidateAssetRecord | null> {
+    const { data, error } = await this.client.from("candidate_assets").select("*").eq("id", id).maybeSingle();
+    if (error) throw new Error("No se pudo leer el asset candidato.");
+    return data ? fromCandidateAssetRow(data) : null;
   }
 
   async findByTransactionId(transactionId: string): Promise<CandidateAssetRecord[]> {
     const { data, error } = await this.client.from("candidate_assets").select("*").eq("transaction_id", transactionId);
     if (error || !data) throw new Error("No se pudieron leer los assets candidatos.");
-    return data.map((row) => ({ id: String(row.id), transactionId: String(row.transaction_id), executionRunId: String(row.execution_run_id), storageKey: String(row.storage_key), mimeType: String(row.mime_type), width: Number(row.width), height: Number(row.height), byteSize: Number(row.byte_size), sha256: String(row.sha256), roi: row.roi as Record<string, number>, instruction: String(row.instruction), provider: String(row.provider), model: String(row.model), costUsd: row.cost_usd ? Number(row.cost_usd) : null, committed: Boolean(row.committed), createdAt: String(row.created_at) }));
+    return data.map(fromCandidateAssetRow);
   }
 
   async findByExecutionRunId(executionRunId: string): Promise<CandidateAssetRecord | null> {
-    const { data, error } = await this.client.from("candidate_assets").select("*").eq("execution_run_id", executionRunId).maybeSingle();
+    const { data, error } = await this.client.from("candidate_assets").select("*").eq("execution_run_id", executionRunId).eq("candidate_type", "RAW_PROVIDER").maybeSingle();
     if (error) throw new Error("No se pudo leer el asset candidato.");
-    return data ? { id: String(data.id), transactionId: String(data.transaction_id), executionRunId: String(data.execution_run_id), storageKey: String(data.storage_key), mimeType: String(data.mime_type), width: Number(data.width), height: Number(data.height), byteSize: Number(data.byte_size), sha256: String(data.sha256), roi: data.roi as Record<string, number>, instruction: String(data.instruction), provider: String(data.provider), model: String(data.model), costUsd: data.cost_usd ? Number(data.cost_usd) : null, committed: Boolean(data.committed), createdAt: String(data.created_at) } : null;
+    return data ? fromCandidateAssetRow(data) : null;
+  }
+
+  async findByExecutionRunIdAndType(executionRunId: string, candidateType: CandidateType): Promise<CandidateAssetRecord | null> {
+    const { data, error } = await this.client.from("candidate_assets").select("*").eq("execution_run_id", executionRunId).eq("candidate_type", candidateType).maybeSingle();
+    if (error) throw new Error("No se pudo leer el asset candidato por tipo.");
+    return data ? fromCandidateAssetRow(data) : null;
   }
 
   async markCommitted(id: string): Promise<CandidateAssetRecord> {
     const { data, error } = await this.client.from("candidate_assets").update({ committed: true }).eq("id", id).select("*").single();
     if (error || !data) throw new Error("No se pudo marcar el asset candidato como commitido.");
-    return { id: String(data.id), transactionId: String(data.transaction_id), executionRunId: String(data.execution_run_id), storageKey: String(data.storage_key), mimeType: String(data.mime_type), width: Number(data.width), height: Number(data.height), byteSize: Number(data.byte_size), sha256: String(data.sha256), roi: data.roi as Record<string, number>, instruction: String(data.instruction), provider: String(data.provider), model: String(data.model), costUsd: data.cost_usd ? Number(data.cost_usd) : null, committed: Boolean(data.committed), createdAt: String(data.created_at) };
+    return fromCandidateAssetRow(data);
   }
+}
+
+export class SupabasePreservationRunRepository implements PreservationRunRepository {
+  constructor(private readonly client: SupabaseClient) {}
+
+  async create(input: CreatePreservationRunRecord): Promise<PreservationRunRecord> {
+    const { data, error } = await this.client.from("preservation_runs").insert(toPreservationRunRow(input)).select("*").single();
+    if (error || !data) throw new Error("No se pudo crear la ejecución de preservación.");
+    return fromPreservationRunRow(data);
+  }
+
+  async findById(id: string): Promise<PreservationRunRecord | null> {
+    const { data, error } = await this.client.from("preservation_runs").select("*").eq("id", id).maybeSingle();
+    if (error) throw new Error("No se pudo leer la ejecución de preservación.");
+    return data ? fromPreservationRunRow(data) : null;
+  }
+
+  async findByTransactionId(transactionId: string): Promise<PreservationRunRecord[]> {
+    const { data, error } = await this.client.from("preservation_runs").select("*").eq("transaction_id", transactionId).order("started_at");
+    if (error || !data) throw new Error("No se pudieron leer las ejecuciones de preservación.");
+    return data.map(fromPreservationRunRow);
+  }
+
+  async update(id: string, input: Partial<Omit<PreservationRunRecord, "id" | "transactionId" | "executionRunId" | "sourceVersionId" | "rawCandidateId" | "startedAt">>): Promise<PreservationRunRecord> {
+    const payload: Record<string, unknown> = {};
+    if (input.preservedCandidateId !== undefined) payload.preserved_candidate_id = input.preservedCandidateId;
+    if (input.zones !== undefined) payload.zones = input.zones;
+    if (input.status !== undefined) payload.status = input.status;
+    if (input.errorCode !== undefined) payload.error_code = input.errorCode;
+    if (input.errorMessage !== undefined) payload.error_message = input.errorMessage;
+    if (input.processingTimeMs !== undefined) payload.processing_time_ms = input.processingTimeMs;
+    if (input.completedAt !== undefined) payload.completed_at = input.completedAt;
+    const { data, error } = await this.client.from("preservation_runs").update(payload).eq("id", id).select("*").single();
+    if (error || !data) throw new Error("No se pudo actualizar la ejecución de preservación.");
+    return fromPreservationRunRow(data);
+  }
+}
+
+export class SupabasePreservationEvidenceRepository implements PreservationEvidenceRepository {
+  constructor(private readonly client: SupabaseClient) {}
+
+  async create(input: CreatePreservationEvidenceRecord): Promise<PreservationEvidenceRecord> {
+    const metrics = input.metrics;
+    const { data, error } = await this.client.from("preservation_evidence").insert({
+      preservation_run_id: input.preservationRunId,
+      candidate_id: input.candidateId,
+      candidate_type: input.candidateType,
+      methodology_version: metrics.methodologyVersion,
+      mean_total_pixel_diff: metrics.meanTotalPixelDiff,
+      changed_pixel_ratio_total: metrics.changedPixelRatioTotal,
+      mean_core_pixel_diff: metrics.meanCorePixelDiff,
+      changed_pixel_ratio_core: metrics.changedPixelRatioCore,
+      mean_coupled_pixel_diff: metrics.meanCoupledPixelDiff,
+      changed_pixel_ratio_coupled: metrics.changedPixelRatioCoupled,
+      mean_locked_outside_pixel_diff: metrics.meanLockedOutsidePixelDiff,
+      changed_pixel_ratio_locked_outside: metrics.changedPixelRatioLockedOutside,
+    }).select("*").single();
+    if (error || !data) throw new Error("No se pudo crear la evidencia de preservación.");
+    return fromPreservationEvidenceRow(data);
+  }
+
+  async findByPreservationRunId(preservationRunId: string): Promise<PreservationEvidenceRecord[]> {
+    const { data, error } = await this.client.from("preservation_evidence").select("*").eq("preservation_run_id", preservationRunId).order("created_at");
+    if (error || !data) throw new Error("No se pudo leer la evidencia de preservación.");
+    return data.map(fromPreservationEvidenceRow);
+  }
+
+  async findByCandidateId(candidateId: string): Promise<PreservationEvidenceRecord | null> {
+    const { data, error } = await this.client.from("preservation_evidence").select("*").eq("candidate_id", candidateId).maybeSingle();
+    if (error) throw new Error("No se pudo leer la evidencia del candidato.");
+    return data ? fromPreservationEvidenceRow(data) : null;
+  }
+}
+
+export class SupabaseCandidatePreferenceRepository implements CandidatePreferenceRepository {
+  constructor(private readonly client: SupabaseClient) {}
+
+  async create(input: CreateCandidatePreferenceRecord): Promise<CandidatePreferenceRecord> {
+    const { data, error } = await this.client.from("candidate_preferences").insert({
+      transaction_id: input.transactionId,
+      raw_candidate_id: input.rawCandidateId,
+      preserved_candidate_id: input.preservedCandidateId,
+      preference: input.preference,
+      evaluation_tags: input.evaluationTags ?? [],
+      notes: input.notes ?? null,
+    }).select("*").single();
+    if (error || !data) throw new Error("No se pudo registrar la preferencia.");
+    return fromCandidatePreferenceRow(data);
+  }
+
+  async findByTransactionId(transactionId: string): Promise<CandidatePreferenceRecord | null> {
+    const { data, error } = await this.client.from("candidate_preferences").select("*").eq("transaction_id", transactionId).maybeSingle();
+    if (error) throw new Error("No se pudo leer la preferencia.");
+    return data ? fromCandidatePreferenceRow(data) : null;
+  }
+
+  async recordAcceptance(transactionId: string, humanAccepted: boolean, acceptedCandidateId: string | null): Promise<CandidatePreferenceRecord> {
+    const { data, error } = await this.client.from("candidate_preferences").update({ human_accepted: humanAccepted, accepted_candidate_id: acceptedCandidateId, updated_at: new Date().toISOString() }).eq("transaction_id", transactionId).select("*").single();
+    if (error || !data) throw new Error("No se pudo registrar la decisión humana.");
+    return fromCandidatePreferenceRow(data);
+  }
+}
+
+function fromCandidateAssetRow(row: Record<string, unknown>): CandidateAssetRecord {
+  return {
+    id: String(row.id), transactionId: String(row.transaction_id), executionRunId: String(row.execution_run_id),
+    storageKey: String(row.storage_key), mimeType: String(row.mime_type), width: Number(row.width), height: Number(row.height),
+    byteSize: Number(row.byte_size), sha256: String(row.sha256), roi: row.roi as Record<string, number>, instruction: String(row.instruction),
+    provider: String(row.provider), model: String(row.model), costUsd: row.cost_usd === null ? null : Number(row.cost_usd),
+    candidateType: row.candidate_type as CandidateType, sourceVersionId: String(row.source_version_id),
+    rawCandidateId: row.raw_candidate_id === null ? null : String(row.raw_candidate_id),
+    preservationRunId: row.preservation_run_id === null ? null : String(row.preservation_run_id),
+    committed: Boolean(row.committed), createdAt: String(row.created_at),
+  };
+}
+
+function toPreservationRunRow(input: CreatePreservationRunRecord): Record<string, unknown> {
+  return {
+    transaction_id: input.transactionId, execution_run_id: input.executionRunId, source_version_id: input.sourceVersionId,
+    raw_candidate_id: input.rawCandidateId, preserved_candidate_id: input.preservedCandidateId, policy_version: input.policyVersion,
+    methodology_version: input.methodologyVersion, core_roi: input.coreRoi, coupled_band: input.coupledBand, zones: input.zones,
+    status: input.status, error_code: input.errorCode, error_message: input.errorMessage, processing_time_ms: input.processingTimeMs,
+    started_at: input.startedAt, completed_at: input.completedAt,
+  };
+}
+
+function fromPreservationRunRow(row: Record<string, unknown>): PreservationRunRecord {
+  return {
+    id: String(row.id), transactionId: String(row.transaction_id), executionRunId: String(row.execution_run_id),
+    sourceVersionId: String(row.source_version_id), rawCandidateId: String(row.raw_candidate_id),
+    preservedCandidateId: row.preserved_candidate_id === null ? null : String(row.preserved_candidate_id),
+    policyVersion: String(row.policy_version), methodologyVersion: String(row.methodology_version),
+    coreRoi: row.core_roi as Record<string, number>, coupledBand: row.coupled_band as PreservationRunRecord["coupledBand"],
+    zones: row.zones as PreservationRunRecord["zones"], status: row.status as PreservationRunRecord["status"],
+    errorCode: row.error_code === null ? null : row.error_code as PreservationRunRecord["errorCode"],
+    errorMessage: row.error_message === null ? null : String(row.error_message),
+    processingTimeMs: row.processing_time_ms === null ? null : Number(row.processing_time_ms),
+    startedAt: String(row.started_at), completedAt: row.completed_at === null ? null : String(row.completed_at),
+  };
+}
+
+function fromPreservationEvidenceRow(row: Record<string, unknown>): PreservationEvidenceRecord {
+  return {
+    id: String(row.id), preservationRunId: String(row.preservation_run_id), candidateId: String(row.candidate_id),
+    candidateType: row.candidate_type as CandidateType, createdAt: String(row.created_at), metrics: {
+      methodologyVersion: "pixel-diff-zones-v0.1", meanTotalPixelDiff: Number(row.mean_total_pixel_diff),
+      changedPixelRatioTotal: Number(row.changed_pixel_ratio_total), meanCorePixelDiff: Number(row.mean_core_pixel_diff),
+      changedPixelRatioCore: Number(row.changed_pixel_ratio_core), meanCoupledPixelDiff: Number(row.mean_coupled_pixel_diff),
+      changedPixelRatioCoupled: Number(row.changed_pixel_ratio_coupled), meanLockedOutsidePixelDiff: Number(row.mean_locked_outside_pixel_diff),
+      changedPixelRatioLockedOutside: Number(row.changed_pixel_ratio_locked_outside),
+    },
+  };
+}
+
+function fromCandidatePreferenceRow(row: Record<string, unknown>): CandidatePreferenceRecord {
+  return {
+    id: String(row.id), transactionId: String(row.transaction_id), rawCandidateId: String(row.raw_candidate_id),
+    preservedCandidateId: String(row.preserved_candidate_id), preference: row.preference as CandidatePreferenceRecord["preference"],
+    evaluationTags: Array.isArray(row.evaluation_tags) ? row.evaluation_tags as CandidatePreferenceRecord["evaluationTags"] : [],
+    notes: row.notes === null || row.notes === undefined ? null : String(row.notes),
+    humanAccepted: row.human_accepted === null ? null : Boolean(row.human_accepted),
+    acceptedCandidateId: row.accepted_candidate_id === null ? null : String(row.accepted_candidate_id),
+    createdAt: String(row.created_at), updatedAt: String(row.updated_at),
+  };
 }

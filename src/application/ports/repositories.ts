@@ -21,6 +21,15 @@ import type {
   StateCommit,
   CostRecord,
 } from "@/src/domain/outcome";
+import type {
+  CandidatePreference,
+  CandidateType,
+  HumanEvaluationTag,
+  PreservationEvidenceMetrics,
+  PreservationFailureCode,
+  PreservationRunStatus,
+  ResolvedPreservationZones,
+} from "@/src/domain/outcome/media/preservation";
 
 export type IntentRunRecord = {
   id: string;
@@ -443,6 +452,10 @@ export type CandidateAssetRecord = {
   provider: string;
   model: string;
   costUsd: number | null;
+  candidateType: CandidateType;
+  sourceVersionId: string;
+  rawCandidateId: string | null;
+  preservationRunId: string | null;
   committed: boolean;
   createdAt: string;
 };
@@ -451,9 +464,82 @@ export type CreateCandidateAssetRecord = Omit<CandidateAssetRecord, "id" | "crea
 
 export interface CandidateAssetRepository {
   create(input: CreateCandidateAssetRecord): Promise<CandidateAssetRecord>;
+  findById(id: string): Promise<CandidateAssetRecord | null>;
   findByTransactionId(transactionId: string): Promise<CandidateAssetRecord[]>;
   findByExecutionRunId(executionRunId: string): Promise<CandidateAssetRecord | null>;
+  findByExecutionRunIdAndType(executionRunId: string, candidateType: CandidateType): Promise<CandidateAssetRecord | null>;
   markCommitted(id: string): Promise<CandidateAssetRecord>;
+}
+
+export type PreservationRunRecord = {
+  id: string;
+  transactionId: string;
+  executionRunId: string;
+  sourceVersionId: string;
+  rawCandidateId: string;
+  preservedCandidateId: string | null;
+  policyVersion: string;
+  methodologyVersion: string;
+  coreRoi: Record<string, number>;
+  coupledBand: { unit: "NORMALIZED_MIN_DIMENSION"; size: number };
+  zones: ResolvedPreservationZones | null;
+  status: PreservationRunStatus;
+  errorCode: PreservationFailureCode | null;
+  errorMessage: string | null;
+  processingTimeMs: number | null;
+  startedAt: string;
+  completedAt: string | null;
+};
+
+export type CreatePreservationRunRecord = Omit<PreservationRunRecord, "id">;
+
+export interface PreservationRunRepository {
+  create(input: CreatePreservationRunRecord): Promise<PreservationRunRecord>;
+  findById(id: string): Promise<PreservationRunRecord | null>;
+  findByTransactionId(transactionId: string): Promise<PreservationRunRecord[]>;
+  update(id: string, input: Partial<Omit<PreservationRunRecord, "id" | "transactionId" | "executionRunId" | "sourceVersionId" | "rawCandidateId" | "startedAt">>): Promise<PreservationRunRecord>;
+}
+
+export type PreservationEvidenceRecord = {
+  id: string;
+  preservationRunId: string;
+  candidateId: string;
+  candidateType: CandidateType;
+  metrics: PreservationEvidenceMetrics;
+  createdAt: string;
+};
+
+export type CreatePreservationEvidenceRecord = Omit<PreservationEvidenceRecord, "id" | "createdAt">;
+
+export interface PreservationEvidenceRepository {
+  create(input: CreatePreservationEvidenceRecord): Promise<PreservationEvidenceRecord>;
+  findByPreservationRunId(preservationRunId: string): Promise<PreservationEvidenceRecord[]>;
+  findByCandidateId(candidateId: string): Promise<PreservationEvidenceRecord | null>;
+}
+
+export type CandidatePreferenceRecord = {
+  id: string;
+  transactionId: string;
+  rawCandidateId: string;
+  preservedCandidateId: string;
+  preference: CandidatePreference;
+  evaluationTags: HumanEvaluationTag[];
+  notes: string | null;
+  humanAccepted: boolean | null;
+  acceptedCandidateId: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type CreateCandidatePreferenceRecord = Omit<CandidatePreferenceRecord, "id" | "humanAccepted" | "acceptedCandidateId" | "createdAt" | "updatedAt" | "evaluationTags" | "notes"> & {
+  evaluationTags?: HumanEvaluationTag[];
+  notes?: string | null;
+};
+
+export interface CandidatePreferenceRepository {
+  create(input: CreateCandidatePreferenceRecord): Promise<CandidatePreferenceRecord>;
+  findByTransactionId(transactionId: string): Promise<CandidatePreferenceRecord | null>;
+  recordAcceptance(transactionId: string, humanAccepted: boolean, acceptedCandidateId: string | null): Promise<CandidatePreferenceRecord>;
 }
 
 export type RepositoryBundle = {
@@ -478,5 +564,8 @@ export type RepositoryBundle = {
   semanticSnapshots: SemanticSnapshotRepository;
   imageEvidence: ImageEvidenceRepository;
   candidateAssets: CandidateAssetRepository;
+  preservationRuns: PreservationRunRepository;
+  preservationEvidence: PreservationEvidenceRepository;
+  candidatePreferences: CandidatePreferenceRepository;
   storageMode: "supabase" | "memory";
 };
