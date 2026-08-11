@@ -57,6 +57,8 @@ RAW and PRESERVED acceptance are stored as two independent booleans. Study accep
 
 Migration: `supabase/migrations/20260811180000_product_gate_004_preservation_value_study.sql`.
 
+Post-gate integrity migration `20260811183000_fix_preservation_study_intent_lock_permissions.sql` keeps intent/presentation locking atomic without requiring `UPDATE` privilege on append-only study tables. The HTTP and application boundaries trim copied transaction IDs, validate UUID format, and return a specific human-readable error. Supabase server clients retry only the exact transient `JWT issued at future` rejection within a bounded budget.
+
 Append-only tables:
 
 - `preservation_study_cases`;

@@ -237,7 +237,7 @@ export class PreservationVerificationService {
       startedAt: providerStartedAt,
       completedAt: providerCompletedAt,
       latencyMs: Math.max(0, Math.round(providerResult.latencyMs)),
-      costUsd: providerResult.costUsd ?? 0,
+      costUsd: providerResult.costUsd,
       errorMessage: null,
       metadata: {
         provider: providerResult.provider,
@@ -287,7 +287,7 @@ export class PreservationVerificationService {
       executor: this.executor.name,
       startedAt: providerStartedAt,
       completedAt: providerCompletedAt,
-      costUsd: providerResult.costUsd ?? 0,
+      costUsd: providerResult.costUsd,
       success: true,
     });
     await this.repositories.semanticSnapshots.create({
@@ -651,7 +651,7 @@ export class PreservationVerificationService {
       startedAt,
       completedAt,
       latencyMs: Math.max(0, Date.parse(completedAt) - Date.parse(startedAt)),
-      costUsd: 0,
+      costUsd: null,
       errorMessage: error instanceof Error ? error.message.slice(0, 2000) : "Unknown provider failure.",
       metadata: { provider: this.executor.provider, costReported: false },
     });

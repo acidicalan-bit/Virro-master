@@ -31,7 +31,7 @@ const STUDY_NAME = "PRODUCT GATE 004 — Preservation Value Study v0.1";
 const TARGET_CASE_COUNT = 30;
 
 const AddCaseSchema = z.object({
-  transactionId: z.uuid(),
+  transactionId: z.string().trim().pipe(z.uuid()),
   planCaseId: z.string().trim().min(1).max(120).nullable().optional().default(null),
   topology: StudyTopologySchema,
   taskType: StudyTaskTypeSchema,

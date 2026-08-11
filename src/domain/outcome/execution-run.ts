@@ -13,7 +13,7 @@ export const ExecutionRunSchema = z.object({
   startedAt: z.string(),
   completedAt: z.string(),
   latencyMs: z.number().int().nonnegative(),
-  costUsd: z.number().nonnegative(),
+  costUsd: z.number().nonnegative().nullable(),
   errorMessage: z.string().trim().max(2000).nullable().default(null),
   metadata: z.record(z.string(), z.unknown()).default({}),
 });
@@ -27,7 +27,7 @@ export const CreateExecutionRunSchema = z.object({
   startedAt: z.string(),
   completedAt: z.string(),
   latencyMs: z.number().int().nonnegative(),
-  costUsd: z.number().nonnegative(),
+  costUsd: z.number().nonnegative().nullable(),
   errorMessage: z.string().trim().max(2000).nullable().optional().default(null),
   metadata: z.record(z.string(), z.unknown()).optional().default({}),
 });

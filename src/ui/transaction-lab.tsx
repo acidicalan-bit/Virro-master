@@ -12,7 +12,7 @@ type TxDetails = {
   partialIntents: Array<{ id: string; rawInput: string; targetPath: string; operation: string; desiredValue: unknown }>;
   patches: Array<{ id: string; operation: string; targetPath: string; parameters: Record<string, unknown> }>;
   leases: Array<{ id: string; targetPath: string; category: string; reason: string | null }>;
-  executions: Array<{ id: string; status: string; executor: string; costUsd: number }>;
+  executions: Array<{ id: string; status: string; executor: string; costUsd: number | null }>;
   evidence: Array<{ id: string; operation: string; target: string; success: boolean; observedEffect: unknown }>;
   verifications: Array<{ id: string; status: string; checks: Record<string, boolean> }>;
   commits: Array<{ id: string; newVersionId: string; previousVersionId: string }>;

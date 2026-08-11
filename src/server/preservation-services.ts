@@ -9,6 +9,7 @@ import { OpenAIImageEditExecutor } from "@/src/infrastructure/executors/image/op
 import { createSupabaseRepositories } from "@/src/infrastructure/persistence/supabase-repositories";
 import { CompositingImagePreservationEngine } from "@/src/infrastructure/preservation/compositing-image-preservation-engine";
 import { SupabaseMediaObjectStore } from "@/src/infrastructure/storage/supabase-media-object-store";
+import { createTransientJwtRetryFetch } from "@/src/infrastructure/supabase/transient-jwt-retry-fetch";
 
 let service: PreservationVerificationService | null = null;
 
@@ -19,6 +20,7 @@ export function createPreservationVerificationService(): PreservationVerificatio
   if (!url || !serviceRoleKey) throw new Error("Supabase server credentials are required.");
   const client = createClient(url, serviceRoleKey, {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+    global: { fetch: createTransientJwtRetryFetch() },
   });
   const repositories = createSupabaseRepositories();
   const storage = new SupabaseMediaObjectStore(client);

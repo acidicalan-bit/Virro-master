@@ -298,6 +298,7 @@ dd { margin: 6px 0 0; font-weight: 650; }
 .study-panel, .study-report, .study-context { border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); padding: clamp(22px, 4vw, 38px); }
 .study-panel { display: grid; gap: 18px; }
 .study-panel label { display: grid; gap: 7px; }
+.study-panel label small { color: var(--muted); font-size: 12px; line-height: 1.45; }
 .study-panel input, .study-panel select, .study-panel textarea { width: 100%; }
 .study-brief, .study-warning { margin: 0; padding: 14px; background: var(--paper); color: var(--muted); }
 .study-case-list { display: grid; gap: 8px; padding: 0; list-style: none; }

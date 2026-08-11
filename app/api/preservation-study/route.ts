@@ -17,7 +17,7 @@ export const runtime = "nodejs";
 const RequestSchema = z.discriminatedUnion("action", [
   z.object({
     action: z.literal("addCase"),
-    transactionId: z.uuid(),
+    transactionId: z.string().trim().pipe(z.uuid()),
     planCaseId: z.string().trim().min(1).max(120).nullable().optional(),
     topology: StudyTopologySchema,
     taskType: StudyTaskTypeSchema,
@@ -102,7 +102,20 @@ export async function POST(request: Request) {
 function errorResponse(error: unknown) {
   const status = error instanceof z.ZodError ? 400 : error instanceof PreservationStudyError ? 409 : 500;
   return NextResponse.json({
-    error: error instanceof Error ? error.message : "Unexpected preservation study error.",
+    error: requestErrorMessage(error),
     code: error instanceof PreservationStudyError ? error.code : error instanceof z.ZodError ? "INVALID_REQUEST" : "REQUEST_FAILED",
   }, { status });
+}
+
+function requestErrorMessage(error: unknown): string {
+  if (error instanceof z.ZodError) {
+    const transactionIssue = error.issues.find((issue) => issue.path[0] === "transactionId");
+    if (transactionIssue) {
+      return "Transaction ID inválido. Usa el UUID exacto de la transacción de BUILD 004; no uses el Case ID ni el ID del plan.";
+    }
+    const issue = error.issues[0];
+    const field = issue?.path.length ? ` (${issue.path.join(".")})` : "";
+    return `Solicitud inválida${field}: ${issue?.message ?? "revisa los datos enviados"}.`;
+  }
+  return error instanceof Error ? error.message : "Unexpected preservation study error.";
 }

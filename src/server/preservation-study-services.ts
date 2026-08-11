@@ -4,6 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 
 import { PreservationStudyService } from "@/src/application/outcome/media/preservation-study-service";
 import { SupabasePreservationStudyRepository } from "@/src/infrastructure/persistence/outcome/supabase-preservation-study-repository";
+import { createTransientJwtRetryFetch } from "@/src/infrastructure/supabase/transient-jwt-retry-fetch";
 import { createPreservationVerificationService } from "@/src/server/preservation-services";
 
 let service: PreservationStudyService | null = null;
@@ -15,6 +16,7 @@ export function createPreservationStudyService(): PreservationStudyService {
   if (!url || !serviceRoleKey) throw new Error("Supabase server credentials are required for the preservation study.");
   const client = createClient(url, serviceRoleKey, {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+    global: { fetch: createTransientJwtRetryFetch() },
   });
   service = new PreservationStudyService(
     new SupabasePreservationStudyRepository(client),

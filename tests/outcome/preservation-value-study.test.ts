@@ -91,6 +91,19 @@ describe("PRODUCT GATE 004 preservation value study", () => {
     await expect(service.lockIntent(initial.caseId, { expectedChange: "Editar", expectedPreservation: "Conservar" })).rejects.toThrow("bloqueada");
   });
 
+  it("normalizes whitespace around a copied BUILD 004 transaction UUID", async () => {
+    const { service, reader } = setup();
+    const enrolled = await service.addCase({
+      transactionId: `  ${ids.transaction}\r\n`,
+      planCaseId: null,
+      topology: "LOCAL_INDEPENDENT",
+      taskType: "COLOR_CHANGE",
+    });
+
+    expect(enrolled.transactionId).toBe(ids.transaction);
+    expect(reader.calls).toBe(2);
+  });
+
   it("hides candidate identity during isolated scoring and never exposes the other score", async () => {
     const { service } = setup(false);
     const initial = await enroll(service);
@@ -179,6 +192,14 @@ describe("PRODUCT GATE 004 preservation value study", () => {
     expect(sql).toContain("reject_preservation_study_mutation");
     expect(sql).toContain("lock_preservation_study_intent");
     expect(sql).toContain("before update or delete");
+  });
+
+  it("locks intent without requiring UPDATE privilege on immutable study cases", () => {
+    const sql = readFileSync("supabase/migrations/20260811183000_fix_preservation_study_intent_lock_permissions.sql", "utf8");
+    expect(sql).toContain("lock_preservation_study_intent");
+    expect(sql).not.toMatch(/for\s+update/i);
+    expect(sql).not.toMatch(/grant\s+update/i);
+    expect(sql).toContain("to service_role");
   });
 
   it("classifies all four requested pixel-human divergence patterns without semantic inference", () => {

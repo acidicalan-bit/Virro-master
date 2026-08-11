@@ -12,7 +12,7 @@ export const EvidenceReceiptSchema = z.object({
   executor: z.string().trim().min(1).max(200),
   startedAt: z.string(),
   completedAt: z.string(),
-  costUsd: z.number().nonnegative(),
+  costUsd: z.number().nonnegative().nullable(),
   success: z.boolean(),
 });
 
@@ -29,7 +29,7 @@ export const CreateEvidenceReceiptSchema = z.object({
   executor: z.string().trim().min(1).max(200),
   startedAt: z.string(),
   completedAt: z.string(),
-  costUsd: z.number().nonnegative(),
+  costUsd: z.number().nonnegative().nullable(),
   success: z.boolean(),
 });
 

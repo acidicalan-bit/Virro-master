@@ -1,5 +1,7 @@
 # Intent Lab v0.1.1
 
+> **PROJECT SPEC / SOURCE OF ORIENTATION:** [PROJECT_SPEC.md](./PROJECT_SPEC.md)
+
 Laboratorio interno para transformar lenguaje humano natural, coloquial o incompleto en contratos estructurados y ejecutables para otras inteligencias artificiales.
 
 ## Requisitos

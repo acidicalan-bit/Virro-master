@@ -262,13 +262,13 @@ export class SupabaseExecutionRunRepository implements ExecutionRunRepository {
       .select("*")
       .single();
     if (error || !data) throw new Error("No se pudo crear la ejecución.");
-    return { id: String(data.id), transactionId: String(data.transaction_id), status: data.status as ExecutionRunRecord["status"], executor: String(data.executor), startedAt: String(data.started_at), completedAt: String(data.completed_at), latencyMs: Number(data.latency_ms), costUsd: Number(data.cost_usd), errorMessage: data.error_message ? String(data.error_message) : null, metadata: data.metadata as Record<string, unknown> };
+    return { id: String(data.id), transactionId: String(data.transaction_id), status: data.status as ExecutionRunRecord["status"], executor: String(data.executor), startedAt: String(data.started_at), completedAt: String(data.completed_at), latencyMs: Number(data.latency_ms), costUsd: data.cost_usd === null ? null : Number(data.cost_usd), errorMessage: data.error_message ? String(data.error_message) : null, metadata: data.metadata as Record<string, unknown> };
   }
 
   async findByTransactionId(transactionId: string): Promise<ExecutionRunRecord[]> {
     const { data, error } = await this.client.from("execution_runs").select("*").eq("transaction_id", transactionId);
     if (error || !data) throw new Error("No se pudieron leer las ejecuciones.");
-    return data.map((row) => ({ id: String(row.id), transactionId: String(row.transaction_id), status: row.status as ExecutionRunRecord["status"], executor: String(row.executor), startedAt: String(row.started_at), completedAt: String(row.completed_at), latencyMs: Number(row.latency_ms), costUsd: Number(row.cost_usd), errorMessage: row.error_message ? String(row.error_message) : null, metadata: row.metadata as Record<string, unknown> }));
+    return data.map((row) => ({ id: String(row.id), transactionId: String(row.transaction_id), status: row.status as ExecutionRunRecord["status"], executor: String(row.executor), startedAt: String(row.started_at), completedAt: String(row.completed_at), latencyMs: Number(row.latency_ms), costUsd: row.cost_usd === null ? null : Number(row.cost_usd), errorMessage: row.error_message ? String(row.error_message) : null, metadata: row.metadata as Record<string, unknown> }));
   }
 }
 
@@ -282,13 +282,13 @@ export class SupabaseEvidenceReceiptRepository implements EvidenceReceiptReposit
       .select("*")
       .single();
     if (error || !data) throw new Error("No se pudo crear el recibo de evidencia.");
-    return { id: String(data.id), transactionId: String(data.transaction_id), executionRunId: String(data.execution_run_id), baseVersionId: String(data.base_version_id), operation: String(data.operation), target: String(data.target), requestedEffect: data.requested_effect, observedEffect: data.observed_effect, executor: String(data.executor), startedAt: String(data.started_at), completedAt: String(data.completed_at), costUsd: Number(data.cost_usd), success: Boolean(data.success) };
+    return { id: String(data.id), transactionId: String(data.transaction_id), executionRunId: String(data.execution_run_id), baseVersionId: String(data.base_version_id), operation: String(data.operation), target: String(data.target), requestedEffect: data.requested_effect, observedEffect: data.observed_effect, executor: String(data.executor), startedAt: String(data.started_at), completedAt: String(data.completed_at), costUsd: data.cost_usd === null ? null : Number(data.cost_usd), success: Boolean(data.success) };
   }
 
   async findByTransactionId(transactionId: string): Promise<EvidenceReceiptRecord[]> {
     const { data, error } = await this.client.from("evidence_receipts").select("*").eq("transaction_id", transactionId);
     if (error || !data) throw new Error("No se pudieron leer los recibos de evidencia.");
-    return data.map((row) => ({ id: String(row.id), transactionId: String(row.transaction_id), executionRunId: String(row.execution_run_id), baseVersionId: String(row.base_version_id), operation: String(row.operation), target: String(row.target), requestedEffect: row.requested_effect, observedEffect: row.observed_effect, executor: String(row.executor), startedAt: String(row.started_at), completedAt: String(row.completed_at), costUsd: Number(row.cost_usd), success: Boolean(row.success) }));
+    return data.map((row) => ({ id: String(row.id), transactionId: String(row.transaction_id), executionRunId: String(row.execution_run_id), baseVersionId: String(row.base_version_id), operation: String(row.operation), target: String(row.target), requestedEffect: row.requested_effect, observedEffect: row.observed_effect, executor: String(row.executor), startedAt: String(row.started_at), completedAt: String(row.completed_at), costUsd: row.cost_usd === null ? null : Number(row.cost_usd), success: Boolean(row.success) }));
   }
 }
 

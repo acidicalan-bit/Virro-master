@@ -134,6 +134,17 @@ describe("BUILD 004 — Preservation & Verification v0.1", () => {
     expect(migration).toMatch(/transaction_patches_operation_check[\s\S]*EDIT_REGION/);
   });
 
+  it("migrates explicitly unknown historical cost to NULL without guessing unmarked zeroes", () => {
+    const migration = readFileSync(
+      "supabase/migrations/20260811190000_preserve_unknown_execution_cost.sql",
+      "utf8",
+    );
+
+    expect(migration).toMatch(/alter column cost_usd drop not null/g);
+    expect(migration).toMatch(/metadata ->> 'costReported' = 'false'/g);
+    expect(migration).not.toMatch(/where cost_usd = 0\s*;/);
+  });
+
   describe("PreservationPolicy and deterministic zones", () => {
     it("validates the versioned HARD_PRESERVE / FEATHERED policy", () => {
       const parsed = policy();
@@ -312,6 +323,20 @@ describe("BUILD 004 — Preservation & Verification v0.1", () => {
       expect(runs).toHaveLength(1);
       expect(runs[0]).toMatchObject({ status: "SUCCESS", rawCandidateId: result.rawCandidateId, preservedCandidateId: result.preservedCandidateId });
       expect(evidence.map((item) => item.candidateType).sort()).toEqual(["PRESERVED", "RAW_PROVIDER"]);
+    });
+
+    it("preserves unknown provider cost as NULL and creates no numeric cost record", async () => {
+      const { service, repositories } = harness("FULL");
+      const result = await run(service);
+      const [execution] = await repositories.executionRuns.findByTransactionId(result.transactionId);
+      const [receipt] = await repositories.evidenceReceipts.findByTransactionId(result.transactionId);
+      const costs = await repositories.costRecords.findByTransactionId(result.transactionId);
+
+      expect(execution.costUsd).toBeNull();
+      expect(execution.metadata).toMatchObject({ costReported: false });
+      expect(receipt.costUsd).toBeNull();
+      expect(result.costUsd).toBeNull();
+      expect(costs).toEqual([]);
     });
 
     it("links preserved provenance to source, raw, run, and transaction", async () => {

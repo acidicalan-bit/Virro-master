@@ -193,12 +193,14 @@ export class OutcomeTransactionService {
 
       await this.repositories.executionRuns.create(result.run);
       await this.repositories.evidenceReceipts.create(result.evidence);
-      await this.repositories.costRecords.create({
-        transactionId,
-        executionRunId: result.run.id,
-        amountUsd: result.run.costUsd,
-        description: `Ejecución ${result.run.executor} - ${patch.operation}`,
-      });
+      if (result.run.costUsd !== null) {
+        await this.repositories.costRecords.create({
+          transactionId,
+          executionRunId: result.run.id,
+          amountUsd: result.run.costUsd,
+          description: `Ejecución ${result.run.executor} - ${patch.operation}`,
+        });
+      }
 
       results.push(result);
     }

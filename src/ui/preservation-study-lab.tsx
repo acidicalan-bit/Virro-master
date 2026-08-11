@@ -48,6 +48,7 @@ const ratingDimensions: Array<{ key: keyof StudyRatings; label: string }> = [
 ];
 const failureTags: StudyFailureTag[] = ["boundary_artifact", "shadow_cutoff", "geometry_cutoff", "texture_discontinuity", "identity_drift", "background_drift", "text_drift", "requested_edit_failed", "over_preservation", "under_preservation", "other"];
 const zeroRatings: StudyRatings = { requestedEditSuccess: 0, preservationSuccess: 0, naturalness: 0, artifactFreedom: 0, overallUsefulness: 0 };
+const uuidPattern = "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}";
 
 export function PreservationStudyLab({ initialCaseId = null, initialTransactionId = "" }: { initialCaseId?: string | null; initialTransactionId?: string }) {
   const [dashboard, setDashboard] = useState<Dashboard | null>(null);
@@ -149,10 +150,10 @@ export function PreservationStudyLab({ initialCaseId = null, initialTransactionI
 
           {!studyCase ? (
             <section className="study-grid">
-              <form className="study-panel" onSubmit={(event) => { event.preventDefault(); void mutate({ action: "addCase", transactionId, planCaseId: planCaseId || null, topology, taskType }); }}>
+              <form className="study-panel" onSubmit={(event) => { event.preventDefault(); void mutate({ action: "addCase", transactionId: transactionId.trim(), planCaseId: planCaseId || null, topology, taskType }); }}>
                 <p className="eyebrow">Inscribir evidencia existente</p>
                 <h2>Nuevo caso</h2>
-                <label>Transaction ID<input required value={transactionId} onChange={(event) => setTransactionId(event.target.value)} placeholder="UUID de BUILD 004" /></label>
+                <label>Transaction ID<input required pattern={uuidPattern} title="UUID de la transacción de BUILD 004" value={transactionId} onChange={(event) => setTransactionId(event.target.value)} onBlur={() => setTransactionId((value) => value.trim())} placeholder="UUID de BUILD 004" autoComplete="off" spellCheck={false} /><small>Usa el Transaction ID de Precision Edit Lab; no el Case ID ni un ID como li-01.</small></label>
                 <label>Caso del plan<select value={planCaseId} onChange={(event) => choosePlan(event.target.value)}><option value="">Caso adicional no planificado</option>{dashboard.plan.map((item) => <option key={item.id} value={item.id}>{item.id} · {item.title}</option>)}</select></label>
                 {selectedPlan ? <p className="study-brief"><strong>{selectedPlan.instruction}</strong><br />{selectedPlan.sourceBrief}</p> : null}
                 <label>Topología<select value={topology} onChange={(event) => setTopology(event.target.value as StudyTopology)}>{topologies.map((item) => <option key={item}>{item}</option>)}</select></label>

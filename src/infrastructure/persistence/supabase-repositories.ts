@@ -60,6 +60,7 @@ import {
   type BenchmarkCaseRow,
   type IntentRunRow,
 } from "@/src/infrastructure/persistence/database-mappers";
+import { createTransientJwtRetryFetch } from "@/src/infrastructure/supabase/transient-jwt-retry-fetch";
 
 class SupabaseIntentRunRepository implements IntentRunRepository {
   constructor(private readonly client: SupabaseClient) {}
@@ -447,6 +448,7 @@ export function createSupabaseRepositories(): RepositoryBundle {
 
   const client = createClient(url, serviceRoleKey, {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+    global: { fetch: createTransientJwtRetryFetch() },
   });
 
   return {

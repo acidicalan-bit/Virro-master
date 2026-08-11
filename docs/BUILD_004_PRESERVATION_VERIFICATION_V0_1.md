@@ -191,7 +191,7 @@ The persistence chain retains transaction, execution, preservation, source versi
 
 Human evaluation may carry explicit evidence tags and a bounded note. The first real BUILD 004 case is retained as `PIXEL_HUMAN_PERCEPTION_DIVERGENCE`: deterministic pixel preservation reduced locked-outside changed pixels from 74.86% to 0%, while the human judged RAW and PRESERVED as a visual tie. This is evidence for a future perceptual layer, not evidence that either candidate is semantically superior.
 
-`execution_runs.cost_usd` is inherited as non-null from BUILD 002. When the provider does not report cost, the runtime stores `0` only in that inherited execution field with `costReported: false` and does not create a `cost_records` entry. It never claims that zero is the real provider cost.
+**Post-freeze correction:** unknown provider cost is represented as `null` in `execution_runs.cost_usd`, `evidence_receipts.cost_usd`, candidate records, and API views. Numeric zero is reserved for a provider-reported zero. When cost is unknown, metadata retains `costReported: false` and the runtime does not create a `cost_records` entry. Migration `20260811190000_preserve_unknown_execution_cost.sql` converts only historical zeroes explicitly marked `costReported: false`; it does not guess about unmarked historical records. The frozen tag retains the original representation as historical evidence.
 
 ## Tests
 
