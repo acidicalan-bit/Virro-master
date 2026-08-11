@@ -3,11 +3,13 @@ import { readFileSync } from "node:fs";
 
 import { DeterministicPrecisionEditSpecCompiler } from "@/src/application/outcome/specification/deterministic-spec-compiler";
 import { createPrecisionEditBlueprintDefinition } from "@/src/application/outcome/specification/precision-edit-blueprint";
-import { publishOutcomeBlueprint } from "@/src/domain/outcome/specification/outcome-blueprint";
+import { publishOutcomeBlueprint, type OutcomeBlueprint } from "@/src/domain/outcome/specification/outcome-blueprint";
+import { attachTaskSpecHash, type TaskSpec } from "@/src/domain/outcome/specification/task-spec";
 import { FIELD_POLICY_DEFINITION, FIELD_POLICY_VERSION, PRECISION_EDIT_OUTCOME_SKU, type FieldFeedback, type FieldOutcome } from "@/src/domain/outcome/media/field-beta";
 import { calculateFieldMetrics } from "@/src/domain/outcome/media/field-beta";
 import { InMemoryFieldBetaRepository } from "@/src/infrastructure/persistence/outcome/in-memory-field-beta-repository";
 import { PreservationLadderEngine } from "@/src/infrastructure/preservation/preservation-ladder-engine";
+import { createFieldBetaService, isFieldBetaEnabled } from "@/src/server/field-beta-services";
 import type { PixelGrid } from "@/src/infrastructure/evidence/image-diff-calculator";
 
 const ids = {
@@ -20,9 +22,18 @@ const ids = {
 
 function outcome(overrides: Partial<FieldOutcome> = {}): FieldOutcome {
   const blueprint = publishOutcomeBlueprint(createPrecisionEditBlueprintDefinition(), "2026-08-11T20:00:00.000Z");
+  const taskSpec = snapshotTaskSpec(blueprint);
   return {
-    id: "60000000-0000-4000-8000-000000000006", transactionId: ids.tx, sourceVersionId: ids.source, instruction: "Cambia la chamarra", roi: { x: 0.2, y: 0.2, width: 0.4, height: 0.4 }, topology: "LOCAL_INDEPENDENT", taskType: "COLOR_CHANGE", provider: "fixture", model: "fixture", rawCandidateId: ids.raw, deliveredCandidateId: ids.delivered, recommendedStrategy: "P3_HARD", strategyId: "P3_HARD", policyVersion: FIELD_POLICY_VERSION, overrideReason: null, providerLatencyMs: 12, preservationLatencyMs: 2, totalLatencyMs: 14, providerCostUsd: null, createdAt: "2026-08-11T20:00:00.000Z", tenantId: "internal-lab", outcomeSku: PRECISION_EDIT_OUTCOME_SKU, blueprintId: blueprint.id, blueprintVersion: blueprint.version, blueprintHash: blueprint.hash, taskSpecId: "60000000-0000-4000-8000-000000000007", taskSpecVersion: 1, taskSpecHash: "a".repeat(64), specCompilerName: "deterministic", specCompilerVersion: "0.1.0", sourceSha256: "b".repeat(64), machineVerificationStatus: "PASSED", sameSpecStatus: "BLOCKED", ...overrides,
+    id: "60000000-0000-4000-8000-000000000006", transactionId: ids.tx, sourceVersionId: ids.source, instruction: "Cambia la chamarra", roi: { x: 0.2, y: 0.2, width: 0.4, height: 0.4 }, topology: "LOCAL_INDEPENDENT", taskType: "COLOR_CHANGE", provider: "fixture", model: "fixture", rawCandidateId: ids.raw, deliveredCandidateId: ids.delivered, recommendedStrategy: "P3_HARD", strategyId: "P3_HARD", policyVersion: FIELD_POLICY_VERSION, overrideReason: null, providerLatencyMs: 12, preservationLatencyMs: 2, totalLatencyMs: 14, providerCostUsd: null, createdAt: "2026-08-11T20:00:00.000Z", tenantId: "internal-lab", outcomeSku: PRECISION_EDIT_OUTCOME_SKU, blueprintId: blueprint.id, blueprintVersion: blueprint.version, blueprintHash: blueprint.hash, taskSpecId: taskSpec.id, taskSpecVersion: taskSpec.version, taskSpecHash: taskSpec.hash, specCompilerName: "deterministic", specCompilerVersion: "0.1.0", sourceSha256: "b".repeat(64), machineVerificationStatus: "PASSED", sameSpecStatus: "BLOCKED", blueprintSnapshot: blueprint, taskSpecSnapshot: taskSpec, ...overrides,
   };
+}
+
+function snapshotTaskSpec(blueprint: OutcomeBlueprint): TaskSpec {
+  return attachTaskSpecHash({ schemaVersion: "task-spec-v0.1", id: "60000000-0000-4000-8000-000000000007", version: 1, previousVersionHash: null, status: "READY", transactionId: ids.tx, blueprint: { id: blueprint.id, version: blueprint.version, hash: blueprint.hash }, source: { assetId: ids.asset, versionId: ids.source, sha256: "b".repeat(64), mimeType: "image/png", byteSize: 100 }, values: [
+    { id: "instruction", provenance: "CUSTOMER_STATED", critical: true, visibility: ["IMAGE_EXECUTOR"], value: "Cambia la chamarra" },
+    { id: "roi", provenance: "CUSTOMER_STATED", critical: true, visibility: ["IMAGE_EXECUTOR"], value: { x: 0.2, y: 0.2, width: 0.4, height: 0.4 } },
+    { id: "providerGenerationCount", provenance: "APPROVED", critical: true, visibility: ["IMAGE_EXECUTOR"], value: 1 },
+  ], constraints: [], capabilityGrant: ["READ_SOURCE"], criteria: blueprint.qualityProfile.criteria, verificationPolicy: blueprint.verificationPolicy, securityProfile: { promptInjectionPolicy: "TREAT_AS_DATA", embeddedSecretPolicy: "FORBID", unknownInputPolicy: "REQUIRE_INPUT" }, compiler: { name: "deterministic", version: "0.1.0" }, inputRequirements: [], rejectionReasons: [], createdAt: "2026-08-11T20:00:00.000Z" });
 }
 
 function feedback(fieldOutcomeId: string, overrides: Partial<FieldFeedback> = {}): FieldFeedback {
@@ -30,6 +41,17 @@ function feedback(fieldOutcomeId: string, overrides: Partial<FieldFeedback> = {}
 }
 
 describe("BUILD 005 recovery invariants", () => {
+  it("fails closed for every feature-flag value except exact true", () => {
+    expect(isFieldBetaEnabled(undefined)).toBe(false);
+    expect(isFieldBetaEnabled("false")).toBe(false);
+    expect(isFieldBetaEnabled("TRUE")).toBe(false);
+    expect(isFieldBetaEnabled("true ")).toBe(false);
+    expect(isFieldBetaEnabled("true")).toBe(true);
+    const previous = process.env.FIELD_BETA_INTERNAL_ENABLED;
+    delete process.env.FIELD_BETA_INTERNAL_ENABLED;
+    expect(() => createFieldBetaService()).toThrow(/disabled/i);
+    if (previous === undefined) delete process.env.FIELD_BETA_INTERNAL_ENABLED; else process.env.FIELD_BETA_INTERNAL_ENABLED = previous;
+  });
   it("compiles the existing Blueprint into a hashable immutable Task Spec", async () => {
     const blueprint = publishOutcomeBlueprint(createPrecisionEditBlueprintDefinition(), "2026-08-11T20:00:00.000Z");
     const spec = await new DeterministicPrecisionEditSpecCompiler(() => "60000000-0000-4000-8000-000000000009", () => "2026-08-11T20:00:00.000Z").compile({
@@ -56,6 +78,13 @@ describe("BUILD 005 recovery invariants", () => {
     await expect(repo.createFeedback(feedback(saved.id))).rejects.toThrow(/immutable/i);
   });
 
+  it("rejects corrupted Blueprint or Task Spec snapshots before persistence", async () => {
+    const repo = new InMemoryFieldBetaRepository();
+    const item = outcome();
+    await expect(repo.createOutcome({ ...item, blueprintSnapshot: { ...item.blueprintSnapshot, seller: { ...item.blueprintSnapshot.seller, displayName: "tampered" } } })).rejects.toThrow(/snapshot/i);
+    await expect(repo.createOutcome({ ...item, taskSpecSnapshot: { ...item.taskSpecSnapshot, taskSpecHash: undefined } as never })).rejects.toThrow();
+  });
+
   it("enforces tenant boundaries in the repository", async () => {
     const internal = new InMemoryFieldBetaRepository("internal-lab");
     await expect(internal.createOutcome(outcome({ tenantId: "other-tenant" }))).rejects.toThrow(/tenant/i);
@@ -77,6 +106,8 @@ describe("BUILD 005 recovery invariants", () => {
   it("migration is server-write-only, tenant-labelled, and keeps cost nullable", () => {
     const sql = readFileSync("supabase/migrations/20260812110000_build_005_precision_edit_field_beta_spec_learning.sql", "utf8");
     expect(sql).toContain("task_spec_hash text not null");
+    expect(sql).toContain("blueprint_snapshot jsonb not null");
+    expect(sql).toContain("task_spec_snapshot jsonb not null");
     expect(sql).toContain("tenant_id text not null");
     expect(sql).toContain("enable row level security");
     expect(sql).toContain("provider_cost_usd numeric");

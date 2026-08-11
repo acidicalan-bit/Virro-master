@@ -189,6 +189,8 @@ export class FieldBetaService {
       sourceSha256: base.source.sha256,
       machineVerificationStatus: base.machineVerification.status,
       sameSpecStatus: sameSpecVerification.status,
+      blueprintSnapshot: blueprint,
+      taskSpecSnapshot: taskSpec,
     });
     const sample = await this.maybeCreateSample(fieldOutcome.id, views, strategyId);
     return this.buildView(fieldOutcome, base.source, [...views.values()], sample, null);

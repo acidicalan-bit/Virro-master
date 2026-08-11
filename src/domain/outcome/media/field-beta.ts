@@ -2,6 +2,8 @@ import { z } from "zod";
 
 import { PreservationEvidenceMetricsSchema } from "@/src/domain/outcome/media/preservation";
 import { StudyTaskTypeSchema, StudyTopologySchema } from "@/src/domain/outcome/media/preservation-study";
+import type { OutcomeBlueprint } from "@/src/domain/outcome/specification/outcome-blueprint";
+import type { TaskSpec } from "@/src/domain/outcome/specification/task-spec";
 
 export const FIELD_POLICY_VERSION = "preservation-policy-v0.1" as const;
 export const FIELD_POLICY_STATUS = "HYPOTHESIS_BASED_INITIAL_POLICY" as const;
@@ -158,6 +160,8 @@ export type FieldOutcome = {
   sourceSha256: string;
   machineVerificationStatus: "PASSED" | "FAILED";
   sameSpecStatus: "PASSED" | "FAILED" | "BLOCKED";
+  blueprintSnapshot: OutcomeBlueprint;
+  taskSpecSnapshot: TaskSpec;
 };
 
 export type FieldFeedback = {

@@ -90,3 +90,7 @@ The approved provider smoke path may be run only when credentials are present. D
 ### BUILD_005_SPEC_DRIFT
 
 The partial service/migration would create field outcomes that cannot be traced to the canonical Outcome SKU/Blueprint/Task Spec and would expose no tenant ownership or acceptance provenance. It also implied a path toward canonical approval while the existing `OutcomeTransactionService.commitTransaction` is not a single atomic head/StateCommit operation. These contradictions are corrected by anchoring the beta and keeping canonical mutation disabled; the Foundation specification is not changed.
+
+## BUILD 005-B readiness additions
+
+Field outcomes now persist immutable Blueprint and Task Spec snapshots beside their ids, versions, and hashes. Repositories parse and re-verify the canonical hashes before write/read, so a historical outcome can reconstruct the exact content used and reject corruption or cross-reference mismatches. `/api/field-beta` and `/field-beta` fail closed unless `FIELD_BETA_INTERNAL_ENABLED` is exactly `true`; the UI is an internal lab only and records YES/NO acceptance separately from machine verification. Database execution and real-provider/human smoke remain external gates and are never represented by deterministic fixtures.
