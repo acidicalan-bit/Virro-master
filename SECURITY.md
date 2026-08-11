@@ -62,3 +62,7 @@ The phone is a control surface and the cloud is the execution authority. A clien
 ## Security change governance
 
 Every Build must include a `SECURITY DELTA` naming changed trust boundaries, data/capabilities, threats, mitigations, tests, and residual risk. Security-relevant diffs require threat-model review, secret/dependency checks, authorization regression tests, and explicit documentation of unresolved limitations before freeze.
+
+## BUILD 005 internal field beta delta
+
+BUILD 005 adds field-outcome, preservation-strategy, human-acceptance, evaluation, and curated-regression records. They are server-write-only, RLS-enabled, tenant-labelled, append-only records anchored to a Blueprint/Task Spec hash. The internal route is disabled unless `FIELD_BETA_INTERNAL_ENABLED=true`; it never authorizes canonical state mutation and does not expose service-role credentials. Provider cost remains nullable when unreported. The existing missing tenant-authentication model, privileged service-role blast radius, and non-atomic canonical head/StateCommit operation remain P0/P1 debt; this beta is not approved for public multi-tenant use.
