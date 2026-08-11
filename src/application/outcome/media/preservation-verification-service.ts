@@ -67,6 +67,7 @@ export type PreservationExperimentView = {
   sourceVersionId: string;
   rawCandidateId: string;
   preservedCandidateId: string;
+  instruction: string;
   source: MediaView;
   raw: CandidateView;
   preserved: CandidateView;
@@ -691,6 +692,7 @@ export class PreservationVerificationService {
       sourceVersionId: input.sourceVersionId,
       rawCandidateId: input.rawCandidate.id,
       preservedCandidateId: input.preservedCandidate.id,
+      instruction: input.rawCandidate.instruction,
       source: { storageKey: input.sourceStorageKey, url: sourceUrl, sha256: input.sourceHash, width: input.sourceWidth, height: input.sourceHeight },
       raw: candidateView(input.rawCandidate, rawUrl),
       preserved: candidateView(input.preservedCandidate, preservedUrl),

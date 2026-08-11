@@ -290,6 +290,47 @@ dd { margin: 6px 0 0; font-weight: 650; }
 .commit-actions { padding-top: 18px; border-top: 1px solid var(--line); }
 .decision-result { margin: 18px 0 0; padding: 12px 14px; border-radius: 8px; background: var(--accent-soft); color: var(--accent); }
 
+.study-shell { width: min(1180px, calc(100% - 32px)); margin: 0 auto; padding: 64px 0 100px; }
+.study-status { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1px; margin: 28px 0; border: 1px solid var(--line); background: var(--line); }
+.study-status > div { display: grid; gap: 6px; padding: 18px; background: var(--surface); }
+.study-status span { color: var(--muted); font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; }
+.study-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, .8fr); gap: 24px; align-items: start; }
+.study-panel, .study-report, .study-context { border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); padding: clamp(22px, 4vw, 38px); }
+.study-panel { display: grid; gap: 18px; }
+.study-panel label { display: grid; gap: 7px; }
+.study-panel input, .study-panel select, .study-panel textarea { width: 100%; }
+.study-brief, .study-warning { margin: 0; padding: 14px; background: var(--paper); color: var(--muted); }
+.study-case-list { display: grid; gap: 8px; padding: 0; list-style: none; }
+.study-case-list button { width: 100%; display: flex; justify-content: space-between; gap: 16px; padding: 13px 15px; border: 1px solid var(--line); background: transparent; color: inherit; cursor: pointer; text-align: left; }
+.study-case-list strong { font-size: .72rem; }
+.study-flow { display: grid; gap: 24px; }
+.study-context { display: grid; grid-template-columns: minmax(260px, .8fr) 1fr; gap: 28px; align-items: center; }
+.study-context dl { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.study-context dl div { display: grid; gap: 4px; }
+.study-context dt { color: var(--muted); font-size: .72rem; text-transform: uppercase; }
+.study-context dd { margin: 0; }
+.study-image { margin: 0; display: grid; gap: 8px; }
+.study-image figcaption { font-size: .75rem; font-weight: 700; letter-spacing: .08em; }
+.study-image > div { position: relative; overflow: hidden; background: #e9e7df; border: 1px solid var(--line); }
+.study-image img { object-fit: contain; }
+.study-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.rating-grid, .tag-grid, .acceptance-question { border: 1px solid var(--line); padding: 16px; }
+.rating-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; }
+.rating-grid label { font-size: .84rem; }
+.tag-grid { display: flex; flex-wrap: wrap; gap: 8px 16px; }
+.tag-grid legend, .rating-grid legend, .acceptance-question legend { padding: 0 6px; color: var(--muted); }
+.tag-grid label, .acceptance-question label { display: flex; align-items: center; gap: 6px; }
+.tag-grid input, .acceptance-question input { width: auto; }
+.acceptance-question { display: flex; flex-wrap: wrap; gap: 12px 24px; }
+.study-report { margin-top: 32px; }
+.study-report details { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 12px; }
+.study-report summary { cursor: pointer; font-weight: 700; }
+.study-table-wrap { margin-top: 12px; overflow-x: auto; }
+.study-table-wrap table { min-width: 1500px; width: 100%; border-collapse: collapse; font-size: 12px; }
+.study-table-wrap th, .study-table-wrap td { padding: 9px; border: 1px solid var(--line); text-align: right; }
+.study-table-wrap th:first-child { position: sticky; left: 0; background: var(--surface); text-align: left; }
+.text-button { width: fit-content; border: 0; background: none; color: inherit; cursor: pointer; padding: 4px 0; }
+
 @media (max-width: 900px) {
   .signal-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .signal-strip div:nth-child(2) { border-right: 0; }
@@ -330,6 +371,8 @@ dd { margin: 6px 0 0; font-weight: 650; }
   .roi-readout, .reduction-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .roi-readout > div:nth-child(2), .reduction-strip > div:nth-child(2) { border-right: 0; }
   .roi-readout > div:nth-child(-n+2), .reduction-strip > div:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
+  .study-grid, .study-context, .study-pair { grid-template-columns: 1fr; }
+  .study-context dl { grid-template-columns: 1fr; }
 }
 
 @media (prefers-reduced-motion: reduce) {

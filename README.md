@@ -80,6 +80,14 @@ Aplica `20260811120000_build_004_preservation_verification.sql` antes de ejecuta
 
 Consulta [la arquitectura y semántica completa de BUILD 004](./docs/BUILD_004_PRESERVATION_VERIFICATION_V0_1.md).
 
+## PRODUCT GATE 004 — Preservation Value Study
+
+`/preservation-study` inscribe transacciones BUILD 004 existentes sin regenerarlas y ejecuta un protocolo append-only: expectativa humana, scoring ciego A/B aislado, preferencia pairwise, revelado y aceptación independiente de RAW/PRESERVED. La aceptación experimental nunca crea un commit canónico.
+
+Aplica `20260811180000_product_gate_004_preservation_value_study.sql`. El plan inicial contiene 30 escenarios representativos con distribución 8 LOCAL_INDEPENDENT, 10 LOCAL_COUPLED, 8 STRUCTURAL y 4 GLOBAL/control.
+
+Consulta [el protocolo, métricas e invariantes del Product Gate](./docs/PRODUCT_GATE_004_PRESERVATION_VALUE_STUDY_V0_1.md).
+
 ## Telemetría
 
 Cada intent run conserva proveedor, modelo, versiones, instrucción de sistema, latencia total y del proveedor, tokens de entrada/caché/salida/razonamiento y total cuando OpenAI los informa. El costo es una estimación separada basada en una configuración versionada; nunca se inventa cuando faltan datos.
@@ -99,8 +107,10 @@ pnpm build
 - `/benchmarks`: fixtures, ejecución individual/conjunta y métricas deterministas.
 - `/blind-eval`: importación y evaluación humana A/B con revelado diferido.
 - `/precision-edit-lab`: comparación controlada RAW vs PRESERVED, métricas por zona, Creative Assertions y commit exclusivo de PRESERVED.
+- `/preservation-study`: estudio ciego RAW vs PRESERVED, reanudable e inmutable, sin regeneración ni commit canónico.
 - `/api/compile`, `/api/feedback`, `/api/execution-contract`, `/api/benchmarks`: frontera HTTP del monolito.
 - `/api/blind-eval/*`: sets inmutables, sesiones, comparaciones y juicios.
+- `/api/preservation-study`: casos, etapas bloqueadas, reporte agregado y media ciega opaca.
 
 ## Seguridad y datos
 
