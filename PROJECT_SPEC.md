@@ -1,6 +1,6 @@
 # Digital Outcomes / Outcome Execution Runtime — Project Master
 
-**PROJECT SPEC VERSION:** 1.0.0
+**PROJECT SPEC VERSION:** 1.1.0
 
 **Date:** 2026-08-11
 
@@ -56,7 +56,7 @@ For creative editing, a local request commonly implies preservation of everythin
 
 ## 03. Vision and category
 
-[HYPOTHESIS] The defensible category is an Outcome Execution Runtime: a provider-neutral layer that compiles human intent, controls mutations against canonical state, executes with specialized providers, verifies evidence, and commits only accepted results.
+[HYPOTHESIS] The defensible category is a Digital Outcomes Marketplace powered by a provider-neutral Outcome Execution Runtime. The marketplace unit is an Outcome SKU backed by an immutable, versioned Outcome Blueprint; the runtime compiles each purchase/request into one hash-addressed Task Spec, gives each agent a bounded lens over that same spec, verifies same-spec evidence, and commits only accepted results. Marketplace demand, seller supply, and commission economics remain unvalidated hypotheses.
 
 The long-term protocol is:
 
@@ -86,6 +86,13 @@ It does not assume one giant model. Structured state, deterministic controls, sm
 
 [CURRENT] A machine-consumable agreement describing objective, expectations, context, requirements, preservation constraints, prohibited actions, authorized assumptions, high-impact ambiguities, acceptance tests, and definition of done. Intent Lab currently emits an Execution Contract; full commercial Outcome Contract semantics remain [PLANNED].
 
+### Outcome SKU, Blueprint, and Marketplace Product Contract
+
+- [CURRENT] An `OutcomeBlueprint` is the provider-neutral product/execution definition: identity, version chain, hash, SKU, variable policy (`FIXED`, `PARAMETERIZED`, `CONDITIONAL`), deliverable, capabilities, security, quality, budget, and verification requirements. Published versions are immutable in the current domain proof.
+- [CURRENT] A `TaskSpec` is the versioned, hash-addressed transaction instruction compiled from one Blueprint plus customer/source facts. A READY spec is immutable and includes provenance, capabilities, criteria, security, and verifier policy.
+- [CURRENT] A `MarketplaceProductContract` schema binds a future listing to an exact Blueprint version/hash and optional commission rate. It is a contract type only; no catalog, listing UI, payment, seller onboarding, or publication service exists.
+- [PLANNED] An Outcome SKU is the customer-facing unit that a curated store may offer after value, ownership, and economics are validated.
+
 ### Bundle
 
 [PLANNED] A packaged group of related Outcomes, assets, policies, and delivery expectations. No Bundle runtime exists.
@@ -104,6 +111,7 @@ All commercial mechanics below are product decisions or hypotheses, not implemen
 - Creator Pass: [PLANNED] subscription-like access for frequent creators without making subscription the only entry point.
 - Curated Outcome Store: [PLANNED] precedes an open marketplace.
 - Marketplace/API: [DEFERRED] until outcome quality, ownership, economics, and trust are demonstrated.
+- Seller/commission model: [HYPOTHESIS] curated third parties may publish reviewed Blueprint versions and receive a disclosed commission. No seller account, settlement, payout, or commission calculation exists.
 
 ## 07. Non-negotiable principles
 
@@ -119,6 +127,10 @@ All commercial mechanics below are product decisions or hypotheses, not implemen
 10. Pixel preservation is not semantic correctness.
 11. Unknown cost is not zero.
 12. Hypotheses and experimental observations must not be reported as validated product guarantees.
+13. The Spec Compiler cannot enlarge a Blueprint's capability authority.
+14. Critical UNKNOWN input or verification state cannot be represented as READY/PASS.
+15. Executor results and verifier evidence must bind to the same Task Spec ID and hash.
+16. Seller-authored executable code is untrusted and is not accepted or run by the current platform.
 
 ## 08. Canonical system architecture
 
@@ -138,6 +150,22 @@ OpenAI, Supabase Postgres/Storage, deterministic local engines
 
 The domain must not depend on Next.js, Supabase, or proprietary provider SDKs. UI components call internal HTTP boundaries and do not access Supabase directly. Repositories own persistence mapping; adapters own provider communication.
 
+[CURRENT] The generalized execution proof adds this provider-neutral control plane:
+
+```text
+Outcome Blueprint + customer/source facts
+              ↓ deterministic Spec Compiler
+      immutable, hash-addressed Task Spec
+              ↓ role-specific Spec Lenses
+ image executor / preservation engine / verifier
+              ↓ result + criterion evidence
+              Same-Spec Gate
+              ↓ explicit acceptance + current head
+              commit authorization
+```
+
+The proof is intentionally narrow and compiles only the existing Precision Edit outcome. It does not replace the runtime, add providers, or authorize BUILD 006.
+
 ## 09. Domain model
 
 [CURRENT] Principal implemented entities:
@@ -149,6 +177,7 @@ The domain must not depend on Next.js, Supabase, or proprietary provider SDKs. U
 - media storage, semantic snapshots, image evidence, candidate assets;
 - preservation policies, runs, evidence, preferences;
 - preservation study cases, locked human intent, blind presentation, ratings, pairwise preference, acceptance;
+- provider-neutral `OutcomeBlueprint`, `MarketplaceProductContract`, `TaskSpec`, provenance, Spec Lens, same-spec evaluation, and cross-agent evaluation contracts;
 - [PLANNED][ACTIVE] field-beta strategies, outcomes, feedback, samples, golden cases, regression candidates.
 
 Core distinctions:
@@ -173,6 +202,8 @@ DRAFT → PREPARED → READY → EXECUTING → VERIFYING → VERIFIED → COMMIT
 Commit requires a verified transaction, required evidence, authorized patch, current base head, no prior commit, and creation of a new immutable version. Rollback creates another version with provenance; it does not delete history.
 
 [CURRENT LIMITATION] The application service coordinates multiple persistence writes. BUILD 004 explicitly records that canonical head movement and StateCommit creation are not yet one PostgreSQL RPC transaction.
+
+[CURRENT] The foundation Same-Spec Gate rejects mismatched/stale Task Specs, unsupported or executor-only evidence, unauthorized capabilities, critical `UNKNOWN`, and stale canonical heads. This is enforced in the deterministic proof path and tests; it is not yet wired into the production Precision Edit transaction service or persisted in Supabase.
 
 ## 11. Human grounding / intent handling
 
@@ -216,6 +247,8 @@ Commit requires a verified transaction, required evidence, authorized patch, cur
 
 [FROZEN] BUILD 004 uses one provider generation to create RAW and derives PRESERVED locally. Comparison methodology must not regenerate one side. [PLANNED] Provider routing is deferred until outcome data supports it.
 
+[CURRENT] `SpecCompilerPort` and `CrossAgentExecutorPort` define provider-neutral boundaries. `IMAGE_EXECUTOR`, `PRESERVATION_ENGINE`, and `VERIFIER` receive projections of one Task Spec ID/hash with role-bounded fields and capabilities; private operator policy is excluded from executor lenses.
+
 ## 17. Learning / evaluation / regression architecture
 
 [CURRENT] Deterministic benchmarks score declared concepts, forbidden questions, assumptions, and interaction mode. Missing semantic evidence is marked for manual review.
@@ -226,11 +259,11 @@ Commit requires a verified transaction, required evidence, authorized patch, cur
 
 ## 18. Outcome Store / marketplace
 
-[PLANNED] Start with a curated Outcome Store where each listing defines input requirements, Outcome Contract, provider/policy compatibility, quality evidence, price, and creator provenance. [DEFERRED] Open publishing, marketplace payouts, ranking, and network effects until governance and accepted-result economics are validated.
+[PLANNED] Start with a curated Outcome Store where each listing defines input requirements, exact Blueprint version/hash, provider/policy compatibility, quality evidence, price, seller provenance, and commission terms. Digital-good classes currently modeled are Outcome Blueprint, Outcome Bundle, Verification Profile, and Creative Preset. [DEFERRED] Marketplace UI, open publishing, marketplace payouts, ranking, and network effects until governance and accepted-result economics are validated.
 
 ## 19. Creator Blueprint system
 
-[PLANNED] A Creator Blueprint packages expert intent templates, constraints, acceptance criteria, provider/policy configuration, examples, and regression cases. It is a versioned execution specification, not a model or hidden prompt alone. No Blueprint schema, creator tooling, or payout system is implemented.
+[CURRENT] The Blueprint schema packages typed variables, constraints, deliverable, capability allow/deny policy, security profile, quality criteria, budget, evidence, and verification policy. Published versions are content-hashed and append-only in the in-memory proof registry. [PLANNED] Durable publication, curated review, creator tooling, signing/attestation, and payout. No seller code execution or payout system is implemented.
 
 ## 20. API / interoperability
 
@@ -258,11 +291,15 @@ Commit requires a verified transaction, required evidence, authorized patch, cur
 
 [PLANNED] Before multi-user exposure: authenticated ownership fields, tenant-aware RLS policies, least-privilege server functions, and explicit access tests.
 
+[CURRENT] Root `SECURITY.md`, repository threat model, seller supply-chain policy, and standards mapping define the intended security boundary. Customer/seller text is data, never authority. Blueprint capabilities are deny-by-default, embedded secrets are rejected, verifier evidence is bound to the same Task Spec hash, and critical unknowns fail closed. Future seller code is treated as untrusted and would require isolated intake, static/dynamic analysis, signed immutable artifacts, scoped credentials, egress denial, and explicit promotion; none of that runtime exists today.
+
 ## 24. Observability / provenance
 
 [CURRENT] Intent runs capture compiler/schema versions, provider/model, latency, structured output, and token usage when reported. Media execution retains transaction, source version, execution, provider/model, policy/methodology, candidate hashes, evidence, verification, preference, acceptance, and commit lineage.
 
 Do not log secrets or private model reasoning. Unknown tokens/cost remain unknown. Model/provider versions and deployed policies must be retained so results are reconstructable.
+
+[CURRENT] Cross-agent evaluation records executor/provider versions, Task Spec ID/hash, requested capabilities, result/evidence, violations, acceptance, latency, and nullable cost. `OBSERVED`, `CUSTOMER_STATED`, `INFERRED`, `APPROVED`, and `UNKNOWN` provenance are preserved; a critical UNKNOWN never becomes fact silently.
 
 ## 25. Monetization / economics
 
@@ -303,11 +340,15 @@ Supporting metrics include Intent/context accuracy under labeled evaluation, que
 | Blind Preservation Value Study harness | [CURRENT][EXPERIMENT] | commit `d4c1ae5`, `/preservation-study` |
 | RLS/RPC, transient JWT, and UUID integrity corrections | [CURRENT][VALIDATED] | migrations `20260811183000`/`20260811190000`, retry/route tests |
 | One recorded pixel↔human divergence case | [VALIDATED] as an observation | `.build-004-final-report.json` |
+| Spec-anchored platform foundation | [CURRENT][VALIDATED] as deterministic proof | `src/domain/outcome/specification`, `src/application/outcome/specification`, foundation tests |
+| Production dependency security gate | [CURRENT] | Next.js/ESLint config 16.3.0; `pnpm audit --prod` reports no known vulnerabilities at foundation handoff |
 
 ### NOT IMPLEMENTED
 
 - [NOT IMPLEMENTED] Payments, PAYG charging, wallet, Creator Pass, subscriptions, or billing.
 - [NOT IMPLEMENTED] Outcome Store, creator marketplace, creator payouts, or Blueprint tooling.
+- No marketplace UI, public product catalog, listing publication workflow, seller onboarding, commission settlement, or arbitrary seller-code sandbox is implemented.
+- [NOT IMPLEMENTED] Supabase persistence or production runtime wiring for Blueprint/Task Spec registries and the Same-Spec Gate; current registries are deterministic in-memory proofs.
 - [NOT IMPLEMENTED] Video/audio generation, persistent characters, native mobile app, teams, or social features.
 - [NOT IMPLEMENTED] Advanced semantic/perceptual image verification, segmentation, identity embeddings as hard generation constraints, or automatic band optimization.
 - [NOT IMPLEMENTED] Multi-provider router, distributed orchestration, queues, vector database, or microservices.
@@ -341,6 +382,7 @@ Product Gate 004 is implemented at commit `d4c1ae5` but has no verified frozen t
 
 - Preservation Value Study: [EXPERIMENT][ACTIVE]. Harness and 30-case plan exist; the required 30 completed evaluations and Product Gate decision do not.
 - BUILD 005 Precision Edit Field Beta + Preservation Ladder: [PLANNED][ACTIVE]. Branch `build/precision-edit-field-beta-v0.1` contains partial local implementation work. It is not complete, validated, or frozen. Intended scope is one provider generation plus deterministic P0 RAW, P1 SOFT, P2 MODERATE, and P3 HARD derivatives; versioned hypothesis policy; human override/feedback; field metrics; optional blind sampling; golden/regression evidence.
+- Spec-Anchored Platform Foundation v0.1: [CURRENT][ACTIVE until frozen]. It generalizes contracts and same-spec controls while using Precision Edit as the only deterministic compiler proof. It does not activate a marketplace or supersede BUILD 005 evidence collection.
 
 No BUILD 006 is authorized by completion of these activities.
 
@@ -365,6 +407,8 @@ No BUILD 006 is authorized by completion of these activities.
 | H-006 | Marketplace creators can package expertise as Outcome Blueprints. | [HYPOTHESIS] | No product evidence. | Curated creator pilot with acceptance/economics. | Store/marketplace roadmap. |
 | H-007 | Acceptance/failure data can improve routing and policy. | [HYPOTHESIS] | Evaluation schemas exist; insufficient field volume. | Offline policy evaluation and held-out regression. | Learning architecture. |
 | H-008 | A perceptual layer adds value where pixel and human judgment diverge. | [HYPOTHESIS] | E-004 demonstrates divergence, not solution value. | Compare deterministic-only vs gated perceptual verification. | BUILD 006+ scope decision. |
+| H-009 | Curated Blueprint sellers can create valuable supply and sustain disclosed commission economics. | [HYPOTHESIS] | No seller or commercial evidence. | Curated pilot after runtime/security readiness. | Marketplace sequencing and commission model. |
+| H-010 | Same-spec, bounded-agent contracts reduce cross-agent drift and false completion claims. | [HYPOTHESIS] with deterministic control proof. | Contract/gate tests cover structural failures only. | Cross-provider replay plus human/evidence audit. | Runtime orchestration design. |
 
 ## 32. Decision Registry
 
@@ -381,6 +425,8 @@ No BUILD 006 is authorized by completion of these activities.
 | D-009 | No foundation-model training yet. | [CURRENT] | spec 1.0.0 | System/evaluation work precedes costly weight training. | Per-user live fine-tuning. | Sufficient labeled data and measurable model bottleneck. |
 | D-010 | One provider generation for RAW/PRESERVED comparisons. | [FROZEN] | BUILD 004 | Preserve a valid experimental control. | Regenerate PRESERVED independently. | A different experiment explicitly replaces the methodology. |
 | D-011 | Human acceptance remains separate from machine verification. | [CURRENT][VALIDATED] | BUILD 002/004 | Technical proof does not establish usefulness. | Automatic acceptance from pixel metrics. | No planned revisit; mechanisms may evolve. |
+| D-012 | One immutable Task Spec hash anchors executor, preservation, verifier, and commit evidence. | [CURRENT] | spec 1.1.0 | Prevent cross-agent drift and stale/fabricated proof. | Free-form agent handoffs. | Evidence shows unacceptable rigidity. |
+| D-013 | Seller-authored executable code is untrusted and prohibited in the current runtime. | [CURRENT] | spec 1.1.0 | Limit supply-chain and credential blast radius. | Direct seller plugin execution. | A reviewed sandbox design passes security gates. |
 
 ## 33. Evidence Ledger
 
@@ -399,6 +445,8 @@ No BUILD 006 is authorized by completion of these activities.
 - Version-control the full active BUILD 005 contract; do not rely only on an external instruction artifact.
 - Establish policy/golden-case immutability and replay evidence before claiming field learning.
 - Add semantic/perceptual verification only after measurable failure clusters justify it.
+- Persist Blueprint/Task Spec version chains and Same-Spec Gate evidence before claiming production durability.
+- Integrate same-spec commit authorization into the existing transaction service without weakening stale-head protection.
 
 ## 35. Risks
 
@@ -411,12 +459,13 @@ No BUILD 006 is authorized by completion of these activities.
 - Provider/model changes can invalidate unversioned comparisons.
 - Outcome pricing can hide unfavorable cost tails if acceptance and repair costs are not measured.
 - Premature marketplace, routing, or distributed infrastructure can obscure the core value test.
+- Blueprint confusion, capability escalation, forged/stale evidence, prompt injection, and future seller supply-chain compromise can turn a specification layer into a hidden authority-escalation path.
 
 ## 36. IP / defensibility strategy
 
 [HYPOTHESIS] Defensibility is not any individual pattern—state versioning, deltas, verification, and priority rules are established engineering. Potential defensibility lies in the integrated Outcome protocol, domain-specific state/Mutation Lease schemas, accepted-result evidence, topology-aware preservation/routing policy, regression corpus, Blueprint packaging, and reliable economics across providers.
 
-Protect by maintaining versioned contracts, provenance, evaluation methodology, policy history, and proprietary outcome-quality data. Do not claim exclusivity over generic software-engineering concepts.
+Protect by maintaining versioned contracts, provenance, evaluation methodology, policy history, proprietary outcome-quality data, and dated invention disclosures. Do not claim exclusivity over generic software-engineering concepts. The disclosure registry is evidence of internal conception, not a patentability or freedom-to-operate opinion.
 
 ## 37. Deferred / rejected ideas
 
@@ -427,6 +476,7 @@ Protect by maintaining versioned contracts, provenance, evaluation methodology, 
 - [REJECTED] Asking the human every missing detail.
 - [REJECTED] Claiming pixel metrics are semantic correctness.
 - [REJECTED] Live per-click model-weight updates as the feedback mechanism.
+- [DEFERRED] Arbitrary seller code intake/execution until a separately reviewed isolated sandbox and supply-chain control plane exists.
 
 ## 38. Change Log
 
@@ -435,6 +485,7 @@ Append new entries; do not rewrite historical entries.
 | Date | Spec version | Build/decision | Summary | Affected sections |
 | --- | --- | --- | --- | --- |
 | 2026-08-11 | 1.0.0 | Project governance initialization | Created canonical spec from code, tests, docs, tags, active work, and approved product direction. Registered current reality, invariants, hypotheses, decisions, evidence, drift, and spec-delta governance. | 00–39 |
+| 2026-08-11 | 1.1.0 | Spec-Anchored Platform Foundation v0.1 | Added provider-neutral Blueprint/Task Spec contracts, deterministic Precision Edit compiler, role lenses, Same-Spec Gate, cross-agent records, security/supply-chain governance, and explicit marketplace limitations. | 03–39, invariants |
 
 ## 39. Documentation index
 
@@ -446,6 +497,9 @@ Append new entries; do not rewrite historical entries.
 - [`docs/BLIND_EVALUATION_FORMAT.md`](./docs/BLIND_EVALUATION_FORMAT.md) — blind Intent evaluation import contract.
 - [`docs/BLIND_EVAL_DATA_RENDERING_AUDIT.md`](./docs/BLIND_EVAL_DATA_RENDERING_AUDIT.md) — [HISTORICAL] rendering/data-isolation audit evidence.
 - [`docs/LIMITATIONS.md`](./docs/LIMITATIONS.md) — [HISTORICAL][SCOPED] Build 001.1 limitations; not the complete current-project limitation register.
+- [`docs/SPEC_ANCHORED_PLATFORM_FOUNDATION_V0_1.md`](./docs/SPEC_ANCHORED_PLATFORM_FOUNDATION_V0_1.md) — [CURRENT] implementation boundary, SPEC DELTA, SECURITY DELTA, and handoff.
+- [`SECURITY.md`](./SECURITY.md) and [`docs/security/`](./docs/security/) — [CURRENT] disclosure policy, threat model, seller supply chain, and standards mapping.
+- [`docs/ip/INVENTION_DISCLOSURES.md`](./docs/ip/INVENTION_DISCLOSURES.md) — [CURRENT] dated internal invention-disclosure registry.
 - `supabase/migrations/` — [CURRENT] reproducible database schema, constraints, grants, RLS, and RPC history.
 - `tests/` — [CURRENT] executable evidence for implemented behavior; passing tests do not by themselves validate commercial hypotheses.
 
@@ -467,3 +521,7 @@ Append new entries; do not rewrite historical entries.
 | INV-012 | Blind candidate identity and order remain stable on resume. | [VALIDATED] for harness integrity | Persisted presentation mapping. |
 | INV-013 | HARD locked-outside preservation is byte-exact or verification fails. | [VALIDATED] for deterministic engine | Creative Assertion and pixel tests. |
 | INV-014 | Hypotheses and descriptive metrics cannot be presented as semantic/scientific validation. | [CURRENT] | Manual-review labels and gate docs. |
+| INV-015 | A Spec Compiler cannot grant a capability absent from the Blueprint allowlist or present in its denylist. | [VALIDATED] for deterministic proof | Compiler/linter tests. |
+| INV-016 | Critical UNKNOWN input or verification status blocks READY/commit. | [VALIDATED] for deterministic proof | Task Spec schema and Same-Spec Gate tests. |
+| INV-017 | Result, evidence, verification, and commit authorization bind to the same current Task Spec ID/hash. | [VALIDATED] for deterministic proof | Same-Spec Gate and stale-spec/head tests. |
+| INV-018 | Seller/customer content is data, not executable authority; seller code is untrusted. | [CURRENT] | Blueprint security profile, linter, SECURITY/threat model; no seller runtime exists. |

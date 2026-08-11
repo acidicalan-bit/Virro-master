@@ -1,0 +1,20 @@
+# Security Standards Mapping
+
+This is a directional engineering map, not a certification, audit opinion, or claim of complete conformance. Version references are the standards current at this foundation handoff: OWASP ASVS 5.x, OWASP Top 10:2025, NIST SP 800-218 SSDF v1.1 final, OWASP SCVS, and SLSA v1.2.
+
+| Project control | OWASP ASVS 5.x | OWASP Top 10:2025 | NIST SSDF v1.1 final | OWASP SCVS | SLSA v1.2 / signing | Current evidence / gap |
+| --- | --- | --- | --- | --- | --- | --- |
+| Strict schemas, normalized ROI, bounded uploads | V1 encoding/sanitization, V2 validation/business logic, V5 file handling | A05 Injection, A07 Authentication Failures where identifiers cross boundaries | PW.5 secure coding | Component input/metadata verification | — | Zod/compiler checks; media magic-byte/re-encode isolation remains. |
+| Deny-by-default capability grants and role lenses | V8 authorization | A01 Broken Access Control | PW.1/PW.5 | Least component privilege | — | Compiler/lens/gate tests; production orchestrator wiring remains. |
+| Same-spec hash/evidence/stale-head gate | V8 authorization, V13 API/web service | A08 Software or Data Integrity Failures | PW.7 review/test | Component integrity and verification | Artifact digest/provenance | Deterministic proof; durable signed receipts remain. |
+| Secrets server-only, embedded-secret rejection, redacted logs | V11 cryptography, V13 configuration, V14 data protection, V16 logging/error | A02 Security Misconfiguration, A09 Logging and Alerting Failures | PS.1/PS.2, PW.6 | Secrets and component configuration | Protected build identities | Policy/compiler checks; automated redaction and key rotation remain. |
+| RLS, ownership, least privilege | V8 authorization | A01 Broken Access Control | PW.1 | Deployment/component access policy | — | Internal RLS/service role; tenant ownership is not implemented. |
+| Immutable version/hash/provenance | V4 API/web service, V14 data protection, V15 secure coding/architecture | A03 Software Supply Chain Failures, A08 Integrity Failures | PS.3, PW.4 | Component provenance/inventory | Build L1–L3 concepts, provenance attestations | In-memory proof; durable signed publication remains. |
+| Seller quarantine/intake pipeline | V13 configuration, V15 secure coding/architecture | A03 Software Supply Chain Failures | PO.3, PS.3, PW.4 | Inventory, SBOM, component analysis and validation | Hermetic/isolated build direction, signed immutable artifacts | Documentation only; no seller intake/sandbox exists. |
+| Threat model plus SPEC/SECURITY DELTAs | V1 architecture/design | Cross-cutting | PO.1/PO.3 | Governance and component-risk management | Threat-informed provenance policy | Repository threat model and per-Build governance. |
+
+Signing/provenance direction: canonicalize the reviewed artifact, bind Blueprint/version/SBOM/builder/tests/policy to its digest, sign an attestation with a protected platform key, verify before publication/execution, and retain revocation state. A signature establishes artifact origin/integrity, not safety or Outcome conformance.
+
+Before public launch, convert this map into scoped verification requirements with owners, evidence dates, deployment boundaries, and explicit pass/fail/not-applicable results.
+
+Official references: [OWASP ASVS](https://owasp.org/www-project-application-security-verification-standard/), [OWASP Top 10:2025](https://owasp.org/Top10/2025/), [OWASP SCVS](https://scvs.owasp.org/), [NIST SP 800-218 SSDF v1.1](https://csrc.nist.gov/pubs/sp/800/218/final), and [SLSA v1.2](https://slsa.dev/spec/v1.2/).
