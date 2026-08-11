@@ -45,6 +45,10 @@ import {
   SupabaseVerificationRunRepository,
   SupabaseStateCommitRepository,
   SupabaseCostRecordRepository,
+  SupabaseMediaStorageRepository,
+  SupabaseSemanticSnapshotRepository,
+  SupabaseImageEvidenceRepository,
+  SupabaseCandidateAssetRepository,
 } from "@/src/infrastructure/persistence/outcome/supabase-outcome-repositories";
 import {
   fromBenchmarkCaseRow,
@@ -460,6 +464,10 @@ export function createSupabaseRepositories(): RepositoryBundle {
     verificationRuns: new SupabaseVerificationRunRepository(client),
     stateCommits: new SupabaseStateCommitRepository(client),
     costRecords: new SupabaseCostRecordRepository(client),
+    mediaStorage: new SupabaseMediaStorageRepository(client),
+    semanticSnapshots: new SupabaseSemanticSnapshotRepository(client),
+    imageEvidence: new SupabaseImageEvidenceRepository(client),
+    candidateAssets: new SupabaseCandidateAssetRepository(client),
     storageMode: "supabase",
   };
 }

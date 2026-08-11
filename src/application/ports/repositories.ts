@@ -363,6 +363,96 @@ export interface CostRecordRepository {
   findByTransactionId(transactionId: string): Promise<CostRecordRecord[]>;
 }
 
+export type MediaStorageRecord = {
+  id: string;
+  storageKey: string;
+  mimeType: string;
+  width: number;
+  height: number;
+  byteSize: number;
+  sha256: string;
+  assetId: string;
+  createdAt: string;
+};
+
+export type CreateMediaStorageRecord = Omit<MediaStorageRecord, "id" | "createdAt">;
+
+export interface MediaStorageRepository {
+  create(input: CreateMediaStorageRecord): Promise<MediaStorageRecord>;
+  findByAssetId(assetId: string): Promise<MediaStorageRecord[]>;
+  findByStorageKey(storageKey: string): Promise<MediaStorageRecord | null>;
+}
+
+export type SemanticSnapshotRecord = {
+  id: string;
+  transactionId: string;
+  transactionSchemaVersion: string;
+  patchSchemaVersion: string;
+  executorAdapterVersion: string;
+  provider: string;
+  imageModelIdentifier: string;
+  verificationMethodologyVersion: string;
+  createdAt: string;
+};
+
+export type CreateSemanticSnapshotRecord = Omit<SemanticSnapshotRecord, "id" | "createdAt">;
+
+export interface SemanticSnapshotRepository {
+  create(input: CreateSemanticSnapshotRecord): Promise<SemanticSnapshotRecord>;
+  findByTransactionId(transactionId: string): Promise<SemanticSnapshotRecord | null>;
+}
+
+export type ImageEvidenceRecord = {
+  id: string;
+  evidenceReceiptId: string;
+  sourceHash: string;
+  candidateHash: string;
+  sourceWidth: number;
+  sourceHeight: number;
+  candidateWidth: number;
+  candidateHeight: number;
+  normalizedTotalDiff: number;
+  normalizedRoiDiff: number;
+  normalizedOutsideRoiDiff: number;
+  methodology: string;
+  createdAt: string;
+};
+
+export type CreateImageEvidenceRecord = Omit<ImageEvidenceRecord, "id" | "createdAt">;
+
+export interface ImageEvidenceRepository {
+  create(input: CreateImageEvidenceRecord): Promise<ImageEvidenceRecord>;
+  findByEvidenceReceiptId(evidenceReceiptId: string): Promise<ImageEvidenceRecord | null>;
+}
+
+export type CandidateAssetRecord = {
+  id: string;
+  transactionId: string;
+  executionRunId: string;
+  storageKey: string;
+  mimeType: string;
+  width: number;
+  height: number;
+  byteSize: number;
+  sha256: string;
+  roi: Record<string, number>;
+  instruction: string;
+  provider: string;
+  model: string;
+  costUsd: number | null;
+  committed: boolean;
+  createdAt: string;
+};
+
+export type CreateCandidateAssetRecord = Omit<CandidateAssetRecord, "id" | "createdAt">;
+
+export interface CandidateAssetRepository {
+  create(input: CreateCandidateAssetRecord): Promise<CandidateAssetRecord>;
+  findByTransactionId(transactionId: string): Promise<CandidateAssetRecord[]>;
+  findByExecutionRunId(executionRunId: string): Promise<CandidateAssetRecord | null>;
+  markCommitted(id: string): Promise<CandidateAssetRecord>;
+}
+
 export type RepositoryBundle = {
   intentRuns: IntentRunRepository;
   modelFailures: IntentModelFailureRepository;
@@ -381,5 +471,9 @@ export type RepositoryBundle = {
   verificationRuns: VerificationRunRepository;
   stateCommits: StateCommitRepository;
   costRecords: CostRecordRepository;
+  mediaStorage: MediaStorageRepository;
+  semanticSnapshots: SemanticSnapshotRepository;
+  imageEvidence: ImageEvidenceRepository;
+  candidateAssets: CandidateAssetRepository;
   storageMode: "supabase" | "memory";
 };

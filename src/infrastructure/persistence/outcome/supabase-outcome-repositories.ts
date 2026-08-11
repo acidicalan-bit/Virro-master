@@ -39,6 +39,18 @@ import type {
   CostRecordRepository,
   CostRecordRecord,
   CreateCostRecordRecord,
+  MediaStorageRepository,
+  MediaStorageRecord,
+  CreateMediaStorageRecord,
+  SemanticSnapshotRepository,
+  SemanticSnapshotRecord,
+  CreateSemanticSnapshotRecord,
+  ImageEvidenceRepository,
+  ImageEvidenceRecord,
+  CreateImageEvidenceRecord,
+  CandidateAssetRepository,
+  CandidateAssetRecord,
+  CreateCandidateAssetRecord,
 } from "@/src/application/ports/repositories";
 import type { TransactionStatus } from "@/src/domain/outcome";
 
@@ -327,5 +339,103 @@ export class SupabaseCostRecordRepository implements CostRecordRepository {
     const { data, error } = await this.client.from("cost_records").select("*").eq("transaction_id", transactionId);
     if (error || !data) throw new Error("No se pudieron leer los registros de costo.");
     return data.map((row) => ({ id: String(row.id), transactionId: String(row.transaction_id), executionRunId: row.execution_run_id ? String(row.execution_run_id) : null, amountUsd: Number(row.amount_usd), description: String(row.description), recordedAt: String(row.recorded_at) }));
+  }
+}
+
+export class SupabaseMediaStorageRepository implements MediaStorageRepository {
+  constructor(private readonly client: SupabaseClient) {}
+
+  async create(input: CreateMediaStorageRecord): Promise<MediaStorageRecord> {
+    const { data, error } = await this.client
+      .from("media_storage")
+      .insert({ storage_key: input.storageKey, mime_type: input.mimeType, width: input.width, height: input.height, byte_size: input.byteSize, sha256: input.sha256, asset_id: input.assetId })
+      .select("*")
+      .single();
+    if (error || !data) throw new Error("No se pudo crear el registro de almacenamiento.");
+    return { id: String(data.id), storageKey: String(data.storage_key), mimeType: String(data.mime_type), width: Number(data.width), height: Number(data.height), byteSize: Number(data.byte_size), sha256: String(data.sha256), assetId: String(data.asset_id), createdAt: String(data.created_at) };
+  }
+
+  async findByAssetId(assetId: string): Promise<MediaStorageRecord[]> {
+    const { data, error } = await this.client.from("media_storage").select("*").eq("asset_id", assetId);
+    if (error || !data) throw new Error("No se pudieron leer los registros de almacenamiento.");
+    return data.map((row) => ({ id: String(row.id), storageKey: String(row.storage_key), mimeType: String(row.mime_type), width: Number(row.width), height: Number(row.height), byteSize: Number(row.byte_size), sha256: String(row.sha256), assetId: String(row.asset_id), createdAt: String(row.created_at) }));
+  }
+
+  async findByStorageKey(storageKey: string): Promise<MediaStorageRecord | null> {
+    const { data, error } = await this.client.from("media_storage").select("*").eq("storage_key", storageKey).maybeSingle();
+    if (error) throw new Error("No se pudo leer el registro de almacenamiento.");
+    return data ? { id: String(data.id), storageKey: String(data.storage_key), mimeType: String(data.mime_type), width: Number(data.width), height: Number(data.height), byteSize: Number(data.byte_size), sha256: String(data.sha256), assetId: String(data.asset_id), createdAt: String(data.created_at) } : null;
+  }
+}
+
+export class SupabaseSemanticSnapshotRepository implements SemanticSnapshotRepository {
+  constructor(private readonly client: SupabaseClient) {}
+
+  async create(input: CreateSemanticSnapshotRecord): Promise<SemanticSnapshotRecord> {
+    const { data, error } = await this.client
+      .from("semantic_snapshots")
+      .insert({ transaction_id: input.transactionId, transaction_schema_version: input.transactionSchemaVersion, patch_schema_version: input.patchSchemaVersion, executor_adapter_version: input.executorAdapterVersion, provider: input.provider, image_model_identifier: input.imageModelIdentifier, verification_methodology_version: input.verificationMethodologyVersion })
+      .select("*")
+      .single();
+    if (error || !data) throw new Error("No se pudo crear el snapshot semantico.");
+    return { id: String(data.id), transactionId: String(data.transaction_id), transactionSchemaVersion: String(data.transaction_schema_version), patchSchemaVersion: String(data.patch_schema_version), executorAdapterVersion: String(data.executor_adapter_version), provider: String(data.provider), imageModelIdentifier: String(data.image_model_identifier), verificationMethodologyVersion: String(data.verification_methodology_version), createdAt: String(data.created_at) };
+  }
+
+  async findByTransactionId(transactionId: string): Promise<SemanticSnapshotRecord | null> {
+    const { data, error } = await this.client.from("semantic_snapshots").select("*").eq("transaction_id", transactionId).maybeSingle();
+    if (error) throw new Error("No se pudo leer el snapshot semantico.");
+    return data ? { id: String(data.id), transactionId: String(data.transaction_id), transactionSchemaVersion: String(data.transaction_schema_version), patchSchemaVersion: String(data.patch_schema_version), executorAdapterVersion: String(data.executor_adapter_version), provider: String(data.provider), imageModelIdentifier: String(data.image_model_identifier), verificationMethodologyVersion: String(data.verification_methodology_version), createdAt: String(data.created_at) } : null;
+  }
+}
+
+export class SupabaseImageEvidenceRepository implements ImageEvidenceRepository {
+  constructor(private readonly client: SupabaseClient) {}
+
+  async create(input: CreateImageEvidenceRecord): Promise<ImageEvidenceRecord> {
+    const { data, error } = await this.client
+      .from("image_evidence")
+      .insert({ evidence_receipt_id: input.evidenceReceiptId, source_hash: input.sourceHash, candidate_hash: input.candidateHash, source_width: input.sourceWidth, source_height: input.sourceHeight, candidate_width: input.candidateWidth, candidate_height: input.candidateHeight, normalized_total_diff: input.normalizedTotalDiff, normalized_roi_diff: input.normalizedRoiDiff, normalized_outside_roi_diff: input.normalizedOutsideRoiDiff, methodology: input.methodology })
+      .select("*")
+      .single();
+    if (error || !data) throw new Error("No se pudo crear la evidencia de imagen.");
+    return { id: String(data.id), evidenceReceiptId: String(data.evidence_receipt_id), sourceHash: String(data.source_hash), candidateHash: String(data.candidate_hash), sourceWidth: Number(data.source_width), sourceHeight: Number(data.source_height), candidateWidth: Number(data.candidate_width), candidateHeight: Number(data.candidate_height), normalizedTotalDiff: Number(data.normalized_total_diff), normalizedRoiDiff: Number(data.normalized_roi_diff), normalizedOutsideRoiDiff: Number(data.normalized_outside_roi_diff), methodology: String(data.methodology), createdAt: String(data.created_at) };
+  }
+
+  async findByEvidenceReceiptId(evidenceReceiptId: string): Promise<ImageEvidenceRecord | null> {
+    const { data, error } = await this.client.from("image_evidence").select("*").eq("evidence_receipt_id", evidenceReceiptId).maybeSingle();
+    if (error) throw new Error("No se pudo leer la evidencia de imagen.");
+    return data ? { id: String(data.id), evidenceReceiptId: String(data.evidence_receipt_id), sourceHash: String(data.source_hash), candidateHash: String(data.candidate_hash), sourceWidth: Number(data.source_width), sourceHeight: Number(data.source_height), candidateWidth: Number(data.candidate_width), candidateHeight: Number(data.candidate_height), normalizedTotalDiff: Number(data.normalized_total_diff), normalizedRoiDiff: Number(data.normalized_roi_diff), normalizedOutsideRoiDiff: Number(data.normalized_outside_roi_diff), methodology: String(data.methodology), createdAt: String(data.created_at) } : null;
+  }
+}
+
+export class SupabaseCandidateAssetRepository implements CandidateAssetRepository {
+  constructor(private readonly client: SupabaseClient) {}
+
+  async create(input: CreateCandidateAssetRecord): Promise<CandidateAssetRecord> {
+    const { data, error } = await this.client
+      .from("candidate_assets")
+      .insert({ transaction_id: input.transactionId, execution_run_id: input.executionRunId, storage_key: input.storageKey, mime_type: input.mimeType, width: input.width, height: input.height, byte_size: input.byteSize, sha256: input.sha256, roi: input.roi, instruction: input.instruction, provider: input.provider, model: input.model, cost_usd: input.costUsd, committed: input.committed })
+      .select("*")
+      .single();
+    if (error || !data) throw new Error("No se pudo crear el asset candidato.");
+    return { id: String(data.id), transactionId: String(data.transaction_id), executionRunId: String(data.execution_run_id), storageKey: String(data.storage_key), mimeType: String(data.mime_type), width: Number(data.width), height: Number(data.height), byteSize: Number(data.byte_size), sha256: String(data.sha256), roi: data.roi as Record<string, number>, instruction: String(data.instruction), provider: String(data.provider), model: String(data.model), costUsd: data.cost_usd ? Number(data.cost_usd) : null, committed: Boolean(data.committed), createdAt: String(data.created_at) };
+  }
+
+  async findByTransactionId(transactionId: string): Promise<CandidateAssetRecord[]> {
+    const { data, error } = await this.client.from("candidate_assets").select("*").eq("transaction_id", transactionId);
+    if (error || !data) throw new Error("No se pudieron leer los assets candidatos.");
+    return data.map((row) => ({ id: String(row.id), transactionId: String(row.transaction_id), executionRunId: String(row.execution_run_id), storageKey: String(row.storage_key), mimeType: String(row.mime_type), width: Number(row.width), height: Number(row.height), byteSize: Number(row.byte_size), sha256: String(row.sha256), roi: row.roi as Record<string, number>, instruction: String(row.instruction), provider: String(row.provider), model: String(row.model), costUsd: row.cost_usd ? Number(row.cost_usd) : null, committed: Boolean(row.committed), createdAt: String(row.created_at) }));
+  }
+
+  async findByExecutionRunId(executionRunId: string): Promise<CandidateAssetRecord | null> {
+    const { data, error } = await this.client.from("candidate_assets").select("*").eq("execution_run_id", executionRunId).maybeSingle();
+    if (error) throw new Error("No se pudo leer el asset candidato.");
+    return data ? { id: String(data.id), transactionId: String(data.transaction_id), executionRunId: String(data.execution_run_id), storageKey: String(data.storage_key), mimeType: String(data.mime_type), width: Number(data.width), height: Number(data.height), byteSize: Number(data.byte_size), sha256: String(data.sha256), roi: data.roi as Record<string, number>, instruction: String(data.instruction), provider: String(data.provider), model: String(data.model), costUsd: data.cost_usd ? Number(data.cost_usd) : null, committed: Boolean(data.committed), createdAt: String(data.created_at) } : null;
+  }
+
+  async markCommitted(id: string): Promise<CandidateAssetRecord> {
+    const { data, error } = await this.client.from("candidate_assets").update({ committed: true }).eq("id", id).select("*").single();
+    if (error || !data) throw new Error("No se pudo marcar el asset candidato como commitido.");
+    return { id: String(data.id), transactionId: String(data.transaction_id), executionRunId: String(data.execution_run_id), storageKey: String(data.storage_key), mimeType: String(data.mime_type), width: Number(data.width), height: Number(data.height), byteSize: Number(data.byte_size), sha256: String(data.sha256), roi: data.roi as Record<string, number>, instruction: String(data.instruction), provider: String(data.provider), model: String(data.model), costUsd: data.cost_usd ? Number(data.cost_usd) : null, committed: Boolean(data.committed), createdAt: String(data.created_at) };
   }
 }

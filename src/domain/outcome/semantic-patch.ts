@@ -5,6 +5,7 @@ export const SemanticPatchOperationSchema = z.enum([
   "DELETE_ENTITY",
   "TRANSFORM_ENTITY",
   "ADJUST_ATTRIBUTE",
+  "EDIT_REGION",
 ]);
 
 export const SemanticPatchSchema = z.object({

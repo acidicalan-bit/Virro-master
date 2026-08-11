@@ -35,6 +35,18 @@ import type {
   CostRecordRecord,
   CreateCostRecordRecord,
   CostRecordRepository,
+  MediaStorageRecord,
+  CreateMediaStorageRecord,
+  MediaStorageRepository,
+  SemanticSnapshotRecord,
+  CreateSemanticSnapshotRecord,
+  SemanticSnapshotRepository,
+  ImageEvidenceRecord,
+  CreateImageEvidenceRecord,
+  ImageEvidenceRepository,
+  CandidateAssetRecord,
+  CreateCandidateAssetRecord,
+  CandidateAssetRepository,
 } from "@/src/application/ports/repositories";
 import type { TransactionStatus } from "@/src/domain/outcome";
 
@@ -284,6 +296,10 @@ export function getInMemoryOutcomeRepositories(): Pick<
   | "verificationRuns"
   | "stateCommits"
   | "costRecords"
+  | "mediaStorage"
+  | "semanticSnapshots"
+  | "imageEvidence"
+  | "candidateAssets"
 > {
   return {
     projects: new InMemoryProjectRepository(),
@@ -298,5 +314,80 @@ export function getInMemoryOutcomeRepositories(): Pick<
     verificationRuns: new InMemoryVerificationRunRepository(),
     stateCommits: new InMemoryStateCommitRepository(),
     costRecords: new InMemoryCostRecordRepository(),
+    mediaStorage: new InMemoryMediaStorageRepository(),
+    semanticSnapshots: new InMemorySemanticSnapshotRepository(),
+    imageEvidence: new InMemoryImageEvidenceRepository(),
+    candidateAssets: new InMemoryCandidateAssetRepository(),
   };
+}
+
+export class InMemoryMediaStorageRepository implements MediaStorageRepository {
+  readonly records: MediaStorageRecord[] = [];
+
+  async create(input: CreateMediaStorageRecord): Promise<MediaStorageRecord> {
+    const record: MediaStorageRecord = { ...input, id: crypto.randomUUID(), createdAt: new Date().toISOString() };
+    this.records.push(record);
+    return record;
+  }
+
+  async findByAssetId(assetId: string): Promise<MediaStorageRecord[]> {
+    return this.records.filter((r) => r.assetId === assetId);
+  }
+
+  async findByStorageKey(storageKey: string): Promise<MediaStorageRecord | null> {
+    return this.records.find((r) => r.storageKey === storageKey) ?? null;
+  }
+}
+
+export class InMemorySemanticSnapshotRepository implements SemanticSnapshotRepository {
+  readonly records: SemanticSnapshotRecord[] = [];
+
+  async create(input: CreateSemanticSnapshotRecord): Promise<SemanticSnapshotRecord> {
+    const record: SemanticSnapshotRecord = { ...input, id: crypto.randomUUID(), createdAt: new Date().toISOString() };
+    this.records.push(record);
+    return record;
+  }
+
+  async findByTransactionId(transactionId: string): Promise<SemanticSnapshotRecord | null> {
+    return this.records.find((r) => r.transactionId === transactionId) ?? null;
+  }
+}
+
+export class InMemoryImageEvidenceRepository implements ImageEvidenceRepository {
+  readonly records: ImageEvidenceRecord[] = [];
+
+  async create(input: CreateImageEvidenceRecord): Promise<ImageEvidenceRecord> {
+    const record: ImageEvidenceRecord = { ...input, id: crypto.randomUUID(), createdAt: new Date().toISOString() };
+    this.records.push(record);
+    return record;
+  }
+
+  async findByEvidenceReceiptId(evidenceReceiptId: string): Promise<ImageEvidenceRecord | null> {
+    return this.records.find((r) => r.evidenceReceiptId === evidenceReceiptId) ?? null;
+  }
+}
+
+export class InMemoryCandidateAssetRepository implements CandidateAssetRepository {
+  readonly records: CandidateAssetRecord[] = [];
+
+  async create(input: CreateCandidateAssetRecord): Promise<CandidateAssetRecord> {
+    const record: CandidateAssetRecord = { ...input, id: crypto.randomUUID(), createdAt: new Date().toISOString() };
+    this.records.push(record);
+    return record;
+  }
+
+  async findByTransactionId(transactionId: string): Promise<CandidateAssetRecord[]> {
+    return this.records.filter((r) => r.transactionId === transactionId);
+  }
+
+  async findByExecutionRunId(executionRunId: string): Promise<CandidateAssetRecord | null> {
+    return this.records.find((r) => r.executionRunId === executionRunId) ?? null;
+  }
+
+  async markCommitted(id: string): Promise<CandidateAssetRecord> {
+    const record = this.records.find((r) => r.id === id);
+    if (!record) throw new Error("Candidate asset not found.");
+    record.committed = true;
+    return record;
+  }
 }

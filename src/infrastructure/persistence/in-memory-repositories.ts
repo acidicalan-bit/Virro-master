@@ -288,6 +288,10 @@ const memoryBundle: RepositoryBundle = {
   verificationRuns: outcomeRepos.verificationRuns,
   stateCommits: outcomeRepos.stateCommits,
   costRecords: outcomeRepos.costRecords,
+  mediaStorage: outcomeRepos.mediaStorage,
+  semanticSnapshots: outcomeRepos.semanticSnapshots,
+  imageEvidence: outcomeRepos.imageEvidence,
+  candidateAssets: outcomeRepos.candidateAssets,
   storageMode: "memory",
 };
 
