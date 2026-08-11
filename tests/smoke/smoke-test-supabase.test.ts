@@ -1,14 +1,18 @@
 import { describe, it, expect } from "vitest";
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import { createHash } from "node:crypto";
 import { decodePngToPixels } from "@/src/infrastructure/evidence/png-decoder";
+import { encodePixelsToPng } from "@/src/infrastructure/evidence/png-encoder";
 import { calculateDiffMetrics, DIFF_METHODOLOGY_VERSION, CHANGED_PIXEL_THRESHOLD } from "@/src/infrastructure/evidence/image-diff-calculator";
 
 describe("BUILD 003.2 pixel-level diff metrics", () => {
   it("decodes PNGs and computes all 6 diff metrics correctly", () => {
-    const sourceBuffer = readFileSync(resolve("smoke-source.png"));
-    const candidateBuffer = readFileSync(resolve("smoke-candidate.png"));
+    // Keep the smoke fixture hermetic: clean checkouts must not need local provider outputs.
+    const sourceGrid = createSmokeGrid();
+    const candidateGrid = createSmokeGrid();
+    candidateGrid.data[0] = 255;
+    candidateGrid.data[1] = 0;
+    const sourceBuffer = encodePixelsToPng(sourceGrid);
+    const candidateBuffer = encodePixelsToPng(candidateGrid);
 
     const sourcePixels = decodePngToPixels(sourceBuffer);
     const candidatePixels = decodePngToPixels(candidateBuffer);
@@ -100,3 +104,14 @@ describe("BUILD 003.2 pixel-level diff metrics", () => {
     expect(metrics.changedPixelRatioOutside).toBe(0);
   });
 });
+
+function createSmokeGrid() {
+  const data = new Uint8ClampedArray(4 * 4 * 4);
+  for (let offset = 0; offset < data.length; offset += 4) {
+    data[offset] = 40;
+    data[offset + 1] = 80;
+    data[offset + 2] = 120;
+    data[offset + 3] = 255;
+  }
+  return { width: 4, height: 4, data };
+}
