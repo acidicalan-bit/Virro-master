@@ -33,6 +33,20 @@ import {
   type BlindEvaluationSetImport,
 } from "@/src/domain/blind-evaluation";
 import {
+  SupabaseProjectRepository,
+  SupabaseAssetRepository,
+  SupabaseAssetVersionRepository,
+  SupabaseOutcomeTransactionRepository,
+  SupabasePartialIntentRepository,
+  SupabaseSemanticPatchRepository,
+  SupabaseMutationLeaseRepository,
+  SupabaseExecutionRunRepository,
+  SupabaseEvidenceReceiptRepository,
+  SupabaseVerificationRunRepository,
+  SupabaseStateCommitRepository,
+  SupabaseCostRecordRepository,
+} from "@/src/infrastructure/persistence/outcome/supabase-outcome-repositories";
+import {
   fromBenchmarkCaseRow,
   fromIntentRunRow,
   toIntentRunInsert,
@@ -434,6 +448,18 @@ export function createSupabaseRepositories(): RepositoryBundle {
     feedback: new SupabaseIntentFeedbackRepository(client),
     benchmarks: new SupabaseBenchmarkRepository(client),
     blindEvaluations: new SupabaseBlindEvaluationRepository(client),
+    projects: new SupabaseProjectRepository(client),
+    assets: new SupabaseAssetRepository(client),
+    assetVersions: new SupabaseAssetVersionRepository(client),
+    outcomeTransactions: new SupabaseOutcomeTransactionRepository(client),
+    partialIntents: new SupabasePartialIntentRepository(client),
+    semanticPatches: new SupabaseSemanticPatchRepository(client),
+    mutationLeases: new SupabaseMutationLeaseRepository(client),
+    executionRuns: new SupabaseExecutionRunRepository(client),
+    evidenceReceipts: new SupabaseEvidenceReceiptRepository(client),
+    verificationRuns: new SupabaseVerificationRunRepository(client),
+    stateCommits: new SupabaseStateCommitRepository(client),
+    costRecords: new SupabaseCostRecordRepository(client),
     storageMode: "supabase",
   };
 }

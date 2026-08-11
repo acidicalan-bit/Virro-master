@@ -7,6 +7,20 @@ import type {
   BlindPreference,
   BlindRatings,
 } from "@/src/domain/blind-evaluation";
+import type {
+  Project,
+  Asset,
+  AssetVersion,
+  OutcomeTransaction,
+  PartialIntent,
+  SemanticPatch,
+  MutationLease,
+  ExecutionRun,
+  EvidenceReceipt,
+  VerificationRun,
+  StateCommit,
+  CostRecord,
+} from "@/src/domain/outcome";
 
 export type IntentRunRecord = {
   id: string;
@@ -226,11 +240,146 @@ export interface BlindEvaluationRepository {
   createJudgment(input: CreateBlindEvaluationJudgment): Promise<BlindEvaluationJudgmentRecord>;
 }
 
+export type ProjectRecord = Project;
+
+export type CreateProjectRecord = Omit<ProjectRecord, "id" | "createdAt" | "updatedAt">;
+
+export interface ProjectRepository {
+  create(input: CreateProjectRecord): Promise<ProjectRecord>;
+  findById(id: string): Promise<ProjectRecord | null>;
+  list(): Promise<ProjectRecord[]>;
+  update(id: string, input: Partial<CreateProjectRecord>): Promise<ProjectRecord>;
+}
+
+export type AssetRecord = Asset;
+
+export type CreateAssetRecord = Omit<AssetRecord, "id" | "createdAt" | "updatedAt" | "currentVersionId">;
+
+export interface AssetRepository {
+  create(input: CreateAssetRecord): Promise<AssetRecord>;
+  findById(id: string): Promise<AssetRecord | null>;
+  findByProjectId(projectId: string): Promise<AssetRecord[]>;
+  update(id: string, input: Partial<CreateAssetRecord> & { currentVersionId?: string | null }): Promise<AssetRecord>;
+}
+
+export type AssetVersionRecord = AssetVersion;
+
+export type CreateAssetVersionRecord = Omit<AssetVersionRecord, "id" | "createdAt">;
+
+export interface AssetVersionRepository {
+  create(input: CreateAssetVersionRecord): Promise<AssetVersionRecord>;
+  findById(id: string): Promise<AssetVersionRecord | null>;
+  findByAssetId(assetId: string): Promise<AssetVersionRecord[]>;
+  findLatestByAssetId(assetId: string): Promise<AssetVersionRecord | null>;
+}
+
+export type OutcomeTransactionRecord = OutcomeTransaction;
+
+export type CreateOutcomeTransactionRecord = Omit<
+  OutcomeTransactionRecord,
+  "id" | "createdAt" | "updatedAt" | "status" | "completedAt" | "abortReason"
+>;
+
+export interface OutcomeTransactionRepository {
+  create(input: CreateOutcomeTransactionRecord): Promise<OutcomeTransactionRecord>;
+  findById(id: string): Promise<OutcomeTransactionRecord | null>;
+  findByAssetId(assetId: string): Promise<OutcomeTransactionRecord[]>;
+  updateStatus(
+    id: string,
+    status: OutcomeTransactionRecord["status"],
+    extra?: { abortReason?: string | null; completedAt?: string | null },
+  ): Promise<OutcomeTransactionRecord>;
+}
+
+export type PartialIntentRecord = PartialIntent;
+
+export type CreatePartialIntentRecord = Omit<PartialIntentRecord, "id" | "createdAt">;
+
+export interface PartialIntentRepository {
+  create(input: CreatePartialIntentRecord): Promise<PartialIntentRecord>;
+  findByTransactionId(transactionId: string): Promise<PartialIntentRecord[]>;
+}
+
+export type SemanticPatchRecord = SemanticPatch;
+
+export type CreateSemanticPatchRecord = Omit<SemanticPatchRecord, "id" | "createdAt">;
+
+export interface SemanticPatchRepository {
+  create(input: CreateSemanticPatchRecord): Promise<SemanticPatchRecord>;
+  findByTransactionId(transactionId: string): Promise<SemanticPatchRecord[]>;
+}
+
+export type MutationLeaseRecord = MutationLease;
+
+export type CreateMutationLeaseRecord = Omit<MutationLeaseRecord, "id" | "createdAt">;
+
+export interface MutationLeaseRepository {
+  create(input: CreateMutationLeaseRecord): Promise<MutationLeaseRecord>;
+  findByTransactionId(transactionId: string): Promise<MutationLeaseRecord[]>;
+}
+
+export type ExecutionRunRecord = ExecutionRun;
+
+export type CreateExecutionRunRecord = Omit<ExecutionRunRecord, "id"> & { id?: string };
+
+export interface ExecutionRunRepository {
+  create(input: CreateExecutionRunRecord): Promise<ExecutionRunRecord>;
+  findByTransactionId(transactionId: string): Promise<ExecutionRunRecord[]>;
+}
+
+export type EvidenceReceiptRecord = EvidenceReceipt;
+
+export type CreateEvidenceReceiptRecord = Omit<EvidenceReceiptRecord, "id">;
+
+export interface EvidenceReceiptRepository {
+  create(input: CreateEvidenceReceiptRecord): Promise<EvidenceReceiptRecord>;
+  findByTransactionId(transactionId: string): Promise<EvidenceReceiptRecord[]>;
+}
+
+export type VerificationRunRecord = VerificationRun;
+
+export type CreateVerificationRunRecord = Omit<VerificationRunRecord, "id" | "verifiedAt">;
+
+export interface VerificationRunRepository {
+  create(input: CreateVerificationRunRecord): Promise<VerificationRunRecord>;
+  findByTransactionId(transactionId: string): Promise<VerificationRunRecord[]>;
+}
+
+export type StateCommitRecord = StateCommit;
+
+export type CreateStateCommitRecord = Omit<StateCommitRecord, "id" | "committedAt">;
+
+export interface StateCommitRepository {
+  create(input: CreateStateCommitRecord): Promise<StateCommitRecord>;
+  findByTransactionId(transactionId: string): Promise<StateCommitRecord | null>;
+}
+
+export type CostRecordRecord = CostRecord;
+
+export type CreateCostRecordRecord = Omit<CostRecordRecord, "id" | "recordedAt">;
+
+export interface CostRecordRepository {
+  create(input: CreateCostRecordRecord): Promise<CostRecordRecord>;
+  findByTransactionId(transactionId: string): Promise<CostRecordRecord[]>;
+}
+
 export type RepositoryBundle = {
   intentRuns: IntentRunRepository;
   modelFailures: IntentModelFailureRepository;
   feedback: IntentFeedbackRepository;
   benchmarks: BenchmarkRepository;
   blindEvaluations: BlindEvaluationRepository;
+  projects: ProjectRepository;
+  assets: AssetRepository;
+  assetVersions: AssetVersionRepository;
+  outcomeTransactions: OutcomeTransactionRepository;
+  partialIntents: PartialIntentRepository;
+  semanticPatches: SemanticPatchRepository;
+  mutationLeases: MutationLeaseRepository;
+  executionRuns: ExecutionRunRepository;
+  evidenceReceipts: EvidenceReceiptRepository;
+  verificationRuns: VerificationRunRepository;
+  stateCommits: StateCommitRepository;
+  costRecords: CostRecordRepository;
   storageMode: "supabase" | "memory";
 };

@@ -27,6 +27,7 @@ import type {
   RepositoryBundle,
 } from "@/src/application/ports/repositories";
 import type { BlindEvaluationSetImport } from "@/src/domain/blind-evaluation";
+import { getInMemoryOutcomeRepositories } from "@/src/infrastructure/persistence/outcome/in-memory-outcome-repositories";
 
 export class InMemoryIntentRunRepository implements IntentRunRepository {
   readonly records: IntentRunRecord[] = [];
@@ -267,12 +268,26 @@ export class InMemoryBlindEvaluationRepository implements BlindEvaluationReposit
   }
 }
 
+const outcomeRepos = getInMemoryOutcomeRepositories();
+
 const memoryBundle: RepositoryBundle = {
   intentRuns: new InMemoryIntentRunRepository(),
   modelFailures: new InMemoryIntentModelFailureRepository(),
   feedback: new InMemoryIntentFeedbackRepository(),
   benchmarks: new InMemoryBenchmarkRepository(),
   blindEvaluations: new InMemoryBlindEvaluationRepository(),
+  projects: outcomeRepos.projects,
+  assets: outcomeRepos.assets,
+  assetVersions: outcomeRepos.assetVersions,
+  outcomeTransactions: outcomeRepos.outcomeTransactions,
+  partialIntents: outcomeRepos.partialIntents,
+  semanticPatches: outcomeRepos.semanticPatches,
+  mutationLeases: outcomeRepos.mutationLeases,
+  executionRuns: outcomeRepos.executionRuns,
+  evidenceReceipts: outcomeRepos.evidenceReceipts,
+  verificationRuns: outcomeRepos.verificationRuns,
+  stateCommits: outcomeRepos.stateCommits,
+  costRecords: outcomeRepos.costRecords,
   storageMode: "memory",
 };
 
