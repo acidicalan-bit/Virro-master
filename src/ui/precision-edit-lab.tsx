@@ -1,25 +1,22 @@
 "use client";
 
-import { useState, useEffect, useRef, type FormEvent } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 
 type Project = { id: string; name: string };
 type Asset = { id: string; projectId: string; name: string; currentVersionId: string | null };
-type Transaction = { id: string; status: string; rawRequest: string; assetId: string; baseVersionId: string };
 type Version = { id: string; versionNumber: number; state: Record<string, unknown>; parentVersionId: string | null };
 
 export function PrecisionEditLab() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [assets, setAssets] = useState<Asset[]>([]);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [selectedProject, setSelectedProject] = useState("");
   const [selectedAsset, setSelectedAsset] = useState("");
-  const [selectedTx, setSelectedTx] = useState("");
+  const [selectedTx] = useState("");
   const [versions, setVersions] = useState<Version[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   const [projectName, setProjectName] = useState("");
   const [assetName, setAssetName] = useState("");
-  const [rawRequest, setRawRequest] = useState("Quita el vaso.");
   const [instruction, setInstruction] = useState("Quita el vaso.");
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -44,25 +41,7 @@ export function PrecisionEditLab() {
     }
   }
 
-  async function refresh() {
-    const res = await fetch("/api/precision-edit");
-    const data = await res.json();
-    setProjects(data.projects || []);
-    setAssets(data.assets || []);
-    setTransactions(data.transactions || []);
-  }
-
-  useEffect(() => { refresh(); }, []);
-
-  function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const img = new Image();
-    img.onload = () => { setImage(img); drawCanvas(); };
-    img.src = URL.createObjectURL(file);
-  }
-
-  function drawCanvas() {
+  const drawCanvas = useCallback(() => {
     const canvas = canvasRef.current;
     const img = image;
     if (!canvas || !img) return;
@@ -74,9 +53,28 @@ export function PrecisionEditLab() {
     ctx.strokeStyle = "red";
     ctx.lineWidth = 3;
     ctx.strokeRect(roi.x * img.width, roi.y * img.height, roi.width * img.width, roi.height * img.height);
-  }
+  }, [image, roi]);
 
-  useEffect(() => { drawCanvas(); }, [image, roi]);
+  useEffect(() => {
+    fetch("/api/precision-edit")
+      .then((r) => r.json())
+      .then((data) => {
+        setProjects(data.projects || []);
+        setAssets(data.assets || []);
+        setVersions(data.versions || []);
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => { drawCanvas(); }, [drawCanvas]);
+
+  function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const img = new Image();
+    img.onload = () => { setImage(img); };
+    img.src = URL.createObjectURL(file);
+  }
 
   function handleMouseDown(e: React.MouseEvent<HTMLCanvasElement>) {
     if (!image) return;
@@ -97,12 +95,6 @@ export function PrecisionEditLab() {
 
   function handleMouseUp() { setIsDrawing(false); }
 
-  async function handleUploadSource(e: FormEvent) {
-    e.preventDefault();
-    if (!image) { setError("Select an image first"); return;
-	 }
-  }
-
   return (
     <div style={{ padding: "20px", fontFamily: "monospace", maxWidth: "1200px", margin: "0 auto" }}>
       <h1>Precision Edit Lab</h1>
@@ -112,7 +104,7 @@ export function PrecisionEditLab() {
         <div>
           <h2>1. Project & Asset</h2>
           <input value={projectName} onChange={(e) => setProjectName(e.target.value)} placeholder="Project name" style={{ width: "100%", padding: "8px", marginBottom: "8px" }} />
-          <button onClick={async () => { const d = await api("createProject", { name: projectName }); if (d) { setSelectedProject(d.project.id); setProjectName(""); await refresh(); } }} style={{ padding: "8px 16px" }}>Create Project</button>
+          <button onClick={async () => { const d = await api("createProject", { name: projectName }); if (d) { setSelectedProject(d.project.id); setProjectName(""); } }} style={{ padding: "8px 16px" }}>Create Project</button>
           <select value={selectedProject} onChange={(e) => setSelectedProject(e.target.value)} style={{ width: "100%", padding: "8px", marginTop: "8px" }}>
             <option value="">Select project</option>
             {projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
@@ -121,7 +113,7 @@ export function PrecisionEditLab() {
           <h2>2. Upload Image</h2>
           <input type="file" accept="image/*" onChange={handleImageUpload} />
           <input value={assetName} onChange={(e) => setAssetName(e.target.value)} placeholder="Asset name" style={{ width: "100%", padding: "8px", marginTop: "8px" }} />
-          <button onClick={async () => { if (!image) return; const d = await api("createAsset", { projectId: selectedProject, name: assetName }); if (d) { setSelectedAsset(d.asset.id); setAssetName(""); await refresh(); } }} style={{ padding: "8px 16px", marginTop: "8px" }}>Upload</button>
+          <button onClick={async () => { if (!image) return; const d = await api("createAsset", { projectId: selectedProject, name: assetName }); if (d) { setSelectedAsset(d.asset.id); setAssetName(""); } }} style={{ padding: "8px 16px", marginTop: "8px" }}>Upload</button>
         </div>
 
         <div>
@@ -135,11 +127,11 @@ export function PrecisionEditLab() {
         <h2>4. Edit Instruction</h2>
         <input value={instruction} onChange={(e) => setInstruction(e.target.value)} placeholder="Edit instruction" style={{ width: "100%", padding: "8px" }} />
         <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
-          <button onClick={async () => { const asset = assets.find((a) => a.id === selectedAsset); if (!asset?.currentVersionId) return; await api("createTransaction", { projectId: selectedProject, assetId: selectedAsset, baseVersionId: asset.currentVersionId, rawRequest: instruction }); await refresh(); }}>Create Tx</button>
-          <button onClick={async () => { if (!selectedTx) return; await api("executeTransaction", { transactionId: selectedTx, instruction, roi }); await refresh(); }}>Execute</button>
-          <button onClick={async () => { if (!selectedTx) return; await api("verifyTransaction", { transactionId: selectedTx }); await refresh(); }}>Verify</button>
-          <button onClick={async () => { if (!selectedTx) return; await api("commitTransaction", { transactionId: selectedTx }); await refresh(); }}>Commit</button>
-          <button onClick={async () => { if (!selectedTx) return; await api("rejectTransaction", { transactionId: selectedTx }); await refresh(); }}>Reject</button>
+          <button onClick={async () => { const asset = assets.find((a) => a.id === selectedAsset); if (!asset?.currentVersionId) return; await api("createTransaction", { projectId: selectedProject, assetId: selectedAsset, baseVersionId: asset.currentVersionId, rawRequest: instruction }); }}>Create Tx</button>
+          <button onClick={async () => { if (!selectedTx) return; await api("executeTransaction", { transactionId: selectedTx, instruction, roi }); }}>Execute</button>
+          <button onClick={async () => { if (!selectedTx) return; await api("verifyTransaction", { transactionId: selectedTx }); }}>Verify</button>
+          <button onClick={async () => { if (!selectedTx) return; await api("commitTransaction", { transactionId: selectedTx }); }}>Commit</button>
+          <button onClick={async () => { if (!selectedTx) return; await api("rejectTransaction", { transactionId: selectedTx }); }}>Reject</button>
         </div>
       </div>
 

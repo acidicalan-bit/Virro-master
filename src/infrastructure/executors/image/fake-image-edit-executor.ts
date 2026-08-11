@@ -6,10 +6,6 @@ import type {
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createHash } from "node:crypto";
-import { createReadStream } from "node:fs";
-import { mkdtempSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 
 export class FakeImageEditExecutor implements ImageEditExecutor {
   readonly name = "fake-image-edit";
@@ -29,7 +25,7 @@ export class FakeImageEditExecutor implements ImageEditExecutor {
     }
 
     const sourceBuffer = Buffer.from(await sourceData.arrayBuffer());
-    const candidateBuffer = await this.simulateEdit(sourceBuffer, context);
+    const candidateBuffer = await this.simulateEdit(sourceBuffer);
 
     const candidateKey = `candidates/${context.transactionId}/${crypto.randomUUID()}.png`;
     const { error: uploadError } = await this.storage.storage
@@ -61,7 +57,7 @@ export class FakeImageEditExecutor implements ImageEditExecutor {
     };
   }
 
-  private async simulateEdit(sourceBuffer: Buffer, _context: ImageEditContext): Promise<Buffer> {
+  private async simulateEdit(sourceBuffer: Buffer): Promise<Buffer> {
     return sourceBuffer;
   }
 }

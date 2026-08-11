@@ -31,7 +31,6 @@ export class OpenAIImageEditExecutor implements ImageEditExecutor {
       throw new Error(`Failed to fetch source image from ${context.sourceStorageKey}: ${sourceResponse.status}`);
     }
     const sourceBuffer = Buffer.from(await sourceResponse.arrayBuffer());
-    const sourceBase64 = sourceBuffer.toString("base64");
 
     const prompt = this.buildPrompt(context);
 
