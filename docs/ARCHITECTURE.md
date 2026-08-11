@@ -1,6 +1,6 @@
-# Arquitectura — Build 001.1
+# Arquitectura — monolito modular actual
 
-Intent Lab es un monolito modular en Next.js App Router.
+El repositorio conserva Intent Lab Build 001.1 como flujo histórico y ejecutable dentro de un monolito modular en Next.js App Router. El alcance actual también incluye el Outcome Transaction Kernel, Precision Edit, Preservation & Verification y la fundación Spec-Anchored. `PROJECT_SPEC.md` es la autoridad transversal; los documentos de cada Build siguen siendo evidencia de su versión congelada.
 
 ```text
 UI / Route Handlers
@@ -34,6 +34,22 @@ Adapters (OpenAI Responses, baseline heurístico, Supabase, memoria)
 7. El feedback se guarda por medio de `IntentFeedbackRepository`.
 
 OpenAI y el baseline implementan el mismo `IntentModel`. La instrucción OpenAI vive en un módulo versionado independiente y el schema estructurado se deriva directamente del contrato Zod del dominio.
+
+## Arquitectura canónica objetivo
+
+```text
+Outcome SKU → Outcome Blueprint → Spec Compiler → Task Spec
+            → Spec Lenses → Governed Runtime → Evidence
+            → Spec Gate → Commit/Delivery
+```
+
+La única prueba estrecha de estos primitives continúa siendo Precision Edit. Blueprint, Task Spec, lenses y Same-Spec Gate son contratos/demostraciones determinísticas en memoria; todavía no reemplazan el servicio productivo ni tienen persistencia Supabase propia.
+
+La capa Marketplace es provider-neutral y no ejecuta código de sellers. Los contratos mínimos para categoría, buyer audience, Project de planeación, Canon, relaciones y superficies cliente reducen costo de migración futura sin crear marketplace, recommendations, graph database, pagos o BUILD 006.
+
+## Web y Mobile
+
+Mobile es una superficie de producto first-class, no una autorización de app nativa. El objetivo M0 es web responsive/mobile-first sobre los mismos contratos y estado server-side. El cliente solicita configuración, revisión y delivery mediante identificadores versionados e idempotentes; nunca decide pago, verificación, evidencia, tenant o commit canónico.
 
 ## Persistencia y RLS
 

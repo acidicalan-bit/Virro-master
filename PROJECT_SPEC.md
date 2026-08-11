@@ -1,6 +1,6 @@
-# Digital Outcomes / Outcome Execution Runtime — Project Master
+# Marketplace Digital Universal / Universal Digital Marketplace — Project Master
 
-**PROJECT SPEC VERSION:** 1.1.0
+**PROJECT SPEC VERSION:** 1.2.0
 
 **Date:** 2026-08-11
 
@@ -41,9 +41,11 @@ Every future Build contract must include a `SPEC DELTA` with `ADDS`, `CHANGES`, 
 
 ## 01. Project identity
 
-Digital Outcomes is a product thesis and execution architecture for turning human goals into verifiable, stateful outcomes. The current repository is an internal modular-monolith laboratory covering Intent Lab, the Outcome Transaction Kernel, Precision Edit, Preservation & Verification, and human evaluation.
+The Universal Digital Marketplace is a product thesis and execution architecture for turning human goals into finished, verifiable, stateful digital Outcomes. The current repository is an internal modular-monolith laboratory covering Intent Lab, the Outcome Transaction Kernel, Precision Edit, Preservation & Verification, human evaluation, and a narrow Spec-Anchored domain proof.
 
-- Product category: [HYPOTHESIS] Outcome execution, not a generic model wrapper.
+- Canonical product category: [CURRENT] **Marketplace Digital Universal**; English internal: **Universal Digital Marketplace**.
+- Product thesis: [HYPOTHESIS] **Convertimos el trabajo digital en algo que simplemente puedes pedir.**
+- Commercial thesis: [HYPOTHESIS] **The customer is buying back time, attention and execution risk.**
 - Current product form: [CURRENT] internal web laboratory.
 - Initial market direction: [CURRENT] B2C first.
 - Repository application identity: [CURRENT] `intent-lab` v0.1.1; this name is narrower than the current project scope.
@@ -56,7 +58,15 @@ For creative editing, a local request commonly implies preservation of everythin
 
 ## 03. Vision and category
 
-[HYPOTHESIS] The defensible category is a Digital Outcomes Marketplace powered by a provider-neutral Outcome Execution Runtime. The marketplace unit is an Outcome SKU backed by an immutable, versioned Outcome Blueprint; the runtime compiles each purchase/request into one hash-addressed Task Spec, gives each agent a bounded lens over that same spec, verifies same-spec evidence, and commits only accepted results. Marketplace demand, seller supply, and commission economics remain unvalidated hypotheses.
+[CURRENT] The category name is **Marketplace Digital Universal / Universal Digital Marketplace**. [HYPOTHESIS] Its defensible value is a marketplace of finished digital products/Outcomes powered by a provider-neutral Outcome Execution Runtime. The marketplace unit is an Outcome SKU backed by an immutable, versioned Outcome Blueprint; the runtime compiles each purchase/request into one hash-addressed Task Spec, gives each agent a bounded lens over that same spec, verifies same-spec evidence, and commits or delivers only authorized results. Marketplace demand, seller supply, buyer preference, cross-category effects, and commission economics remain unvalidated hypotheses.
+
+Canonical positioning:
+
+- Commercial: **Compra lo que necesitas hecho.**
+- Architecture: **Cada producto tiene una fórmula versionada. Cada pedido genera una especificación. Cada entrega debe demostrar que cumple esa especificación.**
+- Competitive: **No te vendemos una herramienta para que hagas el trabajo. Te vendemos el trabajo digital terminado.**
+
+Accuracy guardrail: do not claim every generic AI requires a subscription, that experts cannot build these products, that generic AI always fails, or that every marketplace Outcome is superior.
 
 The long-term protocol is:
 
@@ -74,6 +84,8 @@ It does not assume one giant model. Structured state, deterministic controls, sm
 - [VALIDATED] Require evidence and verification before commit.
 - [EXPERIMENT] Determine when preservation by construction improves human acceptance.
 - [HYPOTHESIS] Let consumers buy an outcome without learning model selection or prompt engineering.
+- [HYPOTHESIS] Let experts and companies buy back scarce execution time even when they could build the result themselves.
+- [HYPOTHESIS] Reduce buyer integration effort and residual execution risk through specialized, versioned production formulas and concrete evidence.
 - [PLANNED] Improve accepted-result economics using routing, policy, evaluation, and regression data.
 
 ## 05. Product model
@@ -92,6 +104,14 @@ It does not assume one giant model. Structured state, deterministic controls, sm
 - [CURRENT] A `TaskSpec` is the versioned, hash-addressed transaction instruction compiled from one Blueprint plus customer/source facts. A READY spec is immutable and includes provenance, capabilities, criteria, security, and verifier policy.
 - [CURRENT] A `MarketplaceProductContract` schema binds a future listing to an exact Blueprint version/hash and optional commission rate. It is a contract type only; no catalog, listing UI, payment, seller onboarding, or publication service exists.
 - [PLANNED] An Outcome SKU is the customer-facing unit that a curated store may offer after value, ownership, and economics are validated.
+
+### Project, Customer/Business Canon, and discovery
+
+- [CURRENT] The validated kernel `Project` is the execution workspace referenced by assets and transactions.
+- [CURRENT] A provider-neutral `MarketplaceProject` schema is a non-executing planning projection that references the kernel Project, belongs to a tenant/customer or organization, and can mark a need complete only through an accepted Outcome transaction.
+- [CURRENT] A `CustomerBusinessCanon` schema preserves `CUSTOMER_STATED`, `INFERRED`, and explicitly `APPROVED` provenance. It is domain-only and not persisted.
+- [PLANNED] Discovery combines Product + Problem + Project. A future Digital Solution Graph may model versioned curated/observed/hypothetical relationships without making a graph database an architectural requirement.
+- [HYPOTHESIS] Controlled serendipity and cross-category discovery can help buyers find useful Outcomes outside their specialty.
 
 ### Bundle
 
@@ -113,6 +133,20 @@ All commercial mechanics below are product decisions or hypotheses, not implemen
 - Marketplace/API: [DEFERRED] until outcome quality, ownership, economics, and trust are demonstrated.
 - Seller/commission model: [HYPOTHESIS] curated third parties may publish reviewed Blueprint versions and receive a disclosed commission. No seller account, settlement, payout, or commission calculation exists.
 
+### Buyer economics
+
+[HYPOTHESIS] Buyers compare `GENERATE`, `BUILD`, and `BUY OUTCOME`. The internal Outcome Advantage equation is:
+
+```text
+Outcome Price + Buyer Integration Effort + Residual Risk
+vs
+DIY Tool Cost + Buyer Time Cost + Expected Rework + Opportunity Cost + Residual Risk
+```
+
+The DIY AI Tax may include tool access, learning, specification, iteration, QA, rework, orchestration, and opportunity cost. It has no canonical numeric value. Developers buy back engineering time; designers production/iteration time; editors repetitive execution/technical QA; automation specialists commodity integration time; companies time-to-outcome and delivery risk; non-technical buyers receive a result without acquiring tool expertise.
+
+This is a research/economics model, not a public guarantee. Value-based pricing must remain accessible, disclose the unit being purchased, and be tested against acceptance, effort, integration, and residual risk.
+
 ## 07. Non-negotiable principles
 
 1. Natural language first; users do not need prompt-engineering vocabulary.
@@ -131,6 +165,9 @@ All commercial mechanics below are product decisions or hypotheses, not implemen
 14. Critical UNKNOWN input or verification state cannot be represented as READY/PASS.
 15. Executor results and verifier evidence must bind to the same Task Spec ID and hash.
 16. Seller-authored executable code is untrusted and is not accepted or run by the current platform.
+17. A Project or Canon record cannot bypass the normal Outcome transaction, evidence, acceptance, and commit path.
+18. “Verified” requires concrete criterion-level evidence; no client, seller, or executor may mint verification status.
+19. Mobile and desktop clients are control surfaces, never sources of payment, tenant, evidence, or canonical authority.
 
 ## 08. Canonical system architecture
 
@@ -150,21 +187,13 @@ OpenAI, Supabase Postgres/Storage, deterministic local engines
 
 The domain must not depend on Next.js, Supabase, or proprietary provider SDKs. UI components call internal HTTP boundaries and do not access Supabase directly. Repositories own persistence mapping; adapters own provider communication.
 
-[CURRENT] The generalized execution proof adds this provider-neutral control plane:
+[CURRENT] The generalized execution proof implements the narrow center of this provider-neutral target architecture:
 
 ```text
-Outcome Blueprint + customer/source facts
-              ↓ deterministic Spec Compiler
-      immutable, hash-addressed Task Spec
-              ↓ role-specific Spec Lenses
- image executor / preservation engine / verifier
-              ↓ result + criterion evidence
-              Same-Spec Gate
-              ↓ explicit acceptance + current head
-              commit authorization
+Outcome SKU → Outcome Blueprint → Spec Compiler → Task Spec → Spec Lenses → Governed Runtime → Evidence → Spec Gate → Commit/Delivery
 ```
 
-The proof is intentionally narrow and compiles only the existing Precision Edit outcome. It does not replace the runtime, add providers, or authorize BUILD 006.
+The proof is intentionally narrow and compiles only the existing Precision Edit outcome. `Governed Runtime` means provider execution is bounded by capabilities and cannot mutate canon directly. `Delivery` is a scoped artifact action after authorization; it is not a second commit path. This work does not replace the runtime, add providers, or authorize BUILD 006.
 
 ## 09. Domain model
 
@@ -178,6 +207,8 @@ The proof is intentionally narrow and compiles only the existing Precision Edit 
 - preservation policies, runs, evidence, preferences;
 - preservation study cases, locked human intent, blind presentation, ratings, pairwise preference, acceptance;
 - provider-neutral `OutcomeBlueprint`, `MarketplaceProductContract`, `TaskSpec`, provenance, Spec Lens, same-spec evaluation, and cross-agent evaluation contracts;
+- universal marketplace category/product foundation, buyer audiences, problem/outcome tags, delivery modes, planning Project/Outcome needs, Product relationships, Customer/Business Canon, and deterministic CrossCategoryRepeatRate contracts;
+- provider-neutral mobile interaction contracts for Intent input, Outcome configuration, job status, review, delivery, and client capabilities;
 - [PLANNED][ACTIVE] field-beta strategies, outcomes, feedback, samples, golden cases, regression candidates.
 
 Core distinctions:
@@ -259,7 +290,9 @@ Commit requires a verified transaction, required evidence, authorized patch, cur
 
 ## 18. Outcome Store / marketplace
 
-[PLANNED] Start with a curated Outcome Store where each listing defines input requirements, exact Blueprint version/hash, provider/policy compatibility, quality evidence, price, seller provenance, and commission terms. Digital-good classes currently modeled are Outcome Blueprint, Outcome Bundle, Verification Profile, and Creative Preset. [DEFERRED] Marketplace UI, open publishing, marketplace payouts, ranking, and network effects until governance and accepted-result economics are validated.
+[PLANNED] Start with a curated Outcome Store where each listing defines input requirements, exact Blueprint version/hash, provider/policy compatibility, quality evidence, price, seller provenance, and commission terms. Discovery is Product + Problem + Project, not product-only. Digital-good classes currently modeled are Outcome Blueprint, Outcome Bundle, Verification Profile, and Creative Preset; the marketplace foundation also distinguishes finished Outcomes, bundles, verification services, and digital deliverables.
+
+[CURRENT] Minimal domain contracts version the canonical category, audience, outcome category, tags, delivery mode, Project needs, Canon provenance, platform invariants, and product relationships. [HYPOTHESIS] A Digital Solution Graph and controlled serendipity may improve relevance and cross-skill discovery. No graph database, recommendation engine, catalog persistence, ranking, public listing UI, marketplace payouts, or network effect is implemented.
 
 ## 19. Creator Blueprint system
 
@@ -271,9 +304,15 @@ Commit requires a verified transaction, required evidence, authorized patch, cur
 
 [PLANNED] A public API may expose Outcome Contracts, transaction status, evidence, provenance, and delivery artifacts. It must preserve authorization, idempotency, versioning, and ownership. Direct database access is not the public API.
 
+[CURRENT] Provider-neutral client contracts include idempotency keys, immutable Blueprint/TaskSpec/base-version references, media/file references, review decisions, delivery actions, and capability profiles. They define future API shape only. A client cannot set `paid`, `verified`, evidence, tenant, canonical head, or commit state.
+
 ## 21. Web / mobile product direction
 
-[CURRENT] Responsive internal web labs exist. [PLANNED] A consumer web experience should expose one clear outcome action, progressive disclosure, human language, acceptance, and revision—not provider parameters. [DEFERRED] Native mobile app until core outcome value and workflow are validated. Responsive web is not proof of a mobile product.
+[CURRENT] Responsive internal web labs exist. Mobile is a **first-class product surface** and an architecture requirement, while native apps remain unimplemented and unauthorized. The distinction is mobile-first experience versus native-first implementation.
+
+The operating model is `phone = control surface / cloud = factory`: canonical state, execution, credentials, evidence, payment authority, and commit remain server-side. [PLANNED] M0 is responsive mobile-first web over the same domain/API contracts. [DEFERRED] M1 PWA features require measurable value; M2 native iOS/Android requires a separate approved Build.
+
+Mobile UX law: a normal Outcome should be discoverable and requestable with minimal typing and no provider/model selection; approved Project/Canon context may reduce input; interrupted jobs, review, correction, delivery, and scoped sharing must work from a compact client. [HYPOTHESIS] The Situational Execution Gap creates demand when a buyer has intent or urgency but lacks the time, attention, environment, or specialized tools to execute.
 
 ## 22. Persistence / database / storage
 
@@ -293,6 +332,8 @@ Commit requires a verified transaction, required evidence, authorized patch, cur
 
 [CURRENT] Root `SECURITY.md`, repository threat model, seller supply-chain policy, and standards mapping define the intended security boundary. Customer/seller text is data, never authority. Blueprint capabilities are deny-by-default, embedded secrets are rejected, verifier evidence is bound to the same Task Spec hash, and critical unknowns fail closed. Future seller code is treated as untrusted and would require isolated intake, static/dynamic analysis, signed immutable artifacts, scoped credentials, egress denial, and explicit promotion; none of that runtime exists today.
 
+[PLANNED] Marketplace/mobile exposure additionally requires tenant-bound Project/Canon/product data, session/device revocation, server-authoritative payment and verification, signed/expiring/replay-resistant deep links, private push content, upload ownership, scoped delivery URLs, fraud-resistant trust metrics, and high-risk approval authorization. These are requirements, not claims of implementation.
+
 ## 24. Observability / provenance
 
 [CURRENT] Intent runs capture compiler/schema versions, provider/model, latency, structured output, and token usage when reported. Media execution retains transaction, source version, execution, provider/model, policy/methodology, candidate hashes, evidence, verification, preference, acceptance, and commit lineage.
@@ -307,6 +348,8 @@ Do not log secrets or private model reasoning. Unknown tokens/cost remain unknow
 
 [HYPOTHESIS] The relevant unit economics are cost per accepted outcome, acceptance lift, repair/regeneration cost, latency to acceptance, and gross margin per Outcome—not cost per raw generation alone. Pricing must disclose the outcome unit and avoid implying unknown provider cost is zero.
 
+[HYPOTHESIS] Buyer economics must also compare BuyerEffortToAcceptedOutcome, EstimatedBuyerTimeSaved, RemainingIntegrationEffort, BuyReason, and the AlternativePath the buyer would otherwise choose. No value or time-saved number may be fabricated.
+
 ## 26. Metrics / North Stars
 
 Proposed North Stars are [HYPOTHESIS] until field volume establishes usefulness:
@@ -319,6 +362,10 @@ Proposed North Stars are [HYPOTHESIS] until field volume establishes usefulness:
 - verified commit success without stale/provenance violations.
 
 Supporting metrics include Intent/context accuracy under labeled evaluation, question precision, implicit-constraint accuracy, preservation acceptance lift, RAW/PRESERVED preference, failure tags, provider latency, token usage, and reliable cost coverage. Do not invent semantic accuracy or scientific confidence.
+
+`CrossCategoryRepeatRate` is the share of consecutive accepted-purchase transitions by the same buyer, within a declared measurement window, whose Outcome category differs. It records category versions and a transition matrix. Same-category repeat, clicks, views, abandoned configuration, and unaccepted purchases do not count. No success threshold exists yet.
+
+Future buyer/mobile instrumentation includes BuyerEffortToAcceptedOutcome, EstimatedBuyerTimeSaved, RemainingIntegrationEffort, BuyReason, AlternativePath, listing/configuration/checkout events, accepted order, correction, delivery, repeat, cross-category repeat, and urgent selection. Collection must minimize sensitive device/customer data.
 
 ## 27. Current Reality
 
@@ -341,15 +388,19 @@ Supporting metrics include Intent/context accuracy under labeled evaluation, que
 | RLS/RPC, transient JWT, and UUID integrity corrections | [CURRENT][VALIDATED] | migrations `20260811183000`/`20260811190000`, retry/route tests |
 | One recorded pixel↔human divergence case | [VALIDATED] as an observation | `.build-004-final-report.json` |
 | Spec-anchored platform foundation | [CURRENT][VALIDATED] as deterministic proof | `src/domain/outcome/specification`, `src/application/outcome/specification`, foundation tests |
+| Universal marketplace domain foundation | [CURRENT] as schemas/definitions only | `src/domain/marketplace`, marketplace foundation tests |
+| Mobile interaction contracts | [CURRENT] as provider-neutral schemas only | `src/domain/marketplace/mobile-contracts.ts` |
 | Production dependency security gate | [CURRENT] | Next.js/ESLint config 16.3.0; `pnpm audit --prod` reports no known vulnerabilities at foundation handoff |
 
 ### NOT IMPLEMENTED
 
 - [NOT IMPLEMENTED] Payments, PAYG charging, wallet, Creator Pass, subscriptions, or billing.
-- [NOT IMPLEMENTED] Outcome Store, creator marketplace, creator payouts, or Blueprint tooling.
-- No marketplace UI, public product catalog, listing publication workflow, seller onboarding, commission settlement, or arbitrary seller-code sandbox is implemented.
+- [NOT IMPLEMENTED] Outcome Store, public marketplace, recommendations engine, Creator Studio, seller payments/payouts, or Blueprint tooling.
+- No marketplace UI, public product catalog, listing publication workflow, seller onboarding, commission settlement, graph database, or arbitrary seller-code sandbox is implemented.
 - [NOT IMPLEMENTED] Supabase persistence or production runtime wiring for Blueprint/Task Spec registries and the Same-Spec Gate; current registries are deterministic in-memory proofs.
-- [NOT IMPLEMENTED] Video/audio generation, persistent characters, native mobile app, teams, or social features.
+- [NOT IMPLEMENTED] Marketplace Project/Canon/product/relationship persistence or buyer/mobile analytics.
+- [NOT IMPLEMENTED] Native iOS/Android applications, production PWA, mobile checkout, push delivery, or device/session management.
+- [NOT IMPLEMENTED] Video/audio generation, persistent characters, teams, or social features.
 - [NOT IMPLEMENTED] Advanced semantic/perceptual image verification, segmentation, identity embeddings as hard generation constraints, or automatic band optimization.
 - [NOT IMPLEMENTED] Multi-provider router, distributed orchestration, queues, vector database, or microservices.
 - [NOT IMPLEMENTED] End-user authentication, ownership, or tenant RLS.
@@ -357,12 +408,27 @@ Supporting metrics include Intent/context accuracy under labeled evaluation, que
 
 ### SPEC_CODE_DRIFT
 
-1. The repository name/version and `docs/ARCHITECTURE.md` still frame the system primarily as Intent Lab Build 001.1, while implemented scope extends through Product Gate 004. This Project Master becomes the broader authority; those documents remain scoped/historical.
+1. The repository package identity remains `intent-lab@0.1.1`, narrower than implemented scope through Product Gate 004 and the domain foundations. Renaming it is outside this reconciliation.
 2. BUILD 002's historical “no image generation integration” limitation was true at freeze and is superseded by Precision Edit. It is not current behavior and must remain historical evidence.
+3. The validated kernel `Project` is an execution workspace, while the marketplace proposal uses Project as a buyer planning/discovery primitive. The code preserves the kernel entity and adds an explicitly separate `MarketplaceProject` projection rather than silently changing validated transaction semantics.
 ### Resolved drift
 
 - [CURRENT] Unknown execution/evidence cost is nullable end-to-end. Migration `20260811190000_preserve_unknown_execution_cost.sql` converts only historical zeroes whose execution metadata explicitly has `costReported: false`; unmarked zeroes are preserved rather than guessed. A numeric `0` now means a reported zero.
 - [CURRENT] The Preservation Study RPC no longer depends on `UPDATE` privilege, transient future-issued JWT errors use a bounded exact-match retry, and copied transaction IDs are normalized and UUID-validated at all input boundaries.
+- [CURRENT] The category is now named Marketplace Digital Universal / Universal Digital Marketplace without claiming marketplace implementation.
+- [CURRENT] Mobile is now a first-class product surface while native implementation remains separately deferred and unauthorized.
+
+### SPEC DELTA — Universal Marketplace reconciliation v1.2.0
+
+**ADDS:** canonical category; finished-Outcome positioning; Generate/Build/Buy Outcome economics; DIY AI Tax and Outcome Advantage hypotheses; Product + Problem + Project discovery; MarketplaceProject and Customer/Business Canon contracts; Digital Solution Graph hypothesis; CrossCategoryRepeatRate; controlled serendipity; buyer-persona value; mobile-first surface, M0/M1/M2, mobile contracts/metrics/security baseline.
+
+**CHANGES:** marketplace framing becomes the explicit Universal Digital Marketplace category; discovery becomes Product + Problem + Project; competitive framing becomes a finished-result alternative; Mobile changes from a deferred client concept to first-class product surface while native remains deferred.
+
+**DEPRECATES:** product-only discovery as the complete marketplace model; framing the buyer only as someone who lacks AI skill.
+
+**DOES NOT CHANGE:** No Proof No Commit; Outcome Transaction Kernel; canonical state rules; provider-neutral boundaries; tenant/RLS requirements; Blueprint/Task Spec/Spec Gate direction; frozen tags; Precision Edit evidence; narrow validation strategy.
+
+**EXPERIMENTAL:** cross-agent portability; Digital Solution Graph; controlled serendipity; cross-category flywheel; trust/ranking effects; buyer time/effort advantage; mobile conversion; urgent Outcome demand; native retention.
 
 ## 28. Frozen Builds
 
@@ -392,8 +458,8 @@ No BUILD 006 is authorized by completion of these activities.
 2. [ACTIVE] Complete BUILD 005 within its contract; freeze only after tests, migrations, field flow, docs, and spec reconciliation.
 3. [PLANNED] Use real acceptance/failure data to decide whether the preservation ladder has strong, conditional, no, or negative signal.
 4. [PLANNED] Prioritize perceptual/semantic verification only where observed divergence justifies its cost.
-5. [PLANNED] Define consumer Outcome and Blueprint contracts before marketplace implementation.
-6. [DEFERRED] Monetization, public API, creator economics, mobile, and provider routing until outcome value and unit economics are evidenced.
+5. [PLANNED] Validate consumer Outcome configuration and responsive mobile-first M0 without starting marketplace commerce.
+6. [DEFERRED] Monetization, public marketplace, creator economics, PWA/native clients, and provider routing until outcome value and unit economics are evidenced.
 
 ## 31. Hypothesis Registry
 
@@ -409,6 +475,11 @@ No BUILD 006 is authorized by completion of these activities.
 | H-008 | A perceptual layer adds value where pixel and human judgment diverge. | [HYPOTHESIS] | E-004 demonstrates divergence, not solution value. | Compare deterministic-only vs gated perceptual verification. | BUILD 006+ scope decision. |
 | H-009 | Curated Blueprint sellers can create valuable supply and sustain disclosed commission economics. | [HYPOTHESIS] | No seller or commercial evidence. | Curated pilot after runtime/security readiness. | Marketplace sequencing and commission model. |
 | H-010 | Same-spec, bounded-agent contracts reduce cross-agent drift and false completion claims. | [HYPOTHESIS] with deterministic control proof. | Contract/gate tests cover structural failures only. | Cross-provider replay plus human/evidence audit. | Runtime orchestration design. |
+| H-011 | Buyers pay to recover time, attention, and execution risk even when they possess the skill to build. | [HYPOTHESIS] | Buyer-economics model only. | Compare Generate/Build/Buy paths using accepted outcomes and measured effort. | Positioning and pricing. |
+| H-012 | Cross-skill breadth creates useful cross-category repeat. | [HYPOTHESIS] | Metric contract only; no purchase data. | Accepted-purchase cohorts with category-version transition matrix. | Horizontal category breadth. |
+| H-013 | Product + Problem + Project discovery improves relevance without hiding provenance. | [HYPOTHESIS] | Domain/documentation only. | Discovery experiment with task success and false-trust review. | Discovery architecture. |
+| H-014 | Mobile closes a Situational Execution Gap for urgent or constrained buyers. | [HYPOTHESIS] | Responsive labs are not product evidence. | M0 funnel, effort, interruption recovery, and accepted Outcome analysis. | Mobile sequencing. |
+| H-015 | Native capabilities improve retention beyond responsive web/PWA. | [HYPOTHESIS] | No native client exists. | Compare only after M0/M1 value is evidenced. | M2 authorization. |
 
 ## 32. Decision Registry
 
@@ -427,6 +498,9 @@ No BUILD 006 is authorized by completion of these activities.
 | D-011 | Human acceptance remains separate from machine verification. | [CURRENT][VALIDATED] | BUILD 002/004 | Technical proof does not establish usefulness. | Automatic acceptance from pixel metrics. | No planned revisit; mechanisms may evolve. |
 | D-012 | One immutable Task Spec hash anchors executor, preservation, verifier, and commit evidence. | [CURRENT] | spec 1.1.0 | Prevent cross-agent drift and stale/fabricated proof. | Free-form agent handoffs. | Evidence shows unacceptable rigidity. |
 | D-013 | Seller-authored executable code is untrusted and prohibited in the current runtime. | [CURRENT] | spec 1.1.0 | Limit supply-chain and credential blast radius. | Direct seller plugin execution. | A reviewed sandbox design passes security gates. |
+| D-014 | Canonical category is Marketplace Digital Universal / Universal Digital Marketplace. | [CURRENT] | spec 1.2.0 | Name the horizontal finished-digital-Outcome category explicitly. | Generic model/tool marketplace framing. | Only by an approved category decision. |
+| D-015 | Product value is buying back time, attention, and execution risk. | [CURRENT][HYPOTHESIS] | spec 1.2.0 | Applies to experts, companies, and non-technical buyers without demeaning DIY. | Skill-gap-only positioning. | Buyer evidence contradicts the model. |
+| D-016 | Mobile is first-class, but M0 is responsive web and native needs a separate Build. | [CURRENT] | spec 1.2.0 | Preserve shared server/domain authority and validate value before platform duplication. | Native-first implementation. | M0/M1 evidence proves native-only value. |
 
 ## 33. Evidence Ledger
 
@@ -447,6 +521,9 @@ No BUILD 006 is authorized by completion of these activities.
 - Add semantic/perceptual verification only after measurable failure clusters justify it.
 - Persist Blueprint/Task Spec version chains and Same-Spec Gate evidence before claiming production durability.
 - Integrate same-spec commit authorization into the existing transaction service without weakening stale-head protection.
+- Persist tenant-owned MarketplaceProject/Canon versions and approval history only after auth/RLS design is approved.
+- Add a client-independent resumable job resource, idempotency records, and scoped delivery records before M0 commerce.
+- Define trust-claim evidence profiles and anti-fraud review before public discovery/ranking.
 
 ## 35. Risks
 
@@ -460,6 +537,9 @@ No BUILD 006 is authorized by completion of these activities.
 - Outcome pricing can hide unfavorable cost tails if acceptance and repair costs are not measured.
 - Premature marketplace, routing, or distributed infrastructure can obscure the core value test.
 - Blueprint confusion, capability escalation, forged/stale evidence, prompt injection, and future seller supply-chain compromise can turn a specification layer into a hidden authority-escalation path.
+- Project/Canon inference can become a silent cross-tenant or stale-context authority source if ownership, provenance, and approval are not enforced.
+- Mobile sessions, deep links, push payloads, uploads, and client-supplied commerce state create new spoofing/privacy risks before public exposure.
+- Buyer-value and time-saved estimates can become misleading marketing if treated as measured facts without accepted-outcome evidence.
 
 ## 36. IP / defensibility strategy
 
@@ -469,7 +549,7 @@ Protect by maintaining versioned contracts, provenance, evaluation methodology, 
 
 ## 37. Deferred / rejected ideas
 
-- [DEFERRED] Open marketplace, payouts, public API, native mobile, video/audio, persistent characters, model router, complex auth, teams/social, subscriptions, wallet, vector search, semantic AI verification, segmentation, identity constraints, and automatic band optimization.
+- [DEFERRED] Open marketplace, payouts, public API, native iOS/Android, production PWA, video/audio, persistent characters, model router, complex auth, teams/social, subscriptions, wallet, vector/graph search, semantic AI verification, segmentation, identity constraints, and automatic band optimization.
 - [REJECTED] Kubernetes, Kafka, Redis, Temporal, microservices, or external queues without measured need.
 - [REJECTED] Raw provider output directly mutating canonical state.
 - [REJECTED] Treating every assumption as permanent state.
@@ -486,11 +566,16 @@ Append new entries; do not rewrite historical entries.
 | --- | --- | --- | --- | --- |
 | 2026-08-11 | 1.0.0 | Project governance initialization | Created canonical spec from code, tests, docs, tags, active work, and approved product direction. Registered current reality, invariants, hypotheses, decisions, evidence, drift, and spec-delta governance. | 00–39 |
 | 2026-08-11 | 1.1.0 | Spec-Anchored Platform Foundation v0.1 | Added provider-neutral Blueprint/Task Spec contracts, deterministic Precision Edit compiler, role lenses, Same-Spec Gate, cross-agent records, security/supply-chain governance, and explicit marketplace limitations. | 03–39, invariants |
+| 2026-08-11 | 1.2.0 | Universal Marketplace + Buyer Value + Mobile-First reconciliation | Closed canonical category/name, buyer value thesis, Product/Problem/Project discovery, Project/Canon/metric/mobile domain contracts, mobile-first M0 boundary, and corresponding security model without expanding runtime scope. | 01–39, invariants |
 
 ## 39. Documentation index
 
 - [`README.md`](./README.md) — current local setup, environment, routes, and validation commands.
-- [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) — [CURRENT but scoped] Intent Lab Build 001.1 module boundaries and evaluation flow.
+- [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) — [CURRENT] modular-monolith boundaries, historical Intent flow, target spec architecture, and client authority boundary.
+- [`docs/architecture/UNIVERSAL_MARKETPLACE_MODEL.md`](./docs/architecture/UNIVERSAL_MARKETPLACE_MODEL.md) — [CURRENT] universal target architecture and narrow implementation boundary.
+- [`docs/product/UNIVERSAL_MARKETPLACE_POSITIONING.md`](./docs/product/UNIVERSAL_MARKETPLACE_POSITIONING.md) — [CURRENT] category, positioning, discovery, trust language, and messaging guardrails.
+- [`docs/product/BUY_VS_BUILD_VS_GENERATE.md`](./docs/product/BUY_VS_BUILD_VS_GENERATE.md) — [CURRENT] buyer economics and future measurement definitions.
+- [`docs/product/MOBILE_FIRST_PRODUCT_SURFACE.md`](./docs/product/MOBILE_FIRST_PRODUCT_SURFACE.md) — [CURRENT] mobile-first decision, architecture audit, M0/M1/M2, security, and instrumentation plan.
 - [`docs/BUILD_002_OUTCOME_TRANSACTION_KERNEL.md`](./docs/BUILD_002_OUTCOME_TRANSACTION_KERNEL.md) — [HISTORICAL][FROZEN] kernel architecture and its Build 002 quality evidence.
 - [`docs/BUILD_004_PRESERVATION_VERIFICATION_V0_1.md`](./docs/BUILD_004_PRESERVATION_VERIFICATION_V0_1.md) — [HISTORICAL][FROZEN] BUILD 004 policy, algorithm, evidence, and commit invariants.
 - [`docs/PRODUCT_GATE_004_PRESERVATION_VALUE_STUDY_V0_1.md`](./docs/PRODUCT_GATE_004_PRESERVATION_VALUE_STUDY_V0_1.md) — [CURRENT][EXPERIMENT] blind study protocol, metrics, and limitations.
@@ -525,3 +610,6 @@ Append new entries; do not rewrite historical entries.
 | INV-016 | Critical UNKNOWN input or verification status blocks READY/commit. | [VALIDATED] for deterministic proof | Task Spec schema and Same-Spec Gate tests. |
 | INV-017 | Result, evidence, verification, and commit authorization bind to the same current Task Spec ID/hash. | [VALIDATED] for deterministic proof | Same-Spec Gate and stale-spec/head tests. |
 | INV-018 | Seller/customer content is data, not executable authority; seller code is untrusted. | [CURRENT] | Blueprint security profile, linter, SECURITY/threat model; no seller runtime exists. |
+| INV-019 | Project/Canon planning context cannot bypass Outcome transaction, evidence, acceptance, or canonical commit. | [CURRENT] as domain proof | MarketplaceProject completion validation and Canon provenance tests. |
+| INV-020 | “Verified” cannot be minted by a client, seller, or executor without criterion-level evidence. | [CURRENT] | Strict client contracts plus Same-Spec Gate; public trust UI not implemented. |
+| INV-021 | Client surface does not own payment, tenant, evidence, or canonical authority. | [CURRENT] as contract rule | Strict mobile/client schemas; production auth/payment controls remain planned. |
