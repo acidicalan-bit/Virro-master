@@ -1,6 +1,6 @@
 # Marketplace Digital Universal / Universal Digital Marketplace — Project Master
 
-**PROJECT SPEC VERSION:** 1.2.0
+**PROJECT SPEC VERSION:** 1.3.0
 
 **Date:** 2026-08-11
 
@@ -418,7 +418,7 @@ Future buyer/mobile instrumentation includes BuyerEffortToAcceptedOutcome, Estim
 - [CURRENT] The category is now named Marketplace Digital Universal / Universal Digital Marketplace without claiming marketplace implementation.
 - [CURRENT] Mobile is now a first-class product surface while native implementation remains separately deferred and unauthorized.
 
-### SPEC DELTA — Universal Marketplace reconciliation v1.2.0
+### SPEC DELTA — Universal Marketplace reconciliation v1.3.0
 
 **ADDS:** canonical category; finished-Outcome positioning; Generate/Build/Buy Outcome economics; DIY AI Tax and Outcome Advantage hypotheses; Product + Problem + Project discovery; MarketplaceProject and Customer/Business Canon contracts; Digital Solution Graph hypothesis; CrossCategoryRepeatRate; controlled serendipity; buyer-persona value; mobile-first surface, M0/M1/M2, mobile contracts/metrics/security baseline.
 
@@ -567,6 +567,7 @@ Append new entries; do not rewrite historical entries.
 | 2026-08-11 | 1.0.0 | Project governance initialization | Created canonical spec from code, tests, docs, tags, active work, and approved product direction. Registered current reality, invariants, hypotheses, decisions, evidence, drift, and spec-delta governance. | 00–39 |
 | 2026-08-11 | 1.1.0 | Spec-Anchored Platform Foundation v0.1 | Added provider-neutral Blueprint/Task Spec contracts, deterministic Precision Edit compiler, role lenses, Same-Spec Gate, cross-agent records, security/supply-chain governance, and explicit marketplace limitations. | 03–39, invariants |
 | 2026-08-11 | 1.2.0 | Universal Marketplace + Buyer Value + Mobile-First reconciliation | Closed canonical category/name, buyer value thesis, Product/Problem/Project discovery, Project/Canon/metric/mobile domain contracts, mobile-first M0 boundary, and corresponding security model without expanding runtime scope. | 01–39, invariants |
+| 2026-08-11 | 1.3.0 | Pre-merge Project Master version alignment | Aligned the Project Master and reconciliation delta version with the incorporated Mobile-first v1.3 material. This is a provenance-only correction with no architecture, runtime, schema, or validated-behavior change. | Document metadata, Change Log |
 
 ## 39. Documentation index
 
