@@ -4,8 +4,37 @@ import { getInMemoryOutcomeRepositories } from "@/src/infrastructure/persistence
 import { FakeExecutor } from "@/src/infrastructure/executors/fake-executor";
 import { OutcomeTransactionService } from "@/src/application/outcome/outcome-transaction-service";
 import type { MutationLeaseCategory } from "@/src/domain/outcome";
+import type { RepositoryBundle } from "@/src/application/ports/repositories";
+import { createSupabaseRepositories } from "@/src/infrastructure/persistence/supabase-repositories";
 
-const outcomeRepos = getInMemoryOutcomeRepositories();
+function getRepositories(): Pick<
+  RepositoryBundle,
+  | "projects"
+  | "assets"
+  | "assetVersions"
+  | "outcomeTransactions"
+  | "partialIntents"
+  | "semanticPatches"
+  | "mutationLeases"
+  | "executionRuns"
+  | "evidenceReceipts"
+  | "verificationRuns"
+  | "stateCommits"
+  | "costRecords"
+> {
+  const supabaseUrl = process.env.SUPABASE_URL?.trim() || process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+  if (supabaseUrl && supabaseKey) {
+    try {
+      return createSupabaseRepositories();
+    } catch {
+      // fall through to in-memory
+    }
+  }
+  return getInMemoryOutcomeRepositories();
+}
+
+const outcomeRepos = getRepositories();
 const executor = new FakeExecutor();
 const service = new OutcomeTransactionService(outcomeRepos as never, executor);
 
