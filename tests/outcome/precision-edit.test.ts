@@ -7,7 +7,7 @@ import {
 import { SemanticPatchOperationSchema } from "@/src/domain/outcome/semantic-patch";
 import { PartialIntentOperationSchema } from "@/src/domain/outcome/partial-intent";
 import type { ImageEditExecutor, ImageEditContext, ImageEditResult } from "@/src/application/ports/outcome/image-edit-executor-port";
-import { calculateDiffMetrics, type PixelGrid } from "@/src/infrastructure/evidence/image-diff-calculator";
+import { calculateDiffMetrics, type PixelGrid, DIFF_METHODOLOGY_VERSION, CHANGED_PIXEL_THRESHOLD } from "@/src/infrastructure/evidence/image-diff-calculator";
 import { getInMemoryOutcomeRepositories } from "@/src/infrastructure/persistence/outcome/in-memory-outcome-repositories";
 import type { RepositoryBundle } from "@/src/application/ports/repositories";
 import { OutcomeTransactionService } from "@/src/application/outcome/outcome-transaction-service";
@@ -507,7 +507,7 @@ describe("BUILD 003 — Precision Edit Integrity Gate", () => {
       expect(metrics.normalizedTotalDiff).toBe(0);
       expect(metrics.normalizedRoiDiff).toBe(0);
       expect(metrics.normalizedOutsideRoiDiff).toBe(0);
-      expect(metrics.methodology).toBe("normalized-luma-diff-v1");
+      expect(metrics.methodology).toBe("pixel-diff-v0.1");
     });
 
     it("14.2 completely different images produce diff near 1", () => {
@@ -606,6 +606,183 @@ describe("BUILD 003 — Precision Edit Integrity Gate", () => {
       );
       expect(metrics.sourceHash).toBe("abc123");
       expect(metrics.candidateHash).toBe("def456");
+    });
+
+    it("14.6 metrics include changedPixelRatio fields", () => {
+      const grid = makePixelGrid(4, 4, 128);
+      const metrics = calculateDiffMetrics(
+        grid,
+        grid,
+        { x: 0, y: 0, width: 0.5, height: 0.5 },
+        "h1",
+        "h2",
+      );
+      expect(metrics.changedPixelRatioTotal).toBe(0);
+      expect(metrics.changedPixelRatioInside).toBe(0);
+      expect(metrics.changedPixelRatioOutside).toBe(0);
+    });
+
+    it("14.7 methodology version is documented", () => {
+      expect(DIFF_METHODOLOGY_VERSION).toBe("pixel-diff-v0.1");
+      expect(CHANGED_PIXEL_THRESHOLD).toBe(0.01);
+    });
+  });
+
+  describe("14B. Metric invariant tests", () => {
+    it("CASE 1: source == candidate → all diffs = 0", () => {
+      const grid = makePixelGrid(8, 8, 200);
+      const metrics = calculateDiffMetrics(
+        grid,
+        grid,
+        { x: 0.25, y: 0.25, width: 0.5, height: 0.5 },
+        "same",
+        "same",
+      );
+      expect(metrics.normalizedTotalDiff).toBe(0);
+      expect(metrics.normalizedRoiDiff).toBe(0);
+      expect(metrics.normalizedOutsideRoiDiff).toBe(0);
+      expect(metrics.changedPixelRatioTotal).toBe(0);
+      expect(metrics.changedPixelRatioInside).toBe(0);
+      expect(metrics.changedPixelRatioOutside).toBe(0);
+    });
+
+    it("CASE 2: change only inside ROI → inside>0, outside=0, total>0", () => {
+      const w = 10;
+      const h = 10;
+      const sourceData = new Uint8ClampedArray(w * h * 4);
+      const candidateData = new Uint8ClampedArray(w * h * 4);
+      for (let i = 0; i < w * h * 4; i += 4) {
+        sourceData[i] = 100; sourceData[i + 1] = 100; sourceData[i + 2] = 100; sourceData[i + 3] = 255;
+        candidateData[i] = 100; candidateData[i + 1] = 100; candidateData[i + 2] = 100; candidateData[i + 3] = 255;
+      }
+      for (let y = 0; y < 5; y++) {
+        for (let x = 0; x < 5; x++) {
+          const idx = (y * w + x) * 4;
+          candidateData[idx] = 255; candidateData[idx + 1] = 255; candidateData[idx + 2] = 255;
+        }
+      }
+      const source: PixelGrid = { width: w, height: h, data: sourceData };
+      const candidate: PixelGrid = { width: w, height: h, data: candidateData };
+      const metrics = calculateDiffMetrics(source, candidate, { x: 0, y: 0, width: 0.5, height: 0.5 }, "s", "c");
+
+      expect(metrics.normalizedRoiDiff).toBeGreaterThan(0);
+      expect(metrics.normalizedOutsideRoiDiff).toBe(0);
+      expect(metrics.normalizedTotalDiff).toBeGreaterThan(0);
+      expect(metrics.normalizedTotalDiff).toBeLessThan(metrics.normalizedRoiDiff);
+      expect(metrics.changedPixelRatioInside).toBeGreaterThan(0);
+      expect(metrics.changedPixelRatioOutside).toBe(0);
+    });
+
+    it("CASE 3: change only outside ROI → inside=0, outside>0, total>0", () => {
+      const w = 10;
+      const h = 10;
+      const sourceData = new Uint8ClampedArray(w * h * 4);
+      const candidateData = new Uint8ClampedArray(w * h * 4);
+      for (let i = 0; i < w * h * 4; i += 4) {
+        sourceData[i] = 100; sourceData[i + 1] = 100; sourceData[i + 2] = 100; sourceData[i + 3] = 255;
+        candidateData[i] = 100; candidateData[i + 1] = 100; candidateData[i + 2] = 100; candidateData[i + 3] = 255;
+      }
+      for (let y = 5; y < 10; y++) {
+        for (let x = 5; x < 10; x++) {
+          const idx = (y * w + x) * 4;
+          candidateData[idx] = 255; candidateData[idx + 1] = 255; candidateData[idx + 2] = 255;
+        }
+      }
+      const source: PixelGrid = { width: w, height: h, data: sourceData };
+      const candidate: PixelGrid = { width: w, height: h, data: candidateData };
+      const metrics = calculateDiffMetrics(source, candidate, { x: 0, y: 0, width: 0.5, height: 0.5 }, "s", "c");
+
+      expect(metrics.normalizedRoiDiff).toBe(0);
+      expect(metrics.normalizedOutsideRoiDiff).toBeGreaterThan(0);
+      expect(metrics.normalizedTotalDiff).toBeGreaterThan(0);
+      expect(metrics.changedPixelRatioInside).toBe(0);
+      expect(metrics.changedPixelRatioOutside).toBeGreaterThan(0);
+    });
+
+    it("CASE 4: changes both inside and outside", () => {
+      const w = 10;
+      const h = 10;
+      const sourceData = new Uint8ClampedArray(w * h * 4);
+      const candidateData = new Uint8ClampedArray(w * h * 4);
+      for (let i = 0; i < w * h * 4; i += 4) {
+        sourceData[i] = 100; sourceData[i + 1] = 100; sourceData[i + 2] = 100; sourceData[i + 3] = 255;
+        candidateData[i] = 100; candidateData[i + 1] = 100; candidateData[i + 2] = 100; candidateData[i + 3] = 255;
+      }
+      for (let y = 0; y < 3; y++) {
+        for (let x = 0; x < 3; x++) {
+          const idx = (y * w + x) * 4;
+          candidateData[idx] = 255; candidateData[idx + 1] = 255; candidateData[idx + 2] = 255;
+        }
+      }
+      for (let y = 7; y < 10; y++) {
+        for (let x = 7; x < 10; x++) {
+          const idx = (y * w + x) * 4;
+          candidateData[idx] = 255; candidateData[idx + 1] = 255; candidateData[idx + 2] = 255;
+        }
+      }
+      const source: PixelGrid = { width: w, height: h, data: sourceData };
+      const candidate: PixelGrid = { width: w, height: h, data: candidateData };
+      const metrics = calculateDiffMetrics(source, candidate, { x: 0, y: 0, width: 0.5, height: 0.5 }, "s", "c");
+
+      expect(metrics.normalizedRoiDiff).toBeGreaterThan(0);
+      expect(metrics.normalizedOutsideRoiDiff).toBeGreaterThan(0);
+      expect(metrics.changedPixelRatioInside).toBeGreaterThan(0);
+      expect(metrics.changedPixelRatioOutside).toBeGreaterThan(0);
+    });
+
+    it("CASE 5: ROI covers entire image → total ≈ inside", () => {
+      const w = 8;
+      const h = 8;
+      const sourceData = new Uint8ClampedArray(w * h * 4);
+      const candidateData = new Uint8ClampedArray(w * h * 4);
+      for (let i = 0; i < w * h; i++) {
+        sourceData[i * 4] = 100; sourceData[i * 4 + 1] = 100; sourceData[i * 4 + 2] = 100; sourceData[i * 4 + 3] = 255;
+        candidateData[i * 4] = 200; candidateData[i * 4 + 1] = 200; candidateData[i * 4 + 2] = 200; candidateData[i * 4 + 3] = 255;
+      }
+      const source: PixelGrid = { width: w, height: h, data: sourceData };
+      const candidate: PixelGrid = { width: w, height: h, data: candidateData };
+      const metrics = calculateDiffMetrics(source, candidate, { x: 0, y: 0, width: 1, height: 1 }, "s", "c");
+
+      expect(metrics.normalizedTotalDiff).toBeCloseTo(metrics.normalizedRoiDiff, 10);
+      expect(metrics.normalizedOutsideRoiDiff).toBe(0);
+      expect(metrics.changedPixelRatioTotal).toBeCloseTo(metrics.changedPixelRatioInside, 10);
+    });
+
+    it("CASE 6: very small ROI / boundary → no out-of-bounds", () => {
+      const w = 4;
+      const h = 4;
+      const source = makePixelGrid(w, h, 100);
+      const candidate = makePixelGrid(w, h, 100);
+      const metrics = calculateDiffMetrics(source, candidate, { x: 0.99, y: 0.99, width: 0.01, height: 0.01 }, "s", "c");
+      expect(metrics.normalizedTotalDiff).toBe(0);
+      expect(metrics.normalizedRoiDiff).toBe(0);
+    });
+
+    it("invariant: totalDiff ≈ weighted average of inside and outside", () => {
+      const w = 10;
+      const h = 10;
+      const sourceData = new Uint8ClampedArray(w * h * 4);
+      const candidateData = new Uint8ClampedArray(w * h * 4);
+      for (let i = 0; i < w * h; i++) {
+        sourceData[i * 4] = 100; sourceData[i * 4 + 1] = 100; sourceData[i * 4 + 2] = 100; sourceData[i * 4 + 3] = 255;
+        candidateData[i * 4] = 150; candidateData[i * 4 + 1] = 150; candidateData[i * 4 + 2] = 150; candidateData[i * 4 + 3] = 255;
+      }
+      for (let y = 0; y < 4; y++) {
+        for (let x = 0; x < 4; x++) {
+          const idx = (y * w + x) * 4;
+          candidateData[idx] = 255; candidateData[idx + 1] = 255; candidateData[idx + 2] = 255;
+        }
+      }
+      const source: PixelGrid = { width: w, height: h, data: sourceData };
+      const candidate: PixelGrid = { width: w, height: h, data: candidateData };
+      const metrics = calculateDiffMetrics(source, candidate, { x: 0, y: 0, width: 0.4, height: 0.4 }, "s", "c");
+
+      const roiPixels = metrics.sourceWidth * 0.4 * metrics.sourceHeight * 0.4;
+      const totalPixels = metrics.sourceWidth * metrics.sourceHeight;
+      const outsidePixels = totalPixels - roiPixels;
+
+      const expectedTotal = (metrics.normalizedRoiDiff * roiPixels + metrics.normalizedOutsideRoiDiff * outsidePixels) / totalPixels;
+      expect(metrics.normalizedTotalDiff).toBeCloseTo(expectedTotal, 8);
     });
   });
 

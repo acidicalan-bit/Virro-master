@@ -414,6 +414,9 @@ export type ImageEvidenceRecord = {
   normalizedTotalDiff: number;
   normalizedRoiDiff: number;
   normalizedOutsideRoiDiff: number;
+  changedPixelRatioTotal: number;
+  changedPixelRatioInside: number;
+  changedPixelRatioOutside: number;
   methodology: string;
   createdAt: string;
 };

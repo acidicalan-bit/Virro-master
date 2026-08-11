@@ -1,3 +1,7 @@
+export const DIFF_METHODOLOGY_VERSION = "pixel-diff-v0.1";
+
+export const CHANGED_PIXEL_THRESHOLD = 0.01;
+
 export type DiffMetrics = {
   sourceHash: string;
   candidateHash: string;
@@ -8,6 +12,9 @@ export type DiffMetrics = {
   normalizedTotalDiff: number;
   normalizedRoiDiff: number;
   normalizedOutsideRoiDiff: number;
+  changedPixelRatioTotal: number;
+  changedPixelRatioInside: number;
+  changedPixelRatioOutside: number;
   methodology: string;
 };
 
@@ -24,7 +31,7 @@ export function calculateDiffMetrics(
   sourceHash: string,
   candidateHash: string,
 ): DiffMetrics {
-  const methodology = "normalized-luma-diff-v1";
+  const methodology = DIFF_METHODOLOGY_VERSION;
 
   if (source.width !== candidate.width || source.height !== candidate.height) {
     return {
@@ -37,6 +44,9 @@ export function calculateDiffMetrics(
       normalizedTotalDiff: 1,
       normalizedRoiDiff: 1,
       normalizedOutsideRoiDiff: 1,
+      changedPixelRatioTotal: 1,
+      changedPixelRatioInside: 1,
+      changedPixelRatioOutside: 1,
       methodology: methodology + "-dimension-mismatch",
     };
   }
@@ -53,6 +63,10 @@ export function calculateDiffMetrics(
   let outsideDiff = 0;
   let outsideCount = 0;
 
+  let totalChanged = 0;
+  let roiChanged = 0;
+  let outsideChanged = 0;
+
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       const idx = (y * width + x) * 4;
@@ -61,14 +75,17 @@ export function calculateDiffMetrics(
       const pixelDiff = Math.abs(sourceLuma - candidateLuma) / 255;
 
       totalDiff += pixelDiff;
+      if (pixelDiff > CHANGED_PIXEL_THRESHOLD) totalChanged++;
 
       const inRoi = x >= roiX && x < roiX + roiW && y >= roiY && y < roiY + roiH;
       if (inRoi) {
         roiDiff += pixelDiff;
         roiCount++;
+        if (pixelDiff > CHANGED_PIXEL_THRESHOLD) roiChanged++;
       } else {
         outsideDiff += pixelDiff;
         outsideCount++;
+        if (pixelDiff > CHANGED_PIXEL_THRESHOLD) outsideChanged++;
       }
     }
   }
@@ -85,10 +102,13 @@ export function calculateDiffMetrics(
     normalizedTotalDiff: totalDiff / totalPixels,
     normalizedRoiDiff: roiCount > 0 ? roiDiff / roiCount : 0,
     normalizedOutsideRoiDiff: outsideCount > 0 ? outsideDiff / outsideCount : 0,
+    changedPixelRatioTotal: totalPixels > 0 ? totalChanged / totalPixels : 0,
+    changedPixelRatioInside: roiCount > 0 ? roiChanged / roiCount : 0,
+    changedPixelRatioOutside: outsideCount > 0 ? outsideChanged / outsideCount : 0,
     methodology,
   };
 }
 
-function luma(r: number, g: number, b: number): number {
+export function luma(r: number, g: number, b: number): number {
   return 0.299 * r + 0.587 * g + 0.114 * b;
 }

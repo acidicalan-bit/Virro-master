@@ -66,6 +66,9 @@ export const ImageEvidenceSchema = z.object({
   normalizedTotalDiff: z.number().min(0).max(1),
   normalizedRoiDiff: z.number().min(0).max(1),
   normalizedOutsideRoiDiff: z.number().min(0).max(1),
+  changedPixelRatioTotal: z.number().min(0).max(1),
+  changedPixelRatioInside: z.number().min(0).max(1),
+  changedPixelRatioOutside: z.number().min(0).max(1),
   methodology: z.string(),
 });
 
