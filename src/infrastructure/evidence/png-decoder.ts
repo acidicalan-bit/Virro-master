@@ -6,6 +6,13 @@ export type RawPixels = {
   data: Uint8ClampedArray;
 };
 
+// Conservative envelope for the internal Precision Edit beta. This is an
+// implementation safety limit, not a marketplace or general image guarantee.
+export const PNG_BETA_MAX_WIDTH = 2_048;
+export const PNG_BETA_MAX_HEIGHT = 2_048;
+export const PNG_BETA_MAX_PIXELS = 4_194_304;
+export const PNG_BETA_MAX_DECOMPRESSED_BYTES = 32 * 1024 * 1024;
+
 export function decodePngToPixels(pngBuffer: Buffer): RawPixels {
   const sig = pngBuffer.subarray(0, 8);
   if (sig[0] !== 0x89 || sig[1] !== 0x50 || sig[2] !== 0x4e || sig[3] !== 0x47) {
@@ -21,8 +28,10 @@ export function decodePngToPixels(pngBuffer: Buffer): RawPixels {
   const idatChunks: Buffer[] = [];
 
   while (offset < pngBuffer.length) {
+    if (offset + 4 > pngBuffer.length) throw new Error("PNG chunk header is truncated.");
     const length = pngBuffer.readUInt32BE(offset);
     offset += 4;
+    if (offset + 4 + length + 4 > pngBuffer.length) throw new Error("PNG chunk is truncated.");
     const type = pngBuffer.subarray(offset, offset + 4).toString("ascii");
     offset += 4;
     const data = pngBuffer.subarray(offset, offset + length);
@@ -30,6 +39,7 @@ export function decodePngToPixels(pngBuffer: Buffer): RawPixels {
     offset += 4; // skip CRC
 
     if (type === "IHDR") {
+      if (data.length !== 13) throw new Error("PNG IHDR is invalid.");
       width = data.readUInt32BE(0);
       height = data.readUInt32BE(4);
       bitDepth = data[8];
@@ -45,6 +55,9 @@ export function decodePngToPixels(pngBuffer: Buffer): RawPixels {
   if (width === 0 || height === 0) {
     throw new Error("Invalid PNG dimensions");
   }
+  if (width > PNG_BETA_MAX_WIDTH || height > PNG_BETA_MAX_HEIGHT || width * height > PNG_BETA_MAX_PIXELS) {
+    throw new Error("PNG dimensions exceed the internal Field Beta safety envelope.");
+  }
   if (bitDepth !== 8) {
     throw new Error(`Unsupported PNG bit depth: ${bitDepth}`);
   }
@@ -52,14 +65,22 @@ export function decodePngToPixels(pngBuffer: Buffer): RawPixels {
     throw new Error("Interlaced PNGs are not supported.");
   }
 
-  const compressed = Buffer.concat(idatChunks);
-  const decompressed = inflateSync(compressed);
-
   const bytesPerPixel = colorType === 0 ? 1 : colorType === 2 ? 3 : colorType === 4 ? 2 : colorType === 6 ? 4 : 0;
   if (bytesPerPixel === 0) {
     throw new Error(`Unsupported PNG color type: ${colorType}`);
   }
   const stride = 1 + width * bytesPerPixel;
+  const expectedDecompressedLength = stride * height;
+  if (expectedDecompressedLength > PNG_BETA_MAX_DECOMPRESSED_BYTES) {
+    throw new Error("PNG decoded data exceeds the internal Field Beta resource budget.");
+  }
+  const compressed = Buffer.concat(idatChunks);
+  let decompressed: Buffer;
+  try {
+    decompressed = inflateSync(compressed, { maxOutputLength: PNG_BETA_MAX_DECOMPRESSED_BYTES });
+  } catch {
+    throw new Error("PNG data could not be safely decompressed.");
+  }
   if (decompressed.length !== stride * height) {
     throw new Error("PNG scanline data has an unexpected length.");
   }

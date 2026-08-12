@@ -5,10 +5,12 @@ import { DeterministicPrecisionEditSpecCompiler } from "@/src/application/outcom
 import { createPrecisionEditBlueprintDefinition } from "@/src/application/outcome/specification/precision-edit-blueprint";
 import { publishOutcomeBlueprint, type OutcomeBlueprint } from "@/src/domain/outcome/specification/outcome-blueprint";
 import { attachTaskSpecHash, type TaskSpec } from "@/src/domain/outcome/specification/task-spec";
-import { FIELD_POLICY_DEFINITION, FIELD_POLICY_VERSION, PRECISION_EDIT_OUTCOME_SKU, type FieldFeedback, type FieldOutcome } from "@/src/domain/outcome/media/field-beta";
+import { FIELD_POLICY_DEFINITION, FIELD_POLICY_VERSION, PRECISION_EDIT_OUTCOME_SKU, RunFieldEditSchema, type FieldFeedback, type FieldOutcome } from "@/src/domain/outcome/media/field-beta";
 import { calculateFieldMetrics } from "@/src/domain/outcome/media/field-beta";
 import { InMemoryFieldBetaRepository } from "@/src/infrastructure/persistence/outcome/in-memory-field-beta-repository";
 import { PreservationLadderEngine } from "@/src/infrastructure/preservation/preservation-ladder-engine";
+import { decodePngToPixels, PNG_BETA_MAX_DECOMPRESSED_BYTES, PNG_BETA_MAX_HEIGHT, PNG_BETA_MAX_PIXELS, PNG_BETA_MAX_WIDTH } from "@/src/infrastructure/evidence/png-decoder";
+import { encodePixelsToPng } from "@/src/infrastructure/evidence/png-encoder";
 import { createFieldBetaService, isFieldBetaEnabled } from "@/src/server/field-beta-services";
 import type { PixelGrid } from "@/src/infrastructure/evidence/image-diff-calculator";
 
@@ -51,6 +53,26 @@ describe("BUILD 005 recovery invariants", () => {
     delete process.env.FIELD_BETA_INTERNAL_ENABLED;
     expect(() => createFieldBetaService()).toThrow(/disabled/i);
     if (previous === undefined) delete process.env.FIELD_BETA_INTERNAL_ENABLED; else process.env.FIELD_BETA_INTERNAL_ENABLED = previous;
+  });
+
+  it("re-checks the feature flag before returning a cached service", () => {
+    const previous = { enabled: process.env.FIELD_BETA_INTERNAL_ENABLED, url: process.env.SUPABASE_URL, key: process.env.SUPABASE_SERVICE_ROLE_KEY, provider: process.env.IMAGE_EDIT_PROVIDER };
+    process.env.FIELD_BETA_INTERNAL_ENABLED = "true";
+    process.env.SUPABASE_URL = "https://example.supabase.co";
+    process.env.SUPABASE_SERVICE_ROLE_KEY = "test-service-role-key";
+    process.env.IMAGE_EDIT_PROVIDER = "fake";
+    expect(createFieldBetaService()).toBeDefined();
+    process.env.FIELD_BETA_INTERNAL_ENABLED = "false";
+    expect(() => createFieldBetaService()).toThrow(/disabled/i);
+    if (previous.enabled === undefined) delete process.env.FIELD_BETA_INTERNAL_ENABLED; else process.env.FIELD_BETA_INTERNAL_ENABLED = previous.enabled;
+    if (previous.url === undefined) delete process.env.SUPABASE_URL; else process.env.SUPABASE_URL = previous.url;
+    if (previous.key === undefined) delete process.env.SUPABASE_SERVICE_ROLE_KEY; else process.env.SUPABASE_SERVICE_ROLE_KEY = previous.key;
+    if (previous.provider === undefined) delete process.env.IMAGE_EDIT_PROVIDER; else process.env.IMAGE_EDIT_PROVIDER = previous.provider;
+  });
+
+  it("does not accept client tenant authority in the domain request schemas", () => {
+    const parsed = RunFieldEditSchema.safeParse({ tenantId: "attacker-tenant", projectName: "p", assetName: "a", sourceBytes: new Uint8Array([1]), sourceMimeType: "image/png", instruction: "edit", roi: { x: 0, y: 0, width: 1, height: 1 }, topology: "LOCAL_INDEPENDENT", taskType: "OTHER" });
+    expect(parsed.success).toBe(false);
   });
   it("compiles the existing Blueprint into a hashable immutable Task Spec", async () => {
     const blueprint = publishOutcomeBlueprint(createPrecisionEditBlueprintDefinition(), "2026-08-11T20:00:00.000Z");
@@ -113,6 +135,40 @@ describe("BUILD 005 recovery invariants", () => {
     expect(sql).toContain("provider_cost_usd numeric");
     expect(sql).not.toMatch(/provider_cost_usd[^\n]*default\s+0/i);
     expect(sql).toContain("revoke all on table");
+  });
+
+  it("guards upgrades from the pre-snapshot schema without fabricating provenance", () => {
+    const sql = readFileSync("supabase/migrations/20260812120000_build_005b_security_hardening_legacy_guard.sql", "utf8");
+    expect(sql.trimStart().startsWith("-- BUILD 005-B")).toBe(true);
+    expect(sql).toContain("begin;");
+    expect(sql).toContain("BUILD_005_LEGACY_SCHEMA_REQUIRES_REVIEW");
+    expect(sql).toContain("blueprint_snapshot");
+    expect(sql).toContain("task_spec_snapshot");
+    expect(sql).not.toMatch(/insert\s+into[\s\S]*(blueprint|task_spec)_snapshot/i);
+    expect(sql).toContain("commit;");
+  });
+
+  it("keeps the repository aligned to tenant-scoped migration tables", () => {
+    const source = readFileSync("src/infrastructure/persistence/outcome/supabase-field-beta-repository.ts", "utf8");
+    expect(source).toContain('from("field_regression_candidates")');
+    expect(source).toContain('from("field_golden_cases")');
+    expect(source).not.toContain('from("regression_candidates")');
+    expect(source).not.toContain('from("golden_cases")');
+    expect(source.match(/\.eq\("tenant_id", this\.tenantId\)/g)?.length).toBeGreaterThanOrEqual(12);
+  });
+
+  it("enforces the internal PNG dimensions and resource envelope before inflation", () => {
+    expect(PNG_BETA_MAX_WIDTH).toBe(2048);
+    expect(PNG_BETA_MAX_HEIGHT).toBe(2048);
+    expect(PNG_BETA_MAX_PIXELS).toBe(4_194_304);
+    expect(PNG_BETA_MAX_DECOMPRESSED_BYTES).toBe(32 * 1024 * 1024);
+    const valid = encodePixelsToPng({ width: 1, height: 1, data: new Uint8ClampedArray([1, 2, 3, 255]) });
+    const oversized = Buffer.from(valid);
+    oversized.writeUInt32BE(2049, 16);
+    oversized.writeUInt32BE(2049, 20);
+    expect(() => decodePngToPixels(oversized)).toThrow(/safety envelope/i);
+    expect(() => decodePngToPixels(valid.subarray(0, 20))).toThrow();
+    expect(() => decodePngToPixels(valid)).not.toThrow();
   });
 });
 

@@ -12,8 +12,8 @@ import { createPreservationVerificationService } from "@/src/server/preservation
 let service: FieldBetaService | null = null;
 
 export function createFieldBetaService(): FieldBetaService {
-  if (service) return service;
   if (!isFieldBetaEnabled(process.env.FIELD_BETA_INTERNAL_ENABLED)) throw new Error("BUILD 005 field beta is disabled unless FIELD_BETA_INTERNAL_ENABLED=true.");
+  if (service) return service;
   const url = process.env.SUPABASE_URL?.trim() || process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
   if (!url || !serviceRoleKey) throw new Error("Supabase server credentials are required for BUILD 005.");

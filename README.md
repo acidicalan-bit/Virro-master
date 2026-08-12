@@ -121,5 +121,7 @@ pnpm build
 - La service-role key no se importa en componentes cliente.
 - No se guardan cadenas de razonamiento; solo el conteo de reasoning tokens cuando el proveedor lo informa.
 - `.env*` permanece ignorado salvo `.env.example`.
+- BUILD 005-B es sólo un laboratorio interno controlado: `FIELD_BETA_INTERNAL_ENABLED` no sustituye autenticación. El tenant `internal-lab` se fija en servidor, el API rechaza autoridad de tenant del cliente, limita PNG a un sobre conservador de 2048×2048/4,194,304 píxeles y sanitiza errores.
+- La migración `20260812120000_build_005b_security_hardening_legacy_guard.sql` detiene explícitamente una base con el esquema BUILD 005 previo a snapshots; nunca inventa snapshots históricos.
 
 Consulta [Arquitectura](./docs/ARCHITECTURE.md) para los límites del sistema y [Limitaciones](./docs/LIMITATIONS.md) para el alcance real de Build 001.

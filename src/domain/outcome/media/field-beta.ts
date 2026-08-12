@@ -70,7 +70,6 @@ export const StrategyRoleSchema = z.enum(["DELIVERED", "SHADOW"]);
 export type StrategyRole = z.infer<typeof StrategyRoleSchema>;
 
 export const RunFieldEditSchema = z.object({
-  tenantId: z.string().trim().min(1).max(120).default(FIELD_TENANT_ID),
   projectName: z.string().trim().min(1).max(200),
   assetName: z.string().trim().min(1).max(200),
   sourceBytes: z.instanceof(Uint8Array),
@@ -86,17 +85,16 @@ export const RunFieldEditSchema = z.object({
   taskType: StudyTaskTypeSchema,
   chosenStrategy: PreservationStrategyIdSchema.nullable().optional().default(null),
   overrideReason: z.string().trim().max(2_000).nullable().optional().default(null),
-});
+}).strict();
 export type RunFieldEditInput = z.infer<typeof RunFieldEditSchema>;
 
 export const FieldFeedbackInputSchema = z.object({
-  tenantId: z.string().trim().min(1).max(120).default(FIELD_TENANT_ID),
   fieldOutcomeId: z.uuid(),
   humanAccepted: z.boolean(),
   failureTags: z.array(FieldFailureTagSchema).max(FieldFailureTagSchema.options.length).default([]),
   humanCorrection: z.string().trim().max(8_000).nullable().optional().default(null),
   acceptanceSource: z.literal(FIELD_ACCEPTANCE_SOURCE).default(FIELD_ACCEPTANCE_SOURCE),
-}).superRefine((value, context) => {
+}).strict().superRefine((value, context) => {
   if (value.humanAccepted && value.failureTags.length) {
     context.addIssue({ code: "custom", path: ["failureTags"], message: "Accepted outcomes cannot carry failure tags." });
   }

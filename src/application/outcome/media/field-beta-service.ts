@@ -10,6 +10,7 @@ import {
   FIELD_POLICY_VERSION,
   FieldFeedbackInputSchema,
   PreservationStrategyIdSchema,
+  FIELD_TENANT_ID,
   RunFieldEditSchema,
   calculateFieldMetrics,
   recommendedStrategyFor,
@@ -160,7 +161,7 @@ export class FieldBetaService {
         candidateId: candidate.candidateId, policyVersion: FIELD_POLICY_VERSION, strategyId: currentStrategy,
         parameters: FIELD_POLICY_DEFINITION.strategies[currentStrategy], role: candidate.role,
         machineMetrics: candidate.machineMetrics, preservationLatencyMs: candidate.preservationLatencyMs,
-        tenantId: input.tenantId, outcomeSku: PRECISION_EDIT_OUTCOME_SKU,
+        tenantId: FIELD_TENANT_ID, outcomeSku: PRECISION_EDIT_OUTCOME_SKU,
         blueprintId: taskSpec.blueprint.id, blueprintVersion: taskSpec.blueprint.version, blueprintHash: taskSpec.blueprint.hash,
         taskSpecId: taskSpec.id, taskSpecVersion: taskSpec.version, taskSpecHash: taskSpec.hash,
         specCompilerVersion: taskSpec.compiler.version,
@@ -176,7 +177,7 @@ export class FieldBetaService {
       providerLatencyMs: base.providerLatencyMs, preservationLatencyMs: delivered.preservationLatencyMs,
       totalLatencyMs: Math.max(0, Math.round((performance.now() - totalStartedAt) * 1_000) / 1_000),
       providerCostUsd: base.costUsd,
-      tenantId: input.tenantId,
+      tenantId: FIELD_TENANT_ID,
       outcomeSku: PRECISION_EDIT_OUTCOME_SKU,
       blueprintId: taskSpec.blueprint.id,
       blueprintVersion: taskSpec.blueprint.version,
@@ -217,9 +218,8 @@ export class FieldBetaService {
   async recordFeedback(untrustedInput: unknown) {
     const input = FieldFeedbackInputSchema.parse(untrustedInput);
     const outcome = await this.requireOutcome(input.fieldOutcomeId);
-    if (input.tenantId !== outcome.tenantId) throw new FieldBetaError("TENANT_MISMATCH", "La aceptación debe pertenecer al mismo tenant del resultado.");
     if (await this.repository.findFeedbackByOutcomeId(outcome.id)) throw new FieldBetaError("FEEDBACK_ALREADY_RECORDED", "La respuesta humana ya quedó bloqueada.");
-    return this.repository.createFeedback({ ...input, recordedBy: "internal-evaluator" });
+    return this.repository.createFeedback({ ...input, tenantId: outcome.tenantId, recordedBy: "internal-evaluator" });
   }
 
   async recordEvaluationJudgment(input: { sampleId: string; preference: "A_BETTER" | "B_BETTER" | "TIE" | "BOTH_BAD" }) {
@@ -275,7 +275,7 @@ export class FieldBetaService {
     const a = rawFirst ? delivered : shadow;
     const b = rawFirst ? shadow : delivered;
     const outcome = await this.repository.findOutcome(fieldOutcomeId);
-    return this.repository.createEvaluationSample({ tenantId: outcome?.tenantId ?? "internal-lab", fieldOutcomeId, candidateAId: a.candidateId, candidateAStrategy: a.strategyId, candidateBId: b.candidateId, candidateBStrategy: b.strategyId });
+    return this.repository.createEvaluationSample({ tenantId: outcome?.tenantId ?? FIELD_TENANT_ID, fieldOutcomeId, candidateAId: a.candidateId, candidateAStrategy: a.strategyId, candidateBId: b.candidateId, candidateBStrategy: b.strategyId });
   }
 
   private async buildView(fieldOutcome: FieldOutcome, source: PreservationExperimentView["source"], candidates: CandidateView[], sample: FieldEvaluationSample | null, humanFeedback: Awaited<ReturnType<FieldBetaRepository["findFeedbackByOutcomeId"]>>): Promise<FieldEditView> {
