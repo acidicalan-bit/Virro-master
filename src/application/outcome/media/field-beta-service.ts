@@ -29,9 +29,11 @@ import { verifyTaskSpecHash, type TaskSpec } from "@/src/domain/outcome/specific
 import { verifySameSpecExecution } from "@/src/application/outcome/specification/same-spec-gate";
 import type { CriterionEvidence } from "@/src/application/outcome/specification/types";
 import { PRECISION_EDIT_OUTCOME_SKU } from "@/src/domain/outcome/media/field-beta";
+import type { ExecutionRecoveryContextLoader, TrustedRecoveryAuthority } from "@/src/application/outcome/recovery/execution-recovery-context-loader";
 
 export interface FieldBaseExperimentRunner {
   runExperiment(input: RunPreservationExperimentInput): Promise<PreservationExperimentView>;
+  getExperiment(transactionId: string): Promise<PreservationExperimentView>;
 }
 
 type CandidateView = {
@@ -75,6 +77,7 @@ export class FieldBetaService {
     private readonly ladder = new PreservationLadderEngine(),
     private readonly samplingRate = 0,
     private readonly random = Math.random,
+    private readonly recoveryLoader?: ExecutionRecoveryContextLoader,
   ) {}
 
   private readonly compiler = new DeterministicPrecisionEditSpecCompiler();
@@ -107,6 +110,7 @@ export class FieldBetaService {
         });
         return compiledTaskSpec;
       },
+      recoveryContext: { tenantId: FIELD_TENANT_ID, topology: input.topology, taskType: input.taskType, blueprint },
     });
     const taskSpec = compiledTaskSpec as TaskSpec | null;
     if (!taskSpec || !verifyTaskSpecHash(taskSpec) || !base.taskSpecBinding || base.taskSpecBinding.hash !== taskSpec.hash) {
@@ -214,6 +218,48 @@ export class FieldBetaService {
     });
     const sample = await this.maybeCreateSample(fieldOutcome.id, views, strategyId);
     return this.buildView(fieldOutcome, base.source, [...views.values()], sample, null);
+  }
+
+  async completeFieldOutcome(executionRunId: string, authority: TrustedRecoveryAuthority): Promise<FieldEditView> {
+    if (!this.recoveryLoader) throw new FieldBetaError("RECOVERY_UNAVAILABLE", "La recuperación durable no está configurada.");
+    const loaded = await this.recoveryLoader.load(z.uuid().parse(executionRunId), authority);
+    if (loaded.status !== "REDRIVABLE") throw new FieldBetaError(`RECOVERY_${loaded.status}`, loaded.reason);
+    const context = loaded.context;
+    const base = await this.baseRunner.getExperiment(context.transactionId);
+    if (base.executionRunId !== context.executionRunId || base.rawCandidateId !== context.rawCandidateId || base.machineVerification.status !== "PASSED") throw new FieldBetaError("RECOVERY_LINEAGE_INVALID", "El checkpoint de ejecución no coincide con la evidencia verificable.");
+    const strategyId = recommendedStrategyFor(context.topology);
+    const sourceBytes = await this.storage.get(base.source.storageKey);
+    const rawBytes = await this.storage.get(base.raw.storageKey);
+    const sourcePixels = decodePngToPixels(Buffer.from(sourceBytes));
+    const rawPixels = decodePngToPixels(Buffer.from(rawBytes));
+    const views = new Map<PreservationStrategyId, CandidateView>();
+    views.set("P0_RAW", { candidateId: base.rawCandidateId, strategyId: "P0_RAW", role: strategyId === "P0_RAW" ? "DELIVERED" : "SHADOW", url: base.raw.url, width: base.raw.width, height: base.raw.height, sha256: base.raw.sha256, machineMetrics: base.rawEvidence, preservationLatencyMs: 0 });
+    views.set("P3_HARD", { candidateId: base.preservedCandidateId, strategyId: "P3_HARD", role: strategyId === "P3_HARD" ? "DELIVERED" : "SHADOW", url: base.preserved.url, width: base.preserved.width, height: base.preserved.height, sha256: base.preserved.sha256, machineMetrics: base.preservedEvidence, preservationLatencyMs: base.preservationLatencyMs });
+    for (const derivedStrategy of ["P1_SOFT", "P2_MODERATE"] as const) {
+      const existing = await this.repository.findStrategyRun({ transactionId: context.transactionId, strategyId: derivedStrategy, taskSpecHash: context.taskSpec.hash, policyVersion: FIELD_POLICY_VERSION });
+      if (existing) {
+        const candidate = await this.candidates.findById(existing.candidateId);
+        if (!candidate) throw new FieldBetaError("RECOVERY_LINEAGE_INVALID", "Falta un candidato preservado durable.");
+        views.set(derivedStrategy, { candidateId: candidate.id, strategyId: derivedStrategy, role: strategyId === derivedStrategy ? "DELIVERED" : "SHADOW", url: await this.storage.createReadUrl(candidate.storageKey), width: candidate.width, height: candidate.height, sha256: candidate.sha256, machineMetrics: existing.machineMetrics, preservationLatencyMs: existing.preservationLatencyMs });
+        continue;
+      }
+      const result = this.ladder.derive({ strategyId: derivedStrategy, parameters: FIELD_POLICY_DEFINITION.strategies[derivedStrategy], source: sourcePixels, rawCandidate: rawPixels, roi: context.roi });
+      const bytes = new Uint8Array(encodePixelsToPng(result.pixels));
+      const storageKey = `candidates/${context.transactionId}/strategies/${derivedStrategy.toLowerCase()}/${crypto.randomUUID()}.png`;
+      await this.storage.put(storageKey, bytes, "image/png");
+      const candidate = await this.candidates.create({ transactionId: context.transactionId, executionRunId: context.executionRunId, storageKey, mimeType: "image/png", width: result.pixels.width, height: result.pixels.height, byteSize: bytes.byteLength, sha256: sha256(bytes), roi: context.roi, instruction: context.instruction, provider: "intent-lab", model: this.ladder.methodologyVersion, costUsd: null, candidateType: "PRESERVED", sourceVersionId: context.sourceVersionId, rawCandidateId: context.rawCandidateId, preservationRunId: null, committed: false });
+      await this.repository.createStrategyRun({ transactionId: context.transactionId, executionRunId: context.executionRunId, rawCandidateId: context.rawCandidateId, candidateId: candidate.id, policyVersion: FIELD_POLICY_VERSION, strategyId: derivedStrategy, parameters: FIELD_POLICY_DEFINITION.strategies[derivedStrategy], role: strategyId === derivedStrategy ? "DELIVERED" : "SHADOW", machineMetrics: result.metrics, preservationLatencyMs: result.processingTimeMs, tenantId: FIELD_TENANT_ID, outcomeSku: PRECISION_EDIT_OUTCOME_SKU, blueprintId: context.blueprint.id, blueprintVersion: context.blueprint.version, blueprintHash: context.blueprint.hash, taskSpecId: context.taskSpec.id, taskSpecVersion: context.taskSpec.version, taskSpecHash: context.taskSpec.hash, specCompilerVersion: context.taskSpec.compiler.version });
+      views.set(derivedStrategy, { candidateId: candidate.id, strategyId: derivedStrategy, role: strategyId === derivedStrategy ? "DELIVERED" : "SHADOW", url: await this.storage.createReadUrl(storageKey), width: candidate.width, height: candidate.height, sha256: candidate.sha256, machineMetrics: result.metrics, preservationLatencyMs: result.processingTimeMs });
+    }
+    for (const currentStrategy of PreservationStrategyIdSchema.options) {
+      if (await this.repository.findStrategyRun({ transactionId: context.transactionId, strategyId: currentStrategy, taskSpecHash: context.taskSpec.hash, policyVersion: FIELD_POLICY_VERSION })) continue;
+      const candidate = views.get(currentStrategy)!;
+      await this.repository.createStrategyRun({ transactionId: context.transactionId, executionRunId: context.executionRunId, rawCandidateId: context.rawCandidateId, candidateId: candidate.candidateId, policyVersion: FIELD_POLICY_VERSION, strategyId: currentStrategy, parameters: FIELD_POLICY_DEFINITION.strategies[currentStrategy], role: candidate.role, machineMetrics: candidate.machineMetrics, preservationLatencyMs: candidate.preservationLatencyMs, tenantId: FIELD_TENANT_ID, outcomeSku: PRECISION_EDIT_OUTCOME_SKU, blueprintId: context.blueprint.id, blueprintVersion: context.blueprint.version, blueprintHash: context.blueprint.hash, taskSpecId: context.taskSpec.id, taskSpecVersion: context.taskSpec.version, taskSpecHash: context.taskSpec.hash, specCompilerVersion: context.taskSpec.compiler.version });
+    }
+    const delivered = views.get(strategyId)!;
+    const existingOutcome = await this.repository.findOutcomeByIdentity({ transactionId: context.transactionId, taskSpecHash: context.taskSpec.hash, policyVersion: FIELD_POLICY_VERSION, strategyId });
+    if (!existingOutcome) await this.repository.createOutcome({ transactionId: context.transactionId, sourceVersionId: context.sourceVersionId, instruction: context.instruction, roi: context.roi, topology: context.topology, taskType: context.taskType, provider: base.provider, model: base.model, rawCandidateId: context.rawCandidateId, deliveredCandidateId: delivered.candidateId, recommendedStrategy: strategyId, strategyId, policyVersion: FIELD_POLICY_VERSION, overrideReason: null, providerLatencyMs: base.providerLatencyMs, preservationLatencyMs: delivered.preservationLatencyMs, totalLatencyMs: base.providerLatencyMs + delivered.preservationLatencyMs + base.verificationLatencyMs, providerCostUsd: base.costUsd, tenantId: FIELD_TENANT_ID, outcomeSku: PRECISION_EDIT_OUTCOME_SKU, blueprintId: context.blueprint.id, blueprintVersion: context.blueprint.version, blueprintHash: context.blueprint.hash, taskSpecId: context.taskSpec.id, taskSpecVersion: context.taskSpec.version, taskSpecHash: context.taskSpec.hash, specCompilerName: context.taskSpec.compiler.name, specCompilerVersion: context.taskSpec.compiler.version, sourceSha256: base.source.sha256, machineVerificationStatus: base.machineVerification.status, sameSpecStatus: "PASSED", blueprintSnapshot: context.blueprint, taskSpecSnapshot: context.taskSpec });
+    return this.getByTransactionId(context.transactionId);
   }
 
   async getByTransactionId(transactionId: string): Promise<FieldEditView> {

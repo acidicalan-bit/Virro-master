@@ -12,6 +12,9 @@ import { PreservationLadderEngine } from "@/src/infrastructure/preservation/pres
 import { decodePngToPixels, PNG_BETA_MAX_DECOMPRESSED_BYTES, PNG_BETA_MAX_HEIGHT, PNG_BETA_MAX_PIXELS, PNG_BETA_MAX_WIDTH } from "@/src/infrastructure/evidence/png-decoder";
 import { encodePixelsToPng } from "@/src/infrastructure/evidence/png-encoder";
 import { createFieldBetaService, isFieldBetaEnabled } from "@/src/server/field-beta-services";
+import { DurableExecutionRecoveryContextLoader } from "@/src/application/outcome/recovery/execution-recovery-context-loader";
+import { InMemoryExecutionRunRepository } from "@/src/infrastructure/persistence/outcome/in-memory-outcome-repositories";
+import { createRecoveryMetadata, parseRecoveryMetadata } from "@/src/application/outcome/recovery/execution-recovery-context";
 import type { PixelGrid } from "@/src/infrastructure/evidence/image-diff-calculator";
 
 const ids = {
@@ -132,6 +135,21 @@ describe("BUILD 005 recovery invariants", () => {
     await repo.createStrategyRun(strategy);
     expect(await repo.findStrategyRunByKey(ids.tx, "P3_HARD")).toMatchObject({ taskSpecHash: item.taskSpecHash });
     expect(await repo.findStrategyRun({ transactionId: ids.tx, strategyId: "P3_HARD", taskSpecHash: "f".repeat(64), policyVersion: FIELD_POLICY_VERSION })).toBeNull();
+  });
+
+  it("loads a durable recovery context and classifies legacy executions without fabricating state", async () => {
+    const executions = new InMemoryExecutionRunRepository();
+    const blueprint = publishOutcomeBlueprint(createPrecisionEditBlueprintDefinition(), "2026-08-11T20:00:00.000Z");
+    const taskSpec = snapshotTaskSpec(blueprint);
+    const executionId = "60000000-0000-4000-8000-000000000012";
+    await executions.create({ id: executionId, transactionId: ids.tx, status: "SUCCESS", executor: "fixture", startedAt: "2026-08-11T20:00:00.000Z", completedAt: "2026-08-11T20:00:01.000Z", latencyMs: 1000, costUsd: null, errorMessage: null, metadata: { fieldRecoveryContext: createRecoveryMetadata({ schemaVersion: "field-recovery-context-v0.1", tenantId: "internal-lab", transactionId: ids.tx, executionRunId: executionId, sourceVersionId: ids.source, instruction: "Cambia la chamarra", roi: { x: 0.2, y: 0.2, width: 0.4, height: 0.4 }, topology: "LOCAL_INDEPENDENT", taskType: "COLOR_CHANGE", policyVersion: FIELD_POLICY_VERSION, blueprint, taskSpec, rawCandidateId: ids.raw, recoveryEligibility: "REDRIVABLE" }) } });
+    const loader = new DurableExecutionRecoveryContextLoader(executions);
+    const loaded = await loader.load(executionId, { tenantId: "internal-lab" });
+    expect(loaded.status).toBe("REDRIVABLE");
+    expect(loaded.status === "REDRIVABLE" && loaded.context.taskSpec.hash).toBe(taskSpec.hash);
+    const legacy = await executions.create({ transactionId: ids.tx, status: "SUCCESS", executor: "legacy", startedAt: "2026-08-11T20:00:00.000Z", completedAt: "2026-08-11T20:00:01.000Z", latencyMs: 1000, costUsd: null, errorMessage: null, metadata: {} });
+    expect((await loader.load(legacy.id, { tenantId: "internal-lab" })).status).toBe("NOT_REDRIVABLE_LEGACY");
+    expect(parseRecoveryMetadata({ fieldRecoveryContext: { schemaVersion: "field-recovery-context-v0.1" } }).status).toBe("INCOMPLETE_OR_CORRUPT");
   });
 
   it("migration is server-write-only, tenant-labelled, and keeps cost nullable", () => {

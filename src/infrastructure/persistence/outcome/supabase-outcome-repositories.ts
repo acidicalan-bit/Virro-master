@@ -265,12 +265,26 @@ export class SupabaseExecutionRunRepository implements ExecutionRunRepository {
     return { id: String(data.id), transactionId: String(data.transaction_id), status: data.status as ExecutionRunRecord["status"], executor: String(data.executor), startedAt: String(data.started_at), completedAt: String(data.completed_at), latencyMs: Number(data.latency_ms), costUsd: data.cost_usd === null ? null : Number(data.cost_usd), errorMessage: data.error_message ? String(data.error_message) : null, metadata: data.metadata as Record<string, unknown> };
   }
 
+  async updateMetadata(id: string, metadata: Record<string, unknown>): Promise<ExecutionRunRecord> {
+    const { data, error } = await this.client.from("execution_runs").update({ metadata }).eq("id", id).select("*").single();
+    if (error || !data) throw new Error("No se pudo actualizar el checkpoint de ejecución.");
+    return executionRow(data);
+  }
+
+  async findById(id: string): Promise<ExecutionRunRecord | null> {
+    const { data, error } = await this.client.from("execution_runs").select("*").eq("id", id).maybeSingle();
+    if (error) throw new Error("No se pudo leer la ejecución.");
+    return data ? executionRow(data) : null;
+  }
+
   async findByTransactionId(transactionId: string): Promise<ExecutionRunRecord[]> {
     const { data, error } = await this.client.from("execution_runs").select("*").eq("transaction_id", transactionId);
     if (error || !data) throw new Error("No se pudieron leer las ejecuciones.");
-    return data.map((row) => ({ id: String(row.id), transactionId: String(row.transaction_id), status: row.status as ExecutionRunRecord["status"], executor: String(row.executor), startedAt: String(row.started_at), completedAt: String(row.completed_at), latencyMs: Number(row.latency_ms), costUsd: row.cost_usd === null ? null : Number(row.cost_usd), errorMessage: row.error_message ? String(row.error_message) : null, metadata: row.metadata as Record<string, unknown> }));
+    return data.map(executionRow);
   }
 }
+
+function executionRow(row: Record<string, unknown>): ExecutionRunRecord { return { id: String(row.id), transactionId: String(row.transaction_id), status: row.status as ExecutionRunRecord["status"], executor: String(row.executor), startedAt: String(row.started_at), completedAt: String(row.completed_at), latencyMs: Number(row.latency_ms), costUsd: row.cost_usd === null ? null : Number(row.cost_usd), errorMessage: row.error_message ? String(row.error_message) : null, metadata: row.metadata as Record<string, unknown> }; }
 
 export class SupabaseEvidenceReceiptRepository implements EvidenceReceiptRepository {
   constructor(private readonly client: SupabaseClient) {}

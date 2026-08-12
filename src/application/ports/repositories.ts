@@ -333,6 +333,8 @@ export type CreateExecutionRunRecord = Omit<ExecutionRunRecord, "id"> & { id?: s
 
 export interface ExecutionRunRepository {
   create(input: CreateExecutionRunRecord): Promise<ExecutionRunRecord>;
+  updateMetadata(id: string, metadata: Record<string, unknown>): Promise<ExecutionRunRecord>;
+  findById(id: string): Promise<ExecutionRunRecord | null>;
   findByTransactionId(transactionId: string): Promise<ExecutionRunRecord[]>;
 }
 

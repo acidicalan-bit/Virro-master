@@ -124,6 +124,26 @@ export type FieldStrategyRun = {
   createdAt: string;
 };
 
+export const FieldRecoveryContextSchema = z.object({
+  id: z.uuid(),
+  tenantId: z.literal(FIELD_TENANT_ID),
+  executionRunId: z.uuid(),
+  transactionId: z.uuid(),
+  sourceVersionId: z.uuid(),
+  instruction: z.string().min(1),
+  roi: z.record(z.string(), z.number()),
+  topology: StudyTopologySchema,
+  taskType: StudyTaskTypeSchema,
+  base: z.unknown(),
+  blueprintSnapshot: z.unknown(),
+  taskSpecSnapshot: z.unknown(),
+  policyVersion: z.literal(FIELD_POLICY_VERSION),
+  status: z.literal("REDRIVABLE"),
+  contextHash: z.string().regex(/^[a-f0-9]{64}$/),
+  createdAt: z.string(),
+}).strict();
+export type FieldRecoveryContext = z.infer<typeof FieldRecoveryContextSchema>;
+
 export type FieldOutcome = {
   id: string;
   transactionId: string;

@@ -26,6 +26,7 @@ import { calculatePreservationEvidence } from "@/src/infrastructure/evidence/pre
 import { verifyCreativeAssertions } from "@/src/application/outcome/media/creative-assertions";
 import type { TaskSpec } from "@/src/domain/outcome/specification/task-spec";
 import { TaskSpecSchema, verifyTaskSpecHash } from "@/src/domain/outcome/specification/task-spec";
+import { createRecoveryMetadata } from "@/src/application/outcome/recovery/execution-recovery-context";
 
 const SOURCE_MAX_BYTES = 10 * 1024 * 1024;
 
@@ -66,6 +67,12 @@ export type RunPreservationExperimentInput = {
     sourceSha256: string;
     sourceByteSize: number;
   }) => Promise<TaskSpec>;
+  recoveryContext?: {
+    tenantId: "internal-lab";
+    topology: "LOCAL_INDEPENDENT" | "LOCAL_COUPLED" | "STRUCTURAL" | "GLOBAL";
+    taskType: "COLOR_CHANGE" | "OBJECT_REMOVAL" | "TEXT_EDIT" | "IDENTITY_EDIT" | "PRODUCT_EDIT" | "GEOMETRY_EDIT" | "OTHER";
+    blueprint: import("@/src/domain/outcome/specification/outcome-blueprint").OutcomeBlueprint;
+  };
 };
 
 export type PreservationExperimentView = {
@@ -319,6 +326,27 @@ export class PreservationVerificationService {
       preservationRunId: null,
       committed: false,
     });
+    if (taskSpec && input.recoveryContext) {
+      await this.repositories.executionRuns.updateMetadata(executionRun.id, {
+        ...executionRun.metadata,
+        fieldRecoveryContext: createRecoveryMetadata({
+          schemaVersion: "field-recovery-context-v0.1",
+          tenantId: input.recoveryContext.tenantId,
+          transactionId: transaction.id,
+          executionRunId: executionRun.id,
+          sourceVersionId: sourceVersion.id,
+          instruction: input.instruction.trim(),
+          roi: policy.coreRoi,
+          topology: input.recoveryContext.topology,
+          taskType: input.recoveryContext.taskType,
+          policyVersion: policy.policyVersion,
+          blueprint: input.recoveryContext.blueprint,
+          taskSpec,
+          rawCandidateId: rawCandidate.id,
+          recoveryEligibility: "REDRIVABLE",
+        }),
+      });
+    }
 
     const receipt = await this.repositories.evidenceReceipts.create({
       transactionId: transaction.id,

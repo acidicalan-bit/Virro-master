@@ -229,6 +229,15 @@ export class InMemoryExecutionRunRepository implements ExecutionRunRepository {
     return record;
   }
 
+  async updateMetadata(id: string, metadata: Record<string, unknown>): Promise<ExecutionRunRecord> {
+    const record = this.records.find((item) => item.id === id);
+    if (!record) throw new Error("Execution run not found.");
+    record.metadata = metadata;
+    return record;
+  }
+
+  async findById(id: string): Promise<ExecutionRunRecord | null> { return this.records.find((item) => item.id === id) ?? null; }
+
   async findByTransactionId(transactionId: string): Promise<ExecutionRunRecord[]> {
     return this.records.filter((r) => r.transactionId === transactionId);
   }

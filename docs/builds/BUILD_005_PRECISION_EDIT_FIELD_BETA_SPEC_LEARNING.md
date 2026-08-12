@@ -108,3 +108,26 @@ The persistence adapter distinguishes exact strategy retries from collisions wit
 The current `run` entry point still starts a new provider experiment. A complete provider-free redrive requires a durable historical Task Spec/Blueprint load path tied to the execution checkpoint, which the current execution metadata does not yet provide. This repair therefore does not claim `BUILD_005B_FIELD_READY`.
 
 `MIGRATION_STATE_CONTROL_STATUS = MANUAL_SQL_EDITOR_REQUIRED`: Supabase CLI/history integration is unavailable in this worktree. The versioned migration was applied in the disposable Supabase project through SQL Editor and verified via `pg_indexes`; clean-chain replay and migration-history alignment remain deployment-gate work.
+
+## Durable execution recovery context
+
+New Field Beta executions persist a signed-by-hash `fieldRecoveryContext` inside
+the successful execution metadata after the RAW artifact is durable. It contains
+the trusted internal tenant, execution/transaction/source references, the
+immutable Blueprint and Task Spec used for the execution, policy/topology/task
+identity, and the RAW reference. `DurableExecutionRecoveryContextLoader` accepts
+only a server-side `internal-lab` authority and returns `REDRIVABLE`,
+`NOT_REDRIVABLE_LEGACY`, `INCOMPLETE_OR_CORRUPT`, or `NOT_FOUND`.
+
+The historical execution `cd597fc3-487e-4ff2-9c6f-bcf9e31c84eb` predates this
+metadata and remains `LEGACY_EXECUTION_NOT_REDRIVABLE`; its provider, candidate,
+verification, and transaction evidence are not altered. New executions have a
+provider-neutral completion operation that reuses the durable checkpoint and
+never invokes the provider during recovery.
+
+`RECOVERY_GAP_CLASSIFICATION = BOTH`: the previous code had no loader and the
+historical execution lacks enough durable context. The new context is a bounded
+recovery read model rather than a competing Task Spec/Blueprint authority; its
+hash and embedded immutable documents are revalidated before use because the
+repository has no standalone Task Spec table. This is the minimum forward data
+needed for process-boundary recovery in the current modular monolith.

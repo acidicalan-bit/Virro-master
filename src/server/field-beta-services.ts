@@ -8,6 +8,7 @@ import { createSupabaseRepositories } from "@/src/infrastructure/persistence/sup
 import { SupabaseMediaObjectStore } from "@/src/infrastructure/storage/supabase-media-object-store";
 import { createTransientJwtRetryFetch } from "@/src/infrastructure/supabase/transient-jwt-retry-fetch";
 import { createPreservationVerificationService } from "@/src/server/preservation-services";
+import { DurableExecutionRecoveryContextLoader } from "@/src/application/outcome/recovery/execution-recovery-context-loader";
 
 let service: FieldBetaService | null = null;
 
@@ -31,6 +32,8 @@ export function createFieldBetaService(): FieldBetaService {
     new SupabaseMediaObjectStore(client),
     undefined,
     samplingRate,
+    Math.random,
+    new DurableExecutionRecoveryContextLoader(repositories.executionRuns),
   );
   return service;
 }
