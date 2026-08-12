@@ -138,6 +138,17 @@ export class FieldBetaService {
       const result = this.ladder.derive({ strategyId: derivedStrategy, parameters, source: sourcePixels, rawCandidate: rawPixels, roi: input.roi });
       const buffer = encodePixelsToPng(result.pixels);
       const bytes = new Uint8Array(buffer);
+      const existingByKey = await this.repository.findStrategyRunByKey(base.transactionId, derivedStrategy);
+      if (existingByKey && (existingByKey.taskSpecHash !== taskSpec.hash || existingByKey.policyVersion !== FIELD_POLICY_VERSION)) {
+        throw new FieldBetaError("PERSISTENCE_IDENTITY_CONFLICT", "La operación de preservación existente no coincide con el Task Spec o la política actual.");
+      }
+      const existingStrategy = await this.repository.findStrategyRun({ transactionId: base.transactionId, strategyId: derivedStrategy, taskSpecHash: taskSpec.hash, policyVersion: FIELD_POLICY_VERSION });
+      const existingCandidate = existingStrategy ? await this.candidates.findById(existingStrategy.candidateId) : null;
+      if (existingStrategy && existingCandidate) {
+        views.set(derivedStrategy, { candidateId: existingCandidate.id, strategyId: derivedStrategy, role: strategyId === derivedStrategy ? "DELIVERED" : "SHADOW", url: await this.storage.createReadUrl(existingCandidate.storageKey), width: existingCandidate.width, height: existingCandidate.height, sha256: existingCandidate.sha256, machineMetrics: existingStrategy.machineMetrics, preservationLatencyMs: existingStrategy.preservationLatencyMs });
+        continue;
+      }
+      if (existingStrategy && !existingCandidate) throw new FieldBetaError("PERSISTENCE_LINEAGE_MISSING", "La operación de preservación existe pero su candidato durable falta.");
       const storageKey = `candidates/${base.transactionId}/strategies/${derivedStrategy.toLowerCase()}/${crypto.randomUUID()}.png`;
       await this.storage.put(storageKey, bytes, "image/png");
       const candidate = await this.candidates.create({
@@ -156,6 +167,8 @@ export class FieldBetaService {
 
     for (const currentStrategy of PreservationStrategyIdSchema.options) {
       const candidate = views.get(currentStrategy)!;
+      const existing = await this.repository.findStrategyRun({ transactionId: base.transactionId, strategyId: currentStrategy, taskSpecHash: taskSpec.hash, policyVersion: FIELD_POLICY_VERSION });
+      if (existing) continue;
       await this.repository.createStrategyRun({
         transactionId: base.transactionId, executionRunId: base.executionRunId, rawCandidateId: base.rawCandidateId,
         candidateId: candidate.candidateId, policyVersion: FIELD_POLICY_VERSION, strategyId: currentStrategy,
@@ -168,6 +181,12 @@ export class FieldBetaService {
       });
     }
     const delivered = views.get(strategyId)!;
+    const existingByTransaction = await this.repository.findOutcomeByTransactionId(base.transactionId);
+    if (existingByTransaction && (existingByTransaction.taskSpecHash !== taskSpec.hash || existingByTransaction.strategyId !== strategyId || existingByTransaction.policyVersion !== FIELD_POLICY_VERSION)) {
+      throw new FieldBetaError("PERSISTENCE_IDENTITY_CONFLICT", "El Field Outcome existente pertenece a otra intención inmutable.");
+    }
+    const existingOutcome = await this.repository.findOutcomeByIdentity({ transactionId: base.transactionId, taskSpecHash: taskSpec.hash, policyVersion: FIELD_POLICY_VERSION, strategyId });
+    if (existingOutcome) return this.getByTransactionId(existingOutcome.transactionId);
     const fieldOutcome = await this.repository.createOutcome({
       transactionId: base.transactionId, sourceVersionId: base.sourceVersionId, instruction: input.instruction, roi: input.roi,
       topology: input.topology, taskType: input.taskType, provider: base.provider, model: base.model,

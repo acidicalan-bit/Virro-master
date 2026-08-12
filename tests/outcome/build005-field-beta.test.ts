@@ -125,6 +125,15 @@ describe("BUILD 005 recovery invariants", () => {
     expect(result.metrics).toBeDefined();
   });
 
+  it("distinguishes an exact strategy retry from a different immutable identity", async () => {
+    const repo = new InMemoryFieldBetaRepository();
+    const item = outcome();
+    const strategy = { id: "60000000-0000-4000-8000-000000000010", transactionId: ids.tx, executionRunId: "60000000-0000-4000-8000-000000000011", rawCandidateId: ids.raw, candidateId: ids.delivered, policyVersion: FIELD_POLICY_VERSION, strategyId: "P3_HARD" as const, parameters: FIELD_POLICY_DEFINITION.strategies.P3_HARD, role: "DELIVERED" as const, machineMetrics: {} as never, preservationLatencyMs: 1, tenantId: "internal-lab", outcomeSku: PRECISION_EDIT_OUTCOME_SKU, blueprintId: item.blueprintId, blueprintVersion: item.blueprintVersion, blueprintHash: item.blueprintHash, taskSpecId: item.taskSpecId, taskSpecVersion: item.taskSpecVersion, taskSpecHash: item.taskSpecHash, specCompilerVersion: item.specCompilerVersion, createdAt: "2026-08-11T20:00:00.000Z" };
+    await repo.createStrategyRun(strategy);
+    expect(await repo.findStrategyRunByKey(ids.tx, "P3_HARD")).toMatchObject({ taskSpecHash: item.taskSpecHash });
+    expect(await repo.findStrategyRun({ transactionId: ids.tx, strategyId: "P3_HARD", taskSpecHash: "f".repeat(64), policyVersion: FIELD_POLICY_VERSION })).toBeNull();
+  });
+
   it("migration is server-write-only, tenant-labelled, and keeps cost nullable", () => {
     const sql = readFileSync("supabase/migrations/20260812110000_build_005_precision_edit_field_beta_spec_learning.sql", "utf8");
     expect(sql).toContain("task_spec_hash text not null");

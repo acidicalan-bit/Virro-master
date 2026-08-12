@@ -98,3 +98,13 @@ Field outcomes now persist immutable Blueprint and Task Spec snapshots beside th
 ### BUILD 005-B security hardening boundary
 
 The feature flag is an exposure switch, not authorization. The page/API check it at request boundaries before using a cached service, and the disabled page is not rendered. Client requests cannot provide `tenantId`; the server binds all Field Beta writes to the fixed `internal-lab` laboratory tenant. Supabase repositories enforce that binding on writes and tenant predicates on reads, including evaluation and regression/golden records. PNG decoding rejects dimensions above 2048×2048, more than 4,194,304 pixels, or the decoded resource budget before inflation/allocation. API failures return bounded internal-lab codes/messages. The corrective migration refuses the pre-snapshot schema without fabricating historical snapshots. These controls do not create public authentication or ownership; externally reachable production use remains prohibited.
+
+## BUILD 005-B cardinality and persistence-tail repair
+
+The BUILD 004 candidate index encoded `UNIQUE(execution_run_id, candidate_type)`, which rejected the valid ladder after provider and verification had succeeded. Forward migration `20260812130000_build_005b_candidate_ladder_cardinality.sql` now enforces exactly one `RAW_PROVIDER` per execution while allowing multiple `PRESERVED` artifacts owned by strategy runs (`P1_SOFT`, `P2_MODERATE`, `P3_HARD`). Existing rows are not rewritten or fabricated.
+
+The persistence adapter distinguishes exact strategy retries from collisions with a different immutable Task Spec or policy. Exact matches are reusable; a different identity is reported as `PERSISTENCE_IDENTITY_CONFLICT`. The real Supabase fixture proves one RAW plus three PRESERVED rows and rejects a second RAW.
+
+The current `run` entry point still starts a new provider experiment. A complete provider-free redrive requires a durable historical Task Spec/Blueprint load path tied to the execution checkpoint, which the current execution metadata does not yet provide. This repair therefore does not claim `BUILD_005B_FIELD_READY`.
+
+`MIGRATION_STATE_CONTROL_STATUS = MANUAL_SQL_EDITOR_REQUIRED`: Supabase CLI/history integration is unavailable in this worktree. The versioned migration was applied in the disposable Supabase project through SQL Editor and verified via `pg_indexes`; clean-chain replay and migration-history alignment remain deployment-gate work.

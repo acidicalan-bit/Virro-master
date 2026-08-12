@@ -13,7 +13,7 @@ describe.skipIf(!enabled)("BUILD 005-B real Supabase integration", () => {
   let admin: SupabaseClient;
   let anonymous: SupabaseClient;
   let internal: SupabaseFieldBetaRepository;
-  let ids: { project: string; asset: string; version: string; transaction: string; foreignTransaction: string; corruptTransaction: string; execution: string; rawCandidate: string; deliveredCandidate: string; outcome: string; foreignOutcome: string; corruptOutcome: string; sample: string };
+  let ids: { project: string; asset: string; version: string; transaction: string; foreignTransaction: string; corruptTransaction: string; execution: string; ladderExecution: string; rawCandidate: string; deliveredCandidate: string; ladderRaw: string; ladderRawDuplicate: string; p1: string; p2: string; p3: string; outcome: string; foreignOutcome: string; corruptOutcome: string; sample: string };
   let outcomeRow: Record<string, unknown>;
   let taskSpec: TaskSpec;
   let blueprint: OutcomeBlueprint;
@@ -25,7 +25,7 @@ describe.skipIf(!enabled)("BUILD 005-B real Supabase integration", () => {
     admin = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
     anonymous = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY, { auth: { persistSession: false } });
     internal = new SupabaseFieldBetaRepository(admin, "internal-lab");
-    ids = { project: crypto.randomUUID(), asset: crypto.randomUUID(), version: crypto.randomUUID(), transaction: crypto.randomUUID(), foreignTransaction: crypto.randomUUID(), corruptTransaction: crypto.randomUUID(), execution: crypto.randomUUID(), rawCandidate: crypto.randomUUID(), deliveredCandidate: crypto.randomUUID(), outcome: crypto.randomUUID(), foreignOutcome: crypto.randomUUID(), corruptOutcome: crypto.randomUUID(), sample: crypto.randomUUID() };
+    ids = { project: crypto.randomUUID(), asset: crypto.randomUUID(), version: crypto.randomUUID(), transaction: crypto.randomUUID(), foreignTransaction: crypto.randomUUID(), corruptTransaction: crypto.randomUUID(), execution: crypto.randomUUID(), ladderExecution: crypto.randomUUID(), rawCandidate: crypto.randomUUID(), deliveredCandidate: crypto.randomUUID(), ladderRaw: crypto.randomUUID(), ladderRawDuplicate: crypto.randomUUID(), p1: crypto.randomUUID(), p2: crypto.randomUUID(), p3: crypto.randomUUID(), outcome: crypto.randomUUID(), foreignOutcome: crypto.randomUUID(), corruptOutcome: crypto.randomUUID(), sample: crypto.randomUUID() };
     blueprint = publishOutcomeBlueprint(createPrecisionEditBlueprintDefinition(), "2026-08-12T00:00:00.000Z");
     taskSpec = await new DeterministicPrecisionEditSpecCompiler(
       () => crypto.randomUUID(),
@@ -52,6 +52,7 @@ describe.skipIf(!enabled)("BUILD 005-B real Supabase integration", () => {
     const preservedExecution = crypto.randomUUID();
     await insertExecution(rawExecution);
     await insertExecution(preservedExecution);
+    await insertExecution(ids.ladderExecution);
     await insertCandidate(ids.rawCandidate, "raw", rawExecution, "RAW_PROVIDER");
     await insertCandidate(ids.deliveredCandidate, "delivered", preservedExecution, "PRESERVED");
     const common = { id: ids.outcome, tenant_id: "internal-lab", transaction_id: ids.transaction, source_version_id: ids.version, source_sha256: "a".repeat(64), instruction: "cambia el color dentro del ROI", roi: { x: 0.1, y: 0.1, width: 0.2, height: 0.2 }, topology: "LOCAL_INDEPENDENT", task_type: "COLOR_CHANGE", provider: "integration-fixture", model: "integration-fixture", raw_candidate_id: ids.rawCandidate, delivered_candidate_id: ids.deliveredCandidate, recommended_strategy: "P3_HARD", strategy_id: "P3_HARD", policy_version: "preservation-policy-v0.1", outcome_sku: "precision-edit-v0", blueprint_id: blueprint.id, blueprint_version: blueprint.version, blueprint_hash: blueprint.hash, blueprint_snapshot: blueprint, task_spec_id: taskSpec.id, task_spec_version: taskSpec.version, task_spec_hash: taskSpec.hash, task_spec_snapshot: taskSpec, spec_compiler_name: taskSpec.compiler.name, spec_compiler_version: taskSpec.compiler.version, machine_verification_status: "PASSED", same_spec_status: "PASSED", provider_latency_ms: 1, preservation_latency_ms: 1, total_latency_ms: 2, provider_cost_usd: null };
@@ -63,7 +64,7 @@ describe.skipIf(!enabled)("BUILD 005-B real Supabase integration", () => {
     // Field Beta rows are append-only by design. Fixtures remain explicitly labeled
     // INTEGRATION_TEST_FIXTURE in the disposable project; base rows are removable.
     if (!admin || !ids) return;
-    for (const [table, column, value] of [["candidate_assets", "id", ids.deliveredCandidate], ["candidate_assets", "id", ids.rawCandidate], ["field_outcomes", "id", ids.outcome], ["field_outcomes", "id", ids.foreignOutcome], ["field_outcomes", "id", ids.corruptOutcome], ["execution_runs", "transaction_id", ids.transaction], ["execution_runs", "transaction_id", ids.foreignTransaction], ["execution_runs", "transaction_id", ids.corruptTransaction], ["outcome_transactions", "id", ids.transaction], ["outcome_transactions", "id", ids.foreignTransaction], ["outcome_transactions", "id", ids.corruptTransaction], ["asset_versions", "id", ids.version], ["assets", "id", ids.asset], ["projects", "id", ids.project]] as const) {
+    for (const [table, column, value] of [["candidate_assets", "id", ids.p3], ["candidate_assets", "id", ids.p2], ["candidate_assets", "id", ids.p1], ["candidate_assets", "id", ids.ladderRawDuplicate], ["candidate_assets", "id", ids.ladderRaw], ["candidate_assets", "id", ids.deliveredCandidate], ["candidate_assets", "id", ids.rawCandidate], ["field_outcomes", "id", ids.outcome], ["field_outcomes", "id", ids.foreignOutcome], ["field_outcomes", "id", ids.corruptOutcome], ["execution_runs", "id", ids.ladderExecution], ["execution_runs", "transaction_id", ids.transaction], ["execution_runs", "transaction_id", ids.foreignTransaction], ["execution_runs", "transaction_id", ids.corruptTransaction], ["outcome_transactions", "id", ids.transaction], ["outcome_transactions", "id", ids.foreignTransaction], ["outcome_transactions", "id", ids.corruptTransaction], ["asset_versions", "id", ids.version], ["assets", "id", ids.asset], ["projects", "id", ids.project]] as const) {
       await admin.from(table).delete().eq(column, value);
     }
   });
@@ -100,8 +101,27 @@ describe.skipIf(!enabled)("BUILD 005-B real Supabase integration", () => {
     await expect(internal.findOutcome(String(corrupted.id))).rejects.toThrow(/snapshot failed hash verification/);
   }, 60_000);
 
+  it("enforces one RAW and permits the P1/P2/P3 preserved ladder on one execution", async () => {
+    await insertCandidate(ids.ladderRaw, "ladder-raw", ids.ladderExecution, "RAW_PROVIDER");
+    const duplicateRaw = await admin.from("candidate_assets").insert({
+      id: ids.ladderRawDuplicate, transaction_id: ids.transaction, execution_run_id: ids.ladderExecution,
+      source_version_id: ids.version, raw_candidate_id: null, preservation_run_id: null, candidate_type: "RAW_PROVIDER",
+      storage_key: `integration/${ids.ladderRawDuplicate}.png`, mime_type: "image/png", width: 1, height: 1, byte_size: 4,
+      sha256: "a".repeat(64), roi: { x: 0, y: 0, width: 1, height: 1 }, instruction: "INTEGRATION_TEST_FIXTURE duplicate raw",
+      provider: "integration-fixture", model: "integration-fixture", cost_usd: null, committed: false,
+    });
+    expect(duplicateRaw.error?.code).toBe("23505");
+    await insertCandidate(ids.p1, "p1", ids.ladderExecution, "PRESERVED", ids.ladderRaw);
+    await insertCandidate(ids.p2, "p2", ids.ladderExecution, "PRESERVED", ids.ladderRaw);
+    await insertCandidate(ids.p3, "p3", ids.ladderExecution, "PRESERVED", ids.ladderRaw);
+    const ladderRows = await admin.from("candidate_assets").select("id,candidate_type").eq("execution_run_id", ids.ladderExecution);
+    expect(ladderRows.error).toBeNull();
+    expect(ladderRows.data?.filter((row) => row.candidate_type === "RAW_PROVIDER")).toHaveLength(1);
+    expect(ladderRows.data?.filter((row) => row.candidate_type === "PRESERVED")).toHaveLength(3);
+  }, 60_000);
+
   async function insert(table: string, row: Record<string, unknown>): Promise<void> { const result = await admin.from(table).insert(row); if (result.error) throw new Error(`${table}: ${result.error.message}`); }
   async function update(table: string, id: string, row: Record<string, unknown>): Promise<void> { const result = await admin.from(table).update(row).eq("id", id); if (result.error) throw new Error(`${table}: ${result.error.message}`); }
   async function insertExecution(id: string): Promise<void> { await insert("execution_runs", { id, transaction_id: ids.transaction, status: "SUCCESS", executor: "INTEGRATION_TEST_FIXTURE", started_at: "2026-08-12T00:00:00.000Z", completed_at: "2026-08-12T00:00:00.001Z", latency_ms: 1, cost_usd: 0, metadata: { integrationFixture: true } }); }
-  async function insertCandidate(id: string, label: string, executionRunId: string, candidateType: "RAW_PROVIDER" | "PRESERVED"): Promise<void> { await insert("candidate_assets", { id, transaction_id: ids.transaction, execution_run_id: executionRunId, source_version_id: ids.version, raw_candidate_id: candidateType === "RAW_PROVIDER" ? null : ids.rawCandidate, preservation_run_id: null, candidate_type: candidateType, storage_key: `integration/${id}.png`, mime_type: "image/png", width: 1, height: 1, byte_size: 4, sha256: "a".repeat(64), roi: { x: 0, y: 0, width: 1, height: 1 }, instruction: `INTEGRATION_TEST_FIXTURE ${label}`, provider: "integration-fixture", model: "integration-fixture", cost_usd: null, committed: false }); }
+  async function insertCandidate(id: string, label: string, executionRunId: string, candidateType: "RAW_PROVIDER" | "PRESERVED", rawCandidateId: string | null = null): Promise<void> { await insert("candidate_assets", { id, transaction_id: ids.transaction, execution_run_id: executionRunId, source_version_id: ids.version, raw_candidate_id: candidateType === "RAW_PROVIDER" ? null : (rawCandidateId ?? ids.rawCandidate), preservation_run_id: null, candidate_type: candidateType, storage_key: `integration/${id}.png`, mime_type: "image/png", width: 1, height: 1, byte_size: 4, sha256: "a".repeat(64), roi: { x: 0, y: 0, width: 1, height: 1 }, instruction: `INTEGRATION_TEST_FIXTURE ${label}`, provider: "integration-fixture", model: "integration-fixture", cost_usd: null, committed: false }); }
 });

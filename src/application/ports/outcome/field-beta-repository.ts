@@ -20,8 +20,11 @@ export interface FieldBetaRepository {
   findPolicy(policyVersion: string): Promise<FieldPolicyRecord | null>;
   createPolicy(input: Omit<FieldPolicyRecord, "createdAt">): Promise<FieldPolicyRecord>;
   createStrategyRun(input: Omit<FieldStrategyRun, "id" | "createdAt">): Promise<FieldStrategyRun>;
+  findStrategyRunByKey(transactionId: string, strategyId: FieldStrategyRun["strategyId"]): Promise<FieldStrategyRun | null>;
+  findStrategyRun(input: Pick<FieldStrategyRun, "transactionId" | "strategyId" | "taskSpecHash" | "policyVersion">): Promise<FieldStrategyRun | null>;
   listStrategyRuns(transactionId: string): Promise<FieldStrategyRun[]>;
   createOutcome(input: Omit<FieldOutcome, "id" | "createdAt">): Promise<FieldOutcome>;
+  findOutcomeByIdentity(input: Pick<FieldOutcome, "transactionId" | "taskSpecHash" | "policyVersion" | "strategyId">): Promise<FieldOutcome | null>;
   findOutcome(id: string): Promise<FieldOutcome | null>;
   findOutcomeByTransactionId(transactionId: string): Promise<FieldOutcome | null>;
   listOutcomes(): Promise<FieldOutcome[]>;

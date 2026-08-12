@@ -28,6 +28,8 @@ export class InMemoryFieldBetaRepository implements FieldBetaRepository {
     this.strategyRuns.push(value);
     return clone(value);
   }
+  async findStrategyRunByKey(transactionId: string, strategyId: FieldStrategyRun["strategyId"]) { return clone(this.strategyRuns.find((item) => item.tenantId === this.tenantId && item.transactionId === transactionId && item.strategyId === strategyId) ?? null); }
+  async findStrategyRun(input: Pick<FieldStrategyRun, "transactionId" | "strategyId" | "taskSpecHash" | "policyVersion">) { return clone(this.strategyRuns.find((item) => item.tenantId === this.tenantId && item.transactionId === input.transactionId && item.strategyId === input.strategyId && item.taskSpecHash === input.taskSpecHash && item.policyVersion === input.policyVersion) ?? null); }
   async listStrategyRuns(transactionId: string) { return clone(this.strategyRuns.filter((item) => item.tenantId === this.tenantId && item.transactionId === transactionId)); }
   async createOutcome(input: Omit<FieldOutcome, "id" | "createdAt">) {
     if (this.outcomes.some((item) => item.transactionId === input.transactionId)) throw new Error("Field outcome already exists.");
@@ -40,6 +42,7 @@ export class InMemoryFieldBetaRepository implements FieldBetaRepository {
     this.outcomes.push(value);
     return clone(value);
   }
+  async findOutcomeByIdentity(input: Pick<FieldOutcome, "transactionId" | "taskSpecHash" | "policyVersion" | "strategyId">) { return clone(this.outcomes.find((item) => item.tenantId === this.tenantId && item.transactionId === input.transactionId && item.taskSpecHash === input.taskSpecHash && item.policyVersion === input.policyVersion && item.strategyId === input.strategyId) ?? null); }
   async findOutcome(id: string) { return clone(this.outcomes.find((item) => item.tenantId === this.tenantId && item.id === id) ?? null); }
   async findOutcomeByTransactionId(transactionId: string) { return clone(this.outcomes.find((item) => item.tenantId === this.tenantId && item.transactionId === transactionId) ?? null); }
   async listOutcomes() { return clone(this.outcomes.filter((item) => item.tenantId === this.tenantId)); }
