@@ -6,6 +6,8 @@ import { DeterministicPrecisionEditSpecCompiler } from "@/src/application/outcom
 import { publishOutcomeBlueprint, type OutcomeBlueprint } from "@/src/domain/outcome/specification/outcome-blueprint";
 import type { TaskSpec } from "@/src/domain/outcome/specification/task-spec";
 import { SupabaseFieldBetaRepository } from "@/src/infrastructure/persistence/outcome/supabase-field-beta-repository";
+import { DurableExecutionRecoveryContextLoader } from "@/src/application/outcome/recovery/execution-recovery-context-loader";
+import { createRecoveryMetadata } from "@/src/application/outcome/recovery/execution-recovery-context";
 
 const enabled = process.env.RUN_BUILD005_DB_INTEGRATION === "true";
 
@@ -118,6 +120,30 @@ describe.skipIf(!enabled)("BUILD 005-B real Supabase integration", () => {
     expect(ladderRows.error).toBeNull();
     expect(ladderRows.data?.filter((row) => row.candidate_type === "RAW_PROVIDER")).toHaveLength(1);
     expect(ladderRows.data?.filter((row) => row.candidate_type === "PRESERVED")).toHaveLength(3);
+  }, 60_000);
+
+  it("reconstructs a durable recovery context after the process boundary", async () => {
+    const metadata = createRecoveryMetadata({
+      schemaVersion: "field-recovery-context-v0.1", tenantId: "internal-lab", transactionId: ids.transaction,
+      executionRunId: ids.execution, sourceVersionId: ids.version, instruction: "cambia el color dentro del ROI",
+      roi: { x: 0.1, y: 0.1, width: 0.2, height: 0.2 }, topology: "LOCAL_INDEPENDENT", taskType: "COLOR_CHANGE",
+      policyVersion: "preservation-policy-v0.1", blueprint, taskSpec, rawCandidateId: ids.rawCandidate, recoveryEligibility: "REDRIVABLE",
+    });
+    const updated = await admin.from("execution_runs").update({ metadata: { fieldRecoveryContext: metadata } }).eq("id", ids.execution);
+    expect(updated.error).toBeNull();
+    const loader = new DurableExecutionRecoveryContextLoader({
+      create: async () => { throw new Error("not used"); },
+      updateMetadata: async () => { throw new Error("not used"); },
+      findById: async (id) => {
+        const result = await admin.from("execution_runs").select("*").eq("id", id).maybeSingle();
+        if (result.error || !result.data) return null;
+        return { id: String(result.data.id), transactionId: String(result.data.transaction_id), status: result.data.status as "SUCCESS" | "FAILURE", executor: String(result.data.executor), startedAt: String(result.data.started_at), completedAt: String(result.data.completed_at), latencyMs: Number(result.data.latency_ms), costUsd: result.data.cost_usd === null ? null : Number(result.data.cost_usd), errorMessage: result.data.error_message ? String(result.data.error_message) : null, metadata: result.data.metadata as Record<string, unknown> };
+      },
+      findByTransactionId: async () => [],
+    });
+    const loaded = await loader.load(ids.execution, { tenantId: "internal-lab" });
+    expect(loaded.status, loaded.status === "REDRIVABLE" ? "" : loaded.reason).toBe("REDRIVABLE");
+    if (loaded.status === "REDRIVABLE") expect(loaded.context.taskSpec.hash).toBe(taskSpec.hash);
   }, 60_000);
 
   async function insert(table: string, row: Record<string, unknown>): Promise<void> { const result = await admin.from(table).insert(row); if (result.error) throw new Error(`${table}: ${result.error.message}`); }
