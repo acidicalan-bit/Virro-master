@@ -30,6 +30,7 @@ import { verifySameSpecExecution } from "@/src/application/outcome/specification
 import type { CriterionEvidence } from "@/src/application/outcome/specification/types";
 import { PRECISION_EDIT_OUTCOME_SKU } from "@/src/domain/outcome/media/field-beta";
 import type { ExecutionRecoveryContextLoader, TrustedRecoveryAuthority } from "@/src/application/outcome/recovery/execution-recovery-context-loader";
+import type { FieldBetaFaultInjector } from "@/src/application/outcome/media/field-beta-fault-injection";
 
 export interface FieldBaseExperimentRunner {
   runExperiment(input: RunPreservationExperimentInput): Promise<PreservationExperimentView>;
@@ -78,6 +79,7 @@ export class FieldBetaService {
     private readonly samplingRate = 0,
     private readonly random = Math.random,
     private readonly recoveryLoader?: ExecutionRecoveryContextLoader,
+    private readonly faultInjector?: FieldBetaFaultInjector,
   ) {}
 
   private readonly compiler = new DeterministicPrecisionEditSpecCompiler();
@@ -191,6 +193,7 @@ export class FieldBetaService {
     }
     const existingOutcome = await this.repository.findOutcomeByIdentity({ transactionId: base.transactionId, taskSpecHash: taskSpec.hash, policyVersion: FIELD_POLICY_VERSION, strategyId });
     if (existingOutcome) return this.getByTransactionId(existingOutcome.transactionId);
+    this.faultInjector?.("BEFORE_FIELD_OUTCOME_PERSISTENCE");
     const fieldOutcome = await this.repository.createOutcome({
       transactionId: base.transactionId, sourceVersionId: base.sourceVersionId, instruction: input.instruction, roi: input.roi,
       topology: input.topology, taskType: input.taskType, provider: base.provider, model: base.model,

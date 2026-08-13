@@ -14,6 +14,8 @@ import { createTransientJwtRetryFetch } from "@/src/infrastructure/supabase/tran
 
 let service: PreservationVerificationService | null = null;
 
+export function resetPreservationVerificationServiceForTests(): void { service = null; }
+
 export function createPreservationVerificationService(): PreservationVerificationService {
   if (service) return service;
   const url = process.env.SUPABASE_URL?.trim() || process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
@@ -37,7 +39,12 @@ export function createPreservationVerificationService(): PreservationVerificatio
 function createImageExecutor(client: SupabaseClient): ImageEditExecutor {
   const provider = process.env.IMAGE_EDIT_PROVIDER?.trim();
   if (provider === "openai") return new OpenAIImageEditExecutor();
-  if (provider === "controlled") return new ControlledFieldBetaImageEditExecutor();
+  if (provider === "controlled") {
+    if (process.env.NODE_ENV === "production" || process.env.FIELD_BETA_CONTROLLED_EXECUTOR !== "true") {
+      throw new Error("Controlled Field Beta executor requires explicit non-production authorization.");
+    }
+    return new ControlledFieldBetaImageEditExecutor();
+  }
   if (provider === "fake") return new FakeImageEditExecutor(client);
   throw new Error('IMAGE_EDIT_PROVIDER must be explicitly set to "openai", "fake", or "controlled".');
 }

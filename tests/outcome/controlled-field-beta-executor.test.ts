@@ -21,18 +21,29 @@ describe("controlled Field Beta executor", () => {
   });
 
   it("fails before provider construction when the provider configuration is missing", () => {
-    const previous = { enabled: process.env.FIELD_BETA_INTERNAL_ENABLED, url: process.env.SUPABASE_URL, key: process.env.SUPABASE_SERVICE_ROLE_KEY, provider: process.env.IMAGE_EDIT_PROVIDER };
+    const previous = { enabled: process.env.FIELD_BETA_INTERNAL_ENABLED, url: process.env.SUPABASE_URL, key: process.env.SUPABASE_SERVICE_ROLE_KEY, provider: process.env.IMAGE_EDIT_PROVIDER, controlled: process.env.FIELD_BETA_CONTROLLED_EXECUTOR, nodeEnv: process.env.NODE_ENV };
     process.env.FIELD_BETA_INTERNAL_ENABLED = "true";
     process.env.SUPABASE_URL = "https://example.supabase.co";
     process.env.SUPABASE_SERVICE_ROLE_KEY = "test-service-role-key";
     process.env.IMAGE_EDIT_PROVIDER = "openai";
+    process.env.FIELD_BETA_CONTROLLED_EXECUTOR = "false";
     delete process.env.OPENAI_API_KEY;
     resetFieldBetaServiceForTests();
     expect(() => createFieldBetaService()).toThrow(/OPENAI_API_KEY/i);
-    if (previous.enabled === undefined) delete process.env.FIELD_BETA_INTERNAL_ENABLED; else process.env.FIELD_BETA_INTERNAL_ENABLED = previous.enabled;
-    if (previous.url === undefined) delete process.env.SUPABASE_URL; else process.env.SUPABASE_URL = previous.url;
-    if (previous.key === undefined) delete process.env.SUPABASE_SERVICE_ROLE_KEY; else process.env.SUPABASE_SERVICE_ROLE_KEY = previous.key;
-    if (previous.provider === undefined) delete process.env.IMAGE_EDIT_PROVIDER; else process.env.IMAGE_EDIT_PROVIDER = previous.provider;
+    setEnv("FIELD_BETA_INTERNAL_ENABLED", previous.enabled);
+    setEnv("SUPABASE_URL", previous.url); setEnv("SUPABASE_SERVICE_ROLE_KEY", previous.key); setEnv("IMAGE_EDIT_PROVIDER", previous.provider); setEnv("FIELD_BETA_CONTROLLED_EXECUTOR", previous.controlled); setEnv("NODE_ENV", previous.nodeEnv);
+    resetFieldBetaServiceForTests();
+  });
+
+  it("requires explicit controlled authorization and rejects production mode", () => {
+    const previous = { enabled: process.env.FIELD_BETA_INTERNAL_ENABLED, url: process.env.SUPABASE_URL, key: process.env.SUPABASE_SERVICE_ROLE_KEY, provider: process.env.IMAGE_EDIT_PROVIDER, controlled: process.env.FIELD_BETA_CONTROLLED_EXECUTOR, nodeEnv: process.env.NODE_ENV };
+    process.env.FIELD_BETA_INTERNAL_ENABLED = "true"; process.env.SUPABASE_URL = "https://example.supabase.co"; process.env.SUPABASE_SERVICE_ROLE_KEY = "test-service-role-key"; process.env.IMAGE_EDIT_PROVIDER = "controlled"; process.env.FIELD_BETA_CONTROLLED_EXECUTOR = "false"; setEnv("NODE_ENV", "test"); resetFieldBetaServiceForTests();
+    expect(() => createFieldBetaService()).toThrow(/explicit non-production authorization/i);
+    process.env.FIELD_BETA_CONTROLLED_EXECUTOR = "true"; setEnv("NODE_ENV", "production"); resetFieldBetaServiceForTests();
+    expect(() => createFieldBetaService()).toThrow(/explicit non-production authorization/i);
+    setEnv("FIELD_BETA_INTERNAL_ENABLED", previous.enabled); setEnv("SUPABASE_URL", previous.url); setEnv("SUPABASE_SERVICE_ROLE_KEY", previous.key); setEnv("IMAGE_EDIT_PROVIDER", previous.provider); setEnv("FIELD_BETA_CONTROLLED_EXECUTOR", previous.controlled); setEnv("NODE_ENV", previous.nodeEnv);
     resetFieldBetaServiceForTests();
   });
 });
+
+function setEnv(key: string, value: string | undefined): void { const env = process.env as Record<string, string | undefined>; if (value === undefined) delete env[key]; else env[key] = value; }

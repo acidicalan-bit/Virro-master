@@ -27,6 +27,7 @@ import { verifyCreativeAssertions } from "@/src/application/outcome/media/creati
 import type { TaskSpec } from "@/src/domain/outcome/specification/task-spec";
 import { TaskSpecSchema, verifyTaskSpecHash } from "@/src/domain/outcome/specification/task-spec";
 import { createRecoveryMetadata } from "@/src/application/outcome/recovery/execution-recovery-context";
+import type { FieldBetaFaultInjector } from "@/src/application/outcome/media/field-beta-fault-injection";
 
 const SOURCE_MAX_BYTES = 10 * 1024 * 1024;
 
@@ -73,6 +74,7 @@ export type RunPreservationExperimentInput = {
     taskType: "COLOR_CHANGE" | "OBJECT_REMOVAL" | "TEXT_EDIT" | "IDENTITY_EDIT" | "PRODUCT_EDIT" | "GEOMETRY_EDIT" | "OTHER";
     blueprint: import("@/src/domain/outcome/specification/outcome-blueprint").OutcomeBlueprint;
   };
+  faultInjector?: FieldBetaFaultInjector;
 };
 
 export type PreservationExperimentView = {
@@ -141,6 +143,7 @@ export class PreservationVerificationService {
     private readonly executor: ImageEditExecutor,
     private readonly preservationEngine: ImagePreservationEngine,
     private readonly storage: MediaObjectStore,
+    private readonly faultInjector?: FieldBetaFaultInjector,
   ) {}
 
   async runExperiment(input: RunPreservationExperimentInput): Promise<PreservationExperimentView> {
@@ -192,12 +195,14 @@ export class PreservationVerificationService {
     });
     await this.repositories.assets.update(asset.id, { currentVersionId: sourceVersion.id });
 
+    input.faultInjector?.("BEFORE_TRANSACTION_CREATION");
     const transaction = await this.repositories.outcomeTransactions.create({
       projectId: project.id,
       assetId: asset.id,
       baseVersionId: sourceVersion.id,
       rawRequest: input.instruction.trim(),
     });
+    input.faultInjector?.("AFTER_TRANSACTION_CREATION");
     const partialIntent = await this.repositories.partialIntents.create({
       transactionId: transaction.id,
       rawInput: input.instruction.trim(),
@@ -310,6 +315,7 @@ export class PreservationVerificationService {
       },
     });
 
+    input.faultInjector?.("AFTER_EXECUTOR_SUCCESS_BEFORE_RAW");
     const rawStorageKey = `candidates/${transaction.id}/raw/${crypto.randomUUID()}.png`;
     try {
       await this.storage.put(rawStorageKey, rawBytes, providerResult.candidateMimeType);
@@ -358,6 +364,7 @@ export class PreservationVerificationService {
         }),
       });
     }
+    input.faultInjector?.("AFTER_RAW_PERSISTENCE");
 
     const receipt = await this.repositories.evidenceReceipts.create({
       transactionId: transaction.id,
@@ -533,6 +540,7 @@ export class PreservationVerificationService {
       transaction.id,
       machineVerification.status === "PASSED" ? "VERIFIED" : "FAILED",
     );
+    if (machineVerification.status === "PASSED") input.faultInjector?.("AFTER_VERIFICATION_PASSED");
 
     return this.toView({
       transactionId: transaction.id,

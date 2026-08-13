@@ -7,7 +7,7 @@ import { SupabaseFieldBetaRepository } from "@/src/infrastructure/persistence/ou
 import { createSupabaseRepositories } from "@/src/infrastructure/persistence/supabase-repositories";
 import { SupabaseMediaObjectStore } from "@/src/infrastructure/storage/supabase-media-object-store";
 import { createTransientJwtRetryFetch } from "@/src/infrastructure/supabase/transient-jwt-retry-fetch";
-import { createPreservationVerificationService } from "@/src/server/preservation-services";
+import { createPreservationVerificationService, resetPreservationVerificationServiceForTests } from "@/src/server/preservation-services";
 import { DurableExecutionRecoveryContextLoader } from "@/src/application/outcome/recovery/execution-recovery-context-loader";
 
 let service: FieldBetaService | null = null;
@@ -48,4 +48,4 @@ function parseSamplingRate(value: string | undefined): number {
   return parsed;
 }
 
-export function resetFieldBetaServiceForTests(): void { service = null; }
+export function resetFieldBetaServiceForTests(): void { service = null; resetPreservationVerificationServiceForTests(); }
