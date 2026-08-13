@@ -150,6 +150,10 @@ export class PreservationVerificationService {
     const sourceBuffer = Buffer.from(sourceBytes);
     const sourcePixels = decodePngToPixels(sourceBuffer);
     const sourceHash = sha256(sourceBytes);
+    const sourcePreflight = this.executor.preflight({ sourceWidth: sourcePixels.width, sourceHeight: sourcePixels.height });
+    if (sourcePreflight.status !== "SUPPORTED") {
+      throw new PreservationRuntimeError(sourcePreflight.code, sourcePreflight.reason);
+    }
 
     const project = await this.repositories.projects.create({
       name: input.projectName.trim(),
@@ -247,6 +251,9 @@ export class PreservationVerificationService {
       });
     } catch (error) {
       await this.recordProviderFailure(transaction.id, providerStartedAt, error);
+      if (isImageEditExecutionError(error)) {
+        throw new PreservationRuntimeError(error.code, error.code === "PROVIDER_REQUEST_FAILED" ? "The image provider request failed." : error.message);
+      }
       throw new PreservationRuntimeError(
         "PROVIDER_FAILURE",
         error instanceof Error ? error.message : "Image provider failed.",
@@ -261,8 +268,12 @@ export class PreservationVerificationService {
       if (providerResult.candidateSha256 !== rawHash || providerResult.candidateByteSize !== rawBytes.byteLength) {
         throw new Error("Provider candidate metadata does not match returned bytes.");
       }
+      if (rawPixels.width !== sourcePixels.width || rawPixels.height !== sourcePixels.height) {
+        throw new PreservationRuntimeError("PROVIDER_OUTPUT_CONTRACT_VIOLATION", "Provider output geometry did not match the requested same-geometry execution.");
+      }
     } catch (error) {
       await this.recordProviderFailure(transaction.id, providerStartedAt, error);
+      if (error instanceof PreservationRuntimeError) throw error;
       throw new PreservationRuntimeError(
         "INVALID_PROVIDER_CANDIDATE",
         error instanceof Error ? error.message : "Provider candidate is invalid.",
@@ -824,6 +835,15 @@ function candidateView(candidate: CandidateAssetRecord, url: string): CandidateV
 
 function sha256(bytes: Uint8Array): string {
   return createHash("sha256").update(bytes).digest("hex");
+}
+
+function isImageEditExecutionError(error: unknown): error is { code: string; message: string } {
+  return error instanceof Error && [
+    "UNSUPPORTED_OUTPUT_GEOMETRY",
+    "SOURCE_GEOMETRY_UNSUPPORTED_BY_CURRENT_PROVIDER",
+    "PROVIDER_OUTPUT_CONTRACT_VIOLATION",
+    "PROVIDER_REQUEST_FAILED",
+  ].includes((error as { code?: unknown }).code as string);
 }
 
 function taskSpecBindingFromMetadata(metadata: Record<string, unknown>): PreservationExperimentView["taskSpecBinding"] {

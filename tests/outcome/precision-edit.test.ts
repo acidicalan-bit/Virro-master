@@ -25,6 +25,9 @@ function makeFakeImageExecutor(): ImageEditExecutor {
   return {
     name: "fake-image-edit",
     provider: "fake",
+    preflight(context: ImageEditContext) {
+      return { status: "SUPPORTED", requestedWidth: context.sourceWidth, requestedHeight: context.sourceHeight, requestedSize: `${context.sourceWidth}x${context.sourceHeight}` };
+    },
     async execute(context: ImageEditContext): Promise<ImageEditResult> {
       const fakeBuffer = Buffer.from("fake-candidate-image-data-" + context.instruction);
       const sha256 = createHash("sha256").update(fakeBuffer).digest("hex");
@@ -51,6 +54,9 @@ function makeFailingImageExecutor(): ImageEditExecutor {
   return {
     name: "failing-image-edit",
     provider: "failing",
+    preflight() {
+      return { status: "SUPPORTED", requestedWidth: 1024, requestedHeight: 1024, requestedSize: "1024x1024" };
+    },
     async execute(): Promise<ImageEditResult> {
       throw new Error("Provider temporarily unavailable");
     },
@@ -288,6 +294,9 @@ describe("BUILD 003 — Precision Edit Integrity Gate", () => {
       const badExecutor: ImageEditExecutor = {
         name: "bad-response",
         provider: "bad",
+        preflight() {
+          return { status: "SUPPORTED", requestedWidth: 100, requestedHeight: 100, requestedSize: "100x100" };
+        },
         async execute() {
           return {
             candidateBytes: new Uint8Array(),

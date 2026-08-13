@@ -1,4 +1,5 @@
 import type { RepositoryBundle } from "@/src/application/ports/repositories";
+import { ImageEditExecutionError } from "@/src/application/ports/outcome/image-edit-executor-port";
 import type { ImageEditExecutor } from "@/src/application/ports/outcome/image-edit-executor-port";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createHash } from "node:crypto";
@@ -86,6 +87,8 @@ export class ImageEditService {
   }
 
   async executeImageEdit(input: ExecuteImageEditInput): Promise<ExecuteImageEditResult> {
+    const preflight = this.executor.preflight({ sourceWidth: input.sourceWidth, sourceHeight: input.sourceHeight });
+    if (preflight.status !== "SUPPORTED") throw new ImageEditExecutionError(preflight.code, preflight.reason);
     const result = await this.executor.execute({
       transactionId: input.transactionId,
       sourceStorageKey: input.sourceStorageKey,

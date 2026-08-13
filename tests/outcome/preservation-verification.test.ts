@@ -67,6 +67,10 @@ class SyntheticImageExecutor implements ImageEditExecutor {
 
   constructor(private readonly mode: EditMode) {}
 
+  preflight(context: ImageEditContext) {
+    return { status: "SUPPORTED" as const, requestedWidth: context.sourceWidth, requestedHeight: context.sourceHeight, requestedSize: `${context.sourceWidth}x${context.sourceHeight}` };
+  }
+
   async execute(context: ImageEditContext): Promise<ImageEditResult> {
     this.calls += 1;
     if (this.mode === "FAILURE") throw new Error("Synthetic provider failure");
@@ -375,12 +379,12 @@ describe("BUILD 004 — Preservation & Verification v0.1", () => {
 
     it("dimension mismatch records preservation failure and leaves v1 current", async () => {
       const { service, repositories } = harness("MISMATCH");
-      await expect(run(service)).rejects.toMatchObject({ code: "DIMENSION_MISMATCH" });
+      await expect(run(service)).rejects.toMatchObject({ code: "PROVIDER_OUTPUT_CONTRACT_VIOLATION" });
       const projects = await repositories.projects.list();
       const asset = (await repositories.assets.findByProjectId(projects[0].id))[0];
       const transactions = await repositories.outcomeTransactions.findByAssetId(asset.id);
       expect(transactions[0].status).toBe("FAILED");
-      expect((await repositories.preservationRuns.findByTransactionId(transactions[0].id))[0].status).toBe("FAILURE");
+      expect(await repositories.preservationRuns.findByTransactionId(transactions[0].id)).toHaveLength(0);
       expect((await repositories.assetVersions.findByAssetId(asset.id))).toHaveLength(1);
     });
 

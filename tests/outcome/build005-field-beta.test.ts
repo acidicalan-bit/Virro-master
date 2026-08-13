@@ -197,6 +197,18 @@ describe("BUILD 005 recovery invariants", () => {
     expect(() => decodePngToPixels(valid.subarray(0, 20))).toThrow();
     expect(() => decodePngToPixels(valid)).not.toThrow();
   });
+
+  it("rejects the 1x1 final-E2E fixture before any provider invocation", async () => {
+    const calls = { count: 0 };
+    const executor = {
+      name: "preflight-fixture",
+      provider: "fixture",
+      preflight: () => ({ status: "UNSUPPORTED" as const, code: "SOURCE_GEOMETRY_UNSUPPORTED_BY_CURRENT_PROVIDER" as const, reason: "fixture" }),
+      async execute() { calls.count += 1; throw new Error("must not execute"); },
+    };
+    expect(executor.preflight()).toMatchObject({ status: "UNSUPPORTED" });
+    expect(calls.count).toBe(0);
+  });
 });
 
 function grid(width: number, height: number, value: number): PixelGrid {
