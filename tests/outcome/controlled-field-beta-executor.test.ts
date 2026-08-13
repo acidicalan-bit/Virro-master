@@ -11,6 +11,9 @@ describe("controlled Field Beta executor", () => {
     const result = await executor.execute({ transactionId: "60000000-0000-4000-8000-000000000001", sourceStorageKey: "fixture", sourceMimeType: "image/png", sourceWidth: 1024, sourceHeight: 1024, sourceBytes: source, roi: { x: 0.4, y: 0.4, width: 0.2, height: 0.2 }, instruction: "Change only the marker" });
     expect(executor.invocations).toBe(1);
     expect(result.providerMetadata).toMatchObject({ controlled: true, fixture: "CONTROLLED_E2E_FIXTURE" });
+    expect(result.provider).toBe("controlled-fixture");
+    expect(result.model).toBe("controlled-field-beta-v0.1");
+    expect(result.provider).not.toBe("openai");
     expect(result.candidateWidth).toBe(1024);
     expect(result.candidateHeight).toBe(1024);
     expect(result.costUsd).toBeNull();

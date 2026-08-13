@@ -12,7 +12,7 @@ export class DurableExecutionRecoveryContextLoader implements ExecutionRecoveryC
   constructor(private readonly executions: ExecutionRunRepository) {}
 
   async load(executionRunId: string, authority: TrustedRecoveryAuthority): Promise<RecoveryLoadResult> {
-    if (authority.tenantId !== FIELD_TENANT_ID) return { status: "NOT_FOUND", reason: "Recovery authority is not valid." };
+    if (!authority || authority.tenantId !== FIELD_TENANT_ID) return { status: "NOT_FOUND", reason: "Recovery authority is not valid." };
     const execution = await this.executions.findById(executionRunId);
     if (!execution || execution.status !== "SUCCESS") return { status: "NOT_FOUND", reason: "Successful execution checkpoint was not found." };
     const result = parseRecoveryMetadata(execution.metadata);
