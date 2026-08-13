@@ -119,6 +119,15 @@ The current `run` entry point still starts a new provider experiment. A complete
 
 ## Durable execution recovery context
 
+### BUILD 005-B.S E2E stabilization
+
+The zero-provider readiness evidence is recorded in
+`BUILD_005B_S_E2E_READINESS.md`. The prior pre-transaction HTTP 500 was
+reproduced as missing `OPENAI_API_KEY` during server composition, before any
+transaction was created. A controlled, SDK-free executor now provides the
+authorized boundary for HTTP/Supabase readiness without provider spend. This
+does not claim real-provider or market readiness.
+
 New Field Beta executions persist a signed-by-hash `fieldRecoveryContext` inside
 the successful execution metadata after the RAW artifact is durable. It contains
 the trusted internal tenant, execution/transaction/source references, the

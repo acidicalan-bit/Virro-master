@@ -47,3 +47,5 @@ function parseSamplingRate(value: string | undefined): number {
   if (!Number.isFinite(parsed) || parsed < 0 || parsed > 1) throw new Error("FIELD_EVAL_SAMPLING_RATE must be between 0 and 1.");
   return parsed;
 }
+
+export function resetFieldBetaServiceForTests(): void { service = null; }
