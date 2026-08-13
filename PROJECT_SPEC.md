@@ -1,6 +1,6 @@
 # Marketplace Digital Universal / Universal Digital Marketplace — Project Master
 
-**PROJECT SPEC VERSION:** 1.3.0
+**PROJECT SPEC VERSION:** 1.4.0
 
 **Date:** 2026-08-11
 
@@ -234,7 +234,7 @@ Commit requires a verified transaction, required evidence, authorized patch, cur
 
 [CURRENT LIMITATION] The application service coordinates multiple persistence writes. BUILD 004 explicitly records that canonical head movement and StateCommit creation are not yet one PostgreSQL RPC transaction.
 
-[CURRENT] The foundation Same-Spec Gate rejects mismatched/stale Task Specs, unsupported or executor-only evidence, unauthorized capabilities, critical `UNKNOWN`, and stale canonical heads. This is enforced in the deterministic proof path and tests; it is not yet wired into the production Precision Edit transaction service or persisted in Supabase.
+[CURRENT] The foundation Same-Spec Gate rejects mismatched/stale Task Specs, unsupported or executor-only evidence, unauthorized capabilities, critical `UNKNOWN`, and stale canonical heads. Field Beta now projects Machine Same-Spec separately from Human Acceptance using durable snapshots and `field_feedback`; the generic canonical commit path remains outside this beta and is not claimed as production-wired.
 
 ## 11. Human grounding / intent handling
 
@@ -447,7 +447,7 @@ Product Gate 004 is implemented at commit `d4c1ae5` but has no verified frozen t
 ## 29. Active Build / Experiment
 
 - Preservation Value Study: [EXPERIMENT][ACTIVE]. Harness and 30-case plan exist; the required 30 completed evaluations and Product Gate decision do not.
-- BUILD 005 Precision Edit Field Beta + Preservation Ladder: [PLANNED][ACTIVE]. Branch `build/precision-edit-field-beta-v0.1` contains partial local implementation work. It is not complete, validated, or frozen. Intended scope is one provider generation plus deterministic P0 RAW, P1 SOFT, P2 MODERATE, and P3 HARD derivatives; versioned hypothesis policy; human override/feedback; field metrics; optional blind sampling; golden/regression evidence.
+- BUILD 005-B Precision Edit Field Beta + Preservation Ladder: [VALIDATED][CURRENT internal]. Field-ready evidence includes durable real-provider records, fresh-context recovery, Supabase persistence, and an internal human acceptance YES. It remains internal/controlled, is not a public marketplace, and does not authorize canonical commit, commerce, or BUILD 006.
 - Spec-Anchored Platform Foundation v0.1: [CURRENT][ACTIVE until frozen]. It generalizes contracts and same-spec controls while using Precision Edit as the only deterministic compiler proof. It does not activate a marketplace or supersede BUILD 005 evidence collection.
 
 No BUILD 006 is authorized by completion of these activities.
@@ -568,11 +568,17 @@ Append new entries; do not rewrite historical entries.
 | 2026-08-11 | 1.1.0 | Spec-Anchored Platform Foundation v0.1 | Added provider-neutral Blueprint/Task Spec contracts, deterministic Precision Edit compiler, role lenses, Same-Spec Gate, cross-agent records, security/supply-chain governance, and explicit marketplace limitations. | 03–39, invariants |
 | 2026-08-11 | 1.2.0 | Universal Marketplace + Buyer Value + Mobile-First reconciliation | Closed canonical category/name, buyer value thesis, Product/Problem/Project discovery, Project/Canon/metric/mobile domain contracts, mobile-first M0 boundary, and corresponding security model without expanding runtime scope. | 01–39, invariants |
 | 2026-08-11 | 1.3.0 | Pre-merge Project Master version alignment | Aligned the Project Master and reconciliation delta version with the incorporated Mobile-first v1.3 material. This is a provenance-only correction with no architecture, runtime, schema, or validated-behavior change. | Document metadata, Change Log |
+| 2026-08-13 | 1.4.0 | Project Governance & Architecture Reconciliation | Separated machine verification, machine Same-Spec conformance, human acceptance, outcome acceptance, and canonical commit eligibility; reconciled demonstrated recovery/testing/security/API/documentation doctrine without expanding marketplace scope. | Status semantics, architecture, security, testing, governance |
 
 ## 39. Documentation index
 
 - [`README.md`](./README.md) — current local setup, environment, routes, and validation commands.
 - [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) — [CURRENT] modular-monolith boundaries, historical Intent flow, target spec architecture, and client authority boundary.
+- [`docs/CURRENT_STATE.md`](./docs/CURRENT_STATE.md) — [VOLATILE] last verified repository/evidence snapshot; reverify before mutation.
+- [`docs/governance/CANON_OWNERSHIP_MAP.md`](./docs/governance/CANON_OWNERSHIP_MAP.md) — [CURRENT] source-of-truth ownership and stale-document actions.
+- [`docs/governance/STATUS_SEMANTICS_CURRENT_MODEL.md`](./docs/governance/STATUS_SEMANTICS_CURRENT_MODEL.md) — [CURRENT] status semantics and matrix.
+- [`docs/governance/API_GOVERNANCE.md`](./docs/governance/API_GOVERNANCE.md) — [CURRENT] internal API baseline and pre-public design gate.
+- [`docs/governance/TESTING_GOVERNANCE.md`](./docs/governance/TESTING_GOVERNANCE.md) — [CURRENT] boundary/recovery testing doctrine.
 - [`docs/architecture/UNIVERSAL_MARKETPLACE_MODEL.md`](./docs/architecture/UNIVERSAL_MARKETPLACE_MODEL.md) — [CURRENT] universal target architecture and narrow implementation boundary.
 - [`docs/product/UNIVERSAL_MARKETPLACE_POSITIONING.md`](./docs/product/UNIVERSAL_MARKETPLACE_POSITIONING.md) — [CURRENT] category, positioning, discovery, trust language, and messaging guardrails.
 - [`docs/product/BUY_VS_BUILD_VS_GENERATE.md`](./docs/product/BUY_VS_BUILD_VS_GENERATE.md) — [CURRENT] buyer economics and future measurement definitions.

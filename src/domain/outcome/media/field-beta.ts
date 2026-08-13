@@ -182,6 +182,65 @@ export type FieldOutcome = {
   taskSpecSnapshot: TaskSpec;
 };
 
+/**
+ * Compatibility/read-model statuses. These are deliberately not persisted as
+ * additional columns: the durable outcome, immutable snapshots and feedback
+ * remain the source evidence, while this projection prevents the historical
+ * same_spec_status aggregate from acting as human acceptance authority.
+ */
+export const FieldMachineSameSpecStatusSchema = z.enum(["PASSED", "FAILED", "INCOMPLETE"]);
+export type FieldMachineSameSpecStatus = z.infer<typeof FieldMachineSameSpecStatusSchema>;
+export const FieldHumanAcceptanceStatusSchema = z.enum(["PENDING", "ACCEPTED", "REJECTED"]);
+export type FieldHumanAcceptanceStatus = z.infer<typeof FieldHumanAcceptanceStatusSchema>;
+export const FieldOutcomeAcceptanceStatusSchema = z.enum(["AWAITING_HUMAN", "ACCEPTED", "REJECTED", "MACHINE_FAILED", "INCOMPLETE"]);
+export type FieldOutcomeAcceptanceStatus = z.infer<typeof FieldOutcomeAcceptanceStatusSchema>;
+export const FieldCommitEligibilityStatusSchema = z.enum(["ELIGIBLE", "NOT_ELIGIBLE"]);
+export type FieldCommitEligibilityStatus = z.infer<typeof FieldCommitEligibilityStatusSchema>;
+
+export type FieldSemanticStatus = {
+  machineVerificationStatus: FieldOutcome["machineVerificationStatus"];
+  machineSameSpecStatus: FieldMachineSameSpecStatus;
+  humanAcceptanceStatus: FieldHumanAcceptanceStatus;
+  outcomeAcceptanceStatus: FieldOutcomeAcceptanceStatus;
+  commitEligibilityStatus: FieldCommitEligibilityStatus;
+};
+
+export function deriveFieldSemanticStatus(input: {
+  machineVerificationStatus: FieldOutcome["machineVerificationStatus"];
+  legacySameSpecStatus: FieldOutcome["sameSpecStatus"];
+  hasValidSpecBinding: boolean;
+  feedback: Pick<FieldFeedback, "humanAccepted" | "tenantId" | "acceptanceSource" | "recordedBy"> | null;
+  outcomeTenantId: string;
+  canonicalCommitPolicy: string;
+  serverAuthority: boolean;
+}): FieldSemanticStatus {
+  const machineSameSpecStatus: FieldMachineSameSpecStatus = input.machineVerificationStatus === "FAILED" || input.legacySameSpecStatus === "FAILED"
+    ? "FAILED"
+    : !input.hasValidSpecBinding
+      ? "INCOMPLETE"
+      : "PASSED";
+  const validHumanEvidence = Boolean(input.feedback)
+    && input.feedback?.tenantId === input.outcomeTenantId
+    && input.feedback.acceptanceSource === FIELD_ACCEPTANCE_SOURCE
+    && input.feedback.recordedBy === "internal-evaluator";
+  const humanAcceptanceStatus: FieldHumanAcceptanceStatus = !validHumanEvidence
+    ? "PENDING"
+    : input.feedback!.humanAccepted ? "ACCEPTED" : "REJECTED";
+  const outcomeAcceptanceStatus: FieldOutcomeAcceptanceStatus = machineSameSpecStatus === "FAILED" || input.machineVerificationStatus === "FAILED"
+    ? "MACHINE_FAILED"
+    : machineSameSpecStatus === "INCOMPLETE"
+      ? "INCOMPLETE"
+      : humanAcceptanceStatus === "ACCEPTED"
+        ? "ACCEPTED"
+        : humanAcceptanceStatus === "REJECTED" ? "REJECTED" : "AWAITING_HUMAN";
+  const commitEligibilityStatus: FieldCommitEligibilityStatus = outcomeAcceptanceStatus === "ACCEPTED"
+    && input.canonicalCommitPolicy === "VERIFIED_HUMAN_ACCEPTED_ONLY"
+    && input.serverAuthority
+    ? "ELIGIBLE"
+    : "NOT_ELIGIBLE";
+  return { machineVerificationStatus: input.machineVerificationStatus, machineSameSpecStatus, humanAcceptanceStatus, outcomeAcceptanceStatus, commitEligibilityStatus };
+}
+
 export type FieldFeedback = {
   tenantId: string;
   id: string;

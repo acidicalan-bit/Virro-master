@@ -33,6 +33,9 @@ All browser, customer, provider, uploaded-file, copied identifier, Blueprint aut
 - Lost/shared devices and stolen sessions require revocation, short-lived scoped credentials, minimized client storage, and reauthorization for high-risk approval before public mobile use.
 - Unknown token/cost values remain null/unknown, never fabricated as zero.
 - Private chain-of-thought is neither stored nor accepted as evidence.
+- Machine Verification, Machine Same-Spec Conformance, Human Acceptance,
+  Outcome Acceptance and Canonical Commit Eligibility are separate claims;
+  the Field Beta semantic read model cannot mint a canonical commit.
 
 ## Provider credentials and logs
 

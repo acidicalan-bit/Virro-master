@@ -38,12 +38,17 @@ OpenAI y el baseline implementan el mismo `IntentModel`. La instrucción OpenAI 
 ## Arquitectura canónica objetivo
 
 ```text
-Outcome SKU → Outcome Blueprint → Spec Compiler → Task Spec
-            → Spec Lenses → Governed Runtime → Evidence
-            → Spec Gate → Commit/Delivery
+Outcome SKU → Outcome Blueprint → Signal Sufficiency → immutable Task Spec
+            → Execution Policy/Fingerprint → Execution → Machine Evidence
+            → Machine Same-Spec → Human Review → Outcome Acceptance
+            → Commit Eligibility → Delivery/Learning
 ```
 
-La única prueba estrecha de estos primitives continúa siendo Precision Edit. Blueprint, Task Spec, lenses y Same-Spec Gate son contratos/demostraciones determinísticas en memoria; todavía no reemplazan el servicio productivo ni tienen persistencia Supabase propia.
+La única prueba estrecha de estos primitives continúa siendo Precision Edit. Sus
+Field Outcomes ya proyectan por separado Machine Verification, Machine
+Same-Spec, Human Acceptance, Outcome Acceptance y Commit Eligibility desde los
+snapshots y `field_feedback`; el histórico `same_spec_status` sigue siendo
+compatibilidad y no autoridad. El commit canónico sigue fuera de Field Beta.
 
 La capa Marketplace es provider-neutral y no ejecuta código de sellers. Los contratos mínimos para categoría, buyer audience, Project de planeación, Canon, relaciones y superficies cliente reducen costo de migración futura sin crear marketplace, recommendations, graph database, pagos o BUILD 006.
 

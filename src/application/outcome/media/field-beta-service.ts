@@ -16,6 +16,8 @@ import {
   recommendedStrategyFor,
   type FieldEvaluationSample,
   type FieldOutcome,
+  deriveFieldSemanticStatus,
+  type FieldSemanticStatus,
   type PreservationStrategyId,
 } from "@/src/domain/outcome/media/field-beta";
 import { createDefaultPreservationPolicy } from "@/src/domain/outcome/media/preservation";
@@ -51,6 +53,7 @@ type CandidateView = {
 
 export type FieldEditView = {
   fieldOutcome: FieldOutcome;
+  semanticStatus: FieldSemanticStatus;
   source: PreservationExperimentView["source"];
   delivered: Omit<CandidateView, "strategyId" | "role" | "machineMetrics" | "preservationLatencyMs">;
   humanFeedback: Awaited<ReturnType<FieldBetaRepository["findFeedbackByOutcomeId"]>>;
@@ -350,7 +353,19 @@ export class FieldBetaService {
     const delivered = candidates.find((item) => item.candidateId === fieldOutcome.deliveredCandidateId)!;
     const byId = new Map(candidates.map((item) => [item.candidateId, item]));
     return {
-      fieldOutcome, source,
+      fieldOutcome,
+      semanticStatus: deriveFieldSemanticStatus({
+        machineVerificationStatus: fieldOutcome.machineVerificationStatus,
+        legacySameSpecStatus: fieldOutcome.sameSpecStatus,
+        hasValidSpecBinding: fieldOutcome.blueprintHash === fieldOutcome.taskSpecSnapshot.blueprint.hash
+          && fieldOutcome.taskSpecSnapshot.hash === fieldOutcome.taskSpecHash
+          && fieldOutcome.taskSpecSnapshot.blueprint.hash === fieldOutcome.blueprintHash,
+        feedback: humanFeedback,
+        outcomeTenantId: fieldOutcome.tenantId,
+        canonicalCommitPolicy: "VERIFIED_HUMAN_ACCEPTED_ONLY",
+        serverAuthority: true,
+      }),
+      source,
       delivered: { candidateId: delivered.candidateId, url: delivered.url, width: delivered.width, height: delivered.height, sha256: delivered.sha256 },
       humanFeedback,
       evaluationSample: sample ? { sampleId: sample.id, candidates: [
