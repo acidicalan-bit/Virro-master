@@ -6,6 +6,7 @@ import { PreservationVerificationService } from "@/src/application/outcome/media
 import type { ImageEditExecutor } from "@/src/application/ports/outcome/image-edit-executor-port";
 import { FakeImageEditExecutor } from "@/src/infrastructure/executors/image/fake-image-edit-executor";
 import { OpenAIImageEditExecutor } from "@/src/infrastructure/executors/image/openai-image-edit-executor";
+import { ControlledFieldBetaImageEditExecutor } from "@/src/infrastructure/executors/image/controlled-field-beta-image-edit-executor";
 import { createSupabaseRepositories } from "@/src/infrastructure/persistence/supabase-repositories";
 import { CompositingImagePreservationEngine } from "@/src/infrastructure/preservation/compositing-image-preservation-engine";
 import { SupabaseMediaObjectStore } from "@/src/infrastructure/storage/supabase-media-object-store";
@@ -36,6 +37,7 @@ export function createPreservationVerificationService(): PreservationVerificatio
 function createImageExecutor(client: SupabaseClient): ImageEditExecutor {
   const provider = process.env.IMAGE_EDIT_PROVIDER?.trim();
   if (provider === "openai") return new OpenAIImageEditExecutor();
+  if (provider === "controlled") return new ControlledFieldBetaImageEditExecutor();
   if (provider === "fake") return new FakeImageEditExecutor(client);
-  throw new Error('IMAGE_EDIT_PROVIDER must be explicitly set to "openai" or "fake".');
+  throw new Error('IMAGE_EDIT_PROVIDER must be explicitly set to "openai", "fake", or "controlled".');
 }
