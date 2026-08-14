@@ -7,7 +7,7 @@
 - Governance branch base / BUILD 005-B Field Ready: `5b892a517153f4abbe6a15b66b7014481401ac42`
 - PROJECT_SPEC: `1.4.0` on this branch
 - Governance candidate integrated: `bfb8a506885cdc338e61d505aa318a695b2c71d3` via explicit `--no-ff` merge
-- Frozen tags: intact; local governance freeze tag pending final validation
+- Frozen tags: intact; local annotated freeze tag `project-governance-v1.4.0` (not pushed)
 - Latest approved evidence: durable internal human acceptance YES for field outcome `0042b988-ea3a-4617-a60a-b9a1a7556a33`
 - Provider/database: real OpenAI + Supabase evidence exists; provider calls are prohibited during v1.4 validation
 - Auth/public exposure: P0 before public multi-tenant; Field Beta remains internal/controlled
