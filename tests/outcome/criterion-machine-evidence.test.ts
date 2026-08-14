@@ -52,18 +52,22 @@ describe("criterion-level Machine Same-Spec evidence", () => {
   it("requires exact set equality and excludes HUMAN_REVIEW", async () => {
     const { spec, records } = await evidence();
     const persisted = records.map((record, index) => ({ ...record, id: `70000000-0000-4000-8000-${String(index + 10).padStart(12, "0")}`, createdAt: "2026-08-13T00:00:02.000Z" }));
-    expect(deriveMachineSameSpecFromDurableEvidence({ taskSpec: spec, evidence: persisted, tenantId: "internal-lab", transactionId: ids.transaction, executionRunId: ids.execution, verificationRunId: ids.verification })).toBe("PASSED");
+    expect(deriveMachineSameSpecFromDurableEvidence({ taskSpec: spec, evidence: persisted, expectedArtifactBindings: { sourceVersionId: ids.source, rawCandidateId: ids.raw, preservedCandidateId: ids.preserved }, tenantId: "internal-lab", transactionId: ids.transaction, executionRunId: ids.execution, verificationRunId: ids.verification })).toBe("PASSED");
   });
 
   it.each([
     ["missing receipt", (records: EvidenceRecords) => records.slice(1), "INCOMPLETE"],
     ["valid failure", (records: EvidenceRecords) => records.map((record, index) => index === 0 ? { ...record, status: "FAIL" as const } : record), "FAILED"],
+    ["wrong task spec id", (records: EvidenceRecords) => records.map((record, index) => index === 0 ? { ...record, taskSpecId: "70000000-0000-4000-8000-000000000099" } : record), "INCOMPLETE"],
     ["wrong task spec", (records: EvidenceRecords) => records.map((record, index) => index === 0 ? { ...record, taskSpecHash: "b".repeat(64) } : record), "INCOMPLETE"],
+    ["wrong execution", (records: EvidenceRecords) => records.map((record, index) => index === 0 ? { ...record, executionRunId: "70000000-0000-4000-8000-000000000099" } : record), "INCOMPLETE"],
+    ["wrong artifact binding", (records: EvidenceRecords) => records.map((record, index) => index === 0 ? { ...record, artifactBindings: { ...record.artifactBindings, rawCandidateId: "70000000-0000-4000-8000-000000000099" } } : record), "INCOMPLETE"],
     ["foreign tenant", (records: EvidenceRecords) => records.map((record, index) => index === 0 ? { ...record, tenantId: "foreign" } : record), "INCOMPLETE"],
+    ["wrong verifier identity", (records: EvidenceRecords) => records.map((record, index) => index === 0 ? { ...record, verifier: { ...record.verifier, version: "stale" } } : record), "INCOMPLETE"],
   ])("fails closed for %s", async (_name, mutate, expected) => {
     const { spec, records } = await evidence();
     const baseRecords: PersistedEvidenceRecords = records.map((record, index) => ({ ...record, id: `70000000-0000-4000-8000-${String(index + 20).padStart(12, "0")}`, createdAt: "2026-08-13T00:00:02.000Z" }));
-    expect(deriveMachineSameSpecFromDurableEvidence({ taskSpec: spec, evidence: mutate(baseRecords) as PersistedEvidenceRecords, tenantId: "internal-lab", transactionId: ids.transaction, executionRunId: ids.execution, verificationRunId: ids.verification })).toBe(expected);
+    expect(deriveMachineSameSpecFromDurableEvidence({ taskSpec: spec, evidence: mutate(baseRecords) as PersistedEvidenceRecords, expectedArtifactBindings: { sourceVersionId: ids.source, rawCandidateId: ids.raw, preservedCandidateId: ids.preserved }, tenantId: "internal-lab", transactionId: ids.transaction, executionRunId: ids.execution, verificationRunId: ids.verification })).toBe(expected);
   });
 
   it("rejects incompatible duplicate evidence instead of silently ignoring it", async () => {
@@ -71,5 +75,33 @@ describe("criterion-level Machine Same-Spec evidence", () => {
     const repository = new InMemoryCriterionEvidenceRepository();
     await repository.create(records[0]);
     await expect(repository.create({ ...records[0], status: "FAIL" })).rejects.toThrow(/identity conflict/i);
+  });
+
+  it("does not let aggregate or legacy statuses substitute missing criterion evidence", async () => {
+    const { spec, records } = await evidence();
+    const incomplete = records.slice(1).map((record, index) => ({ ...record, id: `70000000-0000-4000-8000-${String(index + 40).padStart(12, "0")}`, createdAt: "2026-08-13T00:00:02.000Z" }));
+    const result = deriveMachineSameSpecFromDurableEvidence({
+      taskSpec: spec,
+      evidence: incomplete,
+      expectedArtifactBindings: { sourceVersionId: ids.source, rawCandidateId: ids.raw, preservedCandidateId: ids.preserved },
+      tenantId: "internal-lab",
+      transactionId: ids.transaction,
+      executionRunId: ids.execution,
+      verificationRunId: ids.verification,
+    });
+    expect(result).toBe("INCOMPLETE");
+    expect({ aggregateVerificationStatus: "PASSED", sameSpecStatus: "PASSED", legacySameSpecStatus: "FAILED", result }).toMatchObject({
+      aggregateVerificationStatus: "PASSED",
+      sameSpecStatus: "PASSED",
+      legacySameSpecStatus: "FAILED",
+      result: "INCOMPLETE",
+    });
+  });
+
+  it("keeps legacy failure and forged client status from overriding complete machine evidence", async () => {
+    const { spec, records } = await evidence();
+    const persisted = records.map((record, index) => ({ ...record, id: `70000000-0000-4000-8000-${String(index + 50).padStart(12, "0")}`, createdAt: "2026-08-13T00:00:02.000Z" }));
+    expect(deriveMachineSameSpecFromDurableEvidence({ taskSpec: spec, evidence: persisted, expectedArtifactBindings: { sourceVersionId: ids.source, rawCandidateId: ids.raw, preservedCandidateId: ids.preserved }, tenantId: "internal-lab", transactionId: ids.transaction, executionRunId: ids.execution, verificationRunId: ids.verification })).toBe("PASSED");
+    expect({ clientStatus: "FAILED", legacySameSpecStatus: "FAILED" }).toEqual({ clientStatus: "FAILED", legacySameSpecStatus: "FAILED" });
   });
 });

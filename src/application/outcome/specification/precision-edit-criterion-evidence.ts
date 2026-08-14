@@ -75,6 +75,11 @@ function requiredAssertion(assertions: Map<string, Assertion>, type: string): As
 export function deriveMachineSameSpecFromDurableEvidence(input: {
   taskSpec: TaskSpec;
   evidence: CriterionEvidenceRecord[];
+  expectedArtifactBindings: {
+    sourceVersionId: string;
+    rawCandidateId: string;
+    preservedCandidateId: string;
+  };
   tenantId: string;
   transactionId: string;
   executionRunId: string;
@@ -92,9 +97,9 @@ export function deriveMachineSameSpecFromDurableEvidence(input: {
       || evidence.verificationRunId !== input.verificationRunId
       || evidence.taskSpecId !== input.taskSpec.id
       || evidence.taskSpecHash !== input.taskSpec.hash
-      || !evidence.artifactBindings.sourceVersionId
-      || !evidence.artifactBindings.rawCandidateId
-      || !evidence.artifactBindings.preservedCandidateId
+      || evidence.artifactBindings.sourceVersionId !== input.expectedArtifactBindings.sourceVersionId
+      || evidence.artifactBindings.rawCandidateId !== input.expectedArtifactBindings.rawCandidateId
+      || evidence.artifactBindings.preservedCandidateId !== input.expectedArtifactBindings.preservedCandidateId
       || evidence.verifier.name !== PRECISION_EDIT_VERIFIER_NAME
       || evidence.verifier.version !== PRECISION_EDIT_VERIFIER_VERSION
       || evidence.verifier.policyVersion !== PRECISION_EDIT_CRITERION_EVIDENCE_MAP_VERSION

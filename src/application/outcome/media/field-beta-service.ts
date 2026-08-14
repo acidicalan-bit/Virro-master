@@ -401,7 +401,7 @@ export class FieldBetaService {
       else if (stableJson({ ...match, id: undefined, createdAt: undefined }) !== stableJson(record)) throw new FieldBetaError("CRITERION_EVIDENCE_IDENTITY_CONFLICT", "La evidencia durable de criterio no coincide con la verificación actual.");
     }
     const readBack = await this.criterionEvidenceRepository.findByVerificationRunId(base.verificationRunId);
-    return deriveMachineSameSpecFromDurableEvidence({ taskSpec, evidence: readBack, tenantId: FIELD_TENANT_ID, transactionId: base.transactionId, executionRunId: base.executionRunId, verificationRunId: base.verificationRunId });
+    return deriveMachineSameSpecFromDurableEvidence({ taskSpec, evidence: readBack, expectedArtifactBindings: { sourceVersionId: base.sourceVersionId, rawCandidateId: base.rawCandidateId, preservedCandidateId: base.preservedCandidateId }, tenantId: FIELD_TENANT_ID, transactionId: base.transactionId, executionRunId: base.executionRunId, verificationRunId: base.verificationRunId });
   }
 
   private async machineSameSpecStatus(fieldOutcome: FieldOutcome): Promise<"PASSED" | "FAILED" | "INCOMPLETE"> {
@@ -410,7 +410,7 @@ export class FieldBetaService {
     const verificationRunId = evidence[0]?.verificationRunId;
     const executionRunId = evidence[0]?.executionRunId;
     if (!verificationRunId || !executionRunId) return "INCOMPLETE";
-    return deriveMachineSameSpecFromDurableEvidence({ taskSpec: fieldOutcome.taskSpecSnapshot, evidence, tenantId: fieldOutcome.tenantId, transactionId: fieldOutcome.transactionId, executionRunId, verificationRunId });
+    return deriveMachineSameSpecFromDurableEvidence({ taskSpec: fieldOutcome.taskSpecSnapshot, evidence, expectedArtifactBindings: { sourceVersionId: fieldOutcome.sourceVersionId, rawCandidateId: fieldOutcome.rawCandidateId, preservedCandidateId: fieldOutcome.deliveredCandidateId }, tenantId: fieldOutcome.tenantId, transactionId: fieldOutcome.transactionId, executionRunId, verificationRunId });
   }
 }
 
