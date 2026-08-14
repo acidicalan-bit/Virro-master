@@ -3,7 +3,7 @@
 > Reverify against repository reality before mutation. This file is not durable
 > doctrine and must not be used as authority for a future merge.
 
-- Canonical main: `da6e47bf1053781e25e6c78952418fd842a56bec` (local integration verified 2026-08-13; not pushed)
+- Canonical main: `322af111c198a0427a66893d4d79c524527a4c03` (local integration/freeze verified 2026-08-13; not pushed)
 - Governance branch base / BUILD 005-B Field Ready: `5b892a517153f4abbe6a15b66b7014481401ac42`
 - PROJECT_SPEC: `1.4.0` on this branch
 - Governance candidate integrated: `bfb8a506885cdc338e61d505aa318a695b2c71d3` via explicit `--no-ff` merge
