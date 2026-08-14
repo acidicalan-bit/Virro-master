@@ -286,6 +286,7 @@ const memoryBundle: RepositoryBundle = {
   executionRuns: outcomeRepos.executionRuns,
   evidenceReceipts: outcomeRepos.evidenceReceipts,
   verificationRuns: outcomeRepos.verificationRuns,
+  criterionEvidence: outcomeRepos.criterionEvidence,
   stateCommits: outcomeRepos.stateCommits,
   costRecords: outcomeRepos.costRecords,
   mediaStorage: outcomeRepos.mediaStorage,

@@ -6,12 +6,15 @@ import { PreservationVerificationService } from "@/src/application/outcome/media
 import type { ImageEditExecutor } from "@/src/application/ports/outcome/image-edit-executor-port";
 import { FakeImageEditExecutor } from "@/src/infrastructure/executors/image/fake-image-edit-executor";
 import { OpenAIImageEditExecutor } from "@/src/infrastructure/executors/image/openai-image-edit-executor";
+import { ControlledFieldBetaImageEditExecutor } from "@/src/infrastructure/executors/image/controlled-field-beta-image-edit-executor";
 import { createSupabaseRepositories } from "@/src/infrastructure/persistence/supabase-repositories";
 import { CompositingImagePreservationEngine } from "@/src/infrastructure/preservation/compositing-image-preservation-engine";
 import { SupabaseMediaObjectStore } from "@/src/infrastructure/storage/supabase-media-object-store";
 import { createTransientJwtRetryFetch } from "@/src/infrastructure/supabase/transient-jwt-retry-fetch";
 
 let service: PreservationVerificationService | null = null;
+
+export function resetPreservationVerificationServiceForTests(): void { service = null; }
 
 export function createPreservationVerificationService(): PreservationVerificationService {
   if (service) return service;
@@ -36,6 +39,12 @@ export function createPreservationVerificationService(): PreservationVerificatio
 function createImageExecutor(client: SupabaseClient): ImageEditExecutor {
   const provider = process.env.IMAGE_EDIT_PROVIDER?.trim();
   if (provider === "openai") return new OpenAIImageEditExecutor();
+  if (provider === "controlled") {
+    if (process.env.NODE_ENV === "production" || process.env.FIELD_BETA_CONTROLLED_EXECUTOR !== "true") {
+      throw new Error("Controlled Field Beta executor requires explicit non-production authorization.");
+    }
+    return new ControlledFieldBetaImageEditExecutor();
+  }
   if (provider === "fake") return new FakeImageEditExecutor(client);
-  throw new Error('IMAGE_EDIT_PROVIDER must be explicitly set to "openai" or "fake".');
+  throw new Error('IMAGE_EDIT_PROVIDER must be explicitly set to "openai", "fake", or "controlled".');
 }

@@ -33,6 +33,15 @@ All browser, customer, provider, uploaded-file, copied identifier, Blueprint aut
 - Lost/shared devices and stolen sessions require revocation, short-lived scoped credentials, minimized client storage, and reauthorization for high-risk approval before public mobile use.
 - Unknown token/cost values remain null/unknown, never fabricated as zero.
 - Private chain-of-thought is neither stored nor accepted as evidence.
+- Machine Verification, Machine Same-Spec Conformance, Human Acceptance,
+  Outcome Acceptance and Canonical Commit Eligibility are separate claims;
+  the Field Beta semantic read model cannot mint a canonical commit.
+- Criterion-level Machine Same-Spec evidence is append-only and bound to the
+  tenant, transaction, execution run, verification run, exact Task Spec
+  ID/hash, relevant artifacts, and verifier/version/policy. Aggregate status,
+  hashes, client-supplied status, and legacy `same_spec_status` are never
+  accepted as evidence decomposition. Missing or conflicting receipts fail
+  closed.
 
 ## Provider credentials and logs
 
@@ -52,7 +61,9 @@ The phone is a control surface and the cloud is the execution authority. A clien
 
 - No end-user authentication, tenant ownership model, or complete tenant-aware RLS exists.
 - Privileged server repositories can bypass RLS; compromise has broad database/storage blast radius.
-- Blueprint/Task Spec registries and the Same-Spec Gate are deterministic in-memory proofs, not yet durable production controls.
+- Blueprint/Task Spec registries remain deterministic compiler inputs; the
+  existing verification model now has an additive durable criterion-evidence
+  child model, but no historical receipts are fabricated or backfilled.
 - Marketplace Project/Canon/product/relationship and mobile interaction contracts have no persistence, authorization service, analytics pipeline, or public API.
 - No payment authority, signed deep-link service, device/session revocation, push privacy control, resumable upload/job API, or scoped delivery/share service exists.
 - Canonical head movement and StateCommit creation are not yet a single database transaction.
@@ -62,3 +73,9 @@ The phone is a control surface and the cloud is the execution authority. A clien
 ## Security change governance
 
 Every Build must include a `SECURITY DELTA` naming changed trust boundaries, data/capabilities, threats, mitigations, tests, and residual risk. Security-relevant diffs require threat-model review, secret/dependency checks, authorization regression tests, and explicit documentation of unresolved limitations before freeze.
+
+## BUILD 005 internal field beta delta
+
+BUILD 005 adds field-outcome, preservation-strategy, human-acceptance, evaluation, and curated-regression records. They are server-write-only, RLS-enabled, server-bound to the fixed `internal-lab` tenant, append-only records anchored to a Blueprint/Task Spec hash. `FIELD_BETA_INTERNAL_ENABLED=true` is only an exposure switch, never authorization: the page and API fail closed at request boundaries, and the feature must remain on an internal/controlled deployment until authentication and ownership binding exist. The service-role key is never a client authority and every BUILD 005 repository read/write applies the authoritative tenant constraint. Provider cost remains nullable when unreported.
+
+Field Beta accepts PNG only within the conservative 2048×2048 / 4,194,304-pixel / decoded-resource envelope before provider execution. API errors are mapped to bounded codes and messages; detailed provider, database, path and secret-bearing errors are not returned to clients. The snapshot-aware migration refuses a pre-snapshot legacy schema rather than manufacturing Blueprint or Task Spec provenance. The missing full authentication/ownership model, privileged service-role blast radius, and non-atomic canonical head/StateCommit operation remain P0/P1 debt; this beta is not approved for public multi-tenant use.

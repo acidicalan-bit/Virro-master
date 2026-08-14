@@ -1,0 +1,114 @@
+import type { PreservationExperimentView } from "@/src/application/outcome/media/preservation-verification-service";
+import type { CreateCriterionEvidenceRecord, CriterionEvidenceRecord } from "@/src/domain/outcome/criterion-evidence";
+import type { TaskSpec } from "@/src/domain/outcome/specification/task-spec";
+
+export const PRECISION_EDIT_CRITERION_EVIDENCE_MAP_VERSION = "precision-edit-criterion-evidence-v0.1" as const;
+export const PRECISION_EDIT_VERIFIER_NAME = "precision-edit-same-spec-verifier" as const;
+export const PRECISION_EDIT_VERIFIER_VERSION = "0.1.0" as const;
+
+type Assertion = PreservationExperimentView["machineVerification"]["assertions"][number];
+
+export function buildPrecisionEditCriterionEvidence(input: {
+  taskSpec: TaskSpec;
+  base: PreservationExperimentView;
+  tenantId: string;
+}): CreateCriterionEvidenceRecord[] {
+  const { taskSpec, base, tenantId } = input;
+  const assertions = new Map(base.machineVerification.assertions.map((assertion) => [assertion.type, assertion]));
+  const edit = requiredAssertion(assertions, "EDIT_REGION_HAS_CHANGE");
+  const source = requiredAssertion(assertions, "SOURCE_IMMUTABLE");
+  const provenance = requiredAssertion(assertions, "PROVENANCE_VALID");
+  const specMatches = Boolean(
+    base.taskSpecBinding
+      && base.taskSpecBinding.id === taskSpec.id
+      && base.taskSpecBinding.hash === taskSpec.hash
+      && base.taskSpecBinding.blueprintId === taskSpec.blueprint.id
+      && base.taskSpecBinding.blueprintHash === taskSpec.blueprint.hash
+      && base.executionRunId
+      && base.verificationRunId,
+  );
+  const common = {
+    tenantId,
+    transactionId: base.transactionId,
+    verificationRunId: base.verificationRunId,
+    executionRunId: base.executionRunId,
+    taskSpecId: taskSpec.id,
+    taskSpecHash: taskSpec.hash,
+    artifactBindings: {
+      sourceVersionId: base.sourceVersionId,
+      rawCandidateId: base.rawCandidateId,
+      preservedCandidateId: base.preservedCandidateId,
+    },
+    verifier: { name: PRECISION_EDIT_VERIFIER_NAME, version: PRECISION_EDIT_VERIFIER_VERSION, policyVersion: PRECISION_EDIT_CRITERION_EVIDENCE_MAP_VERSION },
+  } as const;
+  return [
+    record(common, "REQUESTED_EDIT_HAS_CHANGE", edit.passed ? "PASS" : "FAIL", "METRIC", `verification://${base.verificationRunId}/REQUESTED_EDIT_HAS_CHANGE`, { sourceAssertion: edit }),
+    record(common, "SOURCE_VERSION_MATCHES", source.passed && provenance.passed ? "PASS" : "FAIL", "HASH", `verification://${base.verificationRunId}/SOURCE_VERSION_MATCHES`, { sourceAssertion: source, provenanceAssertion: provenance }),
+    record(common, "SAME_TASK_SPEC", specMatches ? "PASS" : "FAIL", "POLICY_CHECK", `verification://${base.verificationRunId}/SAME_TASK_SPEC`, {
+      mappingVersion: PRECISION_EDIT_CRITERION_EVIDENCE_MAP_VERSION,
+      expectedTaskSpecId: taskSpec.id,
+      expectedTaskSpecHash: taskSpec.hash,
+      executionRunId: base.executionRunId,
+      verificationRunId: base.verificationRunId,
+      taskSpecBinding: base.taskSpecBinding ?? null,
+    }),
+  ];
+}
+
+function record(
+  common: Omit<CreateCriterionEvidenceRecord, "id" | "createdAt" | "criterionId" | "status" | "evidenceType" | "evidenceRef" | "details">,
+  criterionId: string,
+  status: CreateCriterionEvidenceRecord["status"],
+  evidenceType: CreateCriterionEvidenceRecord["evidenceType"],
+  evidenceRef: string,
+  details: Record<string, unknown>,
+): CreateCriterionEvidenceRecord {
+  return { ...common, criterionId, status, evidenceType, evidenceRef, details };
+}
+
+function requiredAssertion(assertions: Map<string, Assertion>, type: string): Assertion {
+  const assertion = assertions.get(type);
+  if (!assertion) throw new Error(`Missing required Precision Edit assertion ${type}.`);
+  return assertion;
+}
+
+export function deriveMachineSameSpecFromDurableEvidence(input: {
+  taskSpec: TaskSpec;
+  evidence: CriterionEvidenceRecord[];
+  expectedArtifactBindings: {
+    sourceVersionId: string;
+    rawCandidateId: string;
+    preservedCandidateId: string;
+  };
+  tenantId: string;
+  transactionId: string;
+  executionRunId: string;
+  verificationRunId: string;
+}): "PASSED" | "FAILED" | "INCOMPLETE" {
+  const required = input.taskSpec.criteria.filter((criterion) => criterion.critical && criterion.verifier !== "HUMAN_REVIEW");
+  const relevant = input.evidence.filter((evidence) => required.some((criterion) => criterion.id === evidence.criterionId));
+  const byCriterion = new Map<string, CriterionEvidenceRecord>();
+  for (const evidence of relevant) {
+    if (byCriterion.has(evidence.criterionId)) return "INCOMPLETE";
+    if (
+      evidence.tenantId !== input.tenantId
+      || evidence.transactionId !== input.transactionId
+      || evidence.executionRunId !== input.executionRunId
+      || evidence.verificationRunId !== input.verificationRunId
+      || evidence.taskSpecId !== input.taskSpec.id
+      || evidence.taskSpecHash !== input.taskSpec.hash
+      || evidence.artifactBindings.sourceVersionId !== input.expectedArtifactBindings.sourceVersionId
+      || evidence.artifactBindings.rawCandidateId !== input.expectedArtifactBindings.rawCandidateId
+      || evidence.artifactBindings.preservedCandidateId !== input.expectedArtifactBindings.preservedCandidateId
+      || evidence.verifier.name !== PRECISION_EDIT_VERIFIER_NAME
+      || evidence.verifier.version !== PRECISION_EDIT_VERIFIER_VERSION
+      || evidence.verifier.policyVersion !== PRECISION_EDIT_CRITERION_EVIDENCE_MAP_VERSION
+    ) return "INCOMPLETE";
+    const criterion = required.find((item) => item.id === evidence.criterionId)!;
+    if (!criterion.evidenceTypes.includes(evidence.evidenceType) || evidence.status === "UNKNOWN") return "INCOMPLETE";
+    byCriterion.set(evidence.criterionId, evidence);
+  }
+  if (byCriterion.size !== required.length) return "INCOMPLETE";
+  if ([...byCriterion.values()].some((evidence) => evidence.status === "FAIL")) return "FAILED";
+  return "PASSED";
+}

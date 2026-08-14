@@ -24,6 +24,10 @@ import { decodePngToPixels } from "@/src/infrastructure/evidence/png-decoder";
 import { encodePixelsToPng } from "@/src/infrastructure/evidence/png-encoder";
 import { calculatePreservationEvidence } from "@/src/infrastructure/evidence/preservation-evidence-calculator";
 import { verifyCreativeAssertions } from "@/src/application/outcome/media/creative-assertions";
+import type { TaskSpec } from "@/src/domain/outcome/specification/task-spec";
+import { TaskSpecSchema, verifyTaskSpecHash } from "@/src/domain/outcome/specification/task-spec";
+import { createRecoveryMetadata } from "@/src/application/outcome/recovery/execution-recovery-context";
+import type { FieldBetaFaultInjector } from "@/src/application/outcome/media/field-beta-fault-injection";
 
 const SOURCE_MAX_BYTES = 10 * 1024 * 1024;
 
@@ -57,11 +61,26 @@ export type RunPreservationExperimentInput = {
   sourceMimeType: "image/png";
   instruction: string;
   policy: PreservationPolicy;
+  taskSpecFactory?: (context: {
+    transactionId: string;
+    assetId: string;
+    sourceVersionId: string;
+    sourceSha256: string;
+    sourceByteSize: number;
+  }) => Promise<TaskSpec>;
+  recoveryContext?: {
+    tenantId: "internal-lab";
+    topology: "LOCAL_INDEPENDENT" | "LOCAL_COUPLED" | "STRUCTURAL" | "GLOBAL";
+    taskType: "COLOR_CHANGE" | "OBJECT_REMOVAL" | "TEXT_EDIT" | "IDENTITY_EDIT" | "PRODUCT_EDIT" | "GEOMETRY_EDIT" | "OTHER";
+    blueprint: import("@/src/domain/outcome/specification/outcome-blueprint").OutcomeBlueprint;
+  };
+  faultInjector?: FieldBetaFaultInjector;
 };
 
 export type PreservationExperimentView = {
   transactionId: string;
   executionRunId: string;
+  verificationRunId: string;
   preservationRunId: string;
   assetId: string;
   sourceVersionId: string;
@@ -84,6 +103,16 @@ export type PreservationExperimentView = {
   preservationLatencyMs: number;
   verificationLatencyMs: number;
   costUsd: number | null;
+  taskSpecBinding?: {
+    id: string;
+    version: number;
+    hash: string;
+    blueprintId: string;
+    blueprintVersion: number;
+    blueprintHash: string;
+    compilerName: string;
+    compilerVersion: string;
+  };
 };
 
 type MediaView = {
@@ -115,6 +144,7 @@ export class PreservationVerificationService {
     private readonly executor: ImageEditExecutor,
     private readonly preservationEngine: ImagePreservationEngine,
     private readonly storage: MediaObjectStore,
+    private readonly faultInjector?: FieldBetaFaultInjector,
   ) {}
 
   async runExperiment(input: RunPreservationExperimentInput): Promise<PreservationExperimentView> {
@@ -124,6 +154,10 @@ export class PreservationVerificationService {
     const sourceBuffer = Buffer.from(sourceBytes);
     const sourcePixels = decodePngToPixels(sourceBuffer);
     const sourceHash = sha256(sourceBytes);
+    const sourcePreflight = this.executor.preflight({ sourceWidth: sourcePixels.width, sourceHeight: sourcePixels.height });
+    if (sourcePreflight.status !== "SUPPORTED") {
+      throw new PreservationRuntimeError(sourcePreflight.code, sourcePreflight.reason);
+    }
 
     const project = await this.repositories.projects.create({
       name: input.projectName.trim(),
@@ -162,12 +196,14 @@ export class PreservationVerificationService {
     });
     await this.repositories.assets.update(asset.id, { currentVersionId: sourceVersion.id });
 
+    input.faultInjector?.("BEFORE_TRANSACTION_CREATION");
     const transaction = await this.repositories.outcomeTransactions.create({
       projectId: project.id,
       assetId: asset.id,
       baseVersionId: sourceVersion.id,
       rawRequest: input.instruction.trim(),
     });
+    input.faultInjector?.("AFTER_TRANSACTION_CREATION");
     const partialIntent = await this.repositories.partialIntents.create({
       transactionId: transaction.id,
       rawInput: input.instruction.trim(),
@@ -192,6 +228,20 @@ export class PreservationVerificationService {
     await this.repositories.outcomeTransactions.updateStatus(transaction.id, "READY");
     await this.repositories.outcomeTransactions.updateStatus(transaction.id, "EXECUTING");
 
+    let taskSpec: TaskSpec | null = null;
+    if (input.taskSpecFactory) {
+      taskSpec = TaskSpecSchema.parse(await input.taskSpecFactory({
+        transactionId: transaction.id,
+        assetId: asset.id,
+        sourceVersionId: sourceVersion.id,
+        sourceSha256: sourceHash,
+        sourceByteSize: sourceBytes.byteLength,
+      }));
+      if (!verifyTaskSpecHash(taskSpec) || taskSpec.status !== "READY" || taskSpec.transactionId !== transaction.id || taskSpec.source.versionId !== sourceVersion.id || taskSpec.source.sha256 !== sourceHash) {
+        throw new PreservationRuntimeError("INVALID_TASK_SPEC_BINDING", "Task Spec must be READY, immutable, and bound to this transaction and source version.");
+      }
+    }
+
     const providerStartedAt = new Date().toISOString();
     let providerResult: Awaited<ReturnType<ImageEditExecutor["execute"]>>;
     try {
@@ -207,6 +257,9 @@ export class PreservationVerificationService {
       });
     } catch (error) {
       await this.recordProviderFailure(transaction.id, providerStartedAt, error);
+      if (isImageEditExecutionError(error)) {
+        throw new PreservationRuntimeError(error.code, error.code === "PROVIDER_REQUEST_FAILED" ? "The image provider request failed." : error.message);
+      }
       throw new PreservationRuntimeError(
         "PROVIDER_FAILURE",
         error instanceof Error ? error.message : "Image provider failed.",
@@ -221,8 +274,12 @@ export class PreservationVerificationService {
       if (providerResult.candidateSha256 !== rawHash || providerResult.candidateByteSize !== rawBytes.byteLength) {
         throw new Error("Provider candidate metadata does not match returned bytes.");
       }
+      if (rawPixels.width !== sourcePixels.width || rawPixels.height !== sourcePixels.height) {
+        throw new PreservationRuntimeError("PROVIDER_OUTPUT_CONTRACT_VIOLATION", "Provider output geometry did not match the requested same-geometry execution.");
+      }
     } catch (error) {
       await this.recordProviderFailure(transaction.id, providerStartedAt, error);
+      if (error instanceof PreservationRuntimeError) throw error;
       throw new PreservationRuntimeError(
         "INVALID_PROVIDER_CANDIDATE",
         error instanceof Error ? error.message : "Provider candidate is invalid.",
@@ -245,9 +302,21 @@ export class PreservationVerificationService {
         usage: providerResult.usage,
         costReported: providerResult.costUsd !== null,
         providerMetadata: providerResult.providerMetadata,
+        ...(taskSpec ? {
+          outcomeSku: "precision-edit-v0",
+          blueprintId: taskSpec.blueprint.id,
+          blueprintVersion: taskSpec.blueprint.version,
+          blueprintHash: taskSpec.blueprint.hash,
+          taskSpecId: taskSpec.id,
+          taskSpecVersion: taskSpec.version,
+          taskSpecHash: taskSpec.hash,
+          specCompilerName: taskSpec.compiler.name,
+          specCompilerVersion: taskSpec.compiler.version,
+        } : {}),
       },
     });
 
+    input.faultInjector?.("AFTER_EXECUTOR_SUCCESS_BEFORE_RAW");
     const rawStorageKey = `candidates/${transaction.id}/raw/${crypto.randomUUID()}.png`;
     try {
       await this.storage.put(rawStorageKey, rawBytes, providerResult.candidateMimeType);
@@ -275,6 +344,28 @@ export class PreservationVerificationService {
       preservationRunId: null,
       committed: false,
     });
+    if (taskSpec && input.recoveryContext) {
+      await this.repositories.executionRuns.updateMetadata(executionRun.id, {
+        ...executionRun.metadata,
+        fieldRecoveryContext: createRecoveryMetadata({
+          schemaVersion: "field-recovery-context-v0.1",
+          tenantId: input.recoveryContext.tenantId,
+          transactionId: transaction.id,
+          executionRunId: executionRun.id,
+          sourceVersionId: sourceVersion.id,
+          instruction: input.instruction.trim(),
+          roi: policy.coreRoi,
+          topology: input.recoveryContext.topology,
+          taskType: input.recoveryContext.taskType,
+          policyVersion: policy.policyVersion,
+          blueprint: input.recoveryContext.blueprint,
+          taskSpec,
+          rawCandidateId: rawCandidate.id,
+          recoveryEligibility: "REDRIVABLE",
+        }),
+      });
+    }
+    input.faultInjector?.("AFTER_RAW_PERSISTENCE");
 
     const receipt = await this.repositories.evidenceReceipts.create({
       transactionId: transaction.id,
@@ -431,7 +522,7 @@ export class PreservationVerificationService {
       preservedEvidence,
     });
     const verificationLatencyMs = Math.max(0, Math.round((performance.now() - verificationStartedAt) * 1000) / 1000);
-    await this.repositories.verificationRuns.create({
+    const verificationRun = await this.repositories.verificationRuns.create({
       transactionId: transaction.id,
       executionRunId: executionRun.id,
       status: machineVerification.status,
@@ -444,16 +535,28 @@ export class PreservationVerificationService {
         rawReadBackHash: sha256(rawReadBack),
         rawImmutable: sha256(rawReadBack) === rawHash,
         verificationLatencyMs,
+        taskSpecBinding: taskSpec ? {
+          id: taskSpec.id,
+          version: taskSpec.version,
+          hash: taskSpec.hash,
+          blueprintId: taskSpec.blueprint.id,
+          blueprintVersion: taskSpec.blueprint.version,
+          blueprintHash: taskSpec.blueprint.hash,
+          compilerName: taskSpec.compiler.name,
+          compilerVersion: taskSpec.compiler.version,
+        } : null,
       },
     });
     await this.repositories.outcomeTransactions.updateStatus(
       transaction.id,
       machineVerification.status === "PASSED" ? "VERIFIED" : "FAILED",
     );
+    if (machineVerification.status === "PASSED") input.faultInjector?.("AFTER_VERIFICATION_PASSED");
 
     return this.toView({
       transactionId: transaction.id,
       executionRunId: executionRun.id,
+      verificationRunId: verificationRun.id,
       preservationRun,
       assetId: asset.id,
       sourceVersionId: sourceVersion.id,
@@ -471,6 +574,16 @@ export class PreservationVerificationService {
       preservationLatencyMs: preservationResult.processingTimeMs,
       verificationLatencyMs,
       costUsd: providerResult.costUsd,
+      taskSpecBinding: taskSpec ? {
+        id: taskSpec.id,
+        version: taskSpec.version,
+        hash: taskSpec.hash,
+        blueprintId: taskSpec.blueprint.id,
+        blueprintVersion: taskSpec.blueprint.version,
+        blueprintHash: taskSpec.blueprint.hash,
+        compilerName: taskSpec.compiler.name,
+        compilerVersion: taskSpec.compiler.version,
+      } : undefined,
     });
   }
 
@@ -541,6 +654,7 @@ export class PreservationVerificationService {
     return this.toView({
       transactionId,
       executionRunId: executionRun.id,
+      verificationRunId: verification.id,
       preservationRun,
       assetId: transaction.assetId,
       sourceVersionId: sourceVersion.id,
@@ -558,6 +672,7 @@ export class PreservationVerificationService {
       preservationLatencyMs: preservationRun.processingTimeMs ?? 0,
       verificationLatencyMs: Number(verification.details.verificationLatencyMs ?? 0),
       costUsd: rawCandidate.costUsd,
+      taskSpecBinding: taskSpecBindingFromMetadata(executionRun.metadata),
     });
   }
 
@@ -661,6 +776,7 @@ export class PreservationVerificationService {
   private async toView(input: {
     transactionId: string;
     executionRunId: string;
+    verificationRunId: string;
     preservationRun: PreservationRunRecord;
     assetId: string;
     sourceVersionId: string;
@@ -678,6 +794,7 @@ export class PreservationVerificationService {
     preservationLatencyMs: number;
     verificationLatencyMs: number;
     costUsd: number | null;
+    taskSpecBinding?: PreservationExperimentView["taskSpecBinding"];
   }): Promise<PreservationExperimentView> {
     const [sourceUrl, rawUrl, preservedUrl] = await Promise.all([
       this.storage.createReadUrl(input.sourceStorageKey),
@@ -687,6 +804,7 @@ export class PreservationVerificationService {
     return {
       transactionId: input.transactionId,
       executionRunId: input.executionRunId,
+      verificationRunId: input.verificationRunId,
       preservationRunId: input.preservationRun.id,
       assetId: input.assetId,
       sourceVersionId: input.sourceVersionId,
@@ -709,6 +827,7 @@ export class PreservationVerificationService {
       preservationLatencyMs: input.preservationLatencyMs,
       verificationLatencyMs: input.verificationLatencyMs,
       costUsd: input.costUsd,
+      taskSpecBinding: input.taskSpecBinding,
     };
   }
 }
@@ -739,4 +858,27 @@ function candidateView(candidate: CandidateAssetRecord, url: string): CandidateV
 
 function sha256(bytes: Uint8Array): string {
   return createHash("sha256").update(bytes).digest("hex");
+}
+
+function isImageEditExecutionError(error: unknown): error is { code: string; message: string } {
+  return error instanceof Error && [
+    "UNSUPPORTED_OUTPUT_GEOMETRY",
+    "SOURCE_GEOMETRY_UNSUPPORTED_BY_CURRENT_PROVIDER",
+    "PROVIDER_OUTPUT_CONTRACT_VIOLATION",
+    "PROVIDER_REQUEST_FAILED",
+  ].includes((error as { code?: unknown }).code as string);
+}
+
+function taskSpecBindingFromMetadata(metadata: Record<string, unknown>): PreservationExperimentView["taskSpecBinding"] {
+  if (typeof metadata.taskSpecId !== "string" || typeof metadata.taskSpecHash !== "string" || typeof metadata.blueprintId !== "string" || typeof metadata.blueprintHash !== "string" || typeof metadata.specCompilerName !== "string" || typeof metadata.specCompilerVersion !== "string") return undefined;
+  return {
+    id: metadata.taskSpecId,
+    version: Number(metadata.taskSpecVersion ?? 0),
+    hash: metadata.taskSpecHash,
+    blueprintId: metadata.blueprintId,
+    blueprintVersion: Number(metadata.blueprintVersion ?? 0),
+    blueprintHash: metadata.blueprintHash,
+    compilerName: metadata.specCompilerName,
+    compilerVersion: metadata.specCompilerVersion,
+  };
 }

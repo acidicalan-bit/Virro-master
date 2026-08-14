@@ -22,6 +22,12 @@ import type {
   CostRecord,
 } from "@/src/domain/outcome";
 import type {
+  CriterionEvidenceRecord,
+  CreateCriterionEvidenceRecord,
+} from "@/src/domain/outcome/criterion-evidence";
+
+export type { CriterionEvidenceRecord, CreateCriterionEvidenceRecord } from "@/src/domain/outcome/criterion-evidence";
+import type {
   CandidatePreference,
   CandidateType,
   HumanEvaluationTag,
@@ -333,6 +339,8 @@ export type CreateExecutionRunRecord = Omit<ExecutionRunRecord, "id"> & { id?: s
 
 export interface ExecutionRunRepository {
   create(input: CreateExecutionRunRecord): Promise<ExecutionRunRecord>;
+  updateMetadata(id: string, metadata: Record<string, unknown>): Promise<ExecutionRunRecord>;
+  findById(id: string): Promise<ExecutionRunRecord | null>;
   findByTransactionId(transactionId: string): Promise<ExecutionRunRecord[]>;
 }
 
@@ -352,6 +360,12 @@ export type CreateVerificationRunRecord = Omit<VerificationRunRecord, "id" | "ve
 export interface VerificationRunRepository {
   create(input: CreateVerificationRunRecord): Promise<VerificationRunRecord>;
   findByTransactionId(transactionId: string): Promise<VerificationRunRecord[]>;
+}
+
+export interface CriterionEvidenceRepository {
+  create(input: CreateCriterionEvidenceRecord): Promise<CriterionEvidenceRecord>;
+  findByTransactionId(transactionId: string): Promise<CriterionEvidenceRecord[]>;
+  findByVerificationRunId(verificationRunId: string): Promise<CriterionEvidenceRecord[]>;
 }
 
 export type StateCommitRecord = StateCommit;
@@ -558,6 +572,7 @@ export type RepositoryBundle = {
   executionRuns: ExecutionRunRepository;
   evidenceReceipts: EvidenceReceiptRepository;
   verificationRuns: VerificationRunRepository;
+  criterionEvidence: CriterionEvidenceRepository;
   stateCommits: StateCommitRepository;
   costRecords: CostRecordRepository;
   mediaStorage: MediaStorageRepository;

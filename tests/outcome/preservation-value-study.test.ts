@@ -29,6 +29,7 @@ const preservedMetrics = { ...rawMetrics, meanTotalPixelDiff: 0.1, changedPixelR
 const experiment: PreservationExperimentView = {
   transactionId: ids.transaction,
   executionRunId: ids.execution,
+  verificationRunId: "10000000-0000-0000-0000-000000000008",
   preservationRunId: ids.preservation,
   assetId: ids.asset,
   sourceVersionId: ids.source,

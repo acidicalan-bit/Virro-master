@@ -2,6 +2,8 @@ import type {
   ImageEditContext,
   ImageEditExecutor,
   ImageEditResult,
+  ImageEditPreflightContext,
+  ImageEditPreflightResult,
 } from "@/src/application/ports/outcome/image-edit-executor-port";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -12,6 +14,10 @@ export class FakeImageEditExecutor implements ImageEditExecutor {
   readonly provider = "fake";
 
   constructor(private readonly storage: SupabaseClient) {}
+
+  preflight(context: ImageEditPreflightContext): ImageEditPreflightResult {
+    return { status: "SUPPORTED", requestedWidth: context.sourceWidth, requestedHeight: context.sourceHeight, requestedSize: `${context.sourceWidth}x${context.sourceHeight}` };
+  }
 
   async execute(context: ImageEditContext): Promise<ImageEditResult> {
     const startedAt = Date.now();
