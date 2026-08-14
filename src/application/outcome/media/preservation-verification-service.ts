@@ -69,7 +69,7 @@ export type RunPreservationExperimentInput = {
     sourceByteSize: number;
   }) => Promise<TaskSpec>;
   recoveryContext?: {
-    tenantId: "internal-lab";
+    tenantId: string;
     topology: "LOCAL_INDEPENDENT" | "LOCAL_COUPLED" | "STRUCTURAL" | "GLOBAL";
     taskType: "COLOR_CHANGE" | "OBJECT_REMOVAL" | "TEXT_EDIT" | "IDENTITY_EDIT" | "PRODUCT_EDIT" | "GEOMETRY_EDIT" | "OTHER";
     blueprint: import("@/src/domain/outcome/specification/outcome-blueprint").OutcomeBlueprint;

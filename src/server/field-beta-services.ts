@@ -9,26 +9,29 @@ import { SupabaseMediaObjectStore } from "@/src/infrastructure/storage/supabase-
 import { createTransientJwtRetryFetch } from "@/src/infrastructure/supabase/transient-jwt-retry-fetch";
 import { createPreservationVerificationService, resetPreservationVerificationServiceForTests } from "@/src/server/preservation-services";
 import { DurableExecutionRecoveryContextLoader } from "@/src/application/outcome/recovery/execution-recovery-context-loader";
+import { getSupabasePrivilegedKey, getSupabaseUrl } from "@/src/infrastructure/supabase/config";
 
-let service: FieldBetaService | null = null;
+const services = new Map<string, FieldBetaService>();
 
-export function createFieldBetaService(): FieldBetaService {
+export function createFieldBetaService(tenantId = "internal-lab", principalId = "internal-evaluator"): FieldBetaService {
   if (!isFieldBetaEnabled(process.env.FIELD_BETA_INTERNAL_ENABLED)) throw new Error("BUILD 005 field beta is disabled unless FIELD_BETA_INTERNAL_ENABLED=true.");
-  if (service) return service;
-  const url = process.env.SUPABASE_URL?.trim() || process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
-  if (!url || !serviceRoleKey) throw new Error("Supabase server credentials are required for BUILD 005.");
+  const preservationVerificationService = createPreservationVerificationService();
+  if (tenantId === "internal-lab" && process.env.NODE_ENV !== "test") throw new Error("Field Beta requires an authenticated tenant authority in non-test environments.");
+  const existing = services.get(`${tenantId}:${principalId}`);
+  if (existing) return existing;
+  const url = getSupabaseUrl();
+  const serviceRoleKey = getSupabasePrivilegedKey();
   const client = createClient(url, serviceRoleKey, {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
     global: { fetch: createTransientJwtRetryFetch() },
   });
   const repositories = createSupabaseRepositories();
   const samplingRate = parseSamplingRate(process.env.FIELD_EVAL_SAMPLING_RATE);
-  service = new FieldBetaService(
-    createPreservationVerificationService(),
+  const created = new FieldBetaService(
+    preservationVerificationService,
     repositories.candidateAssets,
     repositories.assetVersions,
-    new SupabaseFieldBetaRepository(client),
+    new SupabaseFieldBetaRepository(client, tenantId),
     new SupabaseMediaObjectStore(client),
     undefined,
     samplingRate,
@@ -36,8 +39,11 @@ export function createFieldBetaService(): FieldBetaService {
     new DurableExecutionRecoveryContextLoader(repositories.executionRuns),
     undefined,
     repositories.criterionEvidence,
+    tenantId,
+    principalId,
   );
-  return service;
+  services.set(`${tenantId}:${principalId}`, created);
+  return created;
 }
 
 export function isFieldBetaEnabled(value: string | undefined): boolean {
@@ -50,4 +56,4 @@ function parseSamplingRate(value: string | undefined): number {
   return parsed;
 }
 
-export function resetFieldBetaServiceForTests(): void { service = null; resetPreservationVerificationServiceForTests(); }
+export function resetFieldBetaServiceForTests(): void { services.clear(); resetPreservationVerificationServiceForTests(); }

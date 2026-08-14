@@ -10,7 +10,8 @@ describe("BUILD 005-B security boundary", () => {
     expect(page).toContain('dynamic = "force-dynamic"');
     expect(page).toContain("notFound()");
     expect(route).toContain('dynamic = "force-dynamic"');
-    expect(route).toContain("createFieldBetaService()");
+    expect(route).toContain("createFieldBetaService(");
+    expect(route).toContain("resolveRequestAuthority");
     expect(route).not.toContain("tenantId: z.string");
   });
 

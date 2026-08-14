@@ -8,7 +8,7 @@ import { TaskSpecSchema, verifyTaskSpecHash, type TaskSpec } from "@/src/domain/
 
 const RecoveryMetadataSchema = z.object({
   schemaVersion: z.literal("field-recovery-context-v0.1"),
-  tenantId: z.literal(FIELD_TENANT_ID),
+  tenantId: z.union([z.literal(FIELD_TENANT_ID), z.uuid()]),
   transactionId: z.uuid(),
   executionRunId: z.uuid(),
   sourceVersionId: z.uuid(),

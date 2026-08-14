@@ -100,5 +100,16 @@ Current internal-only operation reduces exposure but does not remove reportabili
 
 Re-review this model before public users, auth/tenant RLS, durable Blueprint/Project/Canon publication, discovery/ranking/trust claims, new outcome compilers, additional providers, payments, mobile sessions, deep links, push, resumable uploads/jobs, delivery sharing, seller onboarding, executable seller artifacts, public APIs, semantic verifiers, or changes to canonical commit.
 
+## Foundation 1.5 Phase A delta
+
+Field Beta now has a server-side Auth-to-membership boundary: verified
+Supabase claims produce an `AuthenticatedPrincipal`; only an active durable
+membership for an active tenant produces `AuthorityContext`. Tenant locators,
+emails, metadata and resource UUIDs do not grant access. The Phase A migration
+uses `ON DELETE RESTRICT` for principal references so account deletion cannot
+silently erase membership or evidence history. Full REAL_AUTH two-tenant,
+Storage, recovery and active-lineage RLS proof is explicitly deferred to Phase
+B; no public multi-tenant claim is made.
+
 Repository: app-generativa-ia
 Version: branch-codex/spec-anchored-platform-foundation-v0.1+universal-marketplace-v1.2-working-snapshot

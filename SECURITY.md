@@ -59,7 +59,9 @@ The phone is a control surface and the cloud is the execution authority. A clien
 
 ## Known limitations
 
-- No end-user authentication, tenant ownership model, or complete tenant-aware RLS exists.
+- Foundation 1.5 Phase A now verifies Supabase Auth claims and resolves durable
+  tenant membership for Field Beta; complete user-scoped lineage/RLS and
+  two-user negative proof remain outstanding.
 - Privileged server repositories can bypass RLS; compromise has broad database/storage blast radius.
 - Blueprint/Task Spec registries remain deterministic compiler inputs; the
   existing verification model now has an additive durable criterion-evidence
@@ -76,6 +78,22 @@ Every Build must include a `SECURITY DELTA` naming changed trust boundaries, dat
 
 ## BUILD 005 internal field beta delta
 
-BUILD 005 adds field-outcome, preservation-strategy, human-acceptance, evaluation, and curated-regression records. They are server-write-only, RLS-enabled, server-bound to the fixed `internal-lab` tenant, append-only records anchored to a Blueprint/Task Spec hash. `FIELD_BETA_INTERNAL_ENABLED=true` is only an exposure switch, never authorization: the page and API fail closed at request boundaries, and the feature must remain on an internal/controlled deployment until authentication and ownership binding exist. The service-role key is never a client authority and every BUILD 005 repository read/write applies the authoritative tenant constraint. Provider cost remains nullable when unreported.
+BUILD 005 adds field-outcome, preservation-strategy, human-acceptance, evaluation, and curated-regression records. They are server-write-only, RLS-enabled, tenant-bound records anchored to a Blueprint/Task Spec hash. `FIELD_BETA_INTERNAL_ENABLED=true` is only an exposure switch, never authorization: the page and API now require verified Supabase Auth plus active tenant membership, and the feature must remain on an internal/controlled deployment until complete lineage ownership and two-user negative proof exist. Historical `internal-lab` rows remain compatibility data, not authority. The service-role key is never a client authority and every active Field Beta repository read/write applies the resolved tenant constraint. Provider cost remains nullable when unreported.
 
 Field Beta accepts PNG only within the conservative 2048×2048 / 4,194,304-pixel / decoded-resource envelope before provider execution. API errors are mapped to bounded codes and messages; detailed provider, database, path and secret-bearing errors are not returned to clients. The snapshot-aware migration refuses a pre-snapshot legacy schema rather than manufacturing Blueprint or Task Spec provenance. The missing full authentication/ownership model, privileged service-role blast radius, and non-atomic canonical head/StateCommit operation remain P0/P1 debt; this beta is not approved for public multi-tenant use.
+
+## FOUNDATION 1.5 Phase A identity boundary
+
+Phase A adds a bounded Supabase Auth boundary for internal Field Beta. A
+verified Auth claim is converted to an application `AuthenticatedPrincipal`,
+then an active Postgres `tenant_memberships` relation is required before an
+immutable `AuthorityContext` is created. Requested tenant IDs remain locators,
+never grants. The `tenants` and `tenant_memberships` migration uses restrictive
+principal deletion semantics so Auth account deletion cannot erase authority
+history or evidence. `/field-beta` and `/api/field-beta` are dynamic/private
+and reject unauthenticated requests.
+
+This is not full Foundation 1.5 readiness: real two-user/two-tenant Auth,
+Storage isolation, recovery and complete active-lineage RLS proof remain Phase
+B. Existing `internal-lab` rows are historical compatibility data and no new
+authenticated path may use them as authority.

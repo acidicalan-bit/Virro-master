@@ -3,6 +3,8 @@ import { z } from "zod";
 
 import { FieldBetaError } from "@/src/application/outcome/media/field-beta-service";
 import { createFieldBetaService } from "@/src/server/field-beta-services";
+import { resolveRequestAuthority } from "@/src/server/tenant-authority";
+import { AuthorityError } from "@/src/domain/auth/authority";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -28,7 +30,9 @@ const RequestSchema = z.discriminatedUnion("action", [RunSchema, FeedbackSchema,
 
 export async function GET(request: Request) {
   try {
-    const service = createFieldBetaService();
+    const resolved = await resolveRequestAuthority(request);
+    if (resolved.kind !== "AUTHENTICATED" || !resolved.authority) return authorityResponse(resolved.kind);
+    const service = createFieldBetaService(resolved.authority.tenantId, resolved.authority.principalId);
     const url = new URL(request.url);
     const transactionId = url.searchParams.get("transactionId");
     if (transactionId) return NextResponse.json({ result: await service.getByTransactionId(z.uuid().parse(transactionId)) });
@@ -39,7 +43,9 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const parsed = RequestSchema.parse(await request.json());
-    const service = createFieldBetaService();
+    const resolved = await resolveRequestAuthority(request);
+    if (resolved.kind !== "AUTHENTICATED" || !resolved.authority) return authorityResponse(resolved.kind);
+    const service = createFieldBetaService(resolved.authority.tenantId, resolved.authority.principalId);
     if (parsed.action === "run") {
       const { sourceBase64, ...runInput } = withoutAction(parsed);
       return NextResponse.json({ result: await service.run({ ...runInput, sourceBytes: new Uint8Array(Buffer.from(sourceBase64, "base64")) }) });
@@ -51,12 +57,17 @@ export async function POST(request: Request) {
   } catch (error) { return fieldBetaErrorResponse(error); }
 }
 
+function authorityResponse(kind: string) {
+  const status = kind === "UNAUTHENTICATED" ? 401 : kind === "AUTH_ENVIRONMENT_FAILURE" ? 503 : 401;
+  return NextResponse.json({ error: "La autenticación o autoridad de tenant no es válida.", code: kind }, { status, headers: { "Cache-Control": "private, no-store" } });
+}
+
 export function fieldBetaErrorResponse(error: unknown) {
   const disabled = error instanceof Error && error.message.includes("disabled");
-  const status = error instanceof z.ZodError ? 400 : error instanceof FieldBetaError ? 409 : disabled ? 404 : 500;
-  const code = error instanceof z.ZodError ? "INVALID_REQUEST" : error instanceof FieldBetaError ? error.code : disabled ? "FIELD_BETA_DISABLED" : "FIELD_BETA_REQUEST_FAILED";
-  const message = error instanceof z.ZodError ? "La solicitud de Field Beta no es válida." : disabled ? "Field Beta no está habilitado." : error instanceof FieldBetaError ? "La operación de Field Beta no pudo completarse." : "La solicitud de Field Beta no pudo completarse.";
-  return NextResponse.json({ error: message, code }, { status });
+  const status = error instanceof z.ZodError ? 400 : error instanceof AuthorityError ? 403 : error instanceof FieldBetaError ? 409 : disabled ? 404 : 500;
+  const code = error instanceof z.ZodError ? "INVALID_REQUEST" : error instanceof AuthorityError ? error.code : error instanceof FieldBetaError ? error.code : disabled ? "FIELD_BETA_DISABLED" : "FIELD_BETA_REQUEST_FAILED";
+  const message = error instanceof z.ZodError ? "La solicitud de Field Beta no es válida." : error instanceof AuthorityError ? "La autoridad de tenant no permite esta operación." : disabled ? "Field Beta no está habilitado." : error instanceof FieldBetaError ? "La operación de Field Beta no pudo completarse." : "La solicitud de Field Beta no pudo completarse.";
+  return NextResponse.json({ error: message, code }, { status, headers: { "Cache-Control": "private, no-store" } });
 }
 
 function withoutAction<T extends { action: string }>(input: T): Omit<T, "action"> {

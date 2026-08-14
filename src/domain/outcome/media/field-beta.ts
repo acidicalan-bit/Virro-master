@@ -126,7 +126,7 @@ export type FieldStrategyRun = {
 
 export const FieldRecoveryContextSchema = z.object({
   id: z.uuid(),
-  tenantId: z.literal(FIELD_TENANT_ID),
+  tenantId: z.union([z.literal(FIELD_TENANT_ID), z.uuid()]),
   executionRunId: z.uuid(),
   transactionId: z.uuid(),
   sourceVersionId: z.uuid(),
@@ -222,7 +222,7 @@ export function deriveFieldSemanticStatus(input: {
   const validHumanEvidence = Boolean(input.feedback)
     && input.feedback?.tenantId === input.outcomeTenantId
     && input.feedback.acceptanceSource === FIELD_ACCEPTANCE_SOURCE
-    && input.feedback.recordedBy === "internal-evaluator";
+    && (input.feedback.recordedBy === "internal-evaluator" || z.string().uuid().safeParse(input.feedback.recordedBy).success);
   const humanAcceptanceStatus: FieldHumanAcceptanceStatus = !validHumanEvidence
     ? "PENDING"
     : input.feedback!.humanAccepted ? "ACCEPTED" : "REJECTED";
@@ -250,7 +250,7 @@ export type FieldFeedback = {
   humanCorrection: string | null;
   createdAt: string;
   acceptanceSource: typeof FIELD_ACCEPTANCE_SOURCE;
-  recordedBy: "internal-evaluator";
+  recordedBy: string;
 };
 
 export type FieldGoldenCase = {
