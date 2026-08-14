@@ -8,6 +8,7 @@ import {
   PreservationPolicySchema,
 } from "@/src/domain/outcome/media/preservation";
 import { createPreservationVerificationService } from "@/src/server/preservation-services";
+import { isLegacyInternalRouteEnabled, legacyRouteDisabledResponse } from "@/src/server/legacy-route-guard";
 
 export const runtime = "nodejs";
 
@@ -39,6 +40,7 @@ const DecisionSchema = z.object({
 const RequestSchema = z.discriminatedUnion("action", [RunExperimentSchema, PreferenceSchema, DecisionSchema]);
 
 export async function GET(request: Request) {
+  if (!isLegacyInternalRouteEnabled()) return legacyRouteDisabledResponse();
   try {
     const transactionId = z.uuid().parse(new URL(request.url).searchParams.get("transactionId"));
     const experiment = await createPreservationVerificationService().getExperiment(transactionId);
@@ -53,6 +55,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  if (!isLegacyInternalRouteEnabled()) return legacyRouteDisabledResponse();
   try {
     const parsed = RequestSchema.parse(await request.json());
     const service = createPreservationVerificationService();

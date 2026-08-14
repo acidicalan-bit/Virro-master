@@ -11,6 +11,7 @@ import {
   StudyTopologySchema,
 } from "@/src/domain/outcome/media/preservation-study";
 import { createPreservationStudyService } from "@/src/server/preservation-study-services";
+import { isLegacyInternalRouteEnabled, legacyRouteDisabledResponse } from "@/src/server/legacy-route-guard";
 
 export const runtime = "nodejs";
 
@@ -52,6 +53,7 @@ const RequestSchema = z.discriminatedUnion("action", [
 ]);
 
 export async function GET(request: Request) {
+  if (!isLegacyInternalRouteEnabled()) return legacyRouteDisabledResponse();
   try {
     const caseId = new URL(request.url).searchParams.get("caseId");
     const service = createPreservationStudyService();
@@ -63,6 +65,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  if (!isLegacyInternalRouteEnabled()) return legacyRouteDisabledResponse();
   try {
     const input = RequestSchema.parse(await request.json());
     const service = createPreservationStudyService();

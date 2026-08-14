@@ -15,6 +15,7 @@ export const TransactionStatusSchema = z.enum([
 
 export const OutcomeTransactionSchema = z.object({
   id: z.uuid(),
+  ownerTenantId: z.uuid().nullable().optional(),
   projectId: z.uuid(),
   assetId: z.uuid(),
   baseVersionId: z.uuid(),

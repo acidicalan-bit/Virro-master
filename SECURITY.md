@@ -98,3 +98,28 @@ Phase A evidence is demonstrated, but this is not full Foundation 1.5
 readiness: Storage isolation, recovery and complete active-lineage RLS proof
 remain Phase B. Existing `internal-lab` rows are historical compatibility data
 and no new authenticated path may use them as authority.
+
+## FOUNDATION 1.5 Phase B — Build 001 tenant lineage boundary
+
+Build 001 adds the first authenticated core-lineage path at
+`/api/core-lineage`. `resolveRequestAuthority` derives an immutable
+`AuthorityContext` from verified Supabase claims and an active membership. The
+tenant-scoped repository is the only application port used by this route;
+client-supplied tenant IDs, principals, roles, owner fields and commit claims
+are not accepted as authority. `projects`, `assets`, `asset_versions` and
+`outcome_transactions` now have additive nullable `owner_tenant_id` columns,
+new-write/parent-consistency triggers, and authenticated RLS policies.
+
+Historical NULL ownership is intentionally preserved as
+`HISTORICAL_INTERNAL_LAB`/`UNKNOWN` compatibility data. No ownership is
+fabricated or backfilled. Legacy service-role routes fail closed by default and
+in production; `INTERNAL_LEGACY_ROUTES_ENABLED=true` is a non-production
+operator switch only and is never authorization. The route and flag do not
+make legacy services safe for public deployment.
+
+The remaining boundary is explicit: StateCommit atomicity, downstream
+ExecutionRun/EvidenceReceipt migration, Storage object policy, recovery and
+rate/cost controls remain deferred. The Phase B real two-user Supabase proof
+must demonstrate own-read/write, cross-tenant denial, locator substitution
+denial, legacy unauthenticated denial, and revocation before this foundation is
+considered independently reviewable.

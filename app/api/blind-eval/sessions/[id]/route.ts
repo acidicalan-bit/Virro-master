@@ -1,6 +1,7 @@
 import { z, ZodError } from "zod";
 
 import { createBlindEvaluationServices } from "@/src/server/services";
+import { isLegacyInternalRouteEnabled, legacyRouteDisabledResponse } from "@/src/server/legacy-route-guard";
 
 const SessionIdSchema = z.uuid();
 
@@ -8,6 +9,7 @@ export async function GET(
   _request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
+  if (!isLegacyInternalRouteEnabled()) return legacyRouteDisabledResponse();
   try {
     const { id } = await context.params;
     const sessionId = SessionIdSchema.parse(id);

@@ -74,29 +74,29 @@ export class SupabaseProjectRepository implements ProjectRepository {
   async create(input: CreateProjectRecord): Promise<ProjectRecord> {
     const { data, error } = await this.client
       .from("projects")
-      .insert({ name: input.name, description: input.description })
+      .insert({ owner_tenant_id: input.ownerTenantId ?? null, name: input.name, description: input.description })
       .select("*")
       .single();
     if (error || !data) throw new Error("No se pudo crear el proyecto.");
-    return { id: String(data.id), name: String(data.name), description: data.description ? String(data.description) : null, createdAt: String(data.created_at), updatedAt: String(data.updated_at) };
+    return { id: String(data.id), ownerTenantId: data.owner_tenant_id ? String(data.owner_tenant_id) : null, name: String(data.name), description: data.description ? String(data.description) : null, createdAt: String(data.created_at), updatedAt: String(data.updated_at) };
   }
 
   async findById(id: string): Promise<ProjectRecord | null> {
     const { data, error } = await this.client.from("projects").select("*").eq("id", id).maybeSingle();
     if (error) throw new Error("No se pudo leer el proyecto.");
-    return data ? { id: String(data.id), name: String(data.name), description: data.description ? String(data.description) : null, createdAt: String(data.created_at), updatedAt: String(data.updated_at) } : null;
+    return data ? { id: String(data.id), ownerTenantId: data.owner_tenant_id ? String(data.owner_tenant_id) : null, name: String(data.name), description: data.description ? String(data.description) : null, createdAt: String(data.created_at), updatedAt: String(data.updated_at) } : null;
   }
 
   async list(): Promise<ProjectRecord[]> {
     const { data, error } = await this.client.from("projects").select("*").order("created_at", { ascending: false });
     if (error || !data) throw new Error("No se pudieron leer los proyectos.");
-    return data.map((row) => ({ id: String(row.id), name: String(row.name), description: row.description ? String(row.description) : null, createdAt: String(row.created_at), updatedAt: String(row.updated_at) }));
+    return data.map((row) => ({ id: String(row.id), ownerTenantId: row.owner_tenant_id ? String(row.owner_tenant_id) : null, name: String(row.name), description: row.description ? String(row.description) : null, createdAt: String(row.created_at), updatedAt: String(row.updated_at) }));
   }
 
   async update(id: string, input: Partial<CreateProjectRecord>): Promise<ProjectRecord> {
     const { data, error } = await this.client.from("projects").update({ name: input.name, description: input.description }).eq("id", id).select("*").single();
     if (error || !data) throw new Error("No se pudo actualizar el proyecto.");
-    return { id: String(data.id), name: String(data.name), description: data.description ? String(data.description) : null, createdAt: String(data.created_at), updatedAt: String(data.updated_at) };
+    return { id: String(data.id), ownerTenantId: data.owner_tenant_id ? String(data.owner_tenant_id) : null, name: String(data.name), description: data.description ? String(data.description) : null, createdAt: String(data.created_at), updatedAt: String(data.updated_at) };
   }
 }
 
@@ -106,29 +106,29 @@ export class SupabaseAssetRepository implements AssetRepository {
   async create(input: CreateAssetRecord): Promise<AssetRecord> {
     const { data, error } = await this.client
       .from("assets")
-      .insert({ project_id: input.projectId, name: input.name, description: input.description })
+      .insert({ owner_tenant_id: input.ownerTenantId ?? null, project_id: input.projectId, name: input.name, description: input.description })
       .select("*")
       .single();
     if (error || !data) throw new Error("No se pudo crear el activo.");
-    return { id: String(data.id), projectId: String(data.project_id), name: String(data.name), description: data.description ? String(data.description) : null, currentVersionId: data.current_version_id ? String(data.current_version_id) : null, createdAt: String(data.created_at), updatedAt: String(data.updated_at) };
+    return { id: String(data.id), ownerTenantId: data.owner_tenant_id ? String(data.owner_tenant_id) : null, projectId: String(data.project_id), name: String(data.name), description: data.description ? String(data.description) : null, currentVersionId: data.current_version_id ? String(data.current_version_id) : null, createdAt: String(data.created_at), updatedAt: String(data.updated_at) };
   }
 
   async findById(id: string): Promise<AssetRecord | null> {
     const { data, error } = await this.client.from("assets").select("*").eq("id", id).maybeSingle();
     if (error) throw new Error("No se pudo leer el activo.");
-    return data ? { id: String(data.id), projectId: String(data.project_id), name: String(data.name), description: data.description ? String(data.description) : null, currentVersionId: data.current_version_id ? String(data.current_version_id) : null, createdAt: String(data.created_at), updatedAt: String(data.updated_at) } : null;
+    return data ? { id: String(data.id), ownerTenantId: data.owner_tenant_id ? String(data.owner_tenant_id) : null, projectId: String(data.project_id), name: String(data.name), description: data.description ? String(data.description) : null, currentVersionId: data.current_version_id ? String(data.current_version_id) : null, createdAt: String(data.created_at), updatedAt: String(data.updated_at) } : null;
   }
 
   async findByProjectId(projectId: string): Promise<AssetRecord[]> {
     const { data, error } = await this.client.from("assets").select("*").eq("project_id", projectId);
     if (error || !data) throw new Error("No se pudieron leer los activos.");
-    return data.map((row) => ({ id: String(row.id), projectId: String(row.project_id), name: String(row.name), description: row.description ? String(row.description) : null, currentVersionId: row.current_version_id ? String(row.current_version_id) : null, createdAt: String(row.created_at), updatedAt: String(row.updated_at) }));
+    return data.map((row) => ({ id: String(row.id), ownerTenantId: row.owner_tenant_id ? String(row.owner_tenant_id) : null, projectId: String(row.project_id), name: String(row.name), description: row.description ? String(row.description) : null, currentVersionId: row.current_version_id ? String(row.current_version_id) : null, createdAt: String(row.created_at), updatedAt: String(row.updated_at) }));
   }
 
   async update(id: string, input: Partial<CreateAssetRecord> & { currentVersionId?: string | null }): Promise<AssetRecord> {
     const { data, error } = await this.client.from("assets").update({ project_id: input.projectId, name: input.name, description: input.description, current_version_id: input.currentVersionId }).eq("id", id).select("*").single();
     if (error || !data) throw new Error("No se pudo actualizar el activo.");
-    return { id: String(data.id), projectId: String(data.project_id), name: String(data.name), description: data.description ? String(data.description) : null, currentVersionId: data.current_version_id ? String(data.current_version_id) : null, createdAt: String(data.created_at), updatedAt: String(data.updated_at) };
+    return { id: String(data.id), ownerTenantId: data.owner_tenant_id ? String(data.owner_tenant_id) : null, projectId: String(data.project_id), name: String(data.name), description: data.description ? String(data.description) : null, currentVersionId: data.current_version_id ? String(data.current_version_id) : null, createdAt: String(data.created_at), updatedAt: String(data.updated_at) };
   }
 }
 
@@ -138,29 +138,29 @@ export class SupabaseAssetVersionRepository implements AssetVersionRepository {
   async create(input: CreateAssetVersionRecord): Promise<AssetVersionRecord> {
     const { data, error } = await this.client
       .from("asset_versions")
-      .insert({ asset_id: input.assetId, version_number: input.versionNumber, state: input.state, parent_version_id: input.parentVersionId })
+      .insert({ owner_tenant_id: input.ownerTenantId ?? null, asset_id: input.assetId, version_number: input.versionNumber, state: input.state, parent_version_id: input.parentVersionId })
       .select("*")
       .single();
     if (error || !data) throw new Error("No se pudo crear la versión.");
-    return { id: String(data.id), assetId: String(data.asset_id), versionNumber: Number(data.version_number), state: data.state as Record<string, unknown>, parentVersionId: data.parent_version_id ? String(data.parent_version_id) : null, createdAt: String(data.created_at) };
+    return { id: String(data.id), ownerTenantId: data.owner_tenant_id ? String(data.owner_tenant_id) : null, assetId: String(data.asset_id), versionNumber: Number(data.version_number), state: data.state as Record<string, unknown>, parentVersionId: data.parent_version_id ? String(data.parent_version_id) : null, createdAt: String(data.created_at) };
   }
 
   async findById(id: string): Promise<AssetVersionRecord | null> {
     const { data, error } = await this.client.from("asset_versions").select("*").eq("id", id).maybeSingle();
     if (error) throw new Error("No se pudo leer la versión.");
-    return data ? { id: String(data.id), assetId: String(data.asset_id), versionNumber: Number(data.version_number), state: data.state as Record<string, unknown>, parentVersionId: data.parent_version_id ? String(data.parent_version_id) : null, createdAt: String(data.created_at) } : null;
+    return data ? { id: String(data.id), ownerTenantId: data.owner_tenant_id ? String(data.owner_tenant_id) : null, assetId: String(data.asset_id), versionNumber: Number(data.version_number), state: data.state as Record<string, unknown>, parentVersionId: data.parent_version_id ? String(data.parent_version_id) : null, createdAt: String(data.created_at) } : null;
   }
 
   async findByAssetId(assetId: string): Promise<AssetVersionRecord[]> {
     const { data, error } = await this.client.from("asset_versions").select("*").eq("asset_id", assetId).order("version_number");
     if (error || !data) throw new Error("No se pudieron leer las versiones.");
-    return data.map((row) => ({ id: String(row.id), assetId: String(row.asset_id), versionNumber: Number(row.version_number), state: row.state as Record<string, unknown>, parentVersionId: row.parent_version_id ? String(row.parent_version_id) : null, createdAt: String(row.created_at) }));
+    return data.map((row) => ({ id: String(row.id), ownerTenantId: row.owner_tenant_id ? String(row.owner_tenant_id) : null, assetId: String(row.asset_id), versionNumber: Number(row.version_number), state: row.state as Record<string, unknown>, parentVersionId: row.parent_version_id ? String(row.parent_version_id) : null, createdAt: String(row.created_at) }));
   }
 
   async findLatestByAssetId(assetId: string): Promise<AssetVersionRecord | null> {
     const { data, error } = await this.client.from("asset_versions").select("*").eq("asset_id", assetId).order("version_number", { ascending: false }).limit(1).maybeSingle();
     if (error) throw new Error("No se pudo leer la última versión.");
-    return data ? { id: String(data.id), assetId: String(data.asset_id), versionNumber: Number(data.version_number), state: data.state as Record<string, unknown>, parentVersionId: data.parent_version_id ? String(data.parent_version_id) : null, createdAt: String(data.created_at) } : null;
+    return data ? { id: String(data.id), ownerTenantId: data.owner_tenant_id ? String(data.owner_tenant_id) : null, assetId: String(data.asset_id), versionNumber: Number(data.version_number), state: data.state as Record<string, unknown>, parentVersionId: data.parent_version_id ? String(data.parent_version_id) : null, createdAt: String(data.created_at) } : null;
   }
 }
 
@@ -170,29 +170,29 @@ export class SupabaseOutcomeTransactionRepository implements OutcomeTransactionR
   async create(input: CreateOutcomeTransactionRecord): Promise<OutcomeTransactionRecord> {
     const { data, error } = await this.client
       .from("outcome_transactions")
-      .insert({ project_id: input.projectId, asset_id: input.assetId, base_version_id: input.baseVersionId, raw_request: input.rawRequest, status: "DRAFT" })
+      .insert({ owner_tenant_id: input.ownerTenantId ?? null, project_id: input.projectId, asset_id: input.assetId, base_version_id: input.baseVersionId, raw_request: input.rawRequest, status: "DRAFT" })
       .select("*")
       .single();
     if (error || !data) throw new Error("No se pudo crear la transacción.");
-    return { id: String(data.id), projectId: String(data.project_id), assetId: String(data.asset_id), baseVersionId: String(data.base_version_id), status: data.status as TransactionStatus, rawRequest: String(data.raw_request), createdAt: String(data.created_at), updatedAt: String(data.updated_at), completedAt: data.completed_at ? String(data.completed_at) : null, abortReason: data.abort_reason ? String(data.abort_reason) : null };
+    return { id: String(data.id), ownerTenantId: data.owner_tenant_id ? String(data.owner_tenant_id) : null, projectId: String(data.project_id), assetId: String(data.asset_id), baseVersionId: String(data.base_version_id), status: data.status as TransactionStatus, rawRequest: String(data.raw_request), createdAt: String(data.created_at), updatedAt: String(data.updated_at), completedAt: data.completed_at ? String(data.completed_at) : null, abortReason: data.abort_reason ? String(data.abort_reason) : null };
   }
 
   async findById(id: string): Promise<OutcomeTransactionRecord | null> {
     const { data, error } = await this.client.from("outcome_transactions").select("*").eq("id", id).maybeSingle();
     if (error) throw new Error("No se pudo leer la transacción.");
-    return data ? { id: String(data.id), projectId: String(data.project_id), assetId: String(data.asset_id), baseVersionId: String(data.base_version_id), status: data.status as TransactionStatus, rawRequest: String(data.raw_request), createdAt: String(data.created_at), updatedAt: String(data.updated_at), completedAt: data.completed_at ? String(data.completed_at) : null, abortReason: data.abort_reason ? String(data.abort_reason) : null } : null;
+    return data ? { id: String(data.id), ownerTenantId: data.owner_tenant_id ? String(data.owner_tenant_id) : null, projectId: String(data.project_id), assetId: String(data.asset_id), baseVersionId: String(data.base_version_id), status: data.status as TransactionStatus, rawRequest: String(data.raw_request), createdAt: String(data.created_at), updatedAt: String(data.updated_at), completedAt: data.completed_at ? String(data.completed_at) : null, abortReason: data.abort_reason ? String(data.abort_reason) : null } : null;
   }
 
   async findByAssetId(assetId: string): Promise<OutcomeTransactionRecord[]> {
     const { data, error } = await this.client.from("outcome_transactions").select("*").eq("asset_id", assetId);
     if (error || !data) throw new Error("No se pudieron leer las transacciones.");
-    return data.map((row) => ({ id: String(row.id), projectId: String(row.project_id), assetId: String(row.asset_id), baseVersionId: String(row.base_version_id), status: row.status as TransactionStatus, rawRequest: String(row.raw_request), createdAt: String(row.created_at), updatedAt: String(row.updated_at), completedAt: row.completed_at ? String(row.completed_at) : null, abortReason: row.abort_reason ? String(row.abort_reason) : null }));
+    return data.map((row) => ({ id: String(row.id), ownerTenantId: row.owner_tenant_id ? String(row.owner_tenant_id) : null, projectId: String(row.project_id), assetId: String(row.asset_id), baseVersionId: String(row.base_version_id), status: row.status as TransactionStatus, rawRequest: String(row.raw_request), createdAt: String(row.created_at), updatedAt: String(row.updated_at), completedAt: row.completed_at ? String(row.completed_at) : null, abortReason: row.abort_reason ? String(row.abort_reason) : null }));
   }
 
   async updateStatus(id: string, status: TransactionStatus, extra?: { abortReason?: string | null; completedAt?: string | null }): Promise<OutcomeTransactionRecord> {
     const { data, error } = await this.client.from("outcome_transactions").update({ status, abort_reason: extra?.abortReason, completed_at: extra?.completedAt }).eq("id", id).select("*").single();
     if (error || !data) throw new Error("No se pudo actualizar la transacción.");
-    return { id: String(data.id), projectId: String(data.project_id), assetId: String(data.asset_id), baseVersionId: String(data.base_version_id), status: data.status as TransactionStatus, rawRequest: String(data.raw_request), createdAt: String(data.created_at), updatedAt: String(data.updated_at), completedAt: data.completed_at ? String(data.completed_at) : null, abortReason: data.abort_reason ? String(data.abort_reason) : null };
+    return { id: String(data.id), ownerTenantId: data.owner_tenant_id ? String(data.owner_tenant_id) : null, projectId: String(data.project_id), assetId: String(data.asset_id), baseVersionId: String(data.base_version_id), status: data.status as TransactionStatus, rawRequest: String(data.raw_request), createdAt: String(data.created_at), updatedAt: String(data.updated_at), completedAt: data.completed_at ? String(data.completed_at) : null, abortReason: data.abort_reason ? String(data.abort_reason) : null };
   }
 }
 

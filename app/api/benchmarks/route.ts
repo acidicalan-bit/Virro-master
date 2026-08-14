@@ -1,12 +1,14 @@
 import { ZodError, z } from "zod";
 
 import { createApplicationServices } from "@/src/server/services";
+import { isLegacyInternalRouteEnabled, legacyRouteDisabledResponse } from "@/src/server/legacy-route-guard";
 
 const RunRequestSchema = z
   .object({ slugs: z.array(z.string().min(1)).max(40).optional() })
   .strict();
 
 export async function GET() {
+  if (!isLegacyInternalRouteEnabled()) return legacyRouteDisabledResponse();
   try {
     const { repositories } = createApplicationServices();
     const cases = await repositories.benchmarks.listActive();
@@ -17,6 +19,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  if (!isLegacyInternalRouteEnabled()) return legacyRouteDisabledResponse();
   try {
     const { slugs } = RunRequestSchema.parse(await request.json());
     const { benchmarks, repositories } = createApplicationServices();

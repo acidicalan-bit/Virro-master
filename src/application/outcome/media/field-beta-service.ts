@@ -101,6 +101,7 @@ export class FieldBetaService {
     let compiledTaskSpec: TaskSpec | null = null;
     const blueprint = publishOutcomeBlueprint(createPrecisionEditBlueprintDefinition(), new Date().toISOString());
     const base = await this.baseRunner.runExperiment({
+      ownerTenantId: this.tenantId,
       projectName: input.projectName,
       assetName: input.assetName,
       sourceBytes: input.sourceBytes,

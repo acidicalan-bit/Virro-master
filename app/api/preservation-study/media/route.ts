@@ -3,10 +3,12 @@ import { z } from "zod";
 import { PreservationStudyError } from "@/src/application/outcome/media/preservation-study-service";
 import { StudyCandidateLabelSchema } from "@/src/domain/outcome/media/preservation-study";
 import { createPreservationStudyService } from "@/src/server/preservation-study-services";
+import { isLegacyInternalRouteEnabled, legacyRouteDisabledResponse } from "@/src/server/legacy-route-guard";
 
 export const runtime = "nodejs";
 
 export async function GET(request: Request) {
+  if (!isLegacyInternalRouteEnabled()) return legacyRouteDisabledResponse();
   try {
     const params = new URL(request.url).searchParams;
     const caseId = z.uuid().parse(params.get("caseId"));

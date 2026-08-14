@@ -2,6 +2,7 @@ import { z } from "zod";
 
 export const AssetSchema = z.object({
   id: z.uuid(),
+  ownerTenantId: z.uuid().nullable().optional(),
   projectId: z.uuid(),
   name: z.string().trim().min(1).max(200),
   description: z.string().trim().max(2000).nullable().optional().default(null),

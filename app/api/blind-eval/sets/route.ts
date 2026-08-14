@@ -1,8 +1,10 @@
 import { ZodError } from "zod";
 
 import { createBlindEvaluationCatalogServices } from "@/src/server/services";
+import { isLegacyInternalRouteEnabled, legacyRouteDisabledResponse } from "@/src/server/legacy-route-guard";
 
 export async function GET() {
+  if (!isLegacyInternalRouteEnabled()) return legacyRouteDisabledResponse();
   try {
     const { catalog, repositories } = createBlindEvaluationCatalogServices();
     return Response.json({
@@ -18,6 +20,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  if (!isLegacyInternalRouteEnabled()) return legacyRouteDisabledResponse();
   try {
     const body: unknown = await request.json();
     const { catalog } = createBlindEvaluationCatalogServices();

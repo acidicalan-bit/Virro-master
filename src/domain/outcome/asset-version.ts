@@ -2,6 +2,7 @@ import { z } from "zod";
 
 export const AssetVersionSchema = z.object({
   id: z.uuid(),
+  ownerTenantId: z.uuid().nullable().optional(),
   assetId: z.uuid(),
   versionNumber: z.number().int().positive(),
   state: z.record(z.string(), z.unknown()),

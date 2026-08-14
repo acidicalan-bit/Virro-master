@@ -55,6 +55,8 @@ type RuntimeRepositories = Pick<
 >;
 
 export type RunPreservationExperimentInput = {
+  /** Derived server-side from AuthorityContext; never accepted from raw HTTP. */
+  ownerTenantId?: string;
   projectName: string;
   assetName: string;
   sourceBytes: Uint8Array;
@@ -160,10 +162,12 @@ export class PreservationVerificationService {
     }
 
     const project = await this.repositories.projects.create({
+      ownerTenantId: input.ownerTenantId,
       name: input.projectName.trim(),
       description: "BUILD 004 preservation experiment",
     });
     const asset = await this.repositories.assets.create({
+      ownerTenantId: input.ownerTenantId,
       projectId: project.id,
       name: input.assetName.trim(),
       description: "Precision Edit image asset",
@@ -171,6 +175,7 @@ export class PreservationVerificationService {
     const sourceStorageKey = `sources/${project.id}/${crypto.randomUUID()}.png`;
     await this.storage.put(sourceStorageKey, sourceBytes, input.sourceMimeType);
     const sourceVersion = await this.repositories.assetVersions.create({
+      ownerTenantId: input.ownerTenantId,
       assetId: asset.id,
       versionNumber: 1,
       state: {
@@ -198,6 +203,7 @@ export class PreservationVerificationService {
 
     input.faultInjector?.("BEFORE_TRANSACTION_CREATION");
     const transaction = await this.repositories.outcomeTransactions.create({
+      ownerTenantId: input.ownerTenantId,
       projectId: project.id,
       assetId: asset.id,
       baseVersionId: sourceVersion.id,
@@ -703,6 +709,7 @@ export class PreservationVerificationService {
     await this.repositories.candidatePreferences.recordAcceptance(transactionId, true, preserved.id);
     const latest = await this.repositories.assetVersions.findLatestByAssetId(asset.id);
     const newVersion = await this.repositories.assetVersions.create({
+      ownerTenantId: (await this.repositories.assets.findById(asset.id))?.ownerTenantId,
       assetId: asset.id,
       versionNumber: (latest?.versionNumber ?? 0) + 1,
       state: {

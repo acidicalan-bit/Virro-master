@@ -6,6 +6,10 @@ import { OutcomeTransactionService } from "@/src/application/outcome/outcome-tra
 import type { MutationLeaseCategory } from "@/src/domain/outcome";
 import type { RepositoryBundle } from "@/src/application/ports/repositories";
 import { createSupabaseRepositories } from "@/src/infrastructure/persistence/supabase-repositories";
+import { isLegacyInternalRouteEnabled, legacyRouteDisabledResponse } from "@/src/server/legacy-route-guard";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 function getRepositories(): Pick<
   RepositoryBundle,
@@ -39,6 +43,7 @@ const executor = new FakeExecutor();
 const service = new OutcomeTransactionService(outcomeRepos as never, executor);
 
 export async function GET() {
+  if (!isLegacyInternalRouteEnabled()) return legacyRouteDisabledResponse();
   try {
     const projects = await outcomeRepos.projects.list();
     return NextResponse.json({
@@ -52,6 +57,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  if (!isLegacyInternalRouteEnabled()) return legacyRouteDisabledResponse();
   try {
     const body = (await request.json()) as { action: string; [key: string]: unknown };
 

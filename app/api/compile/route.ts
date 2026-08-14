@@ -2,8 +2,10 @@ import { ZodError } from "zod";
 
 import { CompileIntentInputSchema } from "@/src/domain/intent-contract";
 import { createApplicationServices } from "@/src/server/services";
+import { isLegacyInternalRouteEnabled, legacyRouteDisabledResponse } from "@/src/server/legacy-route-guard";
 
 export async function POST(request: Request) {
+  if (!isLegacyInternalRouteEnabled()) return legacyRouteDisabledResponse();
   try {
     const body: unknown = await request.json();
     const input = CompileIntentInputSchema.parse(body);
