@@ -9,6 +9,8 @@ describe("BUILD 005-B security boundary", () => {
     const route = readFileSync("app/api/field-beta/route.ts", "utf8");
     expect(page).toContain('dynamic = "force-dynamic"');
     expect(page).toContain("notFound()");
+    expect(page).toContain("resolveRequestAuthority");
+    expect(page).not.toContain("resolveAuthenticatedPrincipal");
     expect(route).toContain('dynamic = "force-dynamic"');
     expect(route).toContain("createFieldBetaService(");
     expect(route).toContain("resolveRequestAuthority");

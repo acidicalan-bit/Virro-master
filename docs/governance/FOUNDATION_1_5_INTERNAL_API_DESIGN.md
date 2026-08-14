@@ -9,7 +9,8 @@ Classification: `AUTHENTICATED_TENANT_ACTIVE`.
 - Authentication: verified Supabase Auth claims through the server resolver.
 - Tenant locator: optional `tenantId` query/header; never authority.
 - Resolution: active tenant plus active membership.
-- AuthorityContext: created server-side before rendering.
+- AuthorityContext: created server-side before rendering; authenticated users
+  without current authority receive no protected Field Beta shell.
 - Writable fields: image, instruction, ROI, topology, task type and selected
   strategy only.
 - Forbidden authority fields: principal, tenant, role, ownership, evidence,
@@ -43,3 +44,8 @@ Classification: `AUTHENTICATED_TENANT_ACTIVE`.
 | `/api/preservation-study/media` | INTERNAL_SYSTEM_ONLY | Historical private media surface |
 
 `PUBLIC_API_STATUS` remains `BLOCKED`.
+
+Phase A real evidence is demonstrated for Supabase Auth, two-user tenant
+isolation, revocation and the controlled executor. This document does not
+claim public multi-tenant readiness; Storage, recovery and complete lineage
+RLS remain Phase B.

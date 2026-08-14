@@ -78,7 +78,7 @@ Every Build must include a `SECURITY DELTA` naming changed trust boundaries, dat
 
 ## BUILD 005 internal field beta delta
 
-BUILD 005 adds field-outcome, preservation-strategy, human-acceptance, evaluation, and curated-regression records. They are server-write-only, RLS-enabled, tenant-bound records anchored to a Blueprint/Task Spec hash. `FIELD_BETA_INTERNAL_ENABLED=true` is only an exposure switch, never authorization: the page and API now require verified Supabase Auth plus active tenant membership, and the feature must remain on an internal/controlled deployment until complete lineage ownership and two-user negative proof exist. Historical `internal-lab` rows remain compatibility data, not authority. The service-role key is never a client authority and every active Field Beta repository read/write applies the resolved tenant constraint. Provider cost remains nullable when unreported.
+BUILD 005 adds field-outcome, preservation-strategy, human-acceptance, evaluation, and curated-regression records. They are server-write-only, RLS-enabled, tenant-bound records anchored to a Blueprint/Task Spec hash. `FIELD_BETA_INTERNAL_ENABLED=true` is only an exposure switch, never authorization: the SSR page and API require verified Supabase Auth plus active tenant membership before exposing the protected experience. Phase A REAL_SUPABASE, REAL_AUTH, REAL_RLS, SECURITY_NEGATIVE and CONTROLLED_EXECUTOR evidence has been demonstrated, but the feature must remain on an internal/controlled deployment until complete lineage ownership, Storage isolation and broader public controls exist. Historical `internal-lab` rows remain compatibility data, not authority. The service-role key is never a client authority and every active Field Beta repository read/write applies the resolved tenant constraint. Provider cost remains nullable when unreported.
 
 Field Beta accepts PNG only within the conservative 2048×2048 / 4,194,304-pixel / decoded-resource envelope before provider execution. API errors are mapped to bounded codes and messages; detailed provider, database, path and secret-bearing errors are not returned to clients. The snapshot-aware migration refuses a pre-snapshot legacy schema rather than manufacturing Blueprint or Task Spec provenance. The missing full authentication/ownership model, privileged service-role blast radius, and non-atomic canonical head/StateCommit operation remain P0/P1 debt; this beta is not approved for public multi-tenant use.
 
@@ -93,7 +93,7 @@ principal deletion semantics so Auth account deletion cannot erase authority
 history or evidence. `/field-beta` and `/api/field-beta` are dynamic/private
 and reject unauthenticated requests.
 
-This is not full Foundation 1.5 readiness: real two-user/two-tenant Auth,
-Storage isolation, recovery and complete active-lineage RLS proof remain Phase
-B. Existing `internal-lab` rows are historical compatibility data and no new
-authenticated path may use them as authority.
+Phase A evidence is demonstrated, but this is not full Foundation 1.5
+readiness: Storage isolation, recovery and complete active-lineage RLS proof
+remain Phase B. Existing `internal-lab` rows are historical compatibility data
+and no new authenticated path may use them as authority.

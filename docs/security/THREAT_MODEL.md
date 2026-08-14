@@ -107,9 +107,10 @@ Supabase claims produce an `AuthenticatedPrincipal`; only an active durable
 membership for an active tenant produces `AuthorityContext`. Tenant locators,
 emails, metadata and resource UUIDs do not grant access. The Phase A migration
 uses `ON DELETE RESTRICT` for principal references so account deletion cannot
-silently erase membership or evidence history. Full REAL_AUTH two-tenant,
-Storage, recovery and active-lineage RLS proof is explicitly deferred to Phase
-B; no public multi-tenant claim is made.
+silently erase membership or evidence history. REAL_AUTH, two-user RLS,
+revocation and controlled-executor evidence has been demonstrated; Storage,
+recovery and complete active-lineage RLS proof remain explicitly deferred to
+Phase B. No public multi-tenant claim is made.
 
 Repository: app-generativa-ia
 Version: branch-codex/spec-anchored-platform-foundation-v0.1+universal-marketplace-v1.2-working-snapshot

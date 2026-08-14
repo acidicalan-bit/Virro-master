@@ -34,9 +34,11 @@ Email, metadata, client user IDs and tenant IDs are not authority.
 ## Field Beta boundary
 
 `/field-beta` and `/api/field-beta` require a verified Supabase Auth principal
-and an active membership. The requested tenant is only a locator. The route
-resolves `AuthorityContext` before constructing Field Beta services and caches
-services per tenant, never globally.
+and an active membership. The requested tenant is only a locator. Both the
+SSR page and API resolve the shared `AuthorityContext` before exposing or
+constructing the protected Field Beta experience; an authenticated principal
+without current tenant authority receives no protected shell. Services are
+cached per tenant and principal, never globally.
 
 The active Field Beta records can carry UUID `owner_tenant_id`. Existing
 `internal-lab` values remain historical compatibility data and are not a
@@ -48,6 +50,11 @@ The service-role/secret key is infrastructure authority only. It remains
 behind server adapters for provisioning and legacy persistence while the full
 Field Beta lineage is migrated. It is never passed to the browser or treated
 as user authority.
+
+Generic personal-tenant provisioning after OWNER revocation is currently
+`UNSUPPORTED_IN_PHASE_A`: revocation is not silently undone and the unique
+personal-owner constraint prevents a second personal tenant. Reactivation or
+re-membership requires a future explicit privileged lifecycle operation.
 
 ## Storage and deferred work
 

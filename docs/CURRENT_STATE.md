@@ -10,7 +10,7 @@
 - Frozen tags: intact; `project-governance-v1.4.0` is published and points to the canonical freeze
 - Latest approved evidence: durable internal human acceptance YES for field outcome `0042b988-ea3a-4617-a60a-b9a1a7556a33`
 - Provider/database: real OpenAI + Supabase evidence exists; provider calls are prohibited during v1.4 validation
-- Auth/public exposure: Phase A authenticated boundary implemented on this branch; Field Beta remains internal/controlled pending Phase B negative proof
+- Auth/public exposure: Phase A REAL_AUTH/REAL_RLS two-user boundary and revocation negative proof demonstrated; Field Beta remains internal/controlled pending Phase B lineage, Storage and public-exposure work
 - v1.4 criterion evidence: new verification runs persist additive `verification_criterion_evidence`; historical BUILD 005-B rows are not backfilled
 - Machine Same-Spec: PASS only from complete exact-set criterion receipts; aggregate verification, hashes and legacy sameSpecStatus are insufficient
 - Next authorized gate: Phase A review only; no merge, push or tag authorized from this branch
