@@ -69,7 +69,9 @@ Build 001 is the first supported authenticated core-lineage surface for
 Project, Asset, AssetVersion and OutcomeTransaction. The route resolves the
 verified request principal and active membership into an immutable
 `AuthorityContext`, then uses a user-scoped Supabase client and a repository
-port that applies `owner_tenant_id` filters before every read or write.
+port that applies `owner_tenant_id` filters before every read or write. Direct
+RLS policies independently require the referenced tenant to be `ACTIVE` as
+well as the membership to be `ACTIVE`.
 
 Request bodies contain resource locators only. `tenantId`, ownership, role,
 principal, verification, cost and canonical-commit claims are not accepted as

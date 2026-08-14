@@ -110,6 +110,14 @@ are not accepted as authority. `projects`, `assets`, `asset_versions` and
 `outcome_transactions` now have additive nullable `owner_tenant_id` columns,
 new-write/parent-consistency triggers, and authenticated RLS policies.
 
+The forward-only tenant-lifecycle repair keeps those policies coherent with the
+application authority rule: tenant-owned resource access requires both an
+`ACTIVE` tenant and an `ACTIVE` membership. A suspended or revoked tenant is
+therefore denied direct authenticated reads and writes even if a membership
+row has not yet been revoked. The independent Phase B review found this exact
+RLS mismatch on the pre-repair candidate; it remains preserved as review
+history rather than rewritten.
+
 Historical NULL ownership is intentionally preserved as
 `HISTORICAL_INTERNAL_LAB`/`UNKNOWN` compatibility data. No ownership is
 fabricated or backfilled. Legacy service-role routes fail closed by default and

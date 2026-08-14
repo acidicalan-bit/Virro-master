@@ -35,7 +35,12 @@ legacy flows are migrated. The switch is not an authentication boundary.
 ## Security delta and residual scope
 
 - RLS policies allow authenticated reads/inserts only for rows whose owner
-  tenant has an active membership; anonymous access remains revoked.
+  tenant is `ACTIVE` and has an `ACTIVE` membership; asset updates require the
+  same lifecycle proof in both `USING` and `WITH CHECK`; anonymous access
+  remains revoked.
+- The forward-only tenant-lifecycle repair migration closes the previously
+  observed gap where an `ACTIVE` membership could retain direct RLS access to a
+  `SUSPENDED` or `REVOKED` tenant's resources.
 - Service-role credentials remain server-only and are not used by the new route.
 - StateCommit atomicity, ExecutionRun/EvidenceReceipt tenant columns, Storage
   object isolation, recovery, queues, billing and marketplace work remain

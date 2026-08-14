@@ -20,3 +20,8 @@
   OutcomeTransaction path and fail-closed legacy persistence routes. This is a
   branch-local implementation; `main` remains the frozen Phase A baseline
   until separately reviewed and integrated.
+- Phase B Build 001 lifecycle repair branch:
+  `fix/phase-b-build-001-tenant-lifecycle-rls-v0.1` adds a forward-only RLS
+  policy correction requiring both an ACTIVE tenant and ACTIVE membership for
+  tenant-owned resources. The pre-repair suspended-tenant review failure is
+  preserved as history; integration remains pending review.
