@@ -60,8 +60,9 @@ The phone is a control surface and the cloud is the execution authority. A clien
 ## Known limitations
 
 - Foundation 1.5 Phase A now verifies Supabase Auth claims and resolves durable
-  tenant membership for Field Beta; complete user-scoped lineage/RLS and
-  two-user negative proof remain outstanding.
+  tenant membership for Field Beta; the approved two-user negative proof is
+  demonstrated, while complete user-scoped lineage/RLS beyond that boundary
+  remains outstanding.
 - Privileged server repositories can bypass RLS; compromise has broad database/storage blast radius.
 - Blueprint/Task Spec registries remain deterministic compiler inputs; the
   existing verification model now has an additive durable criterion-evidence

@@ -1,7 +1,9 @@
 # Foundation 1.5 Phase A — Identity and Tenant Authority
 
 Phase A establishes the bounded authenticated boundary for internal Field Beta.
-It does not declare the full two-user/two-tenant Field Beta proof complete.
+The approved REAL_AUTH/REAL_RLS two-user boundary and revocation proof has been
+demonstrated; Phase A still does not declare public multi-tenant readiness or
+complete active-lineage and Storage isolation.
 
 ## Authority pipeline
 
