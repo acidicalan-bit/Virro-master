@@ -4,6 +4,7 @@ import { deriveFieldSemanticStatus, FIELD_ACCEPTANCE_SOURCE } from "@/src/domain
 
 const base = {
   machineVerificationStatus: "PASSED" as const,
+  machineSameSpecStatus: "PASSED" as const,
   legacySameSpecStatus: "BLOCKED" as const,
   hasValidSpecBinding: true,
   outcomeTenantId: "internal-lab",
@@ -26,15 +27,15 @@ describe("VERIFY-SEMANTICS-001 field outcome projection", () => {
   });
 
   it("D: human acceptance cannot overwrite machine failure", () => {
-    expect(deriveFieldSemanticStatus({ ...base, machineVerificationStatus: "FAILED", feedback: feedback(true) })).toMatchObject({ machineSameSpecStatus: "FAILED", outcomeAcceptanceStatus: "MACHINE_FAILED", commitEligibilityStatus: "NOT_ELIGIBLE" });
+    expect(deriveFieldSemanticStatus({ ...base, machineVerificationStatus: "FAILED", machineSameSpecStatus: "FAILED", feedback: feedback(true) })).toMatchObject({ machineSameSpecStatus: "FAILED", outcomeAcceptanceStatus: "MACHINE_FAILED", commitEligibilityStatus: "NOT_ELIGIBLE" });
   });
 
   it("E: incomplete machine evidence remains independent of human state", () => {
-    expect(deriveFieldSemanticStatus({ ...base, hasValidSpecBinding: false, feedback: feedback(true) })).toMatchObject({ machineSameSpecStatus: "INCOMPLETE", humanAcceptanceStatus: "ACCEPTED", outcomeAcceptanceStatus: "INCOMPLETE", commitEligibilityStatus: "NOT_ELIGIBLE" });
+    expect(deriveFieldSemanticStatus({ ...base, hasValidSpecBinding: false, machineSameSpecStatus: "INCOMPLETE", feedback: feedback(true) })).toMatchObject({ machineSameSpecStatus: "INCOMPLETE", humanAcceptanceStatus: "ACCEPTED", outcomeAcceptanceStatus: "INCOMPLETE", commitEligibilityStatus: "NOT_ELIGIBLE" });
   });
 
-  it("F: historical BLOCKED is not the current machine authority when binding is valid", () => {
-    expect(deriveFieldSemanticStatus({ ...base, feedback: feedback(true) }).machineSameSpecStatus).toBe("PASSED");
+  it("F: historical BLOCKED cannot substitute durable criterion evidence", () => {
+    expect(deriveFieldSemanticStatus({ ...base, machineSameSpecStatus: "INCOMPLETE", feedback: feedback(true) }).machineSameSpecStatus).toBe("INCOMPLETE");
   });
 
   it("G/H: foreign or untrusted acceptance does not create human acceptance", () => {

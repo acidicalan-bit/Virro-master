@@ -16,3 +16,10 @@ verification or commit fields are never authority.
 Current limitations are intentional: Field Beta has no complete public auth or
 ownership binding, no public pagination contract, and no public partner version.
 It must stay internal/controlled until those controls exist.
+# v1.4 evidence persistence
+
+Field Beta remains an internal API. The response semantic projection may read
+the additive `verification_criterion_evidence` child model, but no new public
+route or client-controlled status/receipt input is introduced. Criterion
+receipts are created only by the server verifier and are never mass-assigned
+from HTTP payloads.

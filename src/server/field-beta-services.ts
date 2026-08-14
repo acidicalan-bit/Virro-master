@@ -34,6 +34,8 @@ export function createFieldBetaService(): FieldBetaService {
     samplingRate,
     Math.random,
     new DurableExecutionRecoveryContextLoader(repositories.executionRuns),
+    undefined,
+    repositories.criterionEvidence,
   );
   return service;
 }

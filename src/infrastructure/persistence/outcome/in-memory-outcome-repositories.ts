@@ -24,6 +24,9 @@ import type {
   CreateExecutionRunRecord,
   ExecutionRunRepository,
   EvidenceReceiptRecord,
+  CriterionEvidenceRecord,
+  CreateCriterionEvidenceRecord,
+  CriterionEvidenceRepository,
   CreateEvidenceReceiptRecord,
   EvidenceReceiptRepository,
   VerificationRunRecord,
@@ -57,6 +60,7 @@ import type {
   CreateCandidatePreferenceRecord,
   CandidatePreferenceRepository,
 } from "@/src/application/ports/repositories";
+import { CriterionEvidenceRecordSchema } from "@/src/domain/outcome/criterion-evidence";
 import type { CandidateType } from "@/src/domain/outcome/media/preservation";
 import type { TransactionStatus } from "@/src/domain/outcome";
 
@@ -271,6 +275,31 @@ export class InMemoryVerificationRunRepository implements VerificationRunReposit
   }
 }
 
+export class InMemoryCriterionEvidenceRepository implements CriterionEvidenceRepository {
+  readonly records: CriterionEvidenceRecord[] = [];
+
+  async create(input: CreateCriterionEvidenceRecord): Promise<CriterionEvidenceRecord> {
+    const validated = CriterionEvidenceRecordSchema.parse({ ...input, id: crypto.randomUUID(), createdAt: new Date().toISOString() });
+    const duplicate = this.records.find((record) => record.verificationRunId === input.verificationRunId && record.criterionId === input.criterionId);
+    if (duplicate) {
+      const same = JSON.stringify(duplicate) === JSON.stringify({ ...input, id: duplicate.id, createdAt: duplicate.createdAt });
+      if (!same) throw new Error("Criterion evidence identity conflict.");
+      return structuredClone(duplicate);
+    }
+    const record: CriterionEvidenceRecord = structuredClone(validated);
+    this.records.push(record);
+    return structuredClone(record);
+  }
+
+  async findByTransactionId(transactionId: string): Promise<CriterionEvidenceRecord[]> {
+    return structuredClone(this.records.filter((record) => record.transactionId === transactionId));
+  }
+
+  async findByVerificationRunId(verificationRunId: string): Promise<CriterionEvidenceRecord[]> {
+    return structuredClone(this.records.filter((record) => record.verificationRunId === verificationRunId));
+  }
+}
+
 export class InMemoryStateCommitRepository implements StateCommitRepository {
   readonly records: StateCommitRecord[] = [];
 
@@ -313,6 +342,7 @@ export function getInMemoryOutcomeRepositories(): Pick<
   | "executionRuns"
   | "evidenceReceipts"
   | "verificationRuns"
+  | "criterionEvidence"
   | "stateCommits"
   | "costRecords"
   | "mediaStorage"
@@ -334,6 +364,7 @@ export function getInMemoryOutcomeRepositories(): Pick<
     executionRuns: new InMemoryExecutionRunRepository(),
     evidenceReceipts: new InMemoryEvidenceReceiptRepository(),
     verificationRuns: new InMemoryVerificationRunRepository(),
+    criterionEvidence: new InMemoryCriterionEvidenceRepository(),
     stateCommits: new InMemoryStateCommitRepository(),
     costRecords: new InMemoryCostRecordRepository(),
     mediaStorage: new InMemoryMediaStorageRepository(),

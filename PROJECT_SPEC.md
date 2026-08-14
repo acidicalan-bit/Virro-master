@@ -234,7 +234,7 @@ Commit requires a verified transaction, required evidence, authorized patch, cur
 
 [CURRENT LIMITATION] The application service coordinates multiple persistence writes. BUILD 004 explicitly records that canonical head movement and StateCommit creation are not yet one PostgreSQL RPC transaction.
 
-[CURRENT] The foundation Same-Spec Gate rejects mismatched/stale Task Specs, unsupported or executor-only evidence, unauthorized capabilities, critical `UNKNOWN`, and stale canonical heads. Field Beta now projects Machine Same-Spec separately from Human Acceptance using durable snapshots and `field_feedback`; the generic canonical commit path remains outside this beta and is not claimed as production-wired.
+[CURRENT] The foundation Same-Spec Gate rejects mismatched/stale Task Specs, unsupported or executor-only evidence, unauthorized capabilities, critical `UNKNOWN`, and stale canonical heads. Field Beta now projects Machine Same-Spec separately from Human Acceptance using the additive `verification_criterion_evidence` child model. PASS requires exact-set durable criterion receipts bound to tenant, transaction, execution, verification, Task Spec ID/hash, artifacts, and verifier/version/policy; aggregate status, hashes, and legacy `same_spec_status` cannot substitute. Historical BUILD 005-B evidence is unchanged and remains v1.4 Machine Same-Spec INCOMPLETE without retroactive receipts. The generic canonical commit path remains outside this beta and is not claimed as production-wired.
 
 ## 11. Human grounding / intent handling
 

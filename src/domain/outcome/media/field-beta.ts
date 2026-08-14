@@ -207,18 +207,18 @@ export type FieldSemanticStatus = {
 
 export function deriveFieldSemanticStatus(input: {
   machineVerificationStatus: FieldOutcome["machineVerificationStatus"];
-  legacySameSpecStatus: FieldOutcome["sameSpecStatus"];
+  machineSameSpecStatus?: FieldMachineSameSpecStatus;
+  /** Historical compatibility only. This value is intentionally ignored. */
+  legacySameSpecStatus?: FieldOutcome["sameSpecStatus"];
   hasValidSpecBinding: boolean;
   feedback: Pick<FieldFeedback, "humanAccepted" | "tenantId" | "acceptanceSource" | "recordedBy"> | null;
   outcomeTenantId: string;
   canonicalCommitPolicy: string;
   serverAuthority: boolean;
 }): FieldSemanticStatus {
-  const machineSameSpecStatus: FieldMachineSameSpecStatus = input.machineVerificationStatus === "FAILED" || input.legacySameSpecStatus === "FAILED"
-    ? "FAILED"
-    : !input.hasValidSpecBinding
-      ? "INCOMPLETE"
-      : "PASSED";
+  void input.legacySameSpecStatus;
+  void input.hasValidSpecBinding;
+  const machineSameSpecStatus: FieldMachineSameSpecStatus = input.machineSameSpecStatus ?? "INCOMPLETE";
   const validHumanEvidence = Boolean(input.feedback)
     && input.feedback?.tenantId === input.outcomeTenantId
     && input.feedback.acceptanceSource === FIELD_ACCEPTANCE_SOURCE

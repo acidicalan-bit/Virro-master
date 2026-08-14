@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import type { PreservationExperimentView, RunPreservationExperimentInput } from "@/src/application/outcome/media/preservation-verification-service";
 import type { FieldBetaRepository } from "@/src/application/ports/outcome/field-beta-repository";
+import type { CriterionEvidenceRepository } from "@/src/application/ports/repositories";
 import type { MediaObjectStore } from "@/src/application/ports/outcome/media-object-store-port";
 import type { AssetVersionRepository, CandidateAssetRepository } from "@/src/application/ports/repositories";
 import {
@@ -30,6 +31,7 @@ import { DeterministicPrecisionEditSpecCompiler } from "@/src/application/outcom
 import { verifyTaskSpecHash, type TaskSpec } from "@/src/domain/outcome/specification/task-spec";
 import { verifySameSpecExecution } from "@/src/application/outcome/specification/same-spec-gate";
 import type { CriterionEvidence } from "@/src/application/outcome/specification/types";
+import { buildPrecisionEditCriterionEvidence, deriveMachineSameSpecFromDurableEvidence, PRECISION_EDIT_CRITERION_EVIDENCE_MAP_VERSION } from "@/src/application/outcome/specification/precision-edit-criterion-evidence";
 import { PRECISION_EDIT_OUTCOME_SKU } from "@/src/domain/outcome/media/field-beta";
 import type { ExecutionRecoveryContextLoader, TrustedRecoveryAuthority } from "@/src/application/outcome/recovery/execution-recovery-context-loader";
 import type { FieldBetaFaultInjector } from "@/src/application/outcome/media/field-beta-fault-injection";
@@ -83,6 +85,7 @@ export class FieldBetaService {
     private readonly random = Math.random,
     private readonly recoveryLoader?: ExecutionRecoveryContextLoader,
     private readonly faultInjector?: FieldBetaFaultInjector,
+    private readonly criterionEvidenceRepository?: CriterionEvidenceRepository,
   ) {}
 
   private readonly compiler = new DeterministicPrecisionEditSpecCompiler();
@@ -126,6 +129,7 @@ export class FieldBetaService {
       executor: { name: "field-beta-verifier", version: "0.1.0", provider: "system" }, capabilityProfile: ["READ_SOURCE"], resultRef: `transaction://${base.transactionId}`,
       evidence: fieldEvidence(taskSpec, base), violations: [], latencyMs: Math.max(0, Math.round(base.verificationLatencyMs)), costUsd: null,
     });
+    await this.ensureCriterionEvidence(taskSpec, base);
     const [sourceBytes, rawBytes] = await Promise.all([this.storage.get(base.source.storageKey), this.storage.get(base.raw.storageKey)]);
     const sourcePixels = decodePngToPixels(Buffer.from(sourceBytes));
     const rawPixels = decodePngToPixels(Buffer.from(rawBytes));
@@ -233,6 +237,7 @@ export class FieldBetaService {
     const context = loaded.context;
     const base = await this.baseRunner.getExperiment(context.transactionId);
     if (base.executionRunId !== context.executionRunId || base.rawCandidateId !== context.rawCandidateId || base.machineVerification.status !== "PASSED") throw new FieldBetaError("RECOVERY_LINEAGE_INVALID", "El checkpoint de ejecución no coincide con la evidencia verificable.");
+    const machineSameSpecStatus = await this.ensureCriterionEvidence(context.taskSpec, base);
     const strategyId = recommendedStrategyFor(context.topology);
     const sourceBytes = await this.storage.get(base.source.storageKey);
     const rawBytes = await this.storage.get(base.raw.storageKey);
@@ -264,7 +269,7 @@ export class FieldBetaService {
     }
     const delivered = views.get(strategyId)!;
     const existingOutcome = await this.repository.findOutcomeByIdentity({ transactionId: context.transactionId, taskSpecHash: context.taskSpec.hash, policyVersion: FIELD_POLICY_VERSION, strategyId });
-    if (!existingOutcome) await this.repository.createOutcome({ transactionId: context.transactionId, sourceVersionId: context.sourceVersionId, instruction: context.instruction, roi: context.roi, topology: context.topology, taskType: context.taskType, provider: base.provider, model: base.model, rawCandidateId: context.rawCandidateId, deliveredCandidateId: delivered.candidateId, recommendedStrategy: strategyId, strategyId, policyVersion: FIELD_POLICY_VERSION, overrideReason: null, providerLatencyMs: base.providerLatencyMs, preservationLatencyMs: delivered.preservationLatencyMs, totalLatencyMs: base.providerLatencyMs + delivered.preservationLatencyMs + base.verificationLatencyMs, providerCostUsd: base.costUsd, tenantId: FIELD_TENANT_ID, outcomeSku: PRECISION_EDIT_OUTCOME_SKU, blueprintId: context.blueprint.id, blueprintVersion: context.blueprint.version, blueprintHash: context.blueprint.hash, taskSpecId: context.taskSpec.id, taskSpecVersion: context.taskSpec.version, taskSpecHash: context.taskSpec.hash, specCompilerName: context.taskSpec.compiler.name, specCompilerVersion: context.taskSpec.compiler.version, sourceSha256: base.source.sha256, machineVerificationStatus: base.machineVerification.status, sameSpecStatus: "PASSED", blueprintSnapshot: context.blueprint, taskSpecSnapshot: context.taskSpec });
+    if (!existingOutcome) await this.repository.createOutcome({ transactionId: context.transactionId, sourceVersionId: context.sourceVersionId, instruction: context.instruction, roi: context.roi, topology: context.topology, taskType: context.taskType, provider: base.provider, model: base.model, rawCandidateId: context.rawCandidateId, deliveredCandidateId: delivered.candidateId, recommendedStrategy: strategyId, strategyId, policyVersion: FIELD_POLICY_VERSION, overrideReason: null, providerLatencyMs: base.providerLatencyMs, preservationLatencyMs: delivered.preservationLatencyMs, totalLatencyMs: base.providerLatencyMs + delivered.preservationLatencyMs + base.verificationLatencyMs, providerCostUsd: base.costUsd, tenantId: FIELD_TENANT_ID, outcomeSku: PRECISION_EDIT_OUTCOME_SKU, blueprintId: context.blueprint.id, blueprintVersion: context.blueprint.version, blueprintHash: context.blueprint.hash, taskSpecId: context.taskSpec.id, taskSpecVersion: context.taskSpec.version, taskSpecHash: context.taskSpec.hash, specCompilerName: context.taskSpec.compiler.name, specCompilerVersion: context.taskSpec.compiler.version, sourceSha256: base.source.sha256, machineVerificationStatus: base.machineVerification.status, sameSpecStatus: machineSameSpecStatus === "PASSED" ? "PASSED" : machineSameSpecStatus === "FAILED" ? "FAILED" : "BLOCKED", blueprintSnapshot: context.blueprint, taskSpecSnapshot: context.taskSpec });
     return this.getByTransactionId(context.transactionId);
   }
 
@@ -356,7 +361,7 @@ export class FieldBetaService {
       fieldOutcome,
       semanticStatus: deriveFieldSemanticStatus({
         machineVerificationStatus: fieldOutcome.machineVerificationStatus,
-        legacySameSpecStatus: fieldOutcome.sameSpecStatus,
+        machineSameSpecStatus: await this.machineSameSpecStatus(fieldOutcome),
         hasValidSpecBinding: fieldOutcome.blueprintHash === fieldOutcome.taskSpecSnapshot.blueprint.hash
           && fieldOutcome.taskSpecSnapshot.hash === fieldOutcome.taskSpecHash
           && fieldOutcome.taskSpecSnapshot.blueprint.hash === fieldOutcome.blueprintHash,
@@ -385,6 +390,28 @@ export class FieldBetaService {
   }
 
   private async requireOutcome(id: string) { const outcome = await this.repository.findOutcome(id); if (!outcome) throw new FieldBetaError("FIELD_OUTCOME_NOT_FOUND", "No existe ese resultado de campo."); return outcome; }
+
+  private async ensureCriterionEvidence(taskSpec: TaskSpec, base: PreservationExperimentView): Promise<"PASSED" | "FAILED" | "INCOMPLETE"> {
+    if (!this.criterionEvidenceRepository) throw new FieldBetaError("CRITERION_EVIDENCE_PERSISTENCE_REQUIRED", "La evidencia de criterios no está configurada.");
+    const expected = buildPrecisionEditCriterionEvidence({ taskSpec, base, tenantId: FIELD_TENANT_ID });
+    const existing = await this.criterionEvidenceRepository.findByVerificationRunId(base.verificationRunId);
+    for (const record of expected) {
+      const match = existing.find((item) => item.criterionId === record.criterionId);
+      if (!match) await this.criterionEvidenceRepository.create(record);
+      else if (stableJson({ ...match, id: undefined, createdAt: undefined }) !== stableJson(record)) throw new FieldBetaError("CRITERION_EVIDENCE_IDENTITY_CONFLICT", "La evidencia durable de criterio no coincide con la verificación actual.");
+    }
+    const readBack = await this.criterionEvidenceRepository.findByVerificationRunId(base.verificationRunId);
+    return deriveMachineSameSpecFromDurableEvidence({ taskSpec, evidence: readBack, tenantId: FIELD_TENANT_ID, transactionId: base.transactionId, executionRunId: base.executionRunId, verificationRunId: base.verificationRunId });
+  }
+
+  private async machineSameSpecStatus(fieldOutcome: FieldOutcome): Promise<"PASSED" | "FAILED" | "INCOMPLETE"> {
+    if (!this.criterionEvidenceRepository) return "INCOMPLETE";
+    const evidence = await this.criterionEvidenceRepository.findByTransactionId(fieldOutcome.transactionId);
+    const verificationRunId = evidence[0]?.verificationRunId;
+    const executionRunId = evidence[0]?.executionRunId;
+    if (!verificationRunId || !executionRunId) return "INCOMPLETE";
+    return deriveMachineSameSpecFromDurableEvidence({ taskSpec: fieldOutcome.taskSpecSnapshot, evidence, tenantId: fieldOutcome.tenantId, transactionId: fieldOutcome.transactionId, executionRunId, verificationRunId });
+  }
 }
 
 function sha256(bytes: Uint8Array) { return createHash("sha256").update(bytes).digest("hex"); }
@@ -395,8 +422,13 @@ function fieldEvidence(spec: TaskSpec, base: PreservationExperimentView): Criter
   const edit = assertion("EDIT_REGION_HAS_CHANGE");
   const source = assertion("SOURCE_IMMUTABLE");
   const evidence: CriterionEvidence[] = [];
-  const add = (criterionId: string, passed: boolean, details: Record<string, unknown>) => evidence.push({ id: crypto.randomUUID(), taskSpecId: spec.id, taskSpecHash: spec.hash, criterionId, status: passed ? "PASS" : "FAIL", evidenceType: criterionId === "SOURCE_VERSION_MATCHES" ? "HASH" : "METRIC", issuerRole: "VERIFIER", evidenceRef: `verification://${base.transactionId}/${criterionId}`, details });
+  const add = (criterionId: string, passed: boolean, details: Record<string, unknown>) => evidence.push({ id: crypto.randomUUID(), taskSpecId: spec.id, taskSpecHash: spec.hash, criterionId, status: passed ? "PASS" : "FAIL", evidenceType: criterionId === "SOURCE_VERSION_MATCHES" ? "HASH" : criterionId === "SAME_TASK_SPEC" ? "POLICY_CHECK" : "METRIC", issuerRole: criterionId === "SAME_TASK_SPEC" ? "SYSTEM_GATE" : "VERIFIER", evidenceRef: `verification://${base.transactionId}/${criterionId}`, details });
   if (edit) add("REQUESTED_EDIT_HAS_CHANGE", edit.passed, edit.evidence);
   if (source) add("SOURCE_VERSION_MATCHES", source.passed, source.evidence);
+  add("SAME_TASK_SPEC", Boolean(base.taskSpecBinding && base.taskSpecBinding.id === spec.id && base.taskSpecBinding.hash === spec.hash), {
+    mappingVersion: PRECISION_EDIT_CRITERION_EVIDENCE_MAP_VERSION,
+    verificationRunId: base.verificationRunId,
+    executionRunId: base.executionRunId,
+  });
   return evidence;
 }

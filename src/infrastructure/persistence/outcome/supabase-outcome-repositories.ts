@@ -33,6 +33,9 @@ import type {
   VerificationRunRepository,
   VerificationRunRecord,
   CreateVerificationRunRecord,
+  CriterionEvidenceRepository,
+  CriterionEvidenceRecord,
+  CreateCriterionEvidenceRecord,
   StateCommitRepository,
   StateCommitRecord,
   CreateStateCommitRecord,
@@ -63,6 +66,7 @@ import type {
 } from "@/src/application/ports/repositories";
 import type { TransactionStatus } from "@/src/domain/outcome";
 import type { CandidateType } from "@/src/domain/outcome/media/preservation";
+import { CriterionEvidenceRecordSchema } from "@/src/domain/outcome/criterion-evidence";
 
 export class SupabaseProjectRepository implements ProjectRepository {
   constructor(private readonly client: SupabaseClient) {}
@@ -323,6 +327,42 @@ export class SupabaseVerificationRunRepository implements VerificationRunReposit
     const { data, error } = await this.client.from("verification_runs").select("*").eq("transaction_id", transactionId);
     if (error || !data) throw new Error("No se pudieron leer las verificaciones.");
     return data.map((row) => ({ id: String(row.id), transactionId: String(row.transaction_id), executionRunId: String(row.execution_run_id), status: row.status as VerificationRunRecord["status"], checks: row.checks as Record<string, boolean>, details: row.details as Record<string, unknown>, verifiedAt: String(row.verified_at) }));
+  }
+}
+
+export class SupabaseCriterionEvidenceRepository implements CriterionEvidenceRepository {
+  constructor(private readonly client: SupabaseClient) {}
+
+  async create(input: CreateCriterionEvidenceRecord): Promise<CriterionEvidenceRecord> {
+    const { data, error } = await this.client.from("verification_criterion_evidence").insert({
+      tenant_id: input.tenantId,
+      transaction_id: input.transactionId,
+      verification_run_id: input.verificationRunId,
+      execution_run_id: input.executionRunId,
+      criterion_id: input.criterionId,
+      status: input.status,
+      evidence_type: input.evidenceType,
+      task_spec_id: input.taskSpecId,
+      task_spec_hash: input.taskSpecHash,
+      artifact_bindings: input.artifactBindings,
+      verifier: input.verifier,
+      evidence_ref: input.evidenceRef,
+      details: input.details,
+    }).select("*").single();
+    if (error || !data) throw new Error(`No se pudo persistir evidencia de criterio: ${error?.message ?? "sin respuesta"}`);
+    return criterionEvidenceRow(data);
+  }
+
+  async findByTransactionId(transactionId: string): Promise<CriterionEvidenceRecord[]> {
+    const { data, error } = await this.client.from("verification_criterion_evidence").select("*").eq("transaction_id", transactionId).order("created_at");
+    if (error || !data) throw new Error("No se pudo leer la evidencia de criterios.");
+    return data.map(criterionEvidenceRow);
+  }
+
+  async findByVerificationRunId(verificationRunId: string): Promise<CriterionEvidenceRecord[]> {
+    const { data, error } = await this.client.from("verification_criterion_evidence").select("*").eq("verification_run_id", verificationRunId).order("created_at");
+    if (error || !data) throw new Error("No se pudo leer la evidencia de criterios.");
+    return data.map(criterionEvidenceRow);
   }
 }
 
@@ -638,4 +678,24 @@ function fromCandidatePreferenceRow(row: Record<string, unknown>): CandidatePref
     acceptedCandidateId: row.accepted_candidate_id === null ? null : String(row.accepted_candidate_id),
     createdAt: String(row.created_at), updatedAt: String(row.updated_at),
   };
+}
+
+function criterionEvidenceRow(row: Record<string, unknown>): CriterionEvidenceRecord {
+  return CriterionEvidenceRecordSchema.parse({
+    id: String(row.id),
+    tenantId: String(row.tenant_id),
+    transactionId: String(row.transaction_id),
+    verificationRunId: String(row.verification_run_id),
+    executionRunId: String(row.execution_run_id),
+    criterionId: String(row.criterion_id),
+    status: row.status as CriterionEvidenceRecord["status"],
+    evidenceType: row.evidence_type as CriterionEvidenceRecord["evidenceType"],
+    taskSpecId: String(row.task_spec_id),
+    taskSpecHash: String(row.task_spec_hash),
+    artifactBindings: row.artifact_bindings as CriterionEvidenceRecord["artifactBindings"],
+    verifier: row.verifier as CriterionEvidenceRecord["verifier"],
+    evidenceRef: String(row.evidence_ref),
+    details: row.details as Record<string, unknown>,
+    createdAt: String(row.created_at),
+  });
 }

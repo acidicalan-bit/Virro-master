@@ -297,11 +297,11 @@ describe("Spec-anchored platform foundation", () => {
     expect(verification.status).toBe("BLOCKED");
   });
 
-  it("27. SAME_SPEC_GATE is established by the gate itself", async () => {
+  it("27. SAME_SPEC_GATE requires explicit criterion evidence", async () => {
     const spec = await readySpec();
     const withoutSelfAssertion = evidenceFor(spec).filter((evidence) => evidence.criterionId !== "SAME_TASK_SPEC");
     const verification = verifySameSpecExecution(spec, resultFor(spec, withoutSelfAssertion));
-    expect(verification.criteria.find((criterion) => criterion.criterionId === "SAME_TASK_SPEC")?.status).toBe("PASS");
+    expect(verification.criteria.find((criterion) => criterion.criterionId === "SAME_TASK_SPEC")?.status).toBe("UNKNOWN");
   });
 
   it("28. a previous Task Spec cannot cross transaction boundaries", async () => {

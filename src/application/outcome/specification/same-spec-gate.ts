@@ -28,7 +28,7 @@ export function verifySameSpecExecution(
   }
   const criteria = canonicalSpec.criteria.map((criterion) => {
     const evidence = evidenceByCriterion.get(criterion.id);
-    let status = criterion.verifier === "SAME_SPEC_GATE" ? "PASS" as const : evidence?.status ?? "UNKNOWN";
+    let status = evidence?.status ?? "UNKNOWN";
     if (evidence && !criterion.evidenceTypes.includes(evidence.evidenceType)) status = "UNKNOWN";
     if (evidence?.evidenceType === "EXECUTOR_ASSERTION") status = "UNKNOWN";
     if (evidence && !issuerCanSatisfyVerifier(evidence.issuerRole, criterion.verifier)) status = "UNKNOWN";

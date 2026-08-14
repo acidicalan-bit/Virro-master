@@ -39,16 +39,19 @@ OpenAI y el baseline implementan el mismo `IntentModel`. La instrucción OpenAI 
 
 ```text
 Outcome SKU → Outcome Blueprint → Signal Sufficiency → immutable Task Spec
-            → Execution Policy/Fingerprint → Execution → Machine Evidence
+            → Execution Policy/Fingerprint → Execution → Machine Evidence + criterion receipts
             → Machine Same-Spec → Human Review → Outcome Acceptance
             → Commit Eligibility → Delivery/Learning
 ```
 
-La única prueba estrecha de estos primitives continúa siendo Precision Edit. Sus
-Field Outcomes ya proyectan por separado Machine Verification, Machine
-Same-Spec, Human Acceptance, Outcome Acceptance y Commit Eligibility desde los
-snapshots y `field_feedback`; el histórico `same_spec_status` sigue siendo
-compatibilidad y no autoridad. El commit canónico sigue fuera de Field Beta.
+La única prueba estrecha de estos primitives continúa siendo Precision Edit. La
+verificación existente conserva sus assertions agregadas y ahora puede añadir
+`verification_criterion_evidence` como modelo hijo durable. Cada receipt se
+vincula a tenant, transacción, execution run, verification run, Task Spec
+ID/hash, artefactos y verificador/version/policy. Machine Same-Spec exige set
+equality entre criterios críticos machine-verificables y receipts válidos; el
+histórico `same_spec_status` sigue siendo compatibilidad y no autoridad. El
+commit canónico sigue fuera de Field Beta.
 
 La capa Marketplace es provider-neutral y no ejecuta código de sellers. Los contratos mínimos para categoría, buyer audience, Project de planeación, Canon, relaciones y superficies cliente reducen costo de migración futura sin crear marketplace, recommendations, graph database, pagos o BUILD 006.
 

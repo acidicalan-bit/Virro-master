@@ -9,7 +9,7 @@ cross-cutting doctrine; frozen Build reports remain historical evidence.
 | Architecture and execution chain | `PROJECT_SPEC.md`, `docs/ARCHITECTURE.md` | foundation report | UPDATE current views; retain frozen report |
 | Outcome / Blueprint / Task Spec | `src/domain/outcome/specification/` | `docs/SPEC_ANCHORED_PLATFORM_FOUNDATION_V0_1.md` | Code contracts are authoritative; docs reference |
 | Execution Fingerprint / evidence | application specification + field repositories | BUILD 005 reports | Preserve immutable IDs/hashes; no historical rewrite |
-| Machine verification / Same-Spec | `same-spec-gate.ts`, semantic projection | legacy `same_spec_status` | Legacy field is compatibility-only; projection is current read authority |
+| Machine verification / Same-Spec | `same-spec-gate.ts`, `verification_criterion_evidence`, semantic projection | legacy `same_spec_status` and aggregate verification rows | Criterion receipts are the evidence owner; legacy/aggregate fields are compatibility projections only |
 | Human acceptance / Outcome acceptance | `field_feedback` + `field-beta.ts` projection | Build reports | Human evidence is independent and server-derived |
 | Canonical commit eligibility | Blueprint policy + server authorization | historical commit docs | Never derive from legacy Same-Spec aggregate |
 | Recovery | `src/application/outcome/recovery/` + BUILD 005 evidence | E2E readiness docs | Adopt only demonstrated EXEC-002..005 / ARCH-004 |

@@ -80,6 +80,7 @@ export type RunPreservationExperimentInput = {
 export type PreservationExperimentView = {
   transactionId: string;
   executionRunId: string;
+  verificationRunId: string;
   preservationRunId: string;
   assetId: string;
   sourceVersionId: string;
@@ -521,7 +522,7 @@ export class PreservationVerificationService {
       preservedEvidence,
     });
     const verificationLatencyMs = Math.max(0, Math.round((performance.now() - verificationStartedAt) * 1000) / 1000);
-    await this.repositories.verificationRuns.create({
+    const verificationRun = await this.repositories.verificationRuns.create({
       transactionId: transaction.id,
       executionRunId: executionRun.id,
       status: machineVerification.status,
@@ -534,6 +535,16 @@ export class PreservationVerificationService {
         rawReadBackHash: sha256(rawReadBack),
         rawImmutable: sha256(rawReadBack) === rawHash,
         verificationLatencyMs,
+        taskSpecBinding: taskSpec ? {
+          id: taskSpec.id,
+          version: taskSpec.version,
+          hash: taskSpec.hash,
+          blueprintId: taskSpec.blueprint.id,
+          blueprintVersion: taskSpec.blueprint.version,
+          blueprintHash: taskSpec.blueprint.hash,
+          compilerName: taskSpec.compiler.name,
+          compilerVersion: taskSpec.compiler.version,
+        } : null,
       },
     });
     await this.repositories.outcomeTransactions.updateStatus(
@@ -545,6 +556,7 @@ export class PreservationVerificationService {
     return this.toView({
       transactionId: transaction.id,
       executionRunId: executionRun.id,
+      verificationRunId: verificationRun.id,
       preservationRun,
       assetId: asset.id,
       sourceVersionId: sourceVersion.id,
@@ -642,6 +654,7 @@ export class PreservationVerificationService {
     return this.toView({
       transactionId,
       executionRunId: executionRun.id,
+      verificationRunId: verification.id,
       preservationRun,
       assetId: transaction.assetId,
       sourceVersionId: sourceVersion.id,
@@ -763,6 +776,7 @@ export class PreservationVerificationService {
   private async toView(input: {
     transactionId: string;
     executionRunId: string;
+    verificationRunId: string;
     preservationRun: PreservationRunRecord;
     assetId: string;
     sourceVersionId: string;
@@ -790,6 +804,7 @@ export class PreservationVerificationService {
     return {
       transactionId: input.transactionId,
       executionRunId: input.executionRunId,
+      verificationRunId: input.verificationRunId,
       preservationRunId: input.preservationRun.id,
       assetId: input.assetId,
       sourceVersionId: input.sourceVersionId,

@@ -36,6 +36,12 @@ All browser, customer, provider, uploaded-file, copied identifier, Blueprint aut
 - Machine Verification, Machine Same-Spec Conformance, Human Acceptance,
   Outcome Acceptance and Canonical Commit Eligibility are separate claims;
   the Field Beta semantic read model cannot mint a canonical commit.
+- Criterion-level Machine Same-Spec evidence is append-only and bound to the
+  tenant, transaction, execution run, verification run, exact Task Spec
+  ID/hash, relevant artifacts, and verifier/version/policy. Aggregate status,
+  hashes, client-supplied status, and legacy `same_spec_status` are never
+  accepted as evidence decomposition. Missing or conflicting receipts fail
+  closed.
 
 ## Provider credentials and logs
 
@@ -55,7 +61,9 @@ The phone is a control surface and the cloud is the execution authority. A clien
 
 - No end-user authentication, tenant ownership model, or complete tenant-aware RLS exists.
 - Privileged server repositories can bypass RLS; compromise has broad database/storage blast radius.
-- Blueprint/Task Spec registries and the Same-Spec Gate are deterministic in-memory proofs, not yet durable production controls.
+- Blueprint/Task Spec registries remain deterministic compiler inputs; the
+  existing verification model now has an additive durable criterion-evidence
+  child model, but no historical receipts are fabricated or backfilled.
 - Marketplace Project/Canon/product/relationship and mobile interaction contracts have no persistence, authorization service, analytics pipeline, or public API.
 - No payment authority, signed deep-link service, device/session revocation, push privacy control, resumable upload/job API, or scoped delivery/share service exists.
 - Canonical head movement and StateCommit creation are not yet a single database transaction.

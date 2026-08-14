@@ -156,3 +156,9 @@ as separate states. `API_DELTA = NONE`; `DATA_MIGRATION_DELTA = NONE`.
 and valid, but genuine human acceptance has not been recorded in canonical
 Field Beta feedback. This is not a provider failure and does not justify a
 second OpenAI call.
+# HISTORICAL / SUPERSEDED
+
+This document records the earlier BUILD 005-B.S readiness state. It remains
+unchanged as historical evidence. The later governance candidate adds the
+criterion-level Machine Same-Spec evidence model and is the current reference
+for v1.4 proof semantics.

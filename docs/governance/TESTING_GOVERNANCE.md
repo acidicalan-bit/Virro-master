@@ -13,3 +13,11 @@ Evidence classes remain distinct: static/unit, hermetic integration, real DB,
 controlled execution, real provider, internal human, controlled field and market.
 Component PASS is not Outcome PASS; provider success is not acceptance; machine
 PASS is not Human Acceptance.
+# v1.4 criterion evidence rule
+
+Tests must prove Machine Same-Spec from durable criterion receipts, not from an
+aggregate verification status, hashes, `sameSpecStatus`, logs, or human
+feedback. Required negative cases include missing, wrong-spec, wrong-run,
+wrong-artifact, foreign-tenant, stale-verifier and conflicting duplicate
+receipts. The historical FIELD_READY rows are read-only and are never
+backfilled during verification tests.
