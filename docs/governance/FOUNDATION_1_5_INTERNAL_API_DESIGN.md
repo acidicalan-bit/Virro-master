@@ -47,6 +47,20 @@ Classification: `AUTHENTICATED_TENANT_ACTIVE`.
 
 `PUBLIC_API_STATUS` remains `BLOCKED`.
 
+## Build 001 privileged-operation matrix
+
+| Operation | Resource | Trusted principal / tenant | Locator supplied by client | Object proof | User-scoped alternative | Negative test | Status |
+|---|---|---|---|---|---|---|---|
+| Create project | Project | Verified principal + active membership / `AuthorityContext.tenantId` | Request body is limited to writable project fields | Repository writes `owner_tenant_id` from authority; DB trigger requires it | `/api/core-lineage` user-scoped Supabase client | Missing session and foreign tenant locator denied | Justified compatibility boundary |
+| Create asset/version | Asset, AssetVersion | Same | Parent IDs are locators only | Parent owner equals authority tenant; trigger repeats the invariant | `/api/core-lineage` user-scoped Supabase client | Cross-tenant parent rejected | Justified compatibility boundary |
+| Create transaction / move head | OutcomeTransaction, Asset | Same | Project/asset/version IDs are locators only | Tenant-filtered lookup precedes write; owner is server-derived | `/api/core-lineage` user-scoped Supabase client | Foreign transaction/asset rejected | Justified compatibility boundary |
+| Legacy Field Beta and study persistence | Historical experiment records | Controlled server compatibility service; authenticated Field Beta path is separate | IDs and tenant locators are not authority | Legacy routes are 404 by default and in production; internal switch is not auth | Migrate each surface to tenant-aware ports in later builds | No-session legacy route denied | Deferred, bounded internal-only |
+
+`service_role` remains an infrastructure capability for legacy compatibility
+only. It is not an application authority and receives no authorization credit.
+The new core-lineage route uses a user-scoped Supabase client. `UNJUSTIFIED`
+and `UNKNOWN` privileged operations in this Build: `0` and `0`.
+
 ## `/api/core-lineage`
 
 Classification: `AUTHENTICATED_TENANT_ACTIVE`.

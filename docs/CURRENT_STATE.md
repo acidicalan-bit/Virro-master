@@ -15,3 +15,8 @@
 - v1.4 criterion evidence: new verification runs persist additive `verification_criterion_evidence`; historical BUILD 005-B rows are not backfilled
 - Machine Same-Spec: PASS only from complete exact-set criterion receipts; aggregate verification, hashes and legacy sameSpecStatus are insufficient
 - Public readiness: not claimed; Phase B is not started and remains deferred
+- Phase B Build 001 branch: `phase-b/tenant-authority-envelope-core-lineage-v0.1`
+  adds the first authenticated tenant-owned Project → Asset → AssetVersion →
+  OutcomeTransaction path and fail-closed legacy persistence routes. This is a
+  branch-local implementation; `main` remains the frozen Phase A baseline
+  until separately reviewed and integrated.

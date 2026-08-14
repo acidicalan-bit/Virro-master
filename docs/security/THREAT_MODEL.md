@@ -91,6 +91,25 @@ Supabase service-role and provider keys cross only server-side adapter boundarie
 
 - **Critical:** remotely reachable theft of server/provider credentials; arbitrary seller code escaping into the control plane; unauthenticated cross-tenant canonical commit or payment/delivery authority at public scale.
 - **High:** cross-tenant private media or Project/Canon access; forged verification that authorizes commit/delivery; reusable approval deep link; stale-write bypass; broad service-role exposure.
+
+## Foundation 1.5 Phase B Build 001 delta
+
+The first tenant-owned lineage boundary is now enforced for Project, Asset,
+AssetVersion and OutcomeTransaction. A verified Supabase principal and active
+membership produce an immutable `AuthorityContext`; request tenant IDs and
+object IDs remain locators and cannot substitute for that authority. New rows
+carry a server-derived `owner_tenant_id`, parent ownership is checked in the
+application and by a database trigger, and authenticated RLS policies provide
+defense in depth.
+
+Legacy service-role routes capable of privileged persistence or execution fail
+closed by default and in production. The non-production
+`INTERNAL_LEGACY_ROUTES_ENABLED=true` switch is an operational compatibility
+mechanism, not authentication or tenant authorization. ExecutionRun,
+EvidenceReceipt, Storage isolation, recovery and atomic StateCommit remain
+deferred; therefore this Build does not claim complete tenant lineage or
+public multi-tenant readiness. Real two-user Auth/RLS evidence is still a
+required controlled-environment gate.
 - **Medium:** bounded tenant data disclosure, metric/trust manipulation without canonical mutation, upload denial of service within limited scope, or private push metadata exposure.
 - **Low:** information leakage limited to non-sensitive version/configuration data, missing defense-in-depth with no reachable authority boundary, or rate/availability degradation confined to the internal lab.
 
