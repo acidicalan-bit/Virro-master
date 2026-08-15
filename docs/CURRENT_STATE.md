@@ -3,7 +3,7 @@
 > Reverify against repository reality before mutation. This file is not durable
 > doctrine and must not be used as authority for a future merge.
 
-- Canonical main integration: `0e91476c985b7e1c16ff4eafa471b754c5a396cc`, Foundation 1.5 Phase A plus Phase B Build 001 integrated as the local freeze candidate from Governance v1.4 base `22f97b9cbafbb79d92395a751e72a63262b16bef`
+- Canonical main integration: `1ee75e1f85b9d59bd2ee98e0efd0a3f00c7159b0`, Foundation 1.5 Phase A plus Phase B Build 001 frozen as the published internal baseline from Governance v1.4 base `22f97b9cbafbb79d92395a751e72a63262b16bef`
 - Foundation 1.5 Phase A implementation: `9457a3a9afc0ada66e361e9b1f646fd073b96a3f` plus approved SSR authority repair `14491e6efc35c39c732c125768ad3cff24498146`
 - PROJECT_SPEC: `1.4.0` on local `main`
 - Foundation 1.5 Phase A: locally integrated; the two implementation commits remain individually visible
@@ -14,9 +14,12 @@
 - Migration history: Foundation 1.5 remote history reconciled to all 16 canonical versions; alias `20260814062807` is absent
 - v1.4 criterion evidence: new verification runs persist additive `verification_criterion_evidence`; historical BUILD 005-B rows are not backfilled
 - Machine Same-Spec: PASS only from complete exact-set criterion receipts; aggregate verification, hashes and legacy sameSpecStatus are insufficient
-- Public readiness: not claimed; Phase B Build 001 is locally integrated, while
+- Public readiness: not claimed; Phase B Build 001 is frozen as a published
+  internal baseline, while
   downstream lineage, Storage and public-exposure work remain deferred
-- Phase B Build 001: locally integrated at `0e91476c985b7e1c16ff4eafa471b754c5a396cc`
+- Phase B Build 001: frozen at `1ee75e1f85b9d59bd2ee98e0efd0a3f00c7159b0` and
+  published as `foundation-1.5-phase-b-build-001-v1.0.0`, with the reviewed
+  runtime repair rooted at `0e91476c985b7e1c16ff4eafa471b754c5a396cc`
   with the first authenticated tenant-owned Project → Asset → AssetVersion →
   OutcomeTransaction path, fail-closed legacy persistence routes, and the
   forward-only tenant-lifecycle RLS repair. The pre-repair suspended-tenant
