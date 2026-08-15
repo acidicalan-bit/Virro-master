@@ -1,0 +1,45 @@
+{
+  "schemaVersion": "virro-environment-lanes-v1",
+  "lanes": [
+    {
+      "testIdentifier": "tests/integration/build001-trust-foundation.integration.test.ts",
+      "evidenceLevel": "E4_REMOTE_STAGING",
+      "activation": { "variable": "RUN_BUILD001_TRUST_INTEGRATION", "value": "true" },
+      "requiredEnvironmentVariables": ["SUPABASE_URL", "SUPABASE_ANON_KEY", "VIRRO_STAGING_ASSURANCE_ACK"],
+      "skippedReason": "No isolated Supabase staging target with explicit safety acknowledgement was supplied.",
+      "remainsUnproven": ["deployed RPC authentication and ACL beyond the anonymous denial case", "deployed RLS", "Supabase Auth", "Storage policies", "remote concurrency"]
+    },
+    {
+      "testIdentifier": "tests/integration/build005b-db.integration.test.ts",
+      "evidenceLevel": "E4_REMOTE_STAGING",
+      "activation": { "variable": "RUN_BUILD005_DB_INTEGRATION", "value": "true" },
+      "requiredEnvironmentVariables": ["SUPABASE_URL", "SUPABASE_ANON_KEY", "SUPABASE_SERVICE_ROLE_KEY"],
+      "skippedReason": "Disposable Supabase database credentials were not supplied.",
+      "remainsUnproven": ["deployed BUILD 005 database behavior", "anonymous RLS", "service-role repository behavior", "fresh-process recovery"]
+    },
+    {
+      "testIdentifier": "tests/integration/build005b-stabilization.integration.test.ts",
+      "evidenceLevel": "E4_REMOTE_STAGING",
+      "activation": { "variable": "RUN_BUILD005B_STABILIZATION_INTEGRATION", "value": "true" },
+      "requiredEnvironmentVariables": ["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY", "BUILD005B_RECOVERY_EXECUTION_ID"],
+      "skippedReason": "A disposable remote recovery fixture was not supplied.",
+      "remainsUnproven": ["remote fresh-process redrive", "remote durable recovery context"]
+    },
+    {
+      "testIdentifier": "tests/smoke/build-004-real-smoke.test.ts",
+      "evidenceLevel": "E4_REMOTE_STAGING",
+      "activation": { "variable": "RUN_REAL_BUILD_004_SMOKE", "value": "1" },
+      "requiredEnvironmentVariables": ["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY", "OPENAI_API_KEY"],
+      "skippedReason": "Paid provider and disposable Supabase credentials were not supplied.",
+      "remainsUnproven": ["real provider execution", "remote persistence", "remote Storage read-back"]
+    },
+    {
+      "testIdentifier": "tests/smoke/build-004-readback.test.ts",
+      "evidenceLevel": "E4_REMOTE_STAGING",
+      "activation": { "variable": "RUN_REAL_BUILD_004_READBACK", "value": "1" },
+      "requiredEnvironmentVariables": ["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY", "BUILD_004_TRANSACTION_ID"],
+      "skippedReason": "A committed disposable BUILD 004 transaction was not supplied.",
+      "remainsUnproven": ["remote immutable history", "remote canonical head", "Storage object hashes"]
+    }
+  ]
+}

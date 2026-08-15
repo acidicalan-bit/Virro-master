@@ -1,0 +1,66 @@
+name: Evidence-classified assurance
+
+on:
+  pull_request:
+  push:
+    branches:
+      - foundation/virro-vnext
+  workflow_dispatch:
+    inputs:
+      run_staging:
+        description: Run the isolated E4 RPC staging sample
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  deterministic:
+    name: Required E0-E3 deterministic gates
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 11.19.0
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Manifest freshness and environment gaps
+        run: pnpm assurance:check && pnpm assurance:environment
+      - name: E0-E2 assurance rules and application boundaries
+        run: pnpm test:assurance && pnpm test:model && pnpm test:application
+      - name: E3 required local PostgreSQL boundary
+        run: pnpm test:sql
+      - name: TypeScript and ESLint
+        run: pnpm typecheck && pnpm lint
+      - name: Complete deterministic regression
+        run: pnpm test
+      - name: Production build
+        run: pnpm build
+
+  staging-rpc-sample:
+    name: Optional E4 anonymous RPC ACL sample
+    if: github.event_name == 'workflow_dispatch' && inputs.run_staging
+    runs-on: ubuntu-latest
+    environment: assurance-staging
+    env:
+      RUN_BUILD001_TRUST_INTEGRATION: "true"
+      VIRRO_STAGING_ASSURANCE_ACK: ISOLATED_NON_PRODUCTION
+      SUPABASE_URL: ${{ secrets.ASSURANCE_SUPABASE_URL }}
+      SUPABASE_ANON_KEY: ${{ secrets.ASSURANCE_SUPABASE_ANON_KEY }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 11.19.0
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test:staging

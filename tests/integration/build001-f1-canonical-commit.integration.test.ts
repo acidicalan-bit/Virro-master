@@ -2,8 +2,9 @@
 
 import { readdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { pathToFileURL } from "node:url";
 
+import { PGlite } from "@electric-sql/pglite";
+import { pgcrypto } from "@electric-sql/pglite/contrib/pgcrypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 type SqlResult<T> = { rows: T[] };
@@ -13,18 +14,13 @@ type SqlDatabase = {
   close(): Promise<void>;
 };
 
-const pgliteRoot = process.env.PGLITE_PACKAGE_ROOT?.trim();
-const enabled = Boolean(pgliteRoot);
 const migrationsDir = resolve(process.cwd(), "supabase/migrations");
 
-describe.skipIf(!enabled)("BUILD 001-F1 real PostgreSQL canonical commit boundary", () => {
+describe("BUILD 001-F1 local real PostgreSQL canonical commit boundary", () => {
   let db: SqlDatabase;
 
   beforeAll(async () => {
-    const load = (path: string) => import(/* @vite-ignore */ pathToFileURL(path).href);
-    const pglite = await load(resolve(pgliteRoot!, "dist/index.js"));
-    const contrib = await load(resolve(pgliteRoot!, "dist/contrib/pgcrypto.js"));
-    db = new pglite.PGlite({ extensions: { pgcrypto: contrib.pgcrypto } }) as SqlDatabase;
+    db = new PGlite({ extensions: { pgcrypto } }) as SqlDatabase;
     await bootstrapSupabase(db);
     for (const name of readdirSync(migrationsDir).filter((item) => item.endsWith(".sql")).sort()) {
       await db.exec(readFileSync(resolve(migrationsDir, name), "utf8"));
@@ -44,10 +40,7 @@ describe.skipIf(!enabled)("BUILD 001-F1 real PostgreSQL canonical commit boundar
   });
 
   it("reproduces the candidate-SHA failure and its full transaction rollback", async () => {
-    const load = (path: string) => import(/* @vite-ignore */ pathToFileURL(path).href);
-    const pglite = await load(resolve(pgliteRoot!, "dist/index.js"));
-    const contrib = await load(resolve(pgliteRoot!, "dist/contrib/pgcrypto.js"));
-    const vulnerableDb = new pglite.PGlite({ extensions: { pgcrypto: contrib.pgcrypto } }) as SqlDatabase;
+    const vulnerableDb = new PGlite({ extensions: { pgcrypto } }) as SqlDatabase;
     try {
       await bootstrapSupabase(vulnerableDb);
       for (const name of readdirSync(migrationsDir).filter((item) => item.endsWith(".sql") && !item.includes("_f1_")).sort()) {

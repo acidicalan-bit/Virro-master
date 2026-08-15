@@ -9,7 +9,17 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:model": "vitest run tests/security/build001-trust-foundation.test.ts --reporter=verbose",
+    "test:application": "vitest run tests/security/build001-f2-legacy-precision-edit-isolation.test.ts --reporter=verbose",
+    "test:sql": "vitest run tests/integration/build001-f1-canonical-commit.integration.test.ts --reporter=verbose",
+    "test:security": "vitest run tests/security tests/assurance --reporter=verbose",
+    "test:integration": "vitest run tests/integration --reporter=verbose",
+    "test:staging": "node scripts/assurance/staging-preflight.mjs && vitest run tests/integration/build001-trust-foundation.integration.test.ts --reporter=verbose",
+    "test:assurance": "vitest run tests/assurance --reporter=verbose",
+    "assurance:manifest": "node scripts/assurance/generate-build001-manifest.mts",
+    "assurance:check": "node scripts/assurance/generate-build001-manifest.mts --check",
+    "assurance:environment": "node scripts/assurance/environment-status.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",
@@ -21,6 +31,7 @@
     "zod": "^4.1.12"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "0.5.5",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.0",

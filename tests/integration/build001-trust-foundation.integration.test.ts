@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import { describe, expect, it } from "vitest";
 
 const enabled = process.env.RUN_BUILD001_TRUST_INTEGRATION === "true"
+  && process.env.VIRRO_STAGING_ASSURANCE_ACK === "ISOLATED_NON_PRODUCTION"
   && Boolean(process.env.SUPABASE_URL)
   && Boolean(process.env.SUPABASE_ANON_KEY);
 
