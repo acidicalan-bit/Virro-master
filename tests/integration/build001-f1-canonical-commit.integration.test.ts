@@ -1,0 +1,388 @@
+// @vitest-environment node
+
+import { readdirSync, readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { pathToFileURL } from "node:url";
+
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+
+type SqlResult<T> = { rows: T[] };
+type SqlDatabase = {
+  exec(sql: string): Promise<unknown>;
+  query<T extends Record<string, unknown>>(sql: string, params?: unknown[]): Promise<SqlResult<T>>;
+  close(): Promise<void>;
+};
+
+const pgliteRoot = process.env.PGLITE_PACKAGE_ROOT?.trim();
+const enabled = Boolean(pgliteRoot);
+const migrationsDir = resolve(process.cwd(), "supabase/migrations");
+
+describe.skipIf(!enabled)("BUILD 001-F1 real PostgreSQL canonical commit boundary", () => {
+  let db: SqlDatabase;
+
+  beforeAll(async () => {
+    const load = (path: string) => import(/* @vite-ignore */ pathToFileURL(path).href);
+    const pglite = await load(resolve(pgliteRoot!, "dist/index.js"));
+    const contrib = await load(resolve(pgliteRoot!, "dist/contrib/pgcrypto.js"));
+    db = new pglite.PGlite({ extensions: { pgcrypto: contrib.pgcrypto } }) as SqlDatabase;
+    await bootstrapSupabase(db);
+    for (const name of readdirSync(migrationsDir).filter((item) => item.endsWith(".sql")).sort()) {
+      await db.exec(readFileSync(resolve(migrationsDir, name), "utf8"));
+    }
+    await db.exec(`
+      insert into auth.users(id) values ('10000000-0000-4000-8000-000000000001');
+      insert into public.tenants(id, kind, personal_owner_principal_id, status)
+      values ('20000000-0000-4000-8000-000000000002', 'PERSONAL', '10000000-0000-4000-8000-000000000001', 'ACTIVE');
+      insert into public.tenant_memberships(id, tenant_id, principal_id, role, status)
+      values ('30000000-0000-4000-8000-000000000003', '20000000-0000-4000-8000-000000000002', '10000000-0000-4000-8000-000000000001', 'OWNER', 'ACTIVE');
+      set request.jwt.claim.sub = '10000000-0000-4000-8000-000000000001';
+    `);
+  }, 30_000);
+
+  afterAll(async () => {
+    await db?.close();
+  });
+
+  it("reproduces the candidate-SHA failure and its full transaction rollback", async () => {
+    const load = (path: string) => import(/* @vite-ignore */ pathToFileURL(path).href);
+    const pglite = await load(resolve(pgliteRoot!, "dist/index.js"));
+    const contrib = await load(resolve(pgliteRoot!, "dist/contrib/pgcrypto.js"));
+    const vulnerableDb = new pglite.PGlite({ extensions: { pgcrypto: contrib.pgcrypto } }) as SqlDatabase;
+    try {
+      await bootstrapSupabase(vulnerableDb);
+      for (const name of readdirSync(migrationsDir).filter((item) => item.endsWith(".sql") && !item.includes("_f1_")).sort()) {
+        await vulnerableDb.exec(readFileSync(resolve(migrationsDir, name), "utf8"));
+      }
+      await seedAuthority(vulnerableDb);
+      const fixture = await seedCanonicalFixture(vulnerableDb, 7);
+      await expectSqlError(
+        vulnerableDb,
+        `select public.commit_accepted_field_outcome('${fixture.outcome}'::uuid)`,
+        "TRUST_STATE_COMMIT_IMMUTABLE",
+      );
+      await expectNoCanonicalTransition(vulnerableDb, fixture, fixture.baseVersion, 1);
+    } finally {
+      await vulnerableDb.close();
+    }
+  }, 15_000);
+
+  it("completes the legitimate atomic commit and returns an idempotent retry", async () => {
+    const fixture = await seedCanonicalFixture(db, 1);
+
+    const first = await db.query<{ result: { idempotent: boolean } }>(
+      "select public.commit_accepted_field_outcome($1::uuid) as result",
+      [fixture.outcome],
+    );
+    expect(first.rows[0].result.idempotent).toBe(false);
+    await expectCommittedState(db, fixture);
+
+    const retry = await db.query<{ result: { idempotent: boolean } }>(
+      "select public.commit_accepted_field_outcome($1::uuid) as result",
+      [fixture.outcome],
+    );
+    expect(retry.rows[0].result.idempotent).toBe(true);
+    await expectCommittedState(db, fixture);
+  });
+
+  it("keeps canonical candidate content, lineage and workflow columns immutable", async () => {
+    const fixture = await seedCanonicalFixture(db, 2);
+    await expectSqlError(
+      db,
+      `update public.candidate_assets set storage_key = 'tampered' where id = '${fixture.preserved}'`,
+      "TRUST_STATE_COMMIT_IMMUTABLE",
+    );
+    await expectSqlError(
+      db,
+      `update public.candidate_assets set transaction_id = '${fixture.foreignTransaction}' where id = '${fixture.preserved}'`,
+      "TRUST_TRANSACTION_IMMUTABLE",
+    );
+    await expectSqlError(
+      db,
+      `update public.candidate_assets set committed = true where id = '${fixture.preserved}'`,
+      "TRUST_STATE_COMMIT_IMMUTABLE",
+    );
+    await expectSqlError(
+      db,
+      `update public.asset_versions set state = '{"tampered":true}'::jsonb where id = '${fixture.baseVersion}'`,
+      "TRUST_ASSET_VERSION_IMMUTABLE",
+    );
+  });
+
+  it("rejects stale head without a partial canonical transition", async () => {
+    const fixture = await seedCanonicalFixture(db, 3);
+    await db.exec(`
+      insert into public.asset_versions(id, owner_tenant_id, asset_id, version_number, state, parent_version_id)
+      values ('${fixture.externalVersion}', '${TENANT}', '${fixture.asset}', 2, '{"external":true}'::jsonb, '${fixture.baseVersion}');
+      update public.assets set current_version_id = '${fixture.externalVersion}' where id = '${fixture.asset}';
+    `);
+    await expectSqlError(
+      db,
+      `select public.commit_accepted_field_outcome('${fixture.outcome}'::uuid)`,
+      "TRUST_STALE_HEAD",
+    );
+    await expectNoCanonicalTransition(db, fixture, fixture.externalVersion, 2);
+  });
+
+  it("rejects a wrong outcome transaction without a partial canonical transition", async () => {
+    const fixture = await seedCanonicalFixture(db, 8);
+    await expectSqlError(
+      db,
+      `update public.field_outcomes set transaction_id = '${fixture.foreignTransaction}' where id = '${fixture.outcome}'`,
+      "BUILD 005 records are immutable",
+    );
+    await expectNoCanonicalTransition(db, fixture, fixture.baseVersion, 1);
+  });
+
+  it("rejects missing acceptance, missing verification and an unknown outcome", async () => {
+    const noAcceptance = await seedCanonicalFixture(db, 4, { acceptance: false });
+    await expectSqlError(
+      db,
+      `select public.commit_accepted_field_outcome('${noAcceptance.outcome}'::uuid)`,
+      "TRUST_HUMAN_ACCEPTANCE_REQUIRED",
+    );
+    await expectNoCanonicalTransition(db, noAcceptance, noAcceptance.baseVersion, 1);
+
+    const noVerification = await seedCanonicalFixture(db, 5, { verification: false });
+    await expectSqlError(
+      db,
+      `select public.commit_accepted_field_outcome('${noVerification.outcome}'::uuid)`,
+      "TRUST_VERIFICATION_MISMATCH",
+    );
+    await expectNoCanonicalTransition(db, noVerification, noVerification.baseVersion, 1);
+
+    await expectSqlError(
+      db,
+      "select public.commit_accepted_field_outcome('ffffffff-ffff-4fff-8fff-ffffffffffff'::uuid)",
+      "TRUST_RESOURCE_NOT_AUTHORIZED",
+    );
+  });
+
+  it("rolls back version, head and StateCommit when the state transition fails", async () => {
+    const fixture = await seedCanonicalFixture(db, 6);
+    await db.exec(`
+      create or replace function public.f1_injected_state_commit_failure()
+      returns trigger language plpgsql set search_path = pg_catalog, public as $$
+      begin
+        if new.transaction_id = '${fixture.transaction}'::uuid then
+          raise exception 'F1_INJECTED_STATE_COMMIT_FAILURE';
+        end if;
+        return new;
+      end;
+      $$;
+      create trigger f1_injected_state_commit_failure
+      before insert on public.state_commits
+      for each row execute function public.f1_injected_state_commit_failure();
+    `);
+    await expectSqlError(
+      db,
+      `select public.commit_accepted_field_outcome('${fixture.outcome}'::uuid)`,
+      "F1_INJECTED_STATE_COMMIT_FAILURE",
+    );
+    await expectNoCanonicalTransition(db, fixture, fixture.baseVersion, 1);
+    await db.exec("drop trigger f1_injected_state_commit_failure on public.state_commits");
+    await db.exec("drop function public.f1_injected_state_commit_failure()");
+  });
+});
+
+const ACTOR = "10000000-0000-4000-8000-000000000001";
+const TENANT = "20000000-0000-4000-8000-000000000002";
+const SPEC_HASH = "a".repeat(64);
+const BLUEPRINT_HASH = "b".repeat(64);
+const SOURCE_HASH = "c".repeat(64);
+const CANDIDATE_HASH = "d".repeat(64);
+
+type Fixture = ReturnType<typeof fixtureIds>;
+
+function fixtureIds(run: number) {
+  const id = (entity: number) => `${entity.toString(16).padStart(8, "0")}-0000-4000-8000-${run.toString(16).padStart(12, "0")}`;
+  return {
+    project: id(0x40), asset: id(0x50), baseVersion: id(0x60), transaction: id(0x70),
+    execution: id(0x80), verification: id(0x90), raw: id(0xa0), preserved: id(0xb0),
+    strategy: id(0xc0), outcome: id(0xd0), evidence: id(0xe0), feedback: id(0xf0),
+    blueprint: id(0x11), spec: id(0x12), externalVersion: id(0x13),
+    foreignTransaction: id(0x14),
+  };
+}
+
+async function bootstrapSupabase(db: SqlDatabase): Promise<void> {
+  await db.exec(`
+    create role anon nologin;
+    create role authenticated nologin;
+    create role service_role nologin bypassrls;
+    create schema auth;
+    create table auth.users (id uuid primary key);
+    create function auth.uid() returns uuid language sql stable
+    as $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
+    create schema storage;
+    create table storage.buckets (
+      id text primary key,
+      name text not null unique,
+      public boolean not null default false,
+      file_size_limit bigint,
+      allowed_mime_types text[]
+    );
+  `);
+}
+
+async function seedAuthority(db: SqlDatabase): Promise<void> {
+  await db.exec(`
+    insert into auth.users(id) values ('${ACTOR}');
+    insert into public.tenants(id, kind, personal_owner_principal_id, status)
+    values ('${TENANT}', 'PERSONAL', '${ACTOR}', 'ACTIVE');
+    insert into public.tenant_memberships(id, tenant_id, principal_id, role, status)
+    values ('30000000-0000-4000-8000-000000000003', '${TENANT}', '${ACTOR}', 'OWNER', 'ACTIVE');
+    set request.jwt.claim.sub = '${ACTOR}';
+  `);
+}
+
+async function seedCanonicalFixture(
+  db: SqlDatabase,
+  run: number,
+  options: { acceptance?: boolean; verification?: boolean } = {},
+): Promise<Fixture> {
+  const fixture = fixtureIds(run);
+  const verification = options.verification ?? true;
+  const acceptance = options.acceptance ?? true;
+  const taskSpec = JSON.stringify({
+    status: "READY", id: fixture.spec, version: 1, hash: SPEC_HASH,
+    transactionId: fixture.transaction,
+    source: { assetId: fixture.asset, versionId: fixture.baseVersion },
+    criteria: [{ id: "SAME_SPEC", critical: true, verifier: "SAME_SPEC_GATE", evidenceTypes: ["POLICY_CHECK"] }],
+  }).replaceAll("'", "''");
+  const artifacts = JSON.stringify({
+    sourceVersionId: fixture.baseVersion,
+    rawCandidateId: fixture.raw,
+    preservedCandidateId: fixture.preserved,
+  }).replaceAll("'", "''");
+
+  await db.exec(`
+    insert into public.projects(id, owner_tenant_id, name)
+    values ('${fixture.project}', '${TENANT}', 'F1 project ${run}');
+    insert into public.assets(id, owner_tenant_id, project_id, name)
+    values ('${fixture.asset}', '${TENANT}', '${fixture.project}', 'F1 asset ${run}');
+    insert into public.asset_versions(id, owner_tenant_id, asset_id, version_number, state)
+    values ('${fixture.baseVersion}', '${TENANT}', '${fixture.asset}', 1, '{"media":{"sha256":"${SOURCE_HASH}"}}'::jsonb);
+    update public.assets set current_version_id = '${fixture.baseVersion}' where id = '${fixture.asset}';
+    insert into public.outcome_transactions(id, owner_tenant_id, project_id, asset_id, base_version_id, status, raw_request)
+    values ('${fixture.transaction}', '${TENANT}', '${fixture.project}', '${fixture.asset}', '${fixture.baseVersion}', 'VERIFIED', 'F1 canonical request');
+    insert into public.outcome_transactions(id, owner_tenant_id, project_id, asset_id, base_version_id, status, raw_request)
+    values ('${fixture.foreignTransaction}', '${TENANT}', '${fixture.project}', '${fixture.asset}', '${fixture.baseVersion}', 'DRAFT', 'F1 foreign transaction');
+    insert into public.execution_runs(id, owner_tenant_id, transaction_id, status, executor, started_at, completed_at, latency_ms, cost_usd)
+    values ('${fixture.execution}', '${TENANT}', '${fixture.transaction}', 'SUCCESS', 'f1-real-sql', now(), now(), 1, 0);
+    insert into public.candidate_assets(
+      id, owner_tenant_id, transaction_id, execution_run_id, storage_key, mime_type, width, height,
+      byte_size, sha256, roi, instruction, provider, model, cost_usd, committed, candidate_type,
+      source_version_id, raw_candidate_id, preservation_run_id
+    ) values (
+      '${fixture.raw}', '${TENANT}', '${fixture.transaction}', '${fixture.execution}',
+      'tenants/${TENANT}/candidates/${fixture.transaction}/raw.png', 'image/png', 1, 1,
+      4, '${CANDIDATE_HASH}', '{"x":0,"y":0,"width":1,"height":1}'::jsonb,
+      'F1 edit', 'f1', 'f1', 0, false, 'RAW_PROVIDER', '${fixture.baseVersion}', null, null
+    ), (
+      '${fixture.preserved}', '${TENANT}', '${fixture.transaction}', '${fixture.execution}',
+      'tenants/${TENANT}/candidates/${fixture.transaction}/preserved.png', 'image/png', 1, 1,
+      4, '${CANDIDATE_HASH}', '{"x":0,"y":0,"width":1,"height":1}'::jsonb,
+      'F1 edit', 'f1', 'f1', 0, false, 'PRESERVED', '${fixture.baseVersion}', '${fixture.raw}', null
+    );
+    insert into public.preservation_strategy_runs(
+      id, tenant_id, owner_tenant_id, transaction_id, execution_run_id, raw_candidate_id, candidate_id,
+      policy_version, outcome_sku, blueprint_id, blueprint_version, blueprint_hash, task_spec_id,
+      task_spec_version, task_spec_hash, spec_compiler_version, strategy_id, parameters,
+      candidate_role, machine_metrics, preservation_latency_ms
+    ) values (
+      '${fixture.strategy}', '${TENANT}', '${TENANT}', '${fixture.transaction}', '${fixture.execution}',
+      '${fixture.raw}', '${fixture.preserved}', 'f1-policy', 'precision-edit-v0', '${fixture.blueprint}',
+      1, '${BLUEPRINT_HASH}', '${fixture.spec}', 1, '${SPEC_HASH}', 'f1', 'P3_HARD', '{}'::jsonb,
+      'DELIVERED', '{}'::jsonb, 1
+    );
+    insert into public.field_outcomes(
+      id, tenant_id, owner_tenant_id, transaction_id, source_version_id, source_sha256, instruction,
+      roi, topology, task_type, provider, model, raw_candidate_id, delivered_candidate_id,
+      recommended_strategy, strategy_id, policy_version, outcome_sku, blueprint_id, blueprint_version,
+      blueprint_hash, blueprint_snapshot, task_spec_id, task_spec_version, task_spec_hash,
+      task_spec_snapshot, spec_compiler_name, spec_compiler_version, machine_verification_status,
+      same_spec_status, provider_latency_ms, preservation_latency_ms, total_latency_ms, provider_cost_usd
+    ) values (
+      '${fixture.outcome}', '${TENANT}', '${TENANT}', '${fixture.transaction}', '${fixture.baseVersion}',
+      '${SOURCE_HASH}', 'F1 edit', '{"x":0,"y":0,"width":1,"height":1}'::jsonb,
+      'LOCAL_INDEPENDENT', 'IMAGE_EDIT', 'f1', 'f1', '${fixture.raw}', '${fixture.preserved}',
+      'P3_HARD', 'P3_HARD', 'f1-policy', 'precision-edit-v0', '${fixture.blueprint}', 1,
+      '${BLUEPRINT_HASH}', '{}'::jsonb, '${fixture.spec}', 1, '${SPEC_HASH}', '${taskSpec}'::jsonb,
+      'f1', 'f1', 'PASSED', 'PASSED', 1, 1, 2, 0
+    );
+  `);
+
+  if (verification) {
+    await db.exec(`
+      insert into public.verification_runs(id, owner_tenant_id, transaction_id, execution_run_id, status)
+      values ('${fixture.verification}', '${TENANT}', '${fixture.transaction}', '${fixture.execution}', 'PASSED');
+      insert into public.verification_criterion_evidence(
+        id, tenant_id, owner_tenant_id, transaction_id, verification_run_id, execution_run_id,
+        criterion_id, status, evidence_type, issuer_role, task_spec_id, task_spec_version,
+        task_spec_hash, artifact_bindings, verifier, evidence_ref
+      ) values (
+        '${fixture.evidence}', '${TENANT}', '${TENANT}', '${fixture.transaction}', '${fixture.verification}',
+        '${fixture.execution}', 'SAME_SPEC', 'PASS', 'POLICY_CHECK', 'SYSTEM_GATE', '${fixture.spec}',
+        1, '${SPEC_HASH}', '${artifacts}'::jsonb, '{"name":"f1","version":"1"}'::jsonb, 'f1://evidence/${run}'
+      );
+    `);
+  }
+
+  if (acceptance) {
+    await db.exec(`
+      insert into public.field_feedback(
+        id, tenant_id, owner_tenant_id, recorded_by_principal_id, recorded_by,
+        field_outcome_id, human_accepted, acceptance_source
+      ) values (
+        '${fixture.feedback}', '${TENANT}', '${TENANT}', '${ACTOR}', '${ACTOR}',
+        '${fixture.outcome}', true, 'HUMAN_EVALUATOR'
+      );
+    `);
+  }
+  return fixture;
+}
+
+async function expectCommittedState(db: SqlDatabase, fixture: Fixture): Promise<void> {
+  const result = await db.query<{
+    head_is_new: boolean; transaction_status: string; versions: number; commits: number; candidate_committed: boolean;
+  }>(`
+    select
+      asset.current_version_id <> '${fixture.baseVersion}'::uuid as head_is_new,
+      transaction.status as transaction_status,
+      (select count(*)::integer from public.asset_versions where asset_id = '${fixture.asset}') as versions,
+      (select count(*)::integer from public.state_commits where transaction_id = '${fixture.transaction}') as commits,
+      candidate.committed as candidate_committed
+    from public.assets asset
+    join public.outcome_transactions transaction on transaction.id = '${fixture.transaction}'
+    join public.candidate_assets candidate on candidate.id = '${fixture.preserved}'
+    where asset.id = '${fixture.asset}'
+  `);
+  expect(result.rows[0]).toEqual({
+    head_is_new: true,
+    transaction_status: "COMMITTED",
+    versions: 2,
+    commits: 1,
+    candidate_committed: false,
+  });
+}
+
+async function expectNoCanonicalTransition(
+  db: SqlDatabase,
+  fixture: Fixture,
+  expectedHead: string,
+  expectedVersions: number,
+): Promise<void> {
+  const result = await db.query<{ head: string; status: string; versions: number; commits: number }>(`
+    select asset.current_version_id::text as head, transaction.status,
+      (select count(*)::integer from public.asset_versions where asset_id = '${fixture.asset}') as versions,
+      (select count(*)::integer from public.state_commits where transaction_id = '${fixture.transaction}') as commits
+    from public.assets asset
+    join public.outcome_transactions transaction on transaction.id = '${fixture.transaction}'
+    where asset.id = '${fixture.asset}'
+  `);
+  expect(result.rows[0]).toEqual({ head: expectedHead, status: "VERIFIED", versions: expectedVersions, commits: 0 });
+}
+
+async function expectSqlError(db: SqlDatabase, sql: string, message: string): Promise<void> {
+  await expect(db.exec(sql)).rejects.toThrow(message);
+}
