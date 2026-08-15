@@ -6,7 +6,14 @@ import { cookies } from "next/headers";
 
 import { getSupabasePrivilegedKey, getSupabasePublishableKey, getSupabaseUrl } from "@/src/infrastructure/supabase/config";
 
-export async function createUserScopedSupabaseClient(): Promise<SupabaseClient> {
+export async function createUserScopedSupabaseClient(request?: Request): Promise<SupabaseClient> {
+  const bearer = request?.headers.get("authorization")?.match(/^Bearer\s+(.+)$/i)?.[1];
+  if (bearer) {
+    return createClient(getSupabaseUrl(), getSupabasePublishableKey(), {
+      auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+      global: { headers: { Authorization: `Bearer ${bearer}` } },
+    });
+  }
   const cookieStore = await cookies();
   return createServerClient(getSupabaseUrl(), getSupabasePublishableKey(), {
     cookies: {

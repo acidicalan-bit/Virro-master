@@ -28,6 +28,13 @@ export class InMemoryTenantCoreLineageRepository implements TenantCoreLineageRep
     return this.assets.create({ ...input, ownerTenantId: authority.tenantId });
   }
 
+  async createAssetWithInitialVersion(authority: AuthorityContext, input: { projectId: string; name: string; description: string | null; initialState: Record<string, unknown> }) {
+    const asset = await this.createAsset(authority, input);
+    const version = await this.createAssetVersion(authority, { assetId: asset.id, versionNumber: 1, state: input.initialState, parentVersionId: null });
+    const updatedAsset = await this.setCurrentVersion(authority, asset.id, version.id);
+    return { asset: updatedAsset, version };
+  }
+
   async findAsset(authority: AuthorityContext, id: string) {
     const row = await this.assets.findById(id);
     if (!row) return null;

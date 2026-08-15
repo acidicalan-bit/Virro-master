@@ -9,7 +9,7 @@ export async function resolveRequestAuthority(request: Request): Promise<Princip
   const resolved = await resolveAuthenticatedPrincipal(request);
   if (resolved.kind !== "AUTHENTICATED") return resolved;
   const requestedTenantId = new URL(request.url).searchParams.get("tenantId") || request.headers.get("x-tenant-id");
-  const userClient = await createUserScopedSupabaseClient();
+  const userClient = await createUserScopedSupabaseClient(request);
   const authority = await new TenantAuthorityService(new SupabaseTenantAuthorityRepository(userClient)).resolveAuthority({ principal: resolved.principal, requestedTenantId });
   return { ...resolved, authority };
 }

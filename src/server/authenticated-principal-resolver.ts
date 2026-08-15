@@ -1,9 +1,6 @@
 import "server-only";
 
-import { createClient } from "@supabase/supabase-js";
-
 import type { AuthenticatedPrincipal } from "@/src/domain/auth/authority";
-import { getSupabasePublishableKey, getSupabaseUrl } from "@/src/infrastructure/supabase/config";
 import { createUserScopedSupabaseClient } from "@/src/infrastructure/supabase/server-client";
 
 export type PrincipalResolution =
@@ -15,9 +12,7 @@ export type PrincipalResolution =
 export async function resolveAuthenticatedPrincipal(request?: Request): Promise<PrincipalResolution> {
   try {
     const bearer = request?.headers.get("authorization")?.match(/^Bearer\s+(.+)$/i)?.[1];
-    const client = bearer
-      ? createClient(getSupabaseUrl(), getSupabasePublishableKey(), { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }, global: { headers: { Authorization: `Bearer ${bearer}` } } })
-      : await createUserScopedSupabaseClient();
+    const client = await createUserScopedSupabaseClient(request);
     const { data, error } = await client.auth.getClaims(bearer);
     if (error) return { kind: "INVALID_SESSION" };
     const claims = (data?.claims ?? {}) as Record<string, unknown>;

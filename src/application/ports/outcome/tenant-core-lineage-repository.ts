@@ -14,10 +14,8 @@ import type {
 export interface TenantCoreLineageRepository {
   createProject(authority: AuthorityContext, input: { name: string; description: string | null }): Promise<ProjectRecord>;
   findProject(authority: AuthorityContext, id: string): Promise<ProjectRecord | null>;
-  createAsset(authority: AuthorityContext, input: { projectId: string; name: string; description: string | null }): Promise<AssetRecord>;
+  createAssetWithInitialVersion(authority: AuthorityContext, input: { projectId: string; name: string; description: string | null; initialState: Record<string, unknown> }): Promise<{ asset: AssetRecord; version: AssetVersionRecord }>;
   findAsset(authority: AuthorityContext, id: string): Promise<AssetRecord | null>;
-  setCurrentVersion(authority: AuthorityContext, assetId: string, versionId: string): Promise<AssetRecord>;
-  createAssetVersion(authority: AuthorityContext, input: { assetId: string; versionNumber: number; state: Record<string, unknown>; parentVersionId: string | null }): Promise<AssetVersionRecord>;
   findAssetVersion(authority: AuthorityContext, id: string): Promise<AssetVersionRecord | null>;
   createTransaction(authority: AuthorityContext, input: { projectId: string; assetId: string; baseVersionId: string; rawRequest: string }): Promise<OutcomeTransactionRecord>;
   findTransaction(authority: AuthorityContext, id: string): Promise<OutcomeTransactionRecord | null>;

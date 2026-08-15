@@ -54,3 +54,9 @@ export function freezeAuthorityContext(input: AuthorityContext): AuthorityContex
   }
   return Object.freeze({ ...input });
 }
+
+export function assertAuthorityRole(authority: AuthorityContext, role: MembershipRole): void {
+  if (authority.membershipRole !== role && !(role === "MEMBER" && authority.membershipRole === "OWNER")) {
+    throw new AuthorityError("ROLE_NOT_AUTHORIZED", "El rol no permite esta operación.");
+  }
+}

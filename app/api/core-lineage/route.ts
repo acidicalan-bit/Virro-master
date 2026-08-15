@@ -22,7 +22,7 @@ export async function GET(request: Request) {
     if (resolved.kind !== "AUTHENTICATED" || !resolved.authority) return NextResponse.json({ error: "Authentication required." }, { status: 401 });
     const resource = z.enum(["project", "asset", "version", "transaction"]).parse(new URL(request.url).searchParams.get("resource"));
     const id = z.uuid().parse(new URL(request.url).searchParams.get("id"));
-    const service = new TenantCoreLineageService(new SupabaseTenantCoreLineageRepository(await createUserScopedSupabaseClient()), resolved.authority);
+    const service = new TenantCoreLineageService(new SupabaseTenantCoreLineageRepository(await createUserScopedSupabaseClient(request)), resolved.authority);
     const record = await service.get(resource, id);
     if (!record) return NextResponse.json({ error: "Resource not found." }, { status: 404 });
     return NextResponse.json({ record });
@@ -36,7 +36,7 @@ export async function POST(request: Request) {
     const resolved = await resolveRequestAuthority(request);
     if (resolved.kind !== "AUTHENTICATED" || !resolved.authority) return NextResponse.json({ error: "Authentication required." }, { status: 401 });
     const input = RequestSchema.parse(await request.json());
-    const service = new TenantCoreLineageService(new SupabaseTenantCoreLineageRepository(await createUserScopedSupabaseClient()), resolved.authority);
+    const service = new TenantCoreLineageService(new SupabaseTenantCoreLineageRepository(await createUserScopedSupabaseClient(request)), resolved.authority);
     if (input.action === "createProject") return NextResponse.json({ project: await service.createProject(input) }, { status: 201 });
     if (input.action === "createAsset") return NextResponse.json(await service.createAsset(input), { status: 201 });
     return NextResponse.json({ transaction: await service.createTransaction(input) }, { status: 201 });

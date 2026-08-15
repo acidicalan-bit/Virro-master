@@ -342,7 +342,9 @@ export class SupabaseCriterionEvidenceRepository implements CriterionEvidenceRep
       criterion_id: input.criterionId,
       status: input.status,
       evidence_type: input.evidenceType,
+      issuer_role: input.issuerRole,
       task_spec_id: input.taskSpecId,
+      task_spec_version: input.taskSpecVersion,
       task_spec_hash: input.taskSpecHash,
       artifact_bindings: input.artifactBindings,
       verifier: input.verifier,
@@ -376,14 +378,18 @@ export class SupabaseStateCommitRepository implements StateCommitRepository {
       .select("*")
       .single();
     if (error || !data) throw new Error("No se pudo crear el commit de estado.");
-    return { id: String(data.id), transactionId: String(data.transaction_id), assetId: String(data.asset_id), newVersionId: String(data.new_version_id), previousVersionId: String(data.previous_version_id), committedAt: String(data.committed_at) };
+    return stateCommitRow(data);
   }
 
   async findByTransactionId(transactionId: string): Promise<StateCommitRecord | null> {
     const { data, error } = await this.client.from("state_commits").select("*").eq("transaction_id", transactionId).maybeSingle();
     if (error) throw new Error("No se pudo leer el commit.");
-    return data ? { id: String(data.id), transactionId: String(data.transaction_id), assetId: String(data.asset_id), newVersionId: String(data.new_version_id), previousVersionId: String(data.previous_version_id), committedAt: String(data.committed_at) } : null;
+    return data ? stateCommitRow(data) : null;
   }
+}
+
+function stateCommitRow(row: Record<string, unknown>): StateCommitRecord {
+  return { id: String(row.id), ownerTenantId: row.owner_tenant_id ? String(row.owner_tenant_id) : null, transactionId: String(row.transaction_id), assetId: String(row.asset_id), newVersionId: String(row.new_version_id), previousVersionId: String(row.previous_version_id), committedAt: String(row.committed_at) };
 }
 
 export class SupabaseCostRecordRepository implements CostRecordRepository {
@@ -690,7 +696,9 @@ function criterionEvidenceRow(row: Record<string, unknown>): CriterionEvidenceRe
     criterionId: String(row.criterion_id),
     status: row.status as CriterionEvidenceRecord["status"],
     evidenceType: row.evidence_type as CriterionEvidenceRecord["evidenceType"],
+    issuerRole: row.issuer_role as CriterionEvidenceRecord["issuerRole"],
     taskSpecId: String(row.task_spec_id),
+    taskSpecVersion: Number(row.task_spec_version),
     taskSpecHash: String(row.task_spec_hash),
     artifactBindings: row.artifact_bindings as CriterionEvidenceRecord["artifactBindings"],
     verifier: row.verifier as CriterionEvidenceRecord["verifier"],

@@ -12,10 +12,12 @@ export class TenantCoreLineageService {
   }
 
   async createAsset(input: { projectId: string; name: string; description?: string | null; initialState: Record<string, unknown> }) {
-    const asset = await this.repository.createAsset(this.authority, { projectId: input.projectId, name: input.name, description: input.description ?? null });
-    const version = await this.repository.createAssetVersion(this.authority, { assetId: asset.id, versionNumber: 1, state: input.initialState, parentVersionId: null });
-    const updatedAsset = await this.repository.setCurrentVersion(this.authority, asset.id, version.id);
-    return { asset: updatedAsset, version };
+    return this.repository.createAssetWithInitialVersion(this.authority, {
+      projectId: input.projectId,
+      name: input.name,
+      description: input.description ?? null,
+      initialState: input.initialState,
+    });
   }
 
   createTransaction(input: { projectId: string; assetId: string; baseVersionId: string; rawRequest: string }) {

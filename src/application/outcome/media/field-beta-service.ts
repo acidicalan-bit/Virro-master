@@ -26,6 +26,7 @@ import { decodePngToPixels } from "@/src/infrastructure/evidence/png-decoder";
 import { encodePixelsToPng } from "@/src/infrastructure/evidence/png-encoder";
 import { PreservationLadderEngine } from "@/src/infrastructure/preservation/preservation-ladder-engine";
 import { createPrecisionEditBlueprintDefinition } from "@/src/application/outcome/specification/precision-edit-blueprint";
+import type { AuthorityContext } from "@/src/domain/auth/authority";
 import { publishOutcomeBlueprint } from "@/src/domain/outcome/specification/outcome-blueprint";
 import { DeterministicPrecisionEditSpecCompiler } from "@/src/application/outcome/specification/deterministic-spec-compiler";
 import { verifyTaskSpecHash, type TaskSpec } from "@/src/domain/outcome/specification/task-spec";
@@ -88,6 +89,7 @@ export class FieldBetaService {
     private readonly criterionEvidenceRepository?: CriterionEvidenceRepository,
     private readonly tenantId: string = FIELD_TENANT_ID,
     private readonly principalId: string = "internal-evaluator",
+    private readonly authority?: AuthorityContext,
   ) {}
 
   private readonly compiler = new DeterministicPrecisionEditSpecCompiler();
@@ -102,6 +104,7 @@ export class FieldBetaService {
     const blueprint = publishOutcomeBlueprint(createPrecisionEditBlueprintDefinition(), new Date().toISOString());
     const base = await this.baseRunner.runExperiment({
       ownerTenantId: this.tenantId,
+      authority: this.authority,
       projectName: input.projectName,
       assetName: input.assetName,
       sourceBytes: input.sourceBytes,
@@ -165,7 +168,7 @@ export class FieldBetaService {
         continue;
       }
       if (existingStrategy && !existingCandidate) throw new FieldBetaError("PERSISTENCE_LINEAGE_MISSING", "La operación de preservación existe pero su candidato durable falta.");
-      const storageKey = `candidates/${base.transactionId}/strategies/${derivedStrategy.toLowerCase()}/${crypto.randomUUID()}.png`;
+      const storageKey = `tenants/${this.tenantId}/candidates/${base.transactionId}/strategies/${derivedStrategy.toLowerCase()}/${crypto.randomUUID()}.png`;
       await this.storage.put(storageKey, bytes, "image/png");
       const candidate = await this.candidates.create({
         transactionId: base.transactionId, executionRunId: base.executionRunId, storageKey, mimeType: "image/png",
@@ -259,7 +262,7 @@ export class FieldBetaService {
       }
       const result = this.ladder.derive({ strategyId: derivedStrategy, parameters: FIELD_POLICY_DEFINITION.strategies[derivedStrategy], source: sourcePixels, rawCandidate: rawPixels, roi: context.roi });
       const bytes = new Uint8Array(encodePixelsToPng(result.pixels));
-      const storageKey = `candidates/${context.transactionId}/strategies/${derivedStrategy.toLowerCase()}/${crypto.randomUUID()}.png`;
+      const storageKey = `tenants/${this.tenantId}/candidates/${context.transactionId}/strategies/${derivedStrategy.toLowerCase()}/${crypto.randomUUID()}.png`;
       await this.storage.put(storageKey, bytes, "image/png");
       const candidate = await this.candidates.create({ transactionId: context.transactionId, executionRunId: context.executionRunId, storageKey, mimeType: "image/png", width: result.pixels.width, height: result.pixels.height, byteSize: bytes.byteLength, sha256: sha256(bytes), roi: context.roi, instruction: context.instruction, provider: "intent-lab", model: this.ladder.methodologyVersion, costUsd: null, candidateType: "PRESERVED", sourceVersionId: context.sourceVersionId, rawCandidateId: context.rawCandidateId, preservationRunId: null, committed: false });
       await this.repository.createStrategyRun({ transactionId: context.transactionId, executionRunId: context.executionRunId, rawCandidateId: context.rawCandidateId, candidateId: candidate.id, policyVersion: FIELD_POLICY_VERSION, strategyId: derivedStrategy, parameters: FIELD_POLICY_DEFINITION.strategies[derivedStrategy], role: strategyId === derivedStrategy ? "DELIVERED" : "SHADOW", machineMetrics: result.metrics, preservationLatencyMs: result.processingTimeMs, tenantId: this.tenantId, outcomeSku: PRECISION_EDIT_OUTCOME_SKU, blueprintId: context.blueprint.id, blueprintVersion: context.blueprint.version, blueprintHash: context.blueprint.hash, taskSpecId: context.taskSpec.id, taskSpecVersion: context.taskSpec.version, taskSpecHash: context.taskSpec.hash, specCompilerVersion: context.taskSpec.compiler.version });

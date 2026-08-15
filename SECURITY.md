@@ -59,17 +59,20 @@ The phone is a control surface and the cloud is the execution authority. A clien
 
 ## Known limitations
 
-- Foundation 1.5 Phase A now verifies Supabase Auth claims and resolves durable
-  tenant membership for Field Beta; the approved two-user negative proof is
-  demonstrated, while complete user-scoped lineage/RLS beyond that boundary
-  remains outstanding.
-- Privileged server repositories can bypass RLS; compromise has broad database/storage blast radius.
+- BUILD 001 carries verified Supabase authority through one canonical Field
+  Beta execution/acceptance/commit path and adds downstream ownership/RLS;
+  deployed verification of the new migration remains outstanding.
+- Privileged Field execution and Storage repositories can bypass RLS;
+  compromise still has broad database/storage blast radius despite server-derived
+  scope, lineage triggers and tenant-prefixed object keys.
 - Blueprint/Task Spec registries remain deterministic compiler inputs; the
   existing verification model now has an additive durable criterion-evidence
   child model, but no historical receipts are fabricated or backfilled.
 - Marketplace Project/Canon/product/relationship and mobile interaction contracts have no persistence, authorization service, analytics pipeline, or public API.
 - No payment authority, signed deep-link service, device/session revocation, push privacy control, resumable upload/job API, or scoped delivery/share service exists.
-- Canonical head movement and StateCommit creation are not yet a single database transaction.
+- The canonical BUILD 001 RPC makes head movement and StateCommit creation one
+  database transaction; legacy non-production commit services remain sequential
+  and are not canonical authority.
 - Signed URLs expire; object keys and hashes, not preview URLs, are durable identities.
 - Pixel evidence does not prove semantic correctness or human usefulness.
 
@@ -125,10 +128,12 @@ in production; `INTERNAL_LEGACY_ROUTES_ENABLED=true` is a non-production
 operator switch only and is never authorization. The route and flag do not
 make legacy services safe for public deployment.
 
-The remaining boundary is explicit: StateCommit atomicity, downstream
-ExecutionRun/EvidenceReceipt migration, Storage object policy, recovery and
-rate/cost controls remain deferred beyond Build 001. The reviewed two-user
-Supabase proof demonstrated own-read/write, cross-tenant denial, locator
-substitution denial, legacy unauthenticated denial, and revocation; that
-evidence is carried forward unchanged by the local integration. This does not
-claim complete tenant lineage or public multi-tenant readiness.
+BUILD 001-I extends that boundary through downstream execution/evidence,
+authorized Human Acceptance and a locked atomic StateCommit RPC. New canonical
+records derive ownership from persisted lineage and exact evidence includes the
+execution, TaskSpec version/hash, artifacts and authorized issuer. Direct
+authenticated asset/version mutation is revoked. The remaining boundary is
+explicit: the new migration and Storage isolation were not deployed or tested
+against real infrastructure in this implementation, recovery and rate/cost
+controls remain limited, and privileged Field execution repositories retain a
+broad compromise blast radius. This does not claim public multi-tenant readiness.

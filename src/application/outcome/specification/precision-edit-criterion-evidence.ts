@@ -33,6 +33,7 @@ export function buildPrecisionEditCriterionEvidence(input: {
     verificationRunId: base.verificationRunId,
     executionRunId: base.executionRunId,
     taskSpecId: taskSpec.id,
+    taskSpecVersion: taskSpec.version,
     taskSpecHash: taskSpec.hash,
     artifactBindings: {
       sourceVersionId: base.sourceVersionId,
@@ -42,9 +43,9 @@ export function buildPrecisionEditCriterionEvidence(input: {
     verifier: { name: PRECISION_EDIT_VERIFIER_NAME, version: PRECISION_EDIT_VERIFIER_VERSION, policyVersion: PRECISION_EDIT_CRITERION_EVIDENCE_MAP_VERSION },
   } as const;
   return [
-    record(common, "REQUESTED_EDIT_HAS_CHANGE", edit.passed ? "PASS" : "FAIL", "METRIC", `verification://${base.verificationRunId}/REQUESTED_EDIT_HAS_CHANGE`, { sourceAssertion: edit }),
-    record(common, "SOURCE_VERSION_MATCHES", source.passed && provenance.passed ? "PASS" : "FAIL", "HASH", `verification://${base.verificationRunId}/SOURCE_VERSION_MATCHES`, { sourceAssertion: source, provenanceAssertion: provenance }),
-    record(common, "SAME_TASK_SPEC", specMatches ? "PASS" : "FAIL", "POLICY_CHECK", `verification://${base.verificationRunId}/SAME_TASK_SPEC`, {
+    record(common, "REQUESTED_EDIT_HAS_CHANGE", edit.passed ? "PASS" : "FAIL", "METRIC", "VERIFIER", `verification://${base.verificationRunId}/REQUESTED_EDIT_HAS_CHANGE`, { sourceAssertion: edit }),
+    record(common, "SOURCE_VERSION_MATCHES", source.passed && provenance.passed ? "PASS" : "FAIL", "HASH", "VERIFIER", `verification://${base.verificationRunId}/SOURCE_VERSION_MATCHES`, { sourceAssertion: source, provenanceAssertion: provenance }),
+    record(common, "SAME_TASK_SPEC", specMatches ? "PASS" : "FAIL", "POLICY_CHECK", "SYSTEM_GATE", `verification://${base.verificationRunId}/SAME_TASK_SPEC`, {
       mappingVersion: PRECISION_EDIT_CRITERION_EVIDENCE_MAP_VERSION,
       expectedTaskSpecId: taskSpec.id,
       expectedTaskSpecHash: taskSpec.hash,
@@ -56,14 +57,15 @@ export function buildPrecisionEditCriterionEvidence(input: {
 }
 
 function record(
-  common: Omit<CreateCriterionEvidenceRecord, "id" | "createdAt" | "criterionId" | "status" | "evidenceType" | "evidenceRef" | "details">,
+  common: Omit<CreateCriterionEvidenceRecord, "id" | "createdAt" | "criterionId" | "status" | "evidenceType" | "issuerRole" | "evidenceRef" | "details">,
   criterionId: string,
   status: CreateCriterionEvidenceRecord["status"],
   evidenceType: CreateCriterionEvidenceRecord["evidenceType"],
+  issuerRole: CreateCriterionEvidenceRecord["issuerRole"],
   evidenceRef: string,
   details: Record<string, unknown>,
 ): CreateCriterionEvidenceRecord {
-  return { ...common, criterionId, status, evidenceType, evidenceRef, details };
+  return { ...common, criterionId, status, evidenceType, issuerRole, evidenceRef, details };
 }
 
 function requiredAssertion(assertions: Map<string, Assertion>, type: string): Assertion {
@@ -96,6 +98,7 @@ export function deriveMachineSameSpecFromDurableEvidence(input: {
       || evidence.executionRunId !== input.executionRunId
       || evidence.verificationRunId !== input.verificationRunId
       || evidence.taskSpecId !== input.taskSpec.id
+      || evidence.taskSpecVersion !== input.taskSpec.version
       || evidence.taskSpecHash !== input.taskSpec.hash
       || evidence.artifactBindings.sourceVersionId !== input.expectedArtifactBindings.sourceVersionId
       || evidence.artifactBindings.rawCandidateId !== input.expectedArtifactBindings.rawCandidateId

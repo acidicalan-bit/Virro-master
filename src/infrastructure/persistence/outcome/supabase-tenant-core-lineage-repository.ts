@@ -20,38 +20,29 @@ export class SupabaseTenantCoreLineageRepository implements TenantCoreLineageRep
     return data ? projectRow(data) : null;
   }
 
-  async createAsset(authority: AuthorityContext, input: { projectId: string; name: string; description: string | null }) {
+  async createAssetWithInitialVersion(authority: AuthorityContext, input: { projectId: string; name: string; description: string | null; initialState: Record<string, unknown> }) {
     if (!(await this.findProject(authority, input.projectId))) throw new TenantLineageAuthorizationError("El proyecto no existe o no pertenece al tenant autorizado.");
-    const { data, error } = await this.client.from("assets").insert({ owner_tenant_id: authority.tenantId, project_id: input.projectId, name: input.name, description: input.description }).select("*").single();
-    if (error || !data) throw new Error("No se pudo crear el activo.");
-    return assetRow(data);
+    const { data, error } = await this.client.rpc("create_tenant_asset_with_initial_version", {
+      p_project_id: input.projectId,
+      p_name: input.name,
+      p_description: input.description,
+      p_initial_state: input.initialState,
+    });
+    if (error || !data || typeof data !== "object") throw new Error("No se pudo crear el activo y su versión inicial.");
+    const result = data as { asset?: Record<string, unknown>; version?: Record<string, unknown> };
+    if (!result.asset || !result.version) throw new Error("La creación atómica no devolvió la lineage esperada.");
+    const asset = assetRow(result.asset);
+    const version = versionRow(result.version);
+    assertTenantOwner(asset, authority);
+    assertTenantOwner(version, authority);
+    if (asset.currentVersionId !== version.id || version.assetId !== asset.id) throw new TenantLineageAuthorizationError("La versión inicial no pertenece al activo autorizado.");
+    return { asset, version };
   }
 
   async findAsset(authority: AuthorityContext, id: string) {
     const { data, error } = await this.client.from("assets").select("*").eq("id", id).eq("owner_tenant_id", authority.tenantId).maybeSingle();
     if (error) throw new Error("No se pudo leer el activo.");
     return data ? assetRow(data) : null;
-  }
-
-  async setCurrentVersion(authority: AuthorityContext, assetId: string, versionId: string) {
-    const asset = await this.findAsset(authority, assetId);
-    const version = await this.findAssetVersion(authority, versionId);
-    if (!asset || !version || version.assetId !== asset.id) throw new TenantLineageAuthorizationError("La versión no pertenece al activo autorizado.");
-    const { data, error } = await this.client.from("assets").update({ current_version_id: version.id }).eq("id", asset.id).eq("owner_tenant_id", authority.tenantId).select("*").single();
-    if (error || !data) throw new Error("No se pudo actualizar la cabeza del activo.");
-    return assetRow(data);
-  }
-
-  async createAssetVersion(authority: AuthorityContext, input: { assetId: string; versionNumber: number; state: Record<string, unknown>; parentVersionId: string | null }) {
-    const asset = await this.findAsset(authority, input.assetId);
-    if (!asset) throw new TenantLineageAuthorizationError("El activo no existe o no pertenece al tenant autorizado.");
-    if (input.parentVersionId) {
-      const parent = await this.findAssetVersion(authority, input.parentVersionId);
-      if (!parent || parent.assetId !== asset.id) throw new TenantLineageAuthorizationError("La versión padre no pertenece al activo.");
-    }
-    const { data, error } = await this.client.from("asset_versions").insert({ owner_tenant_id: authority.tenantId, asset_id: input.assetId, version_number: input.versionNumber, state: input.state, parent_version_id: input.parentVersionId }).select("*").single();
-    if (error || !data) throw new Error("No se pudo crear la versión.");
-    return versionRow(data);
   }
 
   async findAssetVersion(authority: AuthorityContext, id: string) {

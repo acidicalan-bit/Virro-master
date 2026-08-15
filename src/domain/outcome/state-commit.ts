@@ -2,6 +2,7 @@ import { z } from "zod";
 
 export const StateCommitSchema = z.object({
   id: z.uuid(),
+  ownerTenantId: z.uuid().nullable().optional(),
   transactionId: z.uuid(),
   assetId: z.uuid(),
   newVersionId: z.uuid(),

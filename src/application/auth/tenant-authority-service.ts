@@ -1,4 +1,4 @@
-import { AuthorityError, freezeAuthorityContext, type AuthenticatedPrincipal, type AuthorityContext, type MembershipRole } from "@/src/domain/auth/authority";
+import { AuthorityError, assertAuthorityRole, freezeAuthorityContext, type AuthenticatedPrincipal, type AuthorityContext, type MembershipRole } from "@/src/domain/auth/authority";
 import type { TenantMembershipRepository } from "@/src/application/ports/auth/authority-repositories";
 
 export class TenantAuthorityService {
@@ -32,8 +32,6 @@ export class TenantAuthorityService {
   }
 
   requireRole(authority: AuthorityContext, role: MembershipRole): void {
-    if (authority.membershipRole !== role && !(role === "MEMBER" && authority.membershipRole === "OWNER")) {
-      throw new AuthorityError("ROLE_NOT_AUTHORIZED", "El rol no permite esta operación.");
-    }
+    assertAuthorityRole(authority, role);
   }
 }

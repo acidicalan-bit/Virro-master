@@ -28,6 +28,8 @@ import type { TaskSpec } from "@/src/domain/outcome/specification/task-spec";
 import { TaskSpecSchema, verifyTaskSpecHash } from "@/src/domain/outcome/specification/task-spec";
 import { createRecoveryMetadata } from "@/src/application/outcome/recovery/execution-recovery-context";
 import type { FieldBetaFaultInjector } from "@/src/application/outcome/media/field-beta-fault-injection";
+import type { AuthorityContext } from "@/src/domain/auth/authority";
+import { bindExecutionAuthority } from "@/src/application/outcome/execution-authority";
 
 const SOURCE_MAX_BYTES = 10 * 1024 * 1024;
 
@@ -57,6 +59,8 @@ type RuntimeRepositories = Pick<
 export type RunPreservationExperimentInput = {
   /** Derived server-side from AuthorityContext; never accepted from raw HTTP. */
   ownerTenantId?: string;
+  /** Present on the canonical authenticated path; legacy internal callers may omit it. */
+  authority?: AuthorityContext;
   projectName: string;
   assetName: string;
   sourceBytes: Uint8Array;
@@ -152,6 +156,11 @@ export class PreservationVerificationService {
   async runExperiment(input: RunPreservationExperimentInput): Promise<PreservationExperimentView> {
     const policy = PreservationPolicySchema.parse(input.policy);
     validateSourceInput(input);
+    if (input.authority && input.ownerTenantId && input.authority.tenantId !== input.ownerTenantId) {
+      throw new PreservationRuntimeError("AUTHORITY_TENANT_MISMATCH", "Authenticated authority does not match the requested tenant.");
+    }
+    const ownerTenantId = input.authority?.tenantId ?? input.ownerTenantId;
+    const tenantStoragePrefix = ownerTenantId ? `tenants/${ownerTenantId}/` : "";
     const sourceBytes = new Uint8Array(input.sourceBytes);
     const sourceBuffer = Buffer.from(sourceBytes);
     const sourcePixels = decodePngToPixels(sourceBuffer);
@@ -162,20 +171,20 @@ export class PreservationVerificationService {
     }
 
     const project = await this.repositories.projects.create({
-      ownerTenantId: input.ownerTenantId,
+      ownerTenantId,
       name: input.projectName.trim(),
       description: "BUILD 004 preservation experiment",
     });
     const asset = await this.repositories.assets.create({
-      ownerTenantId: input.ownerTenantId,
+      ownerTenantId,
       projectId: project.id,
       name: input.assetName.trim(),
       description: "Precision Edit image asset",
     });
-    const sourceStorageKey = `sources/${project.id}/${crypto.randomUUID()}.png`;
+    const sourceStorageKey = `${tenantStoragePrefix}sources/${project.id}/${crypto.randomUUID()}.png`;
     await this.storage.put(sourceStorageKey, sourceBytes, input.sourceMimeType);
     const sourceVersion = await this.repositories.assetVersions.create({
-      ownerTenantId: input.ownerTenantId,
+      ownerTenantId,
       assetId: asset.id,
       versionNumber: 1,
       state: {
@@ -203,7 +212,7 @@ export class PreservationVerificationService {
 
     input.faultInjector?.("BEFORE_TRANSACTION_CREATION");
     const transaction = await this.repositories.outcomeTransactions.create({
-      ownerTenantId: input.ownerTenantId,
+      ownerTenantId,
       projectId: project.id,
       assetId: asset.id,
       baseVersionId: sourceVersion.id,
@@ -245,6 +254,18 @@ export class PreservationVerificationService {
       }));
       if (!verifyTaskSpecHash(taskSpec) || taskSpec.status !== "READY" || taskSpec.transactionId !== transaction.id || taskSpec.source.versionId !== sourceVersion.id || taskSpec.source.sha256 !== sourceHash) {
         throw new PreservationRuntimeError("INVALID_TASK_SPEC_BINDING", "Task Spec must be READY, immutable, and bound to this transaction and source version.");
+      }
+      if (input.authority && ownerTenantId) {
+        bindExecutionAuthority({
+          authority: input.authority,
+          ownerTenantId,
+          projectId: project.id,
+          assetId: asset.id,
+          transactionId: transaction.id,
+          baseVersionId: sourceVersion.id,
+          taskSpec,
+          mutationPaths: ["media.pixels"],
+        });
       }
     }
 
@@ -323,7 +344,7 @@ export class PreservationVerificationService {
     });
 
     input.faultInjector?.("AFTER_EXECUTOR_SUCCESS_BEFORE_RAW");
-    const rawStorageKey = `candidates/${transaction.id}/raw/${crypto.randomUUID()}.png`;
+    const rawStorageKey = `${tenantStoragePrefix}candidates/${transaction.id}/raw/${crypto.randomUUID()}.png`;
     try {
       await this.storage.put(rawStorageKey, rawBytes, providerResult.candidateMimeType);
     } catch (error) {
@@ -440,7 +461,7 @@ export class PreservationVerificationService {
     const preservedBuffer = encodePixelsToPng(preservationResult.preserved);
     const preservedBytes = new Uint8Array(preservedBuffer);
     const preservedHash = sha256(preservedBytes);
-    const preservedStorageKey = `candidates/${transaction.id}/preserved/${crypto.randomUUID()}.png`;
+    const preservedStorageKey = `${tenantStoragePrefix}candidates/${transaction.id}/preserved/${crypto.randomUUID()}.png`;
     try {
       await this.storage.put(preservedStorageKey, preservedBytes, "image/png");
     } catch (error) {

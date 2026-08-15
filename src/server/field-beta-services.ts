@@ -10,10 +10,14 @@ import { createTransientJwtRetryFetch } from "@/src/infrastructure/supabase/tran
 import { createPreservationVerificationService, resetPreservationVerificationServiceForTests } from "@/src/server/preservation-services";
 import { DurableExecutionRecoveryContextLoader } from "@/src/application/outcome/recovery/execution-recovery-context-loader";
 import { getSupabasePrivilegedKey, getSupabaseUrl } from "@/src/infrastructure/supabase/config";
+import type { AuthorityContext } from "@/src/domain/auth/authority";
 
 const services = new Map<string, FieldBetaService>();
 
-export function createFieldBetaService(tenantId = "internal-lab", principalId = "internal-evaluator"): FieldBetaService {
+export function createFieldBetaService(authorityOrTenant: AuthorityContext | string = "internal-lab", legacyPrincipalId = "internal-evaluator"): FieldBetaService {
+  const authority = typeof authorityOrTenant === "string" ? undefined : authorityOrTenant;
+  const tenantId = typeof authorityOrTenant === "string" ? authorityOrTenant : authorityOrTenant.tenantId;
+  const principalId = typeof authorityOrTenant === "string" ? legacyPrincipalId : authorityOrTenant.principalId;
   if (!isFieldBetaEnabled(process.env.FIELD_BETA_INTERNAL_ENABLED)) throw new Error("BUILD 005 field beta is disabled unless FIELD_BETA_INTERNAL_ENABLED=true.");
   const preservationVerificationService = createPreservationVerificationService();
   if (tenantId === "internal-lab" && process.env.NODE_ENV !== "test") throw new Error("Field Beta requires an authenticated tenant authority in non-test environments.");
@@ -41,6 +45,7 @@ export function createFieldBetaService(tenantId = "internal-lab", principalId = 
     repositories.criterionEvidence,
     tenantId,
     principalId,
+    authority,
   );
   services.set(`${tenantId}:${principalId}`, created);
   return created;
