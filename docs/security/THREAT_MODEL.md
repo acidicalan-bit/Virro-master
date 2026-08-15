@@ -107,11 +107,13 @@ closed by default and in production. The non-production
 `INTERNAL_LEGACY_ROUTES_ENABLED=true` switch is an operational compatibility
 mechanism, not authentication or tenant authorization. ExecutionRun,
 EvidenceReceipt, Storage isolation, recovery and atomic StateCommit remain
-deferred; therefore this Build does not claim complete tenant lineage or
-public multi-tenant readiness. Real two-user Auth/RLS evidence is still a
-required controlled-environment gate. The independent review's suspended-tenant
-RLS mismatch is retained as history; the forward-only lifecycle repair is the
-bounded correction.
+deferred beyond this Build; therefore this Build does not claim complete
+tenant lineage or public multi-tenant readiness. The reviewed real two-user
+Auth/RLS evidence demonstrated own-read/write, cross-tenant denial, locator
+substitution denial, legacy unauthenticated denial, and revocation, and is
+carried forward unchanged by this local integration. The independent review's
+suspended-tenant RLS mismatch is retained as history; the forward-only
+lifecycle repair is the bounded correction.
 - **Medium:** bounded tenant data disclosure, metric/trust manipulation without canonical mutation, upload denial of service within limited scope, or private push metadata exposure.
 - **Low:** information leakage limited to non-sensitive version/configuration data, missing defense-in-depth with no reachable authority boundary, or rate/availability degradation confined to the internal lab.
 

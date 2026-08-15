@@ -127,7 +127,8 @@ make legacy services safe for public deployment.
 
 The remaining boundary is explicit: StateCommit atomicity, downstream
 ExecutionRun/EvidenceReceipt migration, Storage object policy, recovery and
-rate/cost controls remain deferred. The Phase B real two-user Supabase proof
-must demonstrate own-read/write, cross-tenant denial, locator substitution
-denial, legacy unauthenticated denial, and revocation before this foundation is
-considered independently reviewable.
+rate/cost controls remain deferred beyond Build 001. The reviewed two-user
+Supabase proof demonstrated own-read/write, cross-tenant denial, locator
+substitution denial, legacy unauthenticated denial, and revocation; that
+evidence is carried forward unchanged by the local integration. This does not
+claim complete tenant lineage or public multi-tenant readiness.

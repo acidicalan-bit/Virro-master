@@ -48,9 +48,11 @@ legacy flows are migrated. The switch is not an authentication boundary.
 - Historical NULL ownership is not proof of tenant ownership and is not exposed
   through the authenticated core route.
 
-## Validation plan
+## Integration status and validation
 
-The gate requires deterministic unit tests for authority/lineage consistency,
-legacy route fail-closed behavior, strict mass-assignment rejection, migration
-static/upgrade checks, and two-real-user Supabase negative evidence. No provider
-execution is part of Build 001.
+Build 001 is locally integrated on `main` at the reviewed repair candidate
+`0e91476c985b7e1c16ff4eafa471b754c5a396cc`. The deterministic authority,
+lineage, legacy-route, mass-assignment and migration checks passed, and the
+reviewed two-real-user Supabase negative evidence is carried forward. No
+provider execution is part of Build 001. This local integration does not claim
+complete downstream lineage or public multi-tenant readiness.

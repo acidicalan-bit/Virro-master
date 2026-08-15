@@ -88,4 +88,4 @@ be enabled on a public deployment.
 Phase A real evidence is demonstrated for Supabase Auth, two-user tenant
 isolation, revocation and the controlled executor. This document does not
 claim public multi-tenant readiness; Storage, recovery and complete lineage
-RLS remain Phase B.
+RLS remain deferred beyond Build 001.
