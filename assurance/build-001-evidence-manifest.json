@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "virro-development-assurance-v1",
+  "schemaVersion": "virro-development-assurance-v2",
   "generatedAt": "2026-08-15T18:15:00.000Z",
   "buildId": "BUILD-001-F7",
   "baselineSha": "33556d8dcb4f1542cb80706f10068aa77fef1006",
@@ -27,135 +27,270 @@
       "buildId": "BUILD-001-F1-BEFORE",
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "atomic-commit",
+      "criterionVersion": 1,
+      "criterionDefinitionHash": "2487ee32a94988bd66f781fb3aa6efbe1acecfd6fb387997f15a736beadf1b73",
+      "subjectId": "CANONICAL_COMMIT",
+      "controlId": "POSTGRES_ATOMIC_COMMIT",
+      "requiredBoundaryId": "PGLITE_POSTGRES",
+      "acceptedEnvironmentClasses": [
+        "LOCAL_REAL_BOUNDARY"
+      ],
+      "minimumEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY",
+      "independenceRequirement": "AUTOMATED_OR_INDEPENDENT",
       "subject": "Canonical commit before F1",
-      "control": "Atomic PostgreSQL RPC transition",
-      "requiredEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY"
+      "control": "Atomic PostgreSQL RPC transition"
     },
     {
       "scope": "CURRENT",
       "buildId": "BUILD-001",
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "atomic-commit",
+      "criterionVersion": 1,
+      "criterionDefinitionHash": "2487ee32a94988bd66f781fb3aa6efbe1acecfd6fb387997f15a736beadf1b73",
+      "subjectId": "CANONICAL_COMMIT",
+      "controlId": "POSTGRES_ATOMIC_COMMIT",
+      "requiredBoundaryId": "PGLITE_POSTGRES",
+      "acceptedEnvironmentClasses": [
+        "LOCAL_REAL_BOUNDARY"
+      ],
+      "minimumEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY",
+      "independenceRequirement": "AUTOMATED_OR_INDEPENDENT",
       "subject": "Canonical commit",
-      "control": "Atomic PostgreSQL RPC transition",
-      "requiredEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY"
+      "control": "Atomic PostgreSQL RPC transition"
     },
     {
       "scope": "CURRENT",
       "buildId": "BUILD-001",
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "candidate-immutability",
+      "criterionVersion": 1,
+      "criterionDefinitionHash": "7c6bd2f96ec77922ce256a21a4ac780f91efcc249cac95b7e7114db496de4273",
+      "subjectId": "CANDIDATE_ASSET",
+      "controlId": "POSTGRES_CANDIDATE_IMMUTABILITY",
+      "requiredBoundaryId": "PGLITE_POSTGRES",
+      "acceptedEnvironmentClasses": [
+        "LOCAL_REAL_BOUNDARY"
+      ],
+      "minimumEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY",
+      "independenceRequirement": "AUTOMATED_OR_INDEPENDENT",
       "subject": "CandidateAsset",
-      "control": "Database immutability",
-      "requiredEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY"
+      "control": "Database immutability"
     },
     {
       "scope": "CURRENT",
       "buildId": "BUILD-001",
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "asset-version-immutability",
+      "criterionVersion": 1,
+      "criterionDefinitionHash": "720422027decaf29e4b94e6ed22c804e4a1824ab8962524c50e7a6d22f5f6ec8",
+      "subjectId": "ASSET_VERSION",
+      "controlId": "POSTGRES_ASSET_VERSION_IMMUTABILITY",
+      "requiredBoundaryId": "PGLITE_POSTGRES",
+      "acceptedEnvironmentClasses": [
+        "LOCAL_REAL_BOUNDARY"
+      ],
+      "minimumEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY",
+      "independenceRequirement": "AUTOMATED_OR_INDEPENDENT",
       "subject": "AssetVersion",
-      "control": "Database immutability",
-      "requiredEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY"
+      "control": "Database immutability"
     },
     {
       "scope": "CURRENT",
       "buildId": "BUILD-001",
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "stale-head",
+      "criterionVersion": 1,
+      "criterionDefinitionHash": "bf5855fb520144e77774ddb2d9e79f2881283dc71664f52d5da7f04bf308dda3",
+      "subjectId": "CANONICAL_HEAD",
+      "controlId": "POSTGRES_STALE_HEAD_CAS",
+      "requiredBoundaryId": "PGLITE_POSTGRES",
+      "acceptedEnvironmentClasses": [
+        "LOCAL_REAL_BOUNDARY"
+      ],
+      "minimumEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY",
+      "independenceRequirement": "AUTOMATED_OR_INDEPENDENT",
       "subject": "Canonical head",
-      "control": "Stale-head compare-and-set rejection",
-      "requiredEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY"
+      "control": "Stale-head compare-and-set rejection"
     },
     {
       "scope": "CURRENT",
       "buildId": "BUILD-001",
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "commit-idempotency",
+      "criterionVersion": 1,
+      "criterionDefinitionHash": "4112c10450432080142cf9cb3906198fccb08795433c2d23d752f96981a5a135",
+      "subjectId": "CANONICAL_COMMIT",
+      "controlId": "POSTGRES_COMMIT_IDEMPOTENCY",
+      "requiredBoundaryId": "PGLITE_POSTGRES",
+      "acceptedEnvironmentClasses": [
+        "LOCAL_REAL_BOUNDARY"
+      ],
+      "minimumEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY",
+      "independenceRequirement": "AUTOMATED_OR_INDEPENDENT",
       "subject": "Canonical commit",
-      "control": "Idempotent retry",
-      "requiredEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY"
+      "control": "Idempotent retry"
     },
     {
       "scope": "CURRENT",
       "buildId": "BUILD-001-F2",
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "legacy-route-isolation",
+      "criterionVersion": 1,
+      "criterionDefinitionHash": "d255e4203e3ed56e60e1bc76873e003908e6951ccf24b79afad2211de1a37a4f",
+      "subjectId": "LEGACY_PRECISION_EDIT_ROUTE",
+      "controlId": "NEXT_LEGACY_ROUTE_ISOLATION",
+      "requiredBoundaryId": "NEXT_ROUTE_HANDLER",
+      "acceptedEnvironmentClasses": [
+        "LOCAL_APPLICATION"
+      ],
+      "minimumEvidenceLevel": "E2_APPLICATION",
+      "independenceRequirement": "AUTOMATED_OR_INDEPENDENT",
       "subject": "/api/precision-edit",
-      "control": "Privileged legacy service is unreachable",
-      "requiredEvidenceLevel": "E2_APPLICATION"
+      "control": "Privileged legacy service is unreachable"
     },
     {
       "scope": "CURRENT",
       "buildId": "BUILD-001-F2",
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "f1-sql-regression",
+      "criterionVersion": 1,
+      "criterionDefinitionHash": "ec4ffdef850c71c54abc94d89cf11046c28f5de7986e18d4557cfaedfbb93165",
+      "subjectId": "CANONICAL_COMMIT",
+      "controlId": "POSTGRES_F1_REGRESSION",
+      "requiredBoundaryId": "PGLITE_POSTGRES",
+      "acceptedEnvironmentClasses": [
+        "LOCAL_REAL_BOUNDARY"
+      ],
+      "minimumEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY",
+      "independenceRequirement": "AUTOMATED_OR_INDEPENDENT",
       "subject": "Canonical trust after F2",
-      "control": "F1 PostgreSQL invariants remain intact",
-      "requiredEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY"
+      "control": "F1 PostgreSQL invariants remain intact"
     },
     {
       "scope": "CURRENT",
       "buildId": "BUILD-001-F2",
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "deployed-cache-retirement",
+      "criterionVersion": 1,
+      "criterionDefinitionHash": "8de33dfbc8611453512d67eaea8547322ef1d275cbf76c91591e3fbd395e9e64",
+      "subjectId": "DEPLOYED_LEGACY_PRECISION_EDIT_ROUTE",
+      "controlId": "DEPLOYED_CACHE_RETIREMENT",
+      "requiredBoundaryId": "DEPLOYED_CDN_ROUTING",
+      "acceptedEnvironmentClasses": [
+        "REMOTE_STAGING"
+      ],
+      "minimumEvidenceLevel": "E4_REMOTE_STAGING",
+      "independenceRequirement": "AUTOMATED_OR_INDEPENDENT",
       "subject": "Deployed /api/precision-edit",
-      "control": "CDN and routing cannot serve stale success",
-      "requiredEvidenceLevel": "E4_REMOTE_STAGING"
+      "control": "CDN and routing cannot serve stale success"
     },
     {
       "scope": "CURRENT",
       "buildId": "BUILD-001",
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "deployed-rls",
+      "criterionVersion": 1,
+      "criterionDefinitionHash": "846a5bf2ed56cde39062845492db9dacb82e320361a028dc20bcbd1026710ad3",
+      "subjectId": "TENANT_DATA",
+      "controlId": "SUPABASE_RLS_TENANT_READ",
+      "requiredBoundaryId": "SUPABASE_REMOTE_RLS",
+      "acceptedEnvironmentClasses": [
+        "REMOTE_STAGING"
+      ],
+      "minimumEvidenceLevel": "E4_REMOTE_STAGING",
+      "independenceRequirement": "AUTOMATED_OR_INDEPENDENT",
       "subject": "Tenant data",
-      "control": "Deployed RLS prevents cross-tenant access",
-      "requiredEvidenceLevel": "E4_REMOTE_STAGING"
+      "control": "Deployed RLS prevents cross-tenant access"
     },
     {
       "scope": "CURRENT",
       "buildId": "BUILD-001",
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "supabase-auth",
+      "criterionVersion": 1,
+      "criterionDefinitionHash": "563e8bdef2923efbfd4a793cb456c091cc6aaddeba05d2b3e1a343cc2bec6768",
+      "subjectId": "REQUEST_IDENTITY",
+      "controlId": "SUPABASE_AUTH_MEMBERSHIP",
+      "requiredBoundaryId": "SUPABASE_REMOTE_AUTH",
+      "acceptedEnvironmentClasses": [
+        "REMOTE_STAGING"
+      ],
+      "minimumEvidenceLevel": "E4_REMOTE_STAGING",
+      "independenceRequirement": "AUTOMATED_OR_INDEPENDENT",
       "subject": "Request identity",
-      "control": "Supabase Auth resolves real principals and memberships",
-      "requiredEvidenceLevel": "E4_REMOTE_STAGING"
+      "control": "Supabase Auth resolves real principals and memberships"
     },
     {
       "scope": "CURRENT",
       "buildId": "BUILD-001",
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "rpc-acl",
+      "criterionVersion": 1,
+      "criterionDefinitionHash": "2a0542f8a791d30e92b449d6fdba1f602fc6b081fb987609374fa899d99e1b54",
+      "subjectId": "CANONICAL_COMMIT_RPC",
+      "controlId": "SUPABASE_RPC_ACL",
+      "requiredBoundaryId": "SUPABASE_REMOTE_RPC",
+      "acceptedEnvironmentClasses": [
+        "REMOTE_STAGING"
+      ],
+      "minimumEvidenceLevel": "E4_REMOTE_STAGING",
+      "independenceRequirement": "AUTOMATED_OR_INDEPENDENT",
       "subject": "Canonical commit RPC",
-      "control": "Deployed function ACL and authenticated execution",
-      "requiredEvidenceLevel": "E4_REMOTE_STAGING"
+      "control": "Deployed function ACL and authenticated execution"
     },
     {
       "scope": "CURRENT",
       "buildId": "BUILD-001",
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "storage-policy",
+      "criterionVersion": 1,
+      "criterionDefinitionHash": "790fe79be7a21b30afd6059a7c318a3620495c9ec1d859e2e2e0cc9763604cb0",
+      "subjectId": "TENANT_STORAGE",
+      "controlId": "STORAGE_TENANT_ISOLATION",
+      "requiredBoundaryId": "SUPABASE_REMOTE_STORAGE",
+      "acceptedEnvironmentClasses": [
+        "REMOTE_STAGING"
+      ],
+      "minimumEvidenceLevel": "E4_REMOTE_STAGING",
+      "independenceRequirement": "AUTOMATED_OR_INDEPENDENT",
       "subject": "Tenant Storage",
-      "control": "Storage policy prevents cross-tenant object access",
-      "requiredEvidenceLevel": "E4_REMOTE_STAGING"
+      "control": "Storage policy prevents cross-tenant object access"
     },
     {
       "scope": "CURRENT",
       "buildId": "BUILD-001",
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "service-role-storage",
+      "criterionVersion": 1,
+      "criterionDefinitionHash": "574c3d6114725b53d5546d9a1061ffb1bcc0b4305e516de79baca0118a9a0591",
+      "subjectId": "PRIVILEGED_STORAGE",
+      "controlId": "SERVICE_ROLE_STORAGE_ISOLATION",
+      "requiredBoundaryId": "SUPABASE_REMOTE_SERVICE_ROLE_STORAGE",
+      "acceptedEnvironmentClasses": [
+        "REMOTE_STAGING"
+      ],
+      "minimumEvidenceLevel": "E4_REMOTE_STAGING",
+      "independenceRequirement": "AUTOMATED_OR_INDEPENDENT",
       "subject": "Privileged Storage",
-      "control": "Service-role paths preserve tenant isolation",
-      "requiredEvidenceLevel": "E4_REMOTE_STAGING"
+      "control": "Service-role paths preserve tenant isolation"
     },
     {
       "scope": "CURRENT",
       "buildId": "BUILD-001",
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "remote-concurrency",
+      "criterionVersion": 1,
+      "criterionDefinitionHash": "d43110cf3bf117da52ffc08df72b2f9213c282f6c3e94e67e92fda34d6549233",
+      "subjectId": "CANONICAL_HEAD",
+      "controlId": "POSTGRES_REMOTE_CONCURRENCY",
+      "requiredBoundaryId": "SUPABASE_REMOTE_POSTGRES_CONCURRENCY",
+      "acceptedEnvironmentClasses": [
+        "REMOTE_STAGING"
+      ],
+      "minimumEvidenceLevel": "E4_REMOTE_STAGING",
+      "independenceRequirement": "AUTOMATED_OR_INDEPENDENT",
       "subject": "Canonical head",
-      "control": "Remote concurrent commits preserve locking semantics",
-      "requiredEvidenceLevel": "E4_REMOTE_STAGING"
+      "control": "Remote concurrent commits preserve locking semantics"
     }
   ],
   "evidence": [
@@ -164,9 +299,14 @@
       "buildId": "BUILD-001-F1-BEFORE",
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "atomic-commit",
+      "criterionVersion": 1,
+      "criterionDefinitionHash": "2487ee32a94988bd66f781fb3aa6efbe1acecfd6fb387997f15a736beadf1b73",
+      "subjectId": "CANONICAL_COMMIT",
+      "controlId": "POSTGRES_ATOMIC_COMMIT",
+      "boundaryId": "TRUST_HARNESS_MODEL",
+      "environmentClass": "LOCAL_MODEL",
       "subject": "Canonical commit before F1",
       "control": "Atomic PostgreSQL RPC transition",
-      "requiredEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY",
       "actualEvidenceLevel": "E1_MODEL",
       "boundaryTested": "TrustHarness Maps and modeled commit behavior",
       "environment": "local repository assurance",
@@ -199,9 +339,14 @@
       "buildId": "BUILD-001-F1-BEFORE",
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "atomic-commit",
+      "criterionVersion": 1,
+      "criterionDefinitionHash": "2487ee32a94988bd66f781fb3aa6efbe1acecfd6fb387997f15a736beadf1b73",
+      "subjectId": "CANONICAL_COMMIT",
+      "controlId": "POSTGRES_ATOMIC_COMMIT",
+      "boundaryId": "PGLITE_POSTGRES",
+      "environmentClass": "LOCAL_REAL_BOUNDARY",
       "subject": "Canonical commit before F1",
       "control": "Atomic PostgreSQL RPC transition",
-      "requiredEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY",
       "actualEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY",
       "boundaryTested": "PostgreSQL 18.3 via PGlite with repository migrations and actual commit RPC",
       "environment": "local repository assurance",
@@ -234,9 +379,14 @@
       "buildId": "BUILD-001",
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "atomic-commit",
+      "criterionVersion": 1,
+      "criterionDefinitionHash": "2487ee32a94988bd66f781fb3aa6efbe1acecfd6fb387997f15a736beadf1b73",
+      "subjectId": "CANONICAL_COMMIT",
+      "controlId": "POSTGRES_ATOMIC_COMMIT",
+      "boundaryId": "TRUST_HARNESS_MODEL",
+      "environmentClass": "LOCAL_MODEL",
       "subject": "Canonical commit",
       "control": "Atomic PostgreSQL RPC transition",
-      "requiredEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY",
       "actualEvidenceLevel": "E1_MODEL",
       "boundaryTested": "TrustHarness modeled transaction",
       "environment": "local repository assurance",
@@ -267,9 +417,14 @@
       "buildId": "BUILD-001",
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "atomic-commit",
+      "criterionVersion": 1,
+      "criterionDefinitionHash": "2487ee32a94988bd66f781fb3aa6efbe1acecfd6fb387997f15a736beadf1b73",
+      "subjectId": "CANONICAL_COMMIT",
+      "controlId": "POSTGRES_ATOMIC_COMMIT",
+      "boundaryId": "PGLITE_POSTGRES",
+      "environmentClass": "LOCAL_REAL_BOUNDARY",
       "subject": "Canonical commit",
       "control": "Atomic PostgreSQL RPC transition",
-      "requiredEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY",
       "actualEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY",
       "boundaryTested": "PostgreSQL 18.3 via PGlite 0.5.5 with all repository migrations: legitimate commit, rollback and retry",
       "environment": "local repository assurance",
@@ -303,9 +458,14 @@
       "buildId": "BUILD-001",
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "candidate-immutability",
+      "criterionVersion": 1,
+      "criterionDefinitionHash": "7c6bd2f96ec77922ce256a21a4ac780f91efcc249cac95b7e7114db496de4273",
+      "subjectId": "CANDIDATE_ASSET",
+      "controlId": "POSTGRES_CANDIDATE_IMMUTABILITY",
+      "boundaryId": "PGLITE_POSTGRES",
+      "environmentClass": "LOCAL_REAL_BOUNDARY",
       "subject": "CandidateAsset",
       "control": "Database immutability",
-      "requiredEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY",
       "actualEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY",
       "boundaryTested": "PostgreSQL 18.3 via PGlite 0.5.5 with all repository migrations: candidate content and lineage UPDATE attempts",
       "environment": "local repository assurance",
@@ -339,9 +499,14 @@
       "buildId": "BUILD-001",
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "asset-version-immutability",
+      "criterionVersion": 1,
+      "criterionDefinitionHash": "720422027decaf29e4b94e6ed22c804e4a1824ab8962524c50e7a6d22f5f6ec8",
+      "subjectId": "ASSET_VERSION",
+      "controlId": "POSTGRES_ASSET_VERSION_IMMUTABILITY",
+      "boundaryId": "PGLITE_POSTGRES",
+      "environmentClass": "LOCAL_REAL_BOUNDARY",
       "subject": "AssetVersion",
       "control": "Database immutability",
-      "requiredEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY",
       "actualEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY",
       "boundaryTested": "PostgreSQL 18.3 via PGlite 0.5.5 with all repository migrations: AssetVersion state UPDATE attempt",
       "environment": "local repository assurance",
@@ -375,9 +540,14 @@
       "buildId": "BUILD-001",
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "stale-head",
+      "criterionVersion": 1,
+      "criterionDefinitionHash": "bf5855fb520144e77774ddb2d9e79f2881283dc71664f52d5da7f04bf308dda3",
+      "subjectId": "CANONICAL_HEAD",
+      "controlId": "POSTGRES_STALE_HEAD_CAS",
+      "boundaryId": "PGLITE_POSTGRES",
+      "environmentClass": "LOCAL_REAL_BOUNDARY",
       "subject": "Canonical head",
       "control": "Stale-head compare-and-set rejection",
-      "requiredEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY",
       "actualEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY",
       "boundaryTested": "PostgreSQL 18.3 via PGlite 0.5.5 with all repository migrations: stale head RPC rejection and unchanged state",
       "environment": "local repository assurance",
@@ -411,9 +581,14 @@
       "buildId": "BUILD-001",
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "commit-idempotency",
+      "criterionVersion": 1,
+      "criterionDefinitionHash": "4112c10450432080142cf9cb3906198fccb08795433c2d23d752f96981a5a135",
+      "subjectId": "CANONICAL_COMMIT",
+      "controlId": "POSTGRES_COMMIT_IDEMPOTENCY",
+      "boundaryId": "PGLITE_POSTGRES",
+      "environmentClass": "LOCAL_REAL_BOUNDARY",
       "subject": "Canonical commit",
       "control": "Idempotent retry",
-      "requiredEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY",
       "actualEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY",
       "boundaryTested": "PostgreSQL 18.3 via PGlite 0.5.5 with all repository migrations: duplicate RPC retry",
       "environment": "local repository assurance",
@@ -447,9 +622,14 @@
       "buildId": "BUILD-001-F2",
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "legacy-route-isolation",
+      "criterionVersion": 1,
+      "criterionDefinitionHash": "d255e4203e3ed56e60e1bc76873e003908e6951ccf24b79afad2211de1a37a4f",
+      "subjectId": "LEGACY_PRECISION_EDIT_ROUTE",
+      "controlId": "NEXT_LEGACY_ROUTE_ISOLATION",
+      "boundaryId": "NEXT_ROUTE_HANDLER",
+      "environmentClass": "LOCAL_APPLICATION",
       "subject": "/api/precision-edit",
       "control": "Privileged legacy service is unreachable",
-      "requiredEvidenceLevel": "E2_APPLICATION",
       "actualEvidenceLevel": "E2_APPLICATION",
       "boundaryTested": "Actual exported Next.js route handler with privileged service instrumentation",
       "environment": "local repository assurance",
@@ -483,9 +663,14 @@
       "buildId": "BUILD-001-F2",
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "f1-sql-regression",
+      "criterionVersion": 1,
+      "criterionDefinitionHash": "ec4ffdef850c71c54abc94d89cf11046c28f5de7986e18d4557cfaedfbb93165",
+      "subjectId": "CANONICAL_COMMIT",
+      "controlId": "POSTGRES_F1_REGRESSION",
+      "boundaryId": "PGLITE_POSTGRES",
+      "environmentClass": "LOCAL_REAL_BOUNDARY",
       "subject": "Canonical trust after F2",
       "control": "F1 PostgreSQL invariants remain intact",
-      "requiredEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY",
       "actualEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY",
       "boundaryTested": "PostgreSQL 18.3 via PGlite 0.5.5 with all repository migrations: F1 PostgreSQL suite executed on the F2 candidate",
       "environment": "local repository assurance",
@@ -519,9 +704,14 @@
       "buildId": "BUILD-001-F2",
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "deployed-cache-retirement",
+      "criterionVersion": 1,
+      "criterionDefinitionHash": "8de33dfbc8611453512d67eaea8547322ef1d275cbf76c91591e3fbd395e9e64",
+      "subjectId": "DEPLOYED_LEGACY_PRECISION_EDIT_ROUTE",
+      "controlId": "DEPLOYED_CACHE_RETIREMENT",
+      "boundaryId": "REPOSITORY_STATIC_INSPECTION",
+      "environmentClass": "STATIC_ANALYSIS",
       "subject": "Deployed /api/precision-edit",
       "control": "CDN and routing cannot serve stale success",
-      "requiredEvidenceLevel": "E4_REMOTE_STAGING",
       "actualEvidenceLevel": "E0_STATIC",
       "boundaryTested": "Repository route configuration only",
       "environment": "local repository assurance",
@@ -552,9 +742,14 @@
       "buildId": "BUILD-001",
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "deployed-rls",
+      "criterionVersion": 1,
+      "criterionDefinitionHash": "846a5bf2ed56cde39062845492db9dacb82e320361a028dc20bcbd1026710ad3",
+      "subjectId": "TENANT_DATA",
+      "controlId": "SUPABASE_RLS_TENANT_READ",
+      "boundaryId": "REPOSITORY_STATIC_INSPECTION",
+      "environmentClass": "STATIC_ANALYSIS",
       "subject": "Tenant data",
       "control": "Deployed RLS prevents cross-tenant access",
-      "requiredEvidenceLevel": "E4_REMOTE_STAGING",
       "actualEvidenceLevel": "E0_STATIC",
       "boundaryTested": "Static migration and policy source inspection",
       "environment": "local repository assurance",
@@ -587,9 +782,14 @@
       "buildId": "BUILD-001",
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "supabase-auth",
+      "criterionVersion": 1,
+      "criterionDefinitionHash": "563e8bdef2923efbfd4a793cb456c091cc6aaddeba05d2b3e1a343cc2bec6768",
+      "subjectId": "REQUEST_IDENTITY",
+      "controlId": "SUPABASE_AUTH_MEMBERSHIP",
+      "boundaryId": "NOT_EXECUTED",
+      "environmentClass": "NOT_EXECUTED",
       "subject": "Request identity",
       "control": "Supabase Auth resolves real principals and memberships",
-      "requiredEvidenceLevel": "E4_REMOTE_STAGING",
       "actualEvidenceLevel": "E0_STATIC",
       "boundaryTested": "No remote boundary executed",
       "environment": "local repository assurance",
@@ -620,9 +820,14 @@
       "buildId": "BUILD-001",
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "rpc-acl",
+      "criterionVersion": 1,
+      "criterionDefinitionHash": "2a0542f8a791d30e92b449d6fdba1f602fc6b081fb987609374fa899d99e1b54",
+      "subjectId": "CANONICAL_COMMIT_RPC",
+      "controlId": "SUPABASE_RPC_ACL",
+      "boundaryId": "NOT_EXECUTED",
+      "environmentClass": "NOT_EXECUTED",
       "subject": "Canonical commit RPC",
       "control": "Deployed function ACL and authenticated execution",
-      "requiredEvidenceLevel": "E4_REMOTE_STAGING",
       "actualEvidenceLevel": "E0_STATIC",
       "boundaryTested": "No remote boundary executed",
       "environment": "local repository assurance",
@@ -653,9 +858,14 @@
       "buildId": "BUILD-001",
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "storage-policy",
+      "criterionVersion": 1,
+      "criterionDefinitionHash": "790fe79be7a21b30afd6059a7c318a3620495c9ec1d859e2e2e0cc9763604cb0",
+      "subjectId": "TENANT_STORAGE",
+      "controlId": "STORAGE_TENANT_ISOLATION",
+      "boundaryId": "NOT_EXECUTED",
+      "environmentClass": "NOT_EXECUTED",
       "subject": "Tenant Storage",
       "control": "Storage policy prevents cross-tenant object access",
-      "requiredEvidenceLevel": "E4_REMOTE_STAGING",
       "actualEvidenceLevel": "E0_STATIC",
       "boundaryTested": "No remote boundary executed",
       "environment": "local repository assurance",
@@ -686,9 +896,14 @@
       "buildId": "BUILD-001",
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "service-role-storage",
+      "criterionVersion": 1,
+      "criterionDefinitionHash": "574c3d6114725b53d5546d9a1061ffb1bcc0b4305e516de79baca0118a9a0591",
+      "subjectId": "PRIVILEGED_STORAGE",
+      "controlId": "SERVICE_ROLE_STORAGE_ISOLATION",
+      "boundaryId": "NOT_EXECUTED",
+      "environmentClass": "NOT_EXECUTED",
       "subject": "Privileged Storage",
       "control": "Service-role paths preserve tenant isolation",
-      "requiredEvidenceLevel": "E4_REMOTE_STAGING",
       "actualEvidenceLevel": "E0_STATIC",
       "boundaryTested": "No remote boundary executed",
       "environment": "local repository assurance",
@@ -719,9 +934,14 @@
       "buildId": "BUILD-001",
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "remote-concurrency",
+      "criterionVersion": 1,
+      "criterionDefinitionHash": "d43110cf3bf117da52ffc08df72b2f9213c282f6c3e94e67e92fda34d6549233",
+      "subjectId": "CANONICAL_HEAD",
+      "controlId": "POSTGRES_REMOTE_CONCURRENCY",
+      "boundaryId": "NOT_EXECUTED",
+      "environmentClass": "NOT_EXECUTED",
       "subject": "Canonical head",
       "control": "Remote concurrent commits preserve locking semantics",
-      "requiredEvidenceLevel": "E4_REMOTE_STAGING",
       "actualEvidenceLevel": "E0_STATIC",
       "boundaryTested": "No remote boundary executed",
       "environment": "local repository assurance",
@@ -754,17 +974,34 @@
       "buildId": "BUILD-001-F1-BEFORE",
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "atomic-commit",
-      "requiredEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY",
+      "criterionVersion": 1,
+      "criterionDefinitionHash": "2487ee32a94988bd66f781fb3aa6efbe1acecfd6fb387997f15a736beadf1b73",
+      "minimumEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY",
       "highestPassingEvidenceLevel": "E1_MODEL",
       "status": "FAILED",
       "evidenceIds": [
         "71000000-0000-4000-8000-000000000001",
         "71000000-0000-4000-8000-000000000002"
       ],
+      "compatibleEvidenceIds": [
+        "71000000-0000-4000-8000-000000000002"
+      ],
+      "incompatibilities": [
+        {
+          "evidenceId": "71000000-0000-4000-8000-000000000001",
+          "reasons": [
+            "BOUNDARY_ID_MISMATCH",
+            "ENVIRONMENT_CLASS_MISMATCH",
+            "EVIDENCE_LEVEL_BELOW_MINIMUM"
+          ]
+        }
+      ],
       "limitations": [
         "No PostgreSQL engine, migration, trigger or RPC was executed.",
         "Local PostgreSQL semantics do not prove deployed Supabase ACL or RLS.",
-        "E1_MODEL cannot satisfy E3_LOCAL_REAL_BOUNDARY."
+        "71000000-0000-4000-8000-000000000001: BOUNDARY_ID_MISMATCH",
+        "71000000-0000-4000-8000-000000000001: ENVIRONMENT_CLASS_MISMATCH",
+        "71000000-0000-4000-8000-000000000001: EVIDENCE_LEVEL_BELOW_MINIMUM"
       ],
       "skippedReasons": [],
       "consideredEvidence": [
@@ -773,9 +1010,14 @@
           "buildId": "BUILD-001-F1-BEFORE",
           "specId": "virro-vnext-build-001-trust-foundation",
           "criterionId": "atomic-commit",
+          "criterionVersion": 1,
+          "criterionDefinitionHash": "2487ee32a94988bd66f781fb3aa6efbe1acecfd6fb387997f15a736beadf1b73",
+          "subjectId": "CANONICAL_COMMIT",
+          "controlId": "POSTGRES_ATOMIC_COMMIT",
+          "boundaryId": "TRUST_HARNESS_MODEL",
+          "environmentClass": "LOCAL_MODEL",
           "subject": "Canonical commit before F1",
           "control": "Atomic PostgreSQL RPC transition",
-          "requiredEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY",
           "actualEvidenceLevel": "E1_MODEL",
           "boundaryTested": "TrustHarness Maps and modeled commit behavior",
           "environment": "local repository assurance",
@@ -808,9 +1050,14 @@
           "buildId": "BUILD-001-F1-BEFORE",
           "specId": "virro-vnext-build-001-trust-foundation",
           "criterionId": "atomic-commit",
+          "criterionVersion": 1,
+          "criterionDefinitionHash": "2487ee32a94988bd66f781fb3aa6efbe1acecfd6fb387997f15a736beadf1b73",
+          "subjectId": "CANONICAL_COMMIT",
+          "controlId": "POSTGRES_ATOMIC_COMMIT",
+          "boundaryId": "PGLITE_POSTGRES",
+          "environmentClass": "LOCAL_REAL_BOUNDARY",
           "subject": "Canonical commit before F1",
           "control": "Atomic PostgreSQL RPC transition",
-          "requiredEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY",
           "actualEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY",
           "boundaryTested": "PostgreSQL 18.3 via PGlite with repository migrations and actual commit RPC",
           "environment": "local repository assurance",
@@ -845,17 +1092,34 @@
       "buildId": "BUILD-001",
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "atomic-commit",
-      "requiredEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY",
+      "criterionVersion": 1,
+      "criterionDefinitionHash": "2487ee32a94988bd66f781fb3aa6efbe1acecfd6fb387997f15a736beadf1b73",
+      "minimumEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY",
       "highestPassingEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY",
       "status": "PROVEN",
       "evidenceIds": [
         "71000000-0000-4000-8000-000000000003",
         "71000000-0000-4000-8000-000000000004"
       ],
+      "compatibleEvidenceIds": [
+        "71000000-0000-4000-8000-000000000004"
+      ],
+      "incompatibilities": [
+        {
+          "evidenceId": "71000000-0000-4000-8000-000000000003",
+          "reasons": [
+            "BOUNDARY_ID_MISMATCH",
+            "ENVIRONMENT_CLASS_MISMATCH",
+            "EVIDENCE_LEVEL_BELOW_MINIMUM"
+          ]
+        }
+      ],
       "limitations": [
         "Model coverage supports exploration but cannot prove SQL transaction semantics.",
         "Does not prove deployed Supabase RLS, Auth, Storage or platform concurrency.",
-        "E1_MODEL cannot satisfy E3_LOCAL_REAL_BOUNDARY."
+        "71000000-0000-4000-8000-000000000003: BOUNDARY_ID_MISMATCH",
+        "71000000-0000-4000-8000-000000000003: ENVIRONMENT_CLASS_MISMATCH",
+        "71000000-0000-4000-8000-000000000003: EVIDENCE_LEVEL_BELOW_MINIMUM"
       ],
       "skippedReasons": [],
       "consideredEvidence": [
@@ -864,9 +1128,14 @@
           "buildId": "BUILD-001",
           "specId": "virro-vnext-build-001-trust-foundation",
           "criterionId": "atomic-commit",
+          "criterionVersion": 1,
+          "criterionDefinitionHash": "2487ee32a94988bd66f781fb3aa6efbe1acecfd6fb387997f15a736beadf1b73",
+          "subjectId": "CANONICAL_COMMIT",
+          "controlId": "POSTGRES_ATOMIC_COMMIT",
+          "boundaryId": "TRUST_HARNESS_MODEL",
+          "environmentClass": "LOCAL_MODEL",
           "subject": "Canonical commit",
           "control": "Atomic PostgreSQL RPC transition",
-          "requiredEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY",
           "actualEvidenceLevel": "E1_MODEL",
           "boundaryTested": "TrustHarness modeled transaction",
           "environment": "local repository assurance",
@@ -897,9 +1166,14 @@
           "buildId": "BUILD-001",
           "specId": "virro-vnext-build-001-trust-foundation",
           "criterionId": "atomic-commit",
+          "criterionVersion": 1,
+          "criterionDefinitionHash": "2487ee32a94988bd66f781fb3aa6efbe1acecfd6fb387997f15a736beadf1b73",
+          "subjectId": "CANONICAL_COMMIT",
+          "controlId": "POSTGRES_ATOMIC_COMMIT",
+          "boundaryId": "PGLITE_POSTGRES",
+          "environmentClass": "LOCAL_REAL_BOUNDARY",
           "subject": "Canonical commit",
           "control": "Atomic PostgreSQL RPC transition",
-          "requiredEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY",
           "actualEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY",
           "boundaryTested": "PostgreSQL 18.3 via PGlite 0.5.5 with all repository migrations: legitimate commit, rollback and retry",
           "environment": "local repository assurance",
@@ -935,12 +1209,18 @@
       "buildId": "BUILD-001",
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "candidate-immutability",
-      "requiredEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY",
+      "criterionVersion": 1,
+      "criterionDefinitionHash": "7c6bd2f96ec77922ce256a21a4ac780f91efcc249cac95b7e7114db496de4273",
+      "minimumEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY",
       "highestPassingEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY",
       "status": "PROVEN",
       "evidenceIds": [
         "71000000-0000-4000-8000-000000000005"
       ],
+      "compatibleEvidenceIds": [
+        "71000000-0000-4000-8000-000000000005"
+      ],
+      "incompatibilities": [],
       "limitations": [
         "Does not prove deployed Supabase RLS, Auth, Storage or platform concurrency."
       ],
@@ -951,9 +1231,14 @@
           "buildId": "BUILD-001",
           "specId": "virro-vnext-build-001-trust-foundation",
           "criterionId": "candidate-immutability",
+          "criterionVersion": 1,
+          "criterionDefinitionHash": "7c6bd2f96ec77922ce256a21a4ac780f91efcc249cac95b7e7114db496de4273",
+          "subjectId": "CANDIDATE_ASSET",
+          "controlId": "POSTGRES_CANDIDATE_IMMUTABILITY",
+          "boundaryId": "PGLITE_POSTGRES",
+          "environmentClass": "LOCAL_REAL_BOUNDARY",
           "subject": "CandidateAsset",
           "control": "Database immutability",
-          "requiredEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY",
           "actualEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY",
           "boundaryTested": "PostgreSQL 18.3 via PGlite 0.5.5 with all repository migrations: candidate content and lineage UPDATE attempts",
           "environment": "local repository assurance",
@@ -989,12 +1274,18 @@
       "buildId": "BUILD-001",
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "asset-version-immutability",
-      "requiredEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY",
+      "criterionVersion": 1,
+      "criterionDefinitionHash": "720422027decaf29e4b94e6ed22c804e4a1824ab8962524c50e7a6d22f5f6ec8",
+      "minimumEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY",
       "highestPassingEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY",
       "status": "PROVEN",
       "evidenceIds": [
         "71000000-0000-4000-8000-000000000006"
       ],
+      "compatibleEvidenceIds": [
+        "71000000-0000-4000-8000-000000000006"
+      ],
+      "incompatibilities": [],
       "limitations": [
         "Does not prove deployed Supabase RLS, Auth, Storage or platform concurrency."
       ],
@@ -1005,9 +1296,14 @@
           "buildId": "BUILD-001",
           "specId": "virro-vnext-build-001-trust-foundation",
           "criterionId": "asset-version-immutability",
+          "criterionVersion": 1,
+          "criterionDefinitionHash": "720422027decaf29e4b94e6ed22c804e4a1824ab8962524c50e7a6d22f5f6ec8",
+          "subjectId": "ASSET_VERSION",
+          "controlId": "POSTGRES_ASSET_VERSION_IMMUTABILITY",
+          "boundaryId": "PGLITE_POSTGRES",
+          "environmentClass": "LOCAL_REAL_BOUNDARY",
           "subject": "AssetVersion",
           "control": "Database immutability",
-          "requiredEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY",
           "actualEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY",
           "boundaryTested": "PostgreSQL 18.3 via PGlite 0.5.5 with all repository migrations: AssetVersion state UPDATE attempt",
           "environment": "local repository assurance",
@@ -1043,12 +1339,18 @@
       "buildId": "BUILD-001",
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "stale-head",
-      "requiredEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY",
+      "criterionVersion": 1,
+      "criterionDefinitionHash": "bf5855fb520144e77774ddb2d9e79f2881283dc71664f52d5da7f04bf308dda3",
+      "minimumEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY",
       "highestPassingEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY",
       "status": "PROVEN",
       "evidenceIds": [
         "71000000-0000-4000-8000-000000000007"
       ],
+      "compatibleEvidenceIds": [
+        "71000000-0000-4000-8000-000000000007"
+      ],
+      "incompatibilities": [],
       "limitations": [
         "Does not prove deployed Supabase RLS, Auth, Storage or platform concurrency."
       ],
@@ -1059,9 +1361,14 @@
           "buildId": "BUILD-001",
           "specId": "virro-vnext-build-001-trust-foundation",
           "criterionId": "stale-head",
+          "criterionVersion": 1,
+          "criterionDefinitionHash": "bf5855fb520144e77774ddb2d9e79f2881283dc71664f52d5da7f04bf308dda3",
+          "subjectId": "CANONICAL_HEAD",
+          "controlId": "POSTGRES_STALE_HEAD_CAS",
+          "boundaryId": "PGLITE_POSTGRES",
+          "environmentClass": "LOCAL_REAL_BOUNDARY",
           "subject": "Canonical head",
           "control": "Stale-head compare-and-set rejection",
-          "requiredEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY",
           "actualEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY",
           "boundaryTested": "PostgreSQL 18.3 via PGlite 0.5.5 with all repository migrations: stale head RPC rejection and unchanged state",
           "environment": "local repository assurance",
@@ -1097,12 +1404,18 @@
       "buildId": "BUILD-001",
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "commit-idempotency",
-      "requiredEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY",
+      "criterionVersion": 1,
+      "criterionDefinitionHash": "4112c10450432080142cf9cb3906198fccb08795433c2d23d752f96981a5a135",
+      "minimumEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY",
       "highestPassingEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY",
       "status": "PROVEN",
       "evidenceIds": [
         "71000000-0000-4000-8000-000000000008"
       ],
+      "compatibleEvidenceIds": [
+        "71000000-0000-4000-8000-000000000008"
+      ],
+      "incompatibilities": [],
       "limitations": [
         "Does not prove deployed Supabase RLS, Auth, Storage or platform concurrency."
       ],
@@ -1113,9 +1426,14 @@
           "buildId": "BUILD-001",
           "specId": "virro-vnext-build-001-trust-foundation",
           "criterionId": "commit-idempotency",
+          "criterionVersion": 1,
+          "criterionDefinitionHash": "4112c10450432080142cf9cb3906198fccb08795433c2d23d752f96981a5a135",
+          "subjectId": "CANONICAL_COMMIT",
+          "controlId": "POSTGRES_COMMIT_IDEMPOTENCY",
+          "boundaryId": "PGLITE_POSTGRES",
+          "environmentClass": "LOCAL_REAL_BOUNDARY",
           "subject": "Canonical commit",
           "control": "Idempotent retry",
-          "requiredEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY",
           "actualEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY",
           "boundaryTested": "PostgreSQL 18.3 via PGlite 0.5.5 with all repository migrations: duplicate RPC retry",
           "environment": "local repository assurance",
@@ -1151,12 +1469,18 @@
       "buildId": "BUILD-001-F2",
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "legacy-route-isolation",
-      "requiredEvidenceLevel": "E2_APPLICATION",
+      "criterionVersion": 1,
+      "criterionDefinitionHash": "d255e4203e3ed56e60e1bc76873e003908e6951ccf24b79afad2211de1a37a4f",
+      "minimumEvidenceLevel": "E2_APPLICATION",
       "highestPassingEvidenceLevel": "E2_APPLICATION",
       "status": "PROVEN",
       "evidenceIds": [
         "71000000-0000-4000-8000-000000000009"
       ],
+      "compatibleEvidenceIds": [
+        "71000000-0000-4000-8000-000000000009"
+      ],
+      "incompatibilities": [],
       "limitations": [
         "Deployed CDN and edge routing were not exercised."
       ],
@@ -1167,9 +1491,14 @@
           "buildId": "BUILD-001-F2",
           "specId": "virro-vnext-build-001-trust-foundation",
           "criterionId": "legacy-route-isolation",
+          "criterionVersion": 1,
+          "criterionDefinitionHash": "d255e4203e3ed56e60e1bc76873e003908e6951ccf24b79afad2211de1a37a4f",
+          "subjectId": "LEGACY_PRECISION_EDIT_ROUTE",
+          "controlId": "NEXT_LEGACY_ROUTE_ISOLATION",
+          "boundaryId": "NEXT_ROUTE_HANDLER",
+          "environmentClass": "LOCAL_APPLICATION",
           "subject": "/api/precision-edit",
           "control": "Privileged legacy service is unreachable",
-          "requiredEvidenceLevel": "E2_APPLICATION",
           "actualEvidenceLevel": "E2_APPLICATION",
           "boundaryTested": "Actual exported Next.js route handler with privileged service instrumentation",
           "environment": "local repository assurance",
@@ -1205,12 +1534,18 @@
       "buildId": "BUILD-001-F2",
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "f1-sql-regression",
-      "requiredEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY",
+      "criterionVersion": 1,
+      "criterionDefinitionHash": "ec4ffdef850c71c54abc94d89cf11046c28f5de7986e18d4557cfaedfbb93165",
+      "minimumEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY",
       "highestPassingEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY",
       "status": "PROVEN",
       "evidenceIds": [
         "71000000-0000-4000-8000-00000000000a"
       ],
+      "compatibleEvidenceIds": [
+        "71000000-0000-4000-8000-00000000000a"
+      ],
+      "incompatibilities": [],
       "limitations": [
         "Does not prove deployed Supabase RLS, Auth, Storage or platform concurrency."
       ],
@@ -1221,9 +1556,14 @@
           "buildId": "BUILD-001-F2",
           "specId": "virro-vnext-build-001-trust-foundation",
           "criterionId": "f1-sql-regression",
+          "criterionVersion": 1,
+          "criterionDefinitionHash": "ec4ffdef850c71c54abc94d89cf11046c28f5de7986e18d4557cfaedfbb93165",
+          "subjectId": "CANONICAL_COMMIT",
+          "controlId": "POSTGRES_F1_REGRESSION",
+          "boundaryId": "PGLITE_POSTGRES",
+          "environmentClass": "LOCAL_REAL_BOUNDARY",
           "subject": "Canonical trust after F2",
           "control": "F1 PostgreSQL invariants remain intact",
-          "requiredEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY",
           "actualEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY",
           "boundaryTested": "PostgreSQL 18.3 via PGlite 0.5.5 with all repository migrations: F1 PostgreSQL suite executed on the F2 candidate",
           "environment": "local repository assurance",
@@ -1259,14 +1599,30 @@
       "buildId": "BUILD-001-F2",
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "deployed-cache-retirement",
-      "requiredEvidenceLevel": "E4_REMOTE_STAGING",
+      "criterionVersion": 1,
+      "criterionDefinitionHash": "8de33dfbc8611453512d67eaea8547322ef1d275cbf76c91591e3fbd395e9e64",
+      "minimumEvidenceLevel": "E4_REMOTE_STAGING",
       "highestPassingEvidenceLevel": null,
       "status": "UNKNOWN",
       "evidenceIds": [
         "71000000-0000-4000-8000-00000000000b"
       ],
+      "compatibleEvidenceIds": [],
+      "incompatibilities": [
+        {
+          "evidenceId": "71000000-0000-4000-8000-00000000000b",
+          "reasons": [
+            "BOUNDARY_ID_MISMATCH",
+            "ENVIRONMENT_CLASS_MISMATCH",
+            "EVIDENCE_LEVEL_BELOW_MINIMUM"
+          ]
+        }
+      ],
       "limitations": [
-        "No deployed CDN, alias cutover or stale-cache behavior was exercised."
+        "No deployed CDN, alias cutover or stale-cache behavior was exercised.",
+        "71000000-0000-4000-8000-00000000000b: BOUNDARY_ID_MISMATCH",
+        "71000000-0000-4000-8000-00000000000b: ENVIRONMENT_CLASS_MISMATCH",
+        "71000000-0000-4000-8000-00000000000b: EVIDENCE_LEVEL_BELOW_MINIMUM"
       ],
       "skippedReasons": [],
       "consideredEvidence": [
@@ -1275,9 +1631,14 @@
           "buildId": "BUILD-001-F2",
           "specId": "virro-vnext-build-001-trust-foundation",
           "criterionId": "deployed-cache-retirement",
+          "criterionVersion": 1,
+          "criterionDefinitionHash": "8de33dfbc8611453512d67eaea8547322ef1d275cbf76c91591e3fbd395e9e64",
+          "subjectId": "DEPLOYED_LEGACY_PRECISION_EDIT_ROUTE",
+          "controlId": "DEPLOYED_CACHE_RETIREMENT",
+          "boundaryId": "REPOSITORY_STATIC_INSPECTION",
+          "environmentClass": "STATIC_ANALYSIS",
           "subject": "Deployed /api/precision-edit",
           "control": "CDN and routing cannot serve stale success",
-          "requiredEvidenceLevel": "E4_REMOTE_STAGING",
           "actualEvidenceLevel": "E0_STATIC",
           "boundaryTested": "Repository route configuration only",
           "environment": "local repository assurance",
@@ -1310,15 +1671,30 @@
       "buildId": "BUILD-001",
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "deployed-rls",
-      "requiredEvidenceLevel": "E4_REMOTE_STAGING",
+      "criterionVersion": 1,
+      "criterionDefinitionHash": "846a5bf2ed56cde39062845492db9dacb82e320361a028dc20bcbd1026710ad3",
+      "minimumEvidenceLevel": "E4_REMOTE_STAGING",
       "highestPassingEvidenceLevel": "E0_STATIC",
       "status": "NOT_PROVEN",
       "evidenceIds": [
         "71000000-0000-4000-8000-00000000000c"
       ],
+      "compatibleEvidenceIds": [],
+      "incompatibilities": [
+        {
+          "evidenceId": "71000000-0000-4000-8000-00000000000c",
+          "reasons": [
+            "BOUNDARY_ID_MISMATCH",
+            "ENVIRONMENT_CLASS_MISMATCH",
+            "EVIDENCE_LEVEL_BELOW_MINIMUM"
+          ]
+        }
+      ],
       "limitations": [
         "Policy text inspection does not execute deployed RLS with real tenant JWTs.",
-        "E0_STATIC cannot satisfy E4_REMOTE_STAGING."
+        "71000000-0000-4000-8000-00000000000c: BOUNDARY_ID_MISMATCH",
+        "71000000-0000-4000-8000-00000000000c: ENVIRONMENT_CLASS_MISMATCH",
+        "71000000-0000-4000-8000-00000000000c: EVIDENCE_LEVEL_BELOW_MINIMUM"
       ],
       "skippedReasons": [],
       "consideredEvidence": [
@@ -1327,9 +1703,14 @@
           "buildId": "BUILD-001",
           "specId": "virro-vnext-build-001-trust-foundation",
           "criterionId": "deployed-rls",
+          "criterionVersion": 1,
+          "criterionDefinitionHash": "846a5bf2ed56cde39062845492db9dacb82e320361a028dc20bcbd1026710ad3",
+          "subjectId": "TENANT_DATA",
+          "controlId": "SUPABASE_RLS_TENANT_READ",
+          "boundaryId": "REPOSITORY_STATIC_INSPECTION",
+          "environmentClass": "STATIC_ANALYSIS",
           "subject": "Tenant data",
           "control": "Deployed RLS prevents cross-tenant access",
-          "requiredEvidenceLevel": "E4_REMOTE_STAGING",
           "actualEvidenceLevel": "E0_STATIC",
           "boundaryTested": "Static migration and policy source inspection",
           "environment": "local repository assurance",
@@ -1364,14 +1745,30 @@
       "buildId": "BUILD-001",
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "supabase-auth",
-      "requiredEvidenceLevel": "E4_REMOTE_STAGING",
+      "criterionVersion": 1,
+      "criterionDefinitionHash": "563e8bdef2923efbfd4a793cb456c091cc6aaddeba05d2b3e1a343cc2bec6768",
+      "minimumEvidenceLevel": "E4_REMOTE_STAGING",
       "highestPassingEvidenceLevel": null,
       "status": "UNKNOWN",
       "evidenceIds": [
         "71000000-0000-4000-8000-00000000000d"
       ],
+      "compatibleEvidenceIds": [],
+      "incompatibilities": [
+        {
+          "evidenceId": "71000000-0000-4000-8000-00000000000d",
+          "reasons": [
+            "BOUNDARY_ID_MISMATCH",
+            "ENVIRONMENT_CLASS_MISMATCH",
+            "EVIDENCE_LEVEL_BELOW_MINIMUM"
+          ]
+        }
+      ],
       "limitations": [
-        "No real Supabase users, JWTs or membership lifecycle were exercised."
+        "No real Supabase users, JWTs or membership lifecycle were exercised.",
+        "71000000-0000-4000-8000-00000000000d: BOUNDARY_ID_MISMATCH",
+        "71000000-0000-4000-8000-00000000000d: ENVIRONMENT_CLASS_MISMATCH",
+        "71000000-0000-4000-8000-00000000000d: EVIDENCE_LEVEL_BELOW_MINIMUM"
       ],
       "skippedReasons": [],
       "consideredEvidence": [
@@ -1380,9 +1777,14 @@
           "buildId": "BUILD-001",
           "specId": "virro-vnext-build-001-trust-foundation",
           "criterionId": "supabase-auth",
+          "criterionVersion": 1,
+          "criterionDefinitionHash": "563e8bdef2923efbfd4a793cb456c091cc6aaddeba05d2b3e1a343cc2bec6768",
+          "subjectId": "REQUEST_IDENTITY",
+          "controlId": "SUPABASE_AUTH_MEMBERSHIP",
+          "boundaryId": "NOT_EXECUTED",
+          "environmentClass": "NOT_EXECUTED",
           "subject": "Request identity",
           "control": "Supabase Auth resolves real principals and memberships",
-          "requiredEvidenceLevel": "E4_REMOTE_STAGING",
           "actualEvidenceLevel": "E0_STATIC",
           "boundaryTested": "No remote boundary executed",
           "environment": "local repository assurance",
@@ -1415,14 +1817,30 @@
       "buildId": "BUILD-001",
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "rpc-acl",
-      "requiredEvidenceLevel": "E4_REMOTE_STAGING",
+      "criterionVersion": 1,
+      "criterionDefinitionHash": "2a0542f8a791d30e92b449d6fdba1f602fc6b081fb987609374fa899d99e1b54",
+      "minimumEvidenceLevel": "E4_REMOTE_STAGING",
       "highestPassingEvidenceLevel": null,
       "status": "SKIPPED",
       "evidenceIds": [
         "71000000-0000-4000-8000-00000000000e"
       ],
+      "compatibleEvidenceIds": [],
+      "incompatibilities": [
+        {
+          "evidenceId": "71000000-0000-4000-8000-00000000000e",
+          "reasons": [
+            "BOUNDARY_ID_MISMATCH",
+            "ENVIRONMENT_CLASS_MISMATCH",
+            "EVIDENCE_LEVEL_BELOW_MINIMUM"
+          ]
+        }
+      ],
       "limitations": [
-        "The deployed function owner, ACL and authenticated success path remain unverified."
+        "The deployed function owner, ACL and authenticated success path remain unverified.",
+        "71000000-0000-4000-8000-00000000000e: BOUNDARY_ID_MISMATCH",
+        "71000000-0000-4000-8000-00000000000e: ENVIRONMENT_CLASS_MISMATCH",
+        "71000000-0000-4000-8000-00000000000e: EVIDENCE_LEVEL_BELOW_MINIMUM"
       ],
       "skippedReasons": [
         "BUILD 001 staging credentials were not supplied."
@@ -1433,9 +1851,14 @@
           "buildId": "BUILD-001",
           "specId": "virro-vnext-build-001-trust-foundation",
           "criterionId": "rpc-acl",
+          "criterionVersion": 1,
+          "criterionDefinitionHash": "2a0542f8a791d30e92b449d6fdba1f602fc6b081fb987609374fa899d99e1b54",
+          "subjectId": "CANONICAL_COMMIT_RPC",
+          "controlId": "SUPABASE_RPC_ACL",
+          "boundaryId": "NOT_EXECUTED",
+          "environmentClass": "NOT_EXECUTED",
           "subject": "Canonical commit RPC",
           "control": "Deployed function ACL and authenticated execution",
-          "requiredEvidenceLevel": "E4_REMOTE_STAGING",
           "actualEvidenceLevel": "E0_STATIC",
           "boundaryTested": "No remote boundary executed",
           "environment": "local repository assurance",
@@ -1468,14 +1891,30 @@
       "buildId": "BUILD-001",
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "storage-policy",
-      "requiredEvidenceLevel": "E4_REMOTE_STAGING",
+      "criterionVersion": 1,
+      "criterionDefinitionHash": "790fe79be7a21b30afd6059a7c318a3620495c9ec1d859e2e2e0cc9763604cb0",
+      "minimumEvidenceLevel": "E4_REMOTE_STAGING",
       "highestPassingEvidenceLevel": null,
       "status": "UNKNOWN",
       "evidenceIds": [
         "71000000-0000-4000-8000-00000000000f"
       ],
+      "compatibleEvidenceIds": [],
+      "incompatibilities": [
+        {
+          "evidenceId": "71000000-0000-4000-8000-00000000000f",
+          "reasons": [
+            "BOUNDARY_ID_MISMATCH",
+            "ENVIRONMENT_CLASS_MISMATCH",
+            "EVIDENCE_LEVEL_BELOW_MINIMUM"
+          ]
+        }
+      ],
       "limitations": [
-        "No deployed Storage policy was exercised."
+        "No deployed Storage policy was exercised.",
+        "71000000-0000-4000-8000-00000000000f: BOUNDARY_ID_MISMATCH",
+        "71000000-0000-4000-8000-00000000000f: ENVIRONMENT_CLASS_MISMATCH",
+        "71000000-0000-4000-8000-00000000000f: EVIDENCE_LEVEL_BELOW_MINIMUM"
       ],
       "skippedReasons": [],
       "consideredEvidence": [
@@ -1484,9 +1923,14 @@
           "buildId": "BUILD-001",
           "specId": "virro-vnext-build-001-trust-foundation",
           "criterionId": "storage-policy",
+          "criterionVersion": 1,
+          "criterionDefinitionHash": "790fe79be7a21b30afd6059a7c318a3620495c9ec1d859e2e2e0cc9763604cb0",
+          "subjectId": "TENANT_STORAGE",
+          "controlId": "STORAGE_TENANT_ISOLATION",
+          "boundaryId": "NOT_EXECUTED",
+          "environmentClass": "NOT_EXECUTED",
           "subject": "Tenant Storage",
           "control": "Storage policy prevents cross-tenant object access",
-          "requiredEvidenceLevel": "E4_REMOTE_STAGING",
           "actualEvidenceLevel": "E0_STATIC",
           "boundaryTested": "No remote boundary executed",
           "environment": "local repository assurance",
@@ -1519,14 +1963,30 @@
       "buildId": "BUILD-001",
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "service-role-storage",
-      "requiredEvidenceLevel": "E4_REMOTE_STAGING",
+      "criterionVersion": 1,
+      "criterionDefinitionHash": "574c3d6114725b53d5546d9a1061ffb1bcc0b4305e516de79baca0118a9a0591",
+      "minimumEvidenceLevel": "E4_REMOTE_STAGING",
       "highestPassingEvidenceLevel": null,
       "status": "UNKNOWN",
       "evidenceIds": [
         "71000000-0000-4000-8000-000000000010"
       ],
+      "compatibleEvidenceIds": [],
+      "incompatibilities": [
+        {
+          "evidenceId": "71000000-0000-4000-8000-000000000010",
+          "reasons": [
+            "BOUNDARY_ID_MISMATCH",
+            "ENVIRONMENT_CLASS_MISMATCH",
+            "EVIDENCE_LEVEL_BELOW_MINIMUM"
+          ]
+        }
+      ],
       "limitations": [
-        "No real service-role Storage operation was exercised."
+        "No real service-role Storage operation was exercised.",
+        "71000000-0000-4000-8000-000000000010: BOUNDARY_ID_MISMATCH",
+        "71000000-0000-4000-8000-000000000010: ENVIRONMENT_CLASS_MISMATCH",
+        "71000000-0000-4000-8000-000000000010: EVIDENCE_LEVEL_BELOW_MINIMUM"
       ],
       "skippedReasons": [],
       "consideredEvidence": [
@@ -1535,9 +1995,14 @@
           "buildId": "BUILD-001",
           "specId": "virro-vnext-build-001-trust-foundation",
           "criterionId": "service-role-storage",
+          "criterionVersion": 1,
+          "criterionDefinitionHash": "574c3d6114725b53d5546d9a1061ffb1bcc0b4305e516de79baca0118a9a0591",
+          "subjectId": "PRIVILEGED_STORAGE",
+          "controlId": "SERVICE_ROLE_STORAGE_ISOLATION",
+          "boundaryId": "NOT_EXECUTED",
+          "environmentClass": "NOT_EXECUTED",
           "subject": "Privileged Storage",
           "control": "Service-role paths preserve tenant isolation",
-          "requiredEvidenceLevel": "E4_REMOTE_STAGING",
           "actualEvidenceLevel": "E0_STATIC",
           "boundaryTested": "No remote boundary executed",
           "environment": "local repository assurance",
@@ -1570,14 +2035,30 @@
       "buildId": "BUILD-001",
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "remote-concurrency",
-      "requiredEvidenceLevel": "E4_REMOTE_STAGING",
+      "criterionVersion": 1,
+      "criterionDefinitionHash": "d43110cf3bf117da52ffc08df72b2f9213c282f6c3e94e67e92fda34d6549233",
+      "minimumEvidenceLevel": "E4_REMOTE_STAGING",
       "highestPassingEvidenceLevel": null,
       "status": "UNKNOWN",
       "evidenceIds": [
         "71000000-0000-4000-8000-000000000011"
       ],
+      "compatibleEvidenceIds": [],
+      "incompatibilities": [
+        {
+          "evidenceId": "71000000-0000-4000-8000-000000000011",
+          "reasons": [
+            "BOUNDARY_ID_MISMATCH",
+            "ENVIRONMENT_CLASS_MISMATCH",
+            "EVIDENCE_LEVEL_BELOW_MINIMUM"
+          ]
+        }
+      ],
       "limitations": [
-        "PGlite proves local transaction semantics, not remote platform concurrency behavior."
+        "PGlite proves local transaction semantics, not remote platform concurrency behavior.",
+        "71000000-0000-4000-8000-000000000011: BOUNDARY_ID_MISMATCH",
+        "71000000-0000-4000-8000-000000000011: ENVIRONMENT_CLASS_MISMATCH",
+        "71000000-0000-4000-8000-000000000011: EVIDENCE_LEVEL_BELOW_MINIMUM"
       ],
       "skippedReasons": [],
       "consideredEvidence": [
@@ -1586,9 +2067,14 @@
           "buildId": "BUILD-001",
           "specId": "virro-vnext-build-001-trust-foundation",
           "criterionId": "remote-concurrency",
+          "criterionVersion": 1,
+          "criterionDefinitionHash": "d43110cf3bf117da52ffc08df72b2f9213c282f6c3e94e67e92fda34d6549233",
+          "subjectId": "CANONICAL_HEAD",
+          "controlId": "POSTGRES_REMOTE_CONCURRENCY",
+          "boundaryId": "NOT_EXECUTED",
+          "environmentClass": "NOT_EXECUTED",
           "subject": "Canonical head",
           "control": "Remote concurrent commits preserve locking semantics",
-          "requiredEvidenceLevel": "E4_REMOTE_STAGING",
           "actualEvidenceLevel": "E0_STATIC",
           "boundaryTested": "No remote boundary executed",
           "environment": "local repository assurance",

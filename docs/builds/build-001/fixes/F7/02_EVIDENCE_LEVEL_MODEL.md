@@ -11,7 +11,7 @@
 | `E4_REMOTE_STAGING` | Plataforma externa real y aislada | Supabase Auth/RLS/RPC/Storage, service-role, concurrency | Flujo desplegado completo de producto |
 | `E5_DEPLOYED_E2E` | Workflow soportado integrado en condiciones production-equivalent/safe | ruta, Auth, DB, Storage y aceptación de extremo a extremo | No es requerido para todo claim |
 
-El orden sólo sirve para comparar un nivel requerido con uno actual. No es un confidence score y no combina dimensiones mediante promedio.
+Desde R1, el orden sólo aplica como restricción mínima después de validar identidad semántica. No es un confidence score, no combina dimensiones mediante promedio y nunca permite que E5 sustituya una frontera o control E4 distinto. Un entorno superior sólo es compatible cuando el criterio lo admite explícitamente y el receipt conserva exactamente sujeto, control y frontera requeridos.
 
 ## Regla de asignación
 
@@ -33,15 +33,16 @@ Un test puede tocar varias capas. Su receipt debe nombrar el límite concreto de
 Campos obligatorios:
 
 - `evidenceId`, `buildId`, `specId`, `criterionId`;
-- `subject`, `control`;
-- `requiredEvidenceLevel`, `actualEvidenceLevel`;
-- `boundaryTested`, `environment`;
+- `criterionVersion`, `criterionDefinitionHash`;
+- `subjectId`, `controlId`, `boundaryId`, `environmentClass`;
+- `subject`, `control`, `boundaryTested`, `environment` como metadata humana;
+- `actualEvidenceLevel`;
 - `executor`, `verifier`, `independence`;
 - `provenance`, `commandTestIdentifier`;
 - `result`, `limitations`, `skippedReason`, `artifactRefs`;
 - `baselineSha`, `resultSha`, `timestamp`.
 
-Un skip sin razón es schema-invalid. Build/spec/criterion forman la identidad de satisfacción.
+Un skip sin razón es schema-invalid. Build/spec/criterion forman la identidad inicial; versión/hash, sujeto, control, frontera, entorno, nivel e independencia determinan compatibilidad. Los detalles vigentes están en `R1/02_SEMANTIC_MATCH_MODEL.md`.
 
 ## TrustHarness
 

@@ -39,6 +39,32 @@ describe("BUILD 001 machine-readable assurance manifest", () => {
     expect(generated.summary.historicalCounts.FAILED).toBe(1);
   });
 
+  it("keeps static RLS evidence semantically incompatible with the remote RLS claim", () => {
+    const evaluation = generated.evaluations.find((item: { buildId: string; criterionId: string }) =>
+      item.buildId === "BUILD-001" && item.criterionId === "deployed-rls",
+    );
+    expect(generated.schemaVersion).toBe("virro-development-assurance-v2");
+    expect(evaluation.status).toBe("NOT_PROVEN");
+    expect(evaluation.compatibleEvidenceIds).toEqual([]);
+    expect(evaluation.incompatibilities[0].reasons).toEqual(expect.arrayContaining([
+      "BOUNDARY_ID_MISMATCH",
+      "ENVIRONMENT_CLASS_MISMATCH",
+      "EVIDENCE_LEVEL_BELOW_MINIMUM",
+    ]));
+  });
+
+  it("binds compatible F1 and F2 evidence to versioned criterion definitions", () => {
+    for (const [buildId, criterionId] of [["BUILD-001", "atomic-commit"], ["BUILD-001-F2", "legacy-route-isolation"]]) {
+      const evaluation = generated.evaluations.find((item: { buildId: string; criterionId: string }) =>
+        item.buildId === buildId && item.criterionId === criterionId,
+      );
+      expect(evaluation.status).toBe("PROVEN");
+      expect(evaluation.criterionVersion).toBe(1);
+      expect(evaluation.criterionDefinitionHash).toMatch(/^[0-9a-f]{64}$/);
+      expect(evaluation.compatibleEvidenceIds.length).toBeGreaterThan(0);
+    }
+  });
+
   it("preserves a reason and unproven controls for every environment lane", () => {
     expect(registry.schemaVersion).toBe("virro-environment-lanes-v1");
     expect(registry.lanes).toHaveLength(5);
