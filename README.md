@@ -66,21 +66,11 @@ El adaptador usa el mismo JSON Schema generado desde `IntentContractSchema`, val
 
 La identidad de A/B, telemetría, métricas y notas privadas se revelan solamente cuando toda la sesión está completa. Los sets son inmutables y se congelan con SHA-256. Cada sesión conserva su propia interpretación humana, incluso cuando otra sesión evalúa el mismo caso. Consulta [el formato de importación](./docs/BLIND_EVALUATION_FORMAT.md).
 
-## Preservation & Verification v0.1
+## Precision Edit
 
-`/precision-edit-lab` ejecuta una única edición de imagen y conserva dos candidatos inmutables: `RAW_PROVIDER` y `PRESERVED`. El segundo se deriva localmente del primero; nunca se solicita una segunda generación para producirlo.
+`/field-beta` es la superficie soportada para Precision Edit. Requiere identidad autenticada y autoridad de tenant resuelta en el servidor antes de ejecutar, registrar evidencia, aceptar o hacer commit.
 
-Configura únicamente en servidor:
-
-```text
-IMAGE_EDIT_PROVIDER=openai
-OPENAI_IMAGE_EDIT_MODEL=gpt-image-2
-OPENAI_API_KEY=...
-```
-
-Aplica `20260811120000_build_004_preservation_verification.sql` antes de ejecutar el laboratorio. La versión inicial acepta PNG de hasta 10 MB. Tras la verificación determinística, la preferencia `RAW/PRESERVED/TIE/BOTH_BAD` se registra por separado de la aprobación. Solo `APPROVE PRESERVED` puede crear la versión canónica siguiente.
-
-Consulta [la arquitectura y semántica completa de BUILD 004](./docs/BUILD_004_PRESERVATION_VERIFICATION_V0_1.md).
+`/precision-edit-lab` redirige al flujo soportado. Su API BUILD 004, `/api/precision-edit`, está retirada y no puede habilitarse mediante flags de entorno. La arquitectura BUILD 004 permanece disponible como registro histórico en [su documento original](./docs/BUILD_004_PRESERVATION_VERIFICATION_V0_1.md).
 
 ## PRODUCT GATE 004 — Preservation Value Study
 
@@ -108,7 +98,7 @@ pnpm build
 - `/`: compilador, lectura visual, debug progresivo, feedback y Execution Contract.
 - `/benchmarks`: fixtures, ejecución individual/conjunta y métricas deterministas.
 - `/blind-eval`: importación y evaluación humana A/B con revelado diferido.
-- `/precision-edit-lab`: comparación controlada RAW vs PRESERVED, métricas por zona, Creative Assertions y commit exclusivo de PRESERVED.
+- `/field-beta`: Precision Edit autenticado con autoridad, evidencia, aceptación y commit canónico.
 - `/preservation-study`: estudio ciego RAW vs PRESERVED, reanudable e inmutable, sin regeneración ni commit canónico.
 - `/api/compile`, `/api/feedback`, `/api/execution-contract`, `/api/benchmarks`: frontera HTTP del monolito.
 - `/api/blind-eval/*`: sets inmutables, sesiones, comparaciones y juicios.

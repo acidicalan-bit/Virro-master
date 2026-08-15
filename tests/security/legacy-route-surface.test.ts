@@ -13,7 +13,6 @@ const privilegedLegacyRoutes = [
   "app/api/blind-eval/sets/route.ts",
   "app/api/blind-eval/step-ratings/route.ts",
   "app/api/transaction-lab/route.ts",
-  "app/api/precision-edit/route.ts",
   "app/api/preservation-study/route.ts",
   "app/api/preservation-study/media/route.ts",
 ];
@@ -25,5 +24,13 @@ describe("legacy privileged API containment", () => {
       expect(source, relativePath).toContain("isLegacyInternalRouteEnabled");
       expect(source, relativePath).toContain("legacyRouteDisabledResponse");
     }
+  });
+
+  it("permanently retires precision-edit instead of allowing environment enablement", () => {
+    const source = readFileSync(resolve(process.cwd(), "app/api/precision-edit/route.ts"), "utf8");
+    expect(source).toContain("LEGACY_CANONICAL_PATH_DISABLED");
+    expect(source).toContain("status: 410");
+    expect(source).not.toContain("isLegacyInternalRouteEnabled");
+    expect(source).not.toContain("createPreservationVerificationService");
   });
 });

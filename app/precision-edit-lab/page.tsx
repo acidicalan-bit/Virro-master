@@ -1,5 +1,5 @@
-import { PrecisionEditLab } from "@/src/ui/precision-edit-lab";
+import { redirect } from "next/navigation";
 
 export default function PrecisionEditLabPage() {
-  return <PrecisionEditLab />;
+  redirect("/field-beta");
 }
