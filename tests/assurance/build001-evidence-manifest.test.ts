@@ -43,7 +43,7 @@ describe("BUILD 001 machine-readable assurance manifest", () => {
     const evaluation = generated.evaluations.find((item: { buildId: string; criterionId: string }) =>
       item.buildId === "BUILD-001" && item.criterionId === "deployed-rls",
     );
-    expect(generated.schemaVersion).toBe("virro-development-assurance-v2");
+    expect(generated.schemaVersion).toBe("virro-development-assurance-v3");
     expect(evaluation.status).toBe("NOT_PROVEN");
     expect(evaluation.compatibleEvidenceIds).toEqual([]);
     expect(evaluation.incompatibilities[0].reasons).toEqual(expect.arrayContaining([
@@ -63,6 +63,10 @@ describe("BUILD 001 machine-readable assurance manifest", () => {
       expect(evaluation.criterionDefinitionHash).toMatch(/^[0-9a-f]{64}$/);
       expect(evaluation.compatibleEvidenceIds.length).toBeGreaterThan(0);
       expect(evaluation.independenceAssessments[0].status).toBe("AUTOMATED_GATE");
+      expect(evaluation.provenanceAssessments[0]).toMatchObject({
+        claimedClass: "DECLARED_ONLY",
+        status: "VALID",
+      });
     }
   });
 

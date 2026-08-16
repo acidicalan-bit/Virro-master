@@ -1,9 +1,9 @@
 {
-  "schemaVersion": "virro-development-assurance-v2",
+  "schemaVersion": "virro-development-assurance-v3",
   "generatedAt": "2026-08-15T18:15:00.000Z",
   "buildId": "BUILD-001-F7",
   "baselineSha": "33556d8dcb4f1542cb80706f10068aa77fef1006",
-  "resultSha": "33556d8dcb4f1542cb80706f10068aa77fef1006",
+  "evidenceHistoryThroughSha": "33556d8dcb4f1542cb80706f10068aa77fef1006",
   "summary": {
     "currentCounts": {
       "PROVEN": 7,
@@ -28,7 +28,7 @@
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "atomic-commit",
       "criterionVersion": 1,
-      "criterionDefinitionHash": "2487ee32a94988bd66f781fb3aa6efbe1acecfd6fb387997f15a736beadf1b73",
+      "criterionDefinitionHash": "cb36d6edbb82637d4c370b5ff1bd866e4dedf7998d0ed121eb7da0da7c62f3f9",
       "subjectId": "CANONICAL_COMMIT",
       "controlId": "POSTGRES_ATOMIC_COMMIT",
       "requiredBoundaryId": "PGLITE_POSTGRES",
@@ -37,6 +37,11 @@
       ],
       "minimumEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY",
       "independenceRequirement": "AUTOMATED_OR_INDEPENDENT",
+      "acceptedProvenanceClasses": [
+        "DECLARED_ONLY"
+      ],
+      "acceptedRunnerCommandIds": [],
+      "artifactRequirement": "NONE",
       "subject": "Canonical commit before F1",
       "control": "Atomic PostgreSQL RPC transition"
     },
@@ -46,7 +51,7 @@
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "atomic-commit",
       "criterionVersion": 1,
-      "criterionDefinitionHash": "2487ee32a94988bd66f781fb3aa6efbe1acecfd6fb387997f15a736beadf1b73",
+      "criterionDefinitionHash": "cb36d6edbb82637d4c370b5ff1bd866e4dedf7998d0ed121eb7da0da7c62f3f9",
       "subjectId": "CANONICAL_COMMIT",
       "controlId": "POSTGRES_ATOMIC_COMMIT",
       "requiredBoundaryId": "PGLITE_POSTGRES",
@@ -55,6 +60,11 @@
       ],
       "minimumEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY",
       "independenceRequirement": "AUTOMATED_OR_INDEPENDENT",
+      "acceptedProvenanceClasses": [
+        "DECLARED_ONLY"
+      ],
+      "acceptedRunnerCommandIds": [],
+      "artifactRequirement": "NONE",
       "subject": "Canonical commit",
       "control": "Atomic PostgreSQL RPC transition"
     },
@@ -64,7 +74,7 @@
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "candidate-immutability",
       "criterionVersion": 1,
-      "criterionDefinitionHash": "7c6bd2f96ec77922ce256a21a4ac780f91efcc249cac95b7e7114db496de4273",
+      "criterionDefinitionHash": "7f1acd05b6a509ae47e050c9ff735fbfdff5d2df52c9e7da18306cae48b11633",
       "subjectId": "CANDIDATE_ASSET",
       "controlId": "POSTGRES_CANDIDATE_IMMUTABILITY",
       "requiredBoundaryId": "PGLITE_POSTGRES",
@@ -73,6 +83,11 @@
       ],
       "minimumEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY",
       "independenceRequirement": "AUTOMATED_OR_INDEPENDENT",
+      "acceptedProvenanceClasses": [
+        "DECLARED_ONLY"
+      ],
+      "acceptedRunnerCommandIds": [],
+      "artifactRequirement": "NONE",
       "subject": "CandidateAsset",
       "control": "Database immutability"
     },
@@ -82,7 +97,7 @@
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "asset-version-immutability",
       "criterionVersion": 1,
-      "criterionDefinitionHash": "720422027decaf29e4b94e6ed22c804e4a1824ab8962524c50e7a6d22f5f6ec8",
+      "criterionDefinitionHash": "26fb08a2c2dbdd26418327451a126903447878debcf0ed850e2bf2bcfebfe32a",
       "subjectId": "ASSET_VERSION",
       "controlId": "POSTGRES_ASSET_VERSION_IMMUTABILITY",
       "requiredBoundaryId": "PGLITE_POSTGRES",
@@ -91,6 +106,11 @@
       ],
       "minimumEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY",
       "independenceRequirement": "AUTOMATED_OR_INDEPENDENT",
+      "acceptedProvenanceClasses": [
+        "DECLARED_ONLY"
+      ],
+      "acceptedRunnerCommandIds": [],
+      "artifactRequirement": "NONE",
       "subject": "AssetVersion",
       "control": "Database immutability"
     },
@@ -100,7 +120,7 @@
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "stale-head",
       "criterionVersion": 1,
-      "criterionDefinitionHash": "bf5855fb520144e77774ddb2d9e79f2881283dc71664f52d5da7f04bf308dda3",
+      "criterionDefinitionHash": "510ebbda98771bc82fb150d6b49d836c392b1fd9f858d09278d94b31e9c378e9",
       "subjectId": "CANONICAL_HEAD",
       "controlId": "POSTGRES_STALE_HEAD_CAS",
       "requiredBoundaryId": "PGLITE_POSTGRES",
@@ -109,6 +129,11 @@
       ],
       "minimumEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY",
       "independenceRequirement": "AUTOMATED_OR_INDEPENDENT",
+      "acceptedProvenanceClasses": [
+        "DECLARED_ONLY"
+      ],
+      "acceptedRunnerCommandIds": [],
+      "artifactRequirement": "NONE",
       "subject": "Canonical head",
       "control": "Stale-head compare-and-set rejection"
     },
@@ -118,7 +143,7 @@
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "commit-idempotency",
       "criterionVersion": 1,
-      "criterionDefinitionHash": "4112c10450432080142cf9cb3906198fccb08795433c2d23d752f96981a5a135",
+      "criterionDefinitionHash": "f7602171af970a1b1edd2e04826846a4288df3787e67fb60be186f4e9c1ec186",
       "subjectId": "CANONICAL_COMMIT",
       "controlId": "POSTGRES_COMMIT_IDEMPOTENCY",
       "requiredBoundaryId": "PGLITE_POSTGRES",
@@ -127,6 +152,11 @@
       ],
       "minimumEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY",
       "independenceRequirement": "AUTOMATED_OR_INDEPENDENT",
+      "acceptedProvenanceClasses": [
+        "DECLARED_ONLY"
+      ],
+      "acceptedRunnerCommandIds": [],
+      "artifactRequirement": "NONE",
       "subject": "Canonical commit",
       "control": "Idempotent retry"
     },
@@ -136,7 +166,7 @@
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "legacy-route-isolation",
       "criterionVersion": 1,
-      "criterionDefinitionHash": "d255e4203e3ed56e60e1bc76873e003908e6951ccf24b79afad2211de1a37a4f",
+      "criterionDefinitionHash": "a8678b334cd264fdd5e93f76c6b99d6e880c00cfe4bef08be00af9755d37980b",
       "subjectId": "LEGACY_PRECISION_EDIT_ROUTE",
       "controlId": "NEXT_LEGACY_ROUTE_ISOLATION",
       "requiredBoundaryId": "NEXT_ROUTE_HANDLER",
@@ -145,6 +175,11 @@
       ],
       "minimumEvidenceLevel": "E2_APPLICATION",
       "independenceRequirement": "AUTOMATED_OR_INDEPENDENT",
+      "acceptedProvenanceClasses": [
+        "DECLARED_ONLY"
+      ],
+      "acceptedRunnerCommandIds": [],
+      "artifactRequirement": "NONE",
       "subject": "/api/precision-edit",
       "control": "Privileged legacy service is unreachable"
     },
@@ -154,7 +189,7 @@
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "f1-sql-regression",
       "criterionVersion": 1,
-      "criterionDefinitionHash": "ec4ffdef850c71c54abc94d89cf11046c28f5de7986e18d4557cfaedfbb93165",
+      "criterionDefinitionHash": "10a93ebb9b52eded6ef4544a24a9e88df2aff94789a81cc5743de970489ca008",
       "subjectId": "CANONICAL_COMMIT",
       "controlId": "POSTGRES_F1_REGRESSION",
       "requiredBoundaryId": "PGLITE_POSTGRES",
@@ -163,6 +198,11 @@
       ],
       "minimumEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY",
       "independenceRequirement": "AUTOMATED_OR_INDEPENDENT",
+      "acceptedProvenanceClasses": [
+        "DECLARED_ONLY"
+      ],
+      "acceptedRunnerCommandIds": [],
+      "artifactRequirement": "NONE",
       "subject": "Canonical trust after F2",
       "control": "F1 PostgreSQL invariants remain intact"
     },
@@ -172,7 +212,7 @@
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "deployed-cache-retirement",
       "criterionVersion": 1,
-      "criterionDefinitionHash": "8de33dfbc8611453512d67eaea8547322ef1d275cbf76c91591e3fbd395e9e64",
+      "criterionDefinitionHash": "5cc37460ebeeb093d3f7d98123b566bce3881368e66fd6f525183c86fe0b3864",
       "subjectId": "DEPLOYED_LEGACY_PRECISION_EDIT_ROUTE",
       "controlId": "DEPLOYED_CACHE_RETIREMENT",
       "requiredBoundaryId": "DEPLOYED_CDN_ROUTING",
@@ -181,6 +221,11 @@
       ],
       "minimumEvidenceLevel": "E4_REMOTE_STAGING",
       "independenceRequirement": "AUTOMATED_OR_INDEPENDENT",
+      "acceptedProvenanceClasses": [
+        "DECLARED_ONLY"
+      ],
+      "acceptedRunnerCommandIds": [],
+      "artifactRequirement": "NONE",
       "subject": "Deployed /api/precision-edit",
       "control": "CDN and routing cannot serve stale success"
     },
@@ -190,7 +235,7 @@
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "deployed-rls",
       "criterionVersion": 1,
-      "criterionDefinitionHash": "846a5bf2ed56cde39062845492db9dacb82e320361a028dc20bcbd1026710ad3",
+      "criterionDefinitionHash": "a48950bd963bc603bd83e66092073966caeb19da681a28dbbb3fdab47a1ce4bc",
       "subjectId": "TENANT_DATA",
       "controlId": "SUPABASE_RLS_TENANT_READ",
       "requiredBoundaryId": "SUPABASE_REMOTE_RLS",
@@ -199,6 +244,11 @@
       ],
       "minimumEvidenceLevel": "E4_REMOTE_STAGING",
       "independenceRequirement": "AUTOMATED_OR_INDEPENDENT",
+      "acceptedProvenanceClasses": [
+        "DECLARED_ONLY"
+      ],
+      "acceptedRunnerCommandIds": [],
+      "artifactRequirement": "NONE",
       "subject": "Tenant data",
       "control": "Deployed RLS prevents cross-tenant access"
     },
@@ -208,7 +258,7 @@
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "supabase-auth",
       "criterionVersion": 1,
-      "criterionDefinitionHash": "563e8bdef2923efbfd4a793cb456c091cc6aaddeba05d2b3e1a343cc2bec6768",
+      "criterionDefinitionHash": "7b14644b0cefb6057eec359b9c488e849762a69ec60eefc37eb6c6d3f6ab9167",
       "subjectId": "REQUEST_IDENTITY",
       "controlId": "SUPABASE_AUTH_MEMBERSHIP",
       "requiredBoundaryId": "SUPABASE_REMOTE_AUTH",
@@ -217,6 +267,11 @@
       ],
       "minimumEvidenceLevel": "E4_REMOTE_STAGING",
       "independenceRequirement": "AUTOMATED_OR_INDEPENDENT",
+      "acceptedProvenanceClasses": [
+        "DECLARED_ONLY"
+      ],
+      "acceptedRunnerCommandIds": [],
+      "artifactRequirement": "NONE",
       "subject": "Request identity",
       "control": "Supabase Auth resolves real principals and memberships"
     },
@@ -226,7 +281,7 @@
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "rpc-acl",
       "criterionVersion": 1,
-      "criterionDefinitionHash": "2a0542f8a791d30e92b449d6fdba1f602fc6b081fb987609374fa899d99e1b54",
+      "criterionDefinitionHash": "49cac47113cbb7dae4a27b06b117f677e2322a04d92fc2c8a0d9018ea51b5db8",
       "subjectId": "CANONICAL_COMMIT_RPC",
       "controlId": "SUPABASE_RPC_ACL",
       "requiredBoundaryId": "SUPABASE_REMOTE_RPC",
@@ -235,6 +290,11 @@
       ],
       "minimumEvidenceLevel": "E4_REMOTE_STAGING",
       "independenceRequirement": "AUTOMATED_OR_INDEPENDENT",
+      "acceptedProvenanceClasses": [
+        "DECLARED_ONLY"
+      ],
+      "acceptedRunnerCommandIds": [],
+      "artifactRequirement": "NONE",
       "subject": "Canonical commit RPC",
       "control": "Deployed function ACL and authenticated execution"
     },
@@ -244,7 +304,7 @@
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "storage-policy",
       "criterionVersion": 1,
-      "criterionDefinitionHash": "790fe79be7a21b30afd6059a7c318a3620495c9ec1d859e2e2e0cc9763604cb0",
+      "criterionDefinitionHash": "b454dba95a8901d60cca0f1a07ff7dab986c007f1f7330dd37693139dfec4058",
       "subjectId": "TENANT_STORAGE",
       "controlId": "STORAGE_TENANT_ISOLATION",
       "requiredBoundaryId": "SUPABASE_REMOTE_STORAGE",
@@ -253,6 +313,11 @@
       ],
       "minimumEvidenceLevel": "E4_REMOTE_STAGING",
       "independenceRequirement": "AUTOMATED_OR_INDEPENDENT",
+      "acceptedProvenanceClasses": [
+        "DECLARED_ONLY"
+      ],
+      "acceptedRunnerCommandIds": [],
+      "artifactRequirement": "NONE",
       "subject": "Tenant Storage",
       "control": "Storage policy prevents cross-tenant object access"
     },
@@ -262,7 +327,7 @@
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "service-role-storage",
       "criterionVersion": 1,
-      "criterionDefinitionHash": "574c3d6114725b53d5546d9a1061ffb1bcc0b4305e516de79baca0118a9a0591",
+      "criterionDefinitionHash": "a1dc45d9ad8caa720d33eb61a5dbc434f045b981b73222f1b893e26db38cc2bf",
       "subjectId": "PRIVILEGED_STORAGE",
       "controlId": "SERVICE_ROLE_STORAGE_ISOLATION",
       "requiredBoundaryId": "SUPABASE_REMOTE_SERVICE_ROLE_STORAGE",
@@ -271,6 +336,11 @@
       ],
       "minimumEvidenceLevel": "E4_REMOTE_STAGING",
       "independenceRequirement": "AUTOMATED_OR_INDEPENDENT",
+      "acceptedProvenanceClasses": [
+        "DECLARED_ONLY"
+      ],
+      "acceptedRunnerCommandIds": [],
+      "artifactRequirement": "NONE",
       "subject": "Privileged Storage",
       "control": "Service-role paths preserve tenant isolation"
     },
@@ -280,7 +350,7 @@
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "remote-concurrency",
       "criterionVersion": 1,
-      "criterionDefinitionHash": "d43110cf3bf117da52ffc08df72b2f9213c282f6c3e94e67e92fda34d6549233",
+      "criterionDefinitionHash": "a25308e634dae2fdf06e25db66b0e6ea95cdd454623a3e9b594ff9fddcaf6eb6",
       "subjectId": "CANONICAL_HEAD",
       "controlId": "POSTGRES_REMOTE_CONCURRENCY",
       "requiredBoundaryId": "SUPABASE_REMOTE_POSTGRES_CONCURRENCY",
@@ -289,6 +359,11 @@
       ],
       "minimumEvidenceLevel": "E4_REMOTE_STAGING",
       "independenceRequirement": "AUTOMATED_OR_INDEPENDENT",
+      "acceptedProvenanceClasses": [
+        "DECLARED_ONLY"
+      ],
+      "acceptedRunnerCommandIds": [],
+      "artifactRequirement": "NONE",
       "subject": "Canonical head",
       "control": "Remote concurrent commits preserve locking semantics"
     }
@@ -300,7 +375,7 @@
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "atomic-commit",
       "criterionVersion": 1,
-      "criterionDefinitionHash": "2487ee32a94988bd66f781fb3aa6efbe1acecfd6fb387997f15a736beadf1b73",
+      "criterionDefinitionHash": "cb36d6edbb82637d4c370b5ff1bd866e4dedf7998d0ed121eb7da0da7c62f3f9",
       "subjectId": "CANONICAL_COMMIT",
       "controlId": "POSTGRES_ATOMIC_COMMIT",
       "boundaryId": "TRUST_HARNESS_MODEL",
@@ -333,6 +408,9 @@
         "source": "docs/builds/build-001/06_IMPLEMENTATION_EVIDENCE.md",
         "immutableRef": "7cc0e3b9951f276dbaf4f74f73662e430b9960c9"
       },
+      "provenanceClass": "DECLARED_ONLY",
+      "issuerKind": "TEST_FIXTURE",
+      "runnerObservation": null,
       "commandTestIdentifier": "tests/security/build001-trust-foundation.test.ts",
       "result": "PASS",
       "limitations": [
@@ -342,6 +420,8 @@
       "artifactRefs": [
         "docs/builds/build-001/06_IMPLEMENTATION_EVIDENCE.md"
       ],
+      "artifactBindings": [],
+      "receiptIntegrity": null,
       "baselineSha": "7cc0e3b9951f276dbaf4f74f73662e430b9960c9",
       "resultSha": "7cc0e3b9951f276dbaf4f74f73662e430b9960c9",
       "timestamp": "2026-08-15T09:14:02.000Z"
@@ -352,7 +432,7 @@
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "atomic-commit",
       "criterionVersion": 1,
-      "criterionDefinitionHash": "2487ee32a94988bd66f781fb3aa6efbe1acecfd6fb387997f15a736beadf1b73",
+      "criterionDefinitionHash": "cb36d6edbb82637d4c370b5ff1bd866e4dedf7998d0ed121eb7da0da7c62f3f9",
       "subjectId": "CANONICAL_COMMIT",
       "controlId": "POSTGRES_ATOMIC_COMMIT",
       "boundaryId": "PGLITE_POSTGRES",
@@ -385,6 +465,9 @@
         "source": "docs/builds/build-001/fixes/F1/03_REPRODUCTION.md",
         "immutableRef": "7cc0e3b9951f276dbaf4f74f73662e430b9960c9"
       },
+      "provenanceClass": "DECLARED_ONLY",
+      "issuerKind": "IMPORTED",
+      "runnerObservation": null,
       "commandTestIdentifier": "tests/integration/build001-f1-canonical-commit.integration.test.ts pre-patch reproducer",
       "result": "FAIL",
       "limitations": [
@@ -394,6 +477,8 @@
       "artifactRefs": [
         "docs/builds/build-001/fixes/F1/03_REPRODUCTION.md"
       ],
+      "artifactBindings": [],
+      "receiptIntegrity": null,
       "baselineSha": "7cc0e3b9951f276dbaf4f74f73662e430b9960c9",
       "resultSha": "7cc0e3b9951f276dbaf4f74f73662e430b9960c9",
       "timestamp": "2026-08-15T10:00:00.000Z"
@@ -404,7 +489,7 @@
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "atomic-commit",
       "criterionVersion": 1,
-      "criterionDefinitionHash": "2487ee32a94988bd66f781fb3aa6efbe1acecfd6fb387997f15a736beadf1b73",
+      "criterionDefinitionHash": "cb36d6edbb82637d4c370b5ff1bd866e4dedf7998d0ed121eb7da0da7c62f3f9",
       "subjectId": "CANONICAL_COMMIT",
       "controlId": "POSTGRES_ATOMIC_COMMIT",
       "boundaryId": "TRUST_HARNESS_MODEL",
@@ -437,6 +522,9 @@
         "source": "pnpm test:model",
         "immutableRef": "bc2cc7179979b4fccd892d265bedf8d7b3ab7bf1"
       },
+      "provenanceClass": "DECLARED_ONLY",
+      "issuerKind": "TEST_FIXTURE",
+      "runnerObservation": null,
       "commandTestIdentifier": "pnpm test:model",
       "result": "PASS",
       "limitations": [
@@ -444,6 +532,8 @@
       ],
       "skippedReason": null,
       "artifactRefs": [],
+      "artifactBindings": [],
+      "receiptIntegrity": null,
       "baselineSha": "7cc0e3b9951f276dbaf4f74f73662e430b9960c9",
       "resultSha": "bc2cc7179979b4fccd892d265bedf8d7b3ab7bf1",
       "timestamp": "2026-08-15T18:15:00.000Z"
@@ -454,7 +544,7 @@
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "atomic-commit",
       "criterionVersion": 1,
-      "criterionDefinitionHash": "2487ee32a94988bd66f781fb3aa6efbe1acecfd6fb387997f15a736beadf1b73",
+      "criterionDefinitionHash": "cb36d6edbb82637d4c370b5ff1bd866e4dedf7998d0ed121eb7da0da7c62f3f9",
       "subjectId": "CANONICAL_COMMIT",
       "controlId": "POSTGRES_ATOMIC_COMMIT",
       "boundaryId": "PGLITE_POSTGRES",
@@ -487,6 +577,9 @@
         "source": "tests/integration/build001-f1-canonical-commit.integration.test.ts",
         "immutableRef": "bc2cc7179979b4fccd892d265bedf8d7b3ab7bf1"
       },
+      "provenanceClass": "DECLARED_ONLY",
+      "issuerKind": "TEST_FIXTURE",
+      "runnerObservation": null,
       "commandTestIdentifier": "pnpm test:sql",
       "result": "PASS",
       "limitations": [
@@ -497,6 +590,8 @@
         "tests/integration/build001-f1-canonical-commit.integration.test.ts",
         "docs/builds/build-001/fixes/F1/04_FIX_EVIDENCE.md"
       ],
+      "artifactBindings": [],
+      "receiptIntegrity": null,
       "baselineSha": "7cc0e3b9951f276dbaf4f74f73662e430b9960c9",
       "resultSha": "bc2cc7179979b4fccd892d265bedf8d7b3ab7bf1",
       "timestamp": "2026-08-15T18:15:00.000Z"
@@ -507,7 +602,7 @@
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "candidate-immutability",
       "criterionVersion": 1,
-      "criterionDefinitionHash": "7c6bd2f96ec77922ce256a21a4ac780f91efcc249cac95b7e7114db496de4273",
+      "criterionDefinitionHash": "7f1acd05b6a509ae47e050c9ff735fbfdff5d2df52c9e7da18306cae48b11633",
       "subjectId": "CANDIDATE_ASSET",
       "controlId": "POSTGRES_CANDIDATE_IMMUTABILITY",
       "boundaryId": "PGLITE_POSTGRES",
@@ -540,6 +635,9 @@
         "source": "tests/integration/build001-f1-canonical-commit.integration.test.ts",
         "immutableRef": "bc2cc7179979b4fccd892d265bedf8d7b3ab7bf1"
       },
+      "provenanceClass": "DECLARED_ONLY",
+      "issuerKind": "TEST_FIXTURE",
+      "runnerObservation": null,
       "commandTestIdentifier": "pnpm test:sql",
       "result": "PASS",
       "limitations": [
@@ -550,6 +648,8 @@
         "tests/integration/build001-f1-canonical-commit.integration.test.ts",
         "docs/builds/build-001/fixes/F1/04_FIX_EVIDENCE.md"
       ],
+      "artifactBindings": [],
+      "receiptIntegrity": null,
       "baselineSha": "7cc0e3b9951f276dbaf4f74f73662e430b9960c9",
       "resultSha": "bc2cc7179979b4fccd892d265bedf8d7b3ab7bf1",
       "timestamp": "2026-08-15T18:15:00.000Z"
@@ -560,7 +660,7 @@
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "asset-version-immutability",
       "criterionVersion": 1,
-      "criterionDefinitionHash": "720422027decaf29e4b94e6ed22c804e4a1824ab8962524c50e7a6d22f5f6ec8",
+      "criterionDefinitionHash": "26fb08a2c2dbdd26418327451a126903447878debcf0ed850e2bf2bcfebfe32a",
       "subjectId": "ASSET_VERSION",
       "controlId": "POSTGRES_ASSET_VERSION_IMMUTABILITY",
       "boundaryId": "PGLITE_POSTGRES",
@@ -593,6 +693,9 @@
         "source": "tests/integration/build001-f1-canonical-commit.integration.test.ts",
         "immutableRef": "bc2cc7179979b4fccd892d265bedf8d7b3ab7bf1"
       },
+      "provenanceClass": "DECLARED_ONLY",
+      "issuerKind": "TEST_FIXTURE",
+      "runnerObservation": null,
       "commandTestIdentifier": "pnpm test:sql",
       "result": "PASS",
       "limitations": [
@@ -603,6 +706,8 @@
         "tests/integration/build001-f1-canonical-commit.integration.test.ts",
         "docs/builds/build-001/fixes/F1/04_FIX_EVIDENCE.md"
       ],
+      "artifactBindings": [],
+      "receiptIntegrity": null,
       "baselineSha": "7cc0e3b9951f276dbaf4f74f73662e430b9960c9",
       "resultSha": "bc2cc7179979b4fccd892d265bedf8d7b3ab7bf1",
       "timestamp": "2026-08-15T18:15:00.000Z"
@@ -613,7 +718,7 @@
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "stale-head",
       "criterionVersion": 1,
-      "criterionDefinitionHash": "bf5855fb520144e77774ddb2d9e79f2881283dc71664f52d5da7f04bf308dda3",
+      "criterionDefinitionHash": "510ebbda98771bc82fb150d6b49d836c392b1fd9f858d09278d94b31e9c378e9",
       "subjectId": "CANONICAL_HEAD",
       "controlId": "POSTGRES_STALE_HEAD_CAS",
       "boundaryId": "PGLITE_POSTGRES",
@@ -646,6 +751,9 @@
         "source": "tests/integration/build001-f1-canonical-commit.integration.test.ts",
         "immutableRef": "bc2cc7179979b4fccd892d265bedf8d7b3ab7bf1"
       },
+      "provenanceClass": "DECLARED_ONLY",
+      "issuerKind": "TEST_FIXTURE",
+      "runnerObservation": null,
       "commandTestIdentifier": "pnpm test:sql",
       "result": "PASS",
       "limitations": [
@@ -656,6 +764,8 @@
         "tests/integration/build001-f1-canonical-commit.integration.test.ts",
         "docs/builds/build-001/fixes/F1/04_FIX_EVIDENCE.md"
       ],
+      "artifactBindings": [],
+      "receiptIntegrity": null,
       "baselineSha": "7cc0e3b9951f276dbaf4f74f73662e430b9960c9",
       "resultSha": "bc2cc7179979b4fccd892d265bedf8d7b3ab7bf1",
       "timestamp": "2026-08-15T18:15:00.000Z"
@@ -666,7 +776,7 @@
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "commit-idempotency",
       "criterionVersion": 1,
-      "criterionDefinitionHash": "4112c10450432080142cf9cb3906198fccb08795433c2d23d752f96981a5a135",
+      "criterionDefinitionHash": "f7602171af970a1b1edd2e04826846a4288df3787e67fb60be186f4e9c1ec186",
       "subjectId": "CANONICAL_COMMIT",
       "controlId": "POSTGRES_COMMIT_IDEMPOTENCY",
       "boundaryId": "PGLITE_POSTGRES",
@@ -699,6 +809,9 @@
         "source": "tests/integration/build001-f1-canonical-commit.integration.test.ts",
         "immutableRef": "bc2cc7179979b4fccd892d265bedf8d7b3ab7bf1"
       },
+      "provenanceClass": "DECLARED_ONLY",
+      "issuerKind": "TEST_FIXTURE",
+      "runnerObservation": null,
       "commandTestIdentifier": "pnpm test:sql",
       "result": "PASS",
       "limitations": [
@@ -709,6 +822,8 @@
         "tests/integration/build001-f1-canonical-commit.integration.test.ts",
         "docs/builds/build-001/fixes/F1/04_FIX_EVIDENCE.md"
       ],
+      "artifactBindings": [],
+      "receiptIntegrity": null,
       "baselineSha": "7cc0e3b9951f276dbaf4f74f73662e430b9960c9",
       "resultSha": "bc2cc7179979b4fccd892d265bedf8d7b3ab7bf1",
       "timestamp": "2026-08-15T18:15:00.000Z"
@@ -719,7 +834,7 @@
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "legacy-route-isolation",
       "criterionVersion": 1,
-      "criterionDefinitionHash": "d255e4203e3ed56e60e1bc76873e003908e6951ccf24b79afad2211de1a37a4f",
+      "criterionDefinitionHash": "a8678b334cd264fdd5e93f76c6b99d6e880c00cfe4bef08be00af9755d37980b",
       "subjectId": "LEGACY_PRECISION_EDIT_ROUTE",
       "controlId": "NEXT_LEGACY_ROUTE_ISOLATION",
       "boundaryId": "NEXT_ROUTE_HANDLER",
@@ -752,6 +867,9 @@
         "source": "tests/security/build001-f2-legacy-precision-edit-isolation.test.ts",
         "immutableRef": "33556d8dcb4f1542cb80706f10068aa77fef1006"
       },
+      "provenanceClass": "DECLARED_ONLY",
+      "issuerKind": "TEST_FIXTURE",
+      "runnerObservation": null,
       "commandTestIdentifier": "pnpm test:application",
       "result": "PASS",
       "limitations": [
@@ -762,6 +880,8 @@
         "tests/security/build001-f2-legacy-precision-edit-isolation.test.ts",
         "docs/builds/build-001/fixes/F2/05_FIX_EVIDENCE.md"
       ],
+      "artifactBindings": [],
+      "receiptIntegrity": null,
       "baselineSha": "7cc0e3b9951f276dbaf4f74f73662e430b9960c9",
       "resultSha": "33556d8dcb4f1542cb80706f10068aa77fef1006",
       "timestamp": "2026-08-15T18:15:00.000Z"
@@ -772,7 +892,7 @@
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "f1-sql-regression",
       "criterionVersion": 1,
-      "criterionDefinitionHash": "ec4ffdef850c71c54abc94d89cf11046c28f5de7986e18d4557cfaedfbb93165",
+      "criterionDefinitionHash": "10a93ebb9b52eded6ef4544a24a9e88df2aff94789a81cc5743de970489ca008",
       "subjectId": "CANONICAL_COMMIT",
       "controlId": "POSTGRES_F1_REGRESSION",
       "boundaryId": "PGLITE_POSTGRES",
@@ -805,6 +925,9 @@
         "source": "tests/integration/build001-f1-canonical-commit.integration.test.ts",
         "immutableRef": "33556d8dcb4f1542cb80706f10068aa77fef1006"
       },
+      "provenanceClass": "DECLARED_ONLY",
+      "issuerKind": "TEST_FIXTURE",
+      "runnerObservation": null,
       "commandTestIdentifier": "pnpm test:sql",
       "result": "PASS",
       "limitations": [
@@ -815,6 +938,8 @@
         "tests/integration/build001-f1-canonical-commit.integration.test.ts",
         "docs/builds/build-001/fixes/F1/04_FIX_EVIDENCE.md"
       ],
+      "artifactBindings": [],
+      "receiptIntegrity": null,
       "baselineSha": "7cc0e3b9951f276dbaf4f74f73662e430b9960c9",
       "resultSha": "33556d8dcb4f1542cb80706f10068aa77fef1006",
       "timestamp": "2026-08-15T18:15:00.000Z"
@@ -825,7 +950,7 @@
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "deployed-cache-retirement",
       "criterionVersion": 1,
-      "criterionDefinitionHash": "8de33dfbc8611453512d67eaea8547322ef1d275cbf76c91591e3fbd395e9e64",
+      "criterionDefinitionHash": "5cc37460ebeeb093d3f7d98123b566bce3881368e66fd6f525183c86fe0b3864",
       "subjectId": "DEPLOYED_LEGACY_PRECISION_EDIT_ROUTE",
       "controlId": "DEPLOYED_CACHE_RETIREMENT",
       "boundaryId": "REPOSITORY_STATIC_INSPECTION",
@@ -858,6 +983,9 @@
         "source": "not run in deployed staging",
         "immutableRef": "33556d8dcb4f1542cb80706f10068aa77fef1006"
       },
+      "provenanceClass": "DECLARED_ONLY",
+      "issuerKind": "TEST_FIXTURE",
+      "runnerObservation": null,
       "commandTestIdentifier": "not run in deployed staging",
       "result": "UNKNOWN",
       "limitations": [
@@ -865,6 +993,8 @@
       ],
       "skippedReason": null,
       "artifactRefs": [],
+      "artifactBindings": [],
+      "receiptIntegrity": null,
       "baselineSha": "7cc0e3b9951f276dbaf4f74f73662e430b9960c9",
       "resultSha": "33556d8dcb4f1542cb80706f10068aa77fef1006",
       "timestamp": "2026-08-15T18:15:00.000Z"
@@ -875,7 +1005,7 @@
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "deployed-rls",
       "criterionVersion": 1,
-      "criterionDefinitionHash": "846a5bf2ed56cde39062845492db9dacb82e320361a028dc20bcbd1026710ad3",
+      "criterionDefinitionHash": "a48950bd963bc603bd83e66092073966caeb19da681a28dbbb3fdab47a1ce4bc",
       "subjectId": "TENANT_DATA",
       "controlId": "SUPABASE_RLS_TENANT_READ",
       "boundaryId": "REPOSITORY_STATIC_INSPECTION",
@@ -908,6 +1038,9 @@
         "source": "tests/security/phase-b-tenant-lifecycle-rls.test.ts",
         "immutableRef": "33556d8dcb4f1542cb80706f10068aa77fef1006"
       },
+      "provenanceClass": "DECLARED_ONLY",
+      "issuerKind": "TEST_FIXTURE",
+      "runnerObservation": null,
       "commandTestIdentifier": "pnpm test:security",
       "result": "PASS",
       "limitations": [
@@ -917,6 +1050,8 @@
       "artifactRefs": [
         "tests/security/phase-b-tenant-lifecycle-rls.test.ts"
       ],
+      "artifactBindings": [],
+      "receiptIntegrity": null,
       "baselineSha": "7cc0e3b9951f276dbaf4f74f73662e430b9960c9",
       "resultSha": "33556d8dcb4f1542cb80706f10068aa77fef1006",
       "timestamp": "2026-08-15T18:15:00.000Z"
@@ -927,7 +1062,7 @@
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "supabase-auth",
       "criterionVersion": 1,
-      "criterionDefinitionHash": "563e8bdef2923efbfd4a793cb456c091cc6aaddeba05d2b3e1a343cc2bec6768",
+      "criterionDefinitionHash": "7b14644b0cefb6057eec359b9c488e849762a69ec60eefc37eb6c6d3f6ab9167",
       "subjectId": "REQUEST_IDENTITY",
       "controlId": "SUPABASE_AUTH_MEMBERSHIP",
       "boundaryId": "NOT_EXECUTED",
@@ -960,6 +1095,9 @@
         "source": "not run",
         "immutableRef": "33556d8dcb4f1542cb80706f10068aa77fef1006"
       },
+      "provenanceClass": "DECLARED_ONLY",
+      "issuerKind": "TEST_FIXTURE",
+      "runnerObservation": null,
       "commandTestIdentifier": "not run",
       "result": "NOT_RUN",
       "limitations": [
@@ -967,6 +1105,8 @@
       ],
       "skippedReason": null,
       "artifactRefs": [],
+      "artifactBindings": [],
+      "receiptIntegrity": null,
       "baselineSha": "7cc0e3b9951f276dbaf4f74f73662e430b9960c9",
       "resultSha": "33556d8dcb4f1542cb80706f10068aa77fef1006",
       "timestamp": "2026-08-15T18:15:00.000Z"
@@ -977,7 +1117,7 @@
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "rpc-acl",
       "criterionVersion": 1,
-      "criterionDefinitionHash": "2a0542f8a791d30e92b449d6fdba1f602fc6b081fb987609374fa899d99e1b54",
+      "criterionDefinitionHash": "49cac47113cbb7dae4a27b06b117f677e2322a04d92fc2c8a0d9018ea51b5db8",
       "subjectId": "CANONICAL_COMMIT_RPC",
       "controlId": "SUPABASE_RPC_ACL",
       "boundaryId": "NOT_EXECUTED",
@@ -1010,6 +1150,9 @@
         "source": "pnpm test:staging",
         "immutableRef": "33556d8dcb4f1542cb80706f10068aa77fef1006"
       },
+      "provenanceClass": "DECLARED_ONLY",
+      "issuerKind": "TEST_FIXTURE",
+      "runnerObservation": null,
       "commandTestIdentifier": "pnpm test:staging",
       "result": "SKIPPED_ENVIRONMENT",
       "limitations": [
@@ -1017,6 +1160,8 @@
       ],
       "skippedReason": "BUILD 001 staging credentials were not supplied.",
       "artifactRefs": [],
+      "artifactBindings": [],
+      "receiptIntegrity": null,
       "baselineSha": "7cc0e3b9951f276dbaf4f74f73662e430b9960c9",
       "resultSha": "33556d8dcb4f1542cb80706f10068aa77fef1006",
       "timestamp": "2026-08-15T18:15:00.000Z"
@@ -1027,7 +1172,7 @@
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "storage-policy",
       "criterionVersion": 1,
-      "criterionDefinitionHash": "790fe79be7a21b30afd6059a7c318a3620495c9ec1d859e2e2e0cc9763604cb0",
+      "criterionDefinitionHash": "b454dba95a8901d60cca0f1a07ff7dab986c007f1f7330dd37693139dfec4058",
       "subjectId": "TENANT_STORAGE",
       "controlId": "STORAGE_TENANT_ISOLATION",
       "boundaryId": "NOT_EXECUTED",
@@ -1060,6 +1205,9 @@
         "source": "not run",
         "immutableRef": "33556d8dcb4f1542cb80706f10068aa77fef1006"
       },
+      "provenanceClass": "DECLARED_ONLY",
+      "issuerKind": "TEST_FIXTURE",
+      "runnerObservation": null,
       "commandTestIdentifier": "not run",
       "result": "NOT_RUN",
       "limitations": [
@@ -1067,6 +1215,8 @@
       ],
       "skippedReason": null,
       "artifactRefs": [],
+      "artifactBindings": [],
+      "receiptIntegrity": null,
       "baselineSha": "7cc0e3b9951f276dbaf4f74f73662e430b9960c9",
       "resultSha": "33556d8dcb4f1542cb80706f10068aa77fef1006",
       "timestamp": "2026-08-15T18:15:00.000Z"
@@ -1077,7 +1227,7 @@
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "service-role-storage",
       "criterionVersion": 1,
-      "criterionDefinitionHash": "574c3d6114725b53d5546d9a1061ffb1bcc0b4305e516de79baca0118a9a0591",
+      "criterionDefinitionHash": "a1dc45d9ad8caa720d33eb61a5dbc434f045b981b73222f1b893e26db38cc2bf",
       "subjectId": "PRIVILEGED_STORAGE",
       "controlId": "SERVICE_ROLE_STORAGE_ISOLATION",
       "boundaryId": "NOT_EXECUTED",
@@ -1110,6 +1260,9 @@
         "source": "not run",
         "immutableRef": "33556d8dcb4f1542cb80706f10068aa77fef1006"
       },
+      "provenanceClass": "DECLARED_ONLY",
+      "issuerKind": "TEST_FIXTURE",
+      "runnerObservation": null,
       "commandTestIdentifier": "not run",
       "result": "NOT_RUN",
       "limitations": [
@@ -1117,6 +1270,8 @@
       ],
       "skippedReason": null,
       "artifactRefs": [],
+      "artifactBindings": [],
+      "receiptIntegrity": null,
       "baselineSha": "7cc0e3b9951f276dbaf4f74f73662e430b9960c9",
       "resultSha": "33556d8dcb4f1542cb80706f10068aa77fef1006",
       "timestamp": "2026-08-15T18:15:00.000Z"
@@ -1127,7 +1282,7 @@
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "remote-concurrency",
       "criterionVersion": 1,
-      "criterionDefinitionHash": "d43110cf3bf117da52ffc08df72b2f9213c282f6c3e94e67e92fda34d6549233",
+      "criterionDefinitionHash": "a25308e634dae2fdf06e25db66b0e6ea95cdd454623a3e9b594ff9fddcaf6eb6",
       "subjectId": "CANONICAL_HEAD",
       "controlId": "POSTGRES_REMOTE_CONCURRENCY",
       "boundaryId": "NOT_EXECUTED",
@@ -1160,6 +1315,9 @@
         "source": "not run",
         "immutableRef": "33556d8dcb4f1542cb80706f10068aa77fef1006"
       },
+      "provenanceClass": "DECLARED_ONLY",
+      "issuerKind": "TEST_FIXTURE",
+      "runnerObservation": null,
       "commandTestIdentifier": "not run",
       "result": "NOT_RUN",
       "limitations": [
@@ -1167,6 +1325,8 @@
       ],
       "skippedReason": null,
       "artifactRefs": [],
+      "artifactBindings": [],
+      "receiptIntegrity": null,
       "baselineSha": "7cc0e3b9951f276dbaf4f74f73662e430b9960c9",
       "resultSha": "33556d8dcb4f1542cb80706f10068aa77fef1006",
       "timestamp": "2026-08-15T18:15:00.000Z"
@@ -1179,7 +1339,7 @@
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "atomic-commit",
       "criterionVersion": 1,
-      "criterionDefinitionHash": "2487ee32a94988bd66f781fb3aa6efbe1acecfd6fb387997f15a736beadf1b73",
+      "criterionDefinitionHash": "cb36d6edbb82637d4c370b5ff1bd866e4dedf7998d0ed121eb7da0da7c62f3f9",
       "minimumEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY",
       "highestPassingEvidenceLevel": "E1_MODEL",
       "status": "FAILED",
@@ -1212,6 +1372,20 @@
           "reasons": []
         }
       ],
+      "provenanceAssessments": [
+        {
+          "evidenceId": "71000000-0000-4000-8000-000000000001",
+          "claimedClass": "DECLARED_ONLY",
+          "status": "VALID",
+          "reasons": []
+        },
+        {
+          "evidenceId": "71000000-0000-4000-8000-000000000002",
+          "claimedClass": "DECLARED_ONLY",
+          "status": "VALID",
+          "reasons": []
+        }
+      ],
       "limitations": [
         "No PostgreSQL engine, migration, trigger or RPC was executed.",
         "Local PostgreSQL semantics do not prove deployed Supabase ACL or RLS.",
@@ -1227,7 +1401,7 @@
           "specId": "virro-vnext-build-001-trust-foundation",
           "criterionId": "atomic-commit",
           "criterionVersion": 1,
-          "criterionDefinitionHash": "2487ee32a94988bd66f781fb3aa6efbe1acecfd6fb387997f15a736beadf1b73",
+          "criterionDefinitionHash": "cb36d6edbb82637d4c370b5ff1bd866e4dedf7998d0ed121eb7da0da7c62f3f9",
           "subjectId": "CANONICAL_COMMIT",
           "controlId": "POSTGRES_ATOMIC_COMMIT",
           "boundaryId": "TRUST_HARNESS_MODEL",
@@ -1260,6 +1434,9 @@
             "source": "docs/builds/build-001/06_IMPLEMENTATION_EVIDENCE.md",
             "immutableRef": "7cc0e3b9951f276dbaf4f74f73662e430b9960c9"
           },
+          "provenanceClass": "DECLARED_ONLY",
+          "issuerKind": "TEST_FIXTURE",
+          "runnerObservation": null,
           "commandTestIdentifier": "tests/security/build001-trust-foundation.test.ts",
           "result": "PASS",
           "limitations": [
@@ -1269,6 +1446,8 @@
           "artifactRefs": [
             "docs/builds/build-001/06_IMPLEMENTATION_EVIDENCE.md"
           ],
+          "artifactBindings": [],
+          "receiptIntegrity": null,
           "baselineSha": "7cc0e3b9951f276dbaf4f74f73662e430b9960c9",
           "resultSha": "7cc0e3b9951f276dbaf4f74f73662e430b9960c9",
           "timestamp": "2026-08-15T09:14:02.000Z"
@@ -1279,7 +1458,7 @@
           "specId": "virro-vnext-build-001-trust-foundation",
           "criterionId": "atomic-commit",
           "criterionVersion": 1,
-          "criterionDefinitionHash": "2487ee32a94988bd66f781fb3aa6efbe1acecfd6fb387997f15a736beadf1b73",
+          "criterionDefinitionHash": "cb36d6edbb82637d4c370b5ff1bd866e4dedf7998d0ed121eb7da0da7c62f3f9",
           "subjectId": "CANONICAL_COMMIT",
           "controlId": "POSTGRES_ATOMIC_COMMIT",
           "boundaryId": "PGLITE_POSTGRES",
@@ -1312,6 +1491,9 @@
             "source": "docs/builds/build-001/fixes/F1/03_REPRODUCTION.md",
             "immutableRef": "7cc0e3b9951f276dbaf4f74f73662e430b9960c9"
           },
+          "provenanceClass": "DECLARED_ONLY",
+          "issuerKind": "IMPORTED",
+          "runnerObservation": null,
           "commandTestIdentifier": "tests/integration/build001-f1-canonical-commit.integration.test.ts pre-patch reproducer",
           "result": "FAIL",
           "limitations": [
@@ -1321,6 +1503,8 @@
           "artifactRefs": [
             "docs/builds/build-001/fixes/F1/03_REPRODUCTION.md"
           ],
+          "artifactBindings": [],
+          "receiptIntegrity": null,
           "baselineSha": "7cc0e3b9951f276dbaf4f74f73662e430b9960c9",
           "resultSha": "7cc0e3b9951f276dbaf4f74f73662e430b9960c9",
           "timestamp": "2026-08-15T10:00:00.000Z"
@@ -1333,7 +1517,7 @@
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "atomic-commit",
       "criterionVersion": 1,
-      "criterionDefinitionHash": "2487ee32a94988bd66f781fb3aa6efbe1acecfd6fb387997f15a736beadf1b73",
+      "criterionDefinitionHash": "cb36d6edbb82637d4c370b5ff1bd866e4dedf7998d0ed121eb7da0da7c62f3f9",
       "minimumEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY",
       "highestPassingEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY",
       "status": "PROVEN",
@@ -1366,6 +1550,20 @@
           "reasons": []
         }
       ],
+      "provenanceAssessments": [
+        {
+          "evidenceId": "71000000-0000-4000-8000-000000000003",
+          "claimedClass": "DECLARED_ONLY",
+          "status": "VALID",
+          "reasons": []
+        },
+        {
+          "evidenceId": "71000000-0000-4000-8000-000000000004",
+          "claimedClass": "DECLARED_ONLY",
+          "status": "VALID",
+          "reasons": []
+        }
+      ],
       "limitations": [
         "Model coverage supports exploration but cannot prove SQL transaction semantics.",
         "Does not prove deployed Supabase RLS, Auth, Storage or platform concurrency.",
@@ -1381,7 +1579,7 @@
           "specId": "virro-vnext-build-001-trust-foundation",
           "criterionId": "atomic-commit",
           "criterionVersion": 1,
-          "criterionDefinitionHash": "2487ee32a94988bd66f781fb3aa6efbe1acecfd6fb387997f15a736beadf1b73",
+          "criterionDefinitionHash": "cb36d6edbb82637d4c370b5ff1bd866e4dedf7998d0ed121eb7da0da7c62f3f9",
           "subjectId": "CANONICAL_COMMIT",
           "controlId": "POSTGRES_ATOMIC_COMMIT",
           "boundaryId": "TRUST_HARNESS_MODEL",
@@ -1414,6 +1612,9 @@
             "source": "pnpm test:model",
             "immutableRef": "bc2cc7179979b4fccd892d265bedf8d7b3ab7bf1"
           },
+          "provenanceClass": "DECLARED_ONLY",
+          "issuerKind": "TEST_FIXTURE",
+          "runnerObservation": null,
           "commandTestIdentifier": "pnpm test:model",
           "result": "PASS",
           "limitations": [
@@ -1421,6 +1622,8 @@
           ],
           "skippedReason": null,
           "artifactRefs": [],
+          "artifactBindings": [],
+          "receiptIntegrity": null,
           "baselineSha": "7cc0e3b9951f276dbaf4f74f73662e430b9960c9",
           "resultSha": "bc2cc7179979b4fccd892d265bedf8d7b3ab7bf1",
           "timestamp": "2026-08-15T18:15:00.000Z"
@@ -1431,7 +1634,7 @@
           "specId": "virro-vnext-build-001-trust-foundation",
           "criterionId": "atomic-commit",
           "criterionVersion": 1,
-          "criterionDefinitionHash": "2487ee32a94988bd66f781fb3aa6efbe1acecfd6fb387997f15a736beadf1b73",
+          "criterionDefinitionHash": "cb36d6edbb82637d4c370b5ff1bd866e4dedf7998d0ed121eb7da0da7c62f3f9",
           "subjectId": "CANONICAL_COMMIT",
           "controlId": "POSTGRES_ATOMIC_COMMIT",
           "boundaryId": "PGLITE_POSTGRES",
@@ -1464,6 +1667,9 @@
             "source": "tests/integration/build001-f1-canonical-commit.integration.test.ts",
             "immutableRef": "bc2cc7179979b4fccd892d265bedf8d7b3ab7bf1"
           },
+          "provenanceClass": "DECLARED_ONLY",
+          "issuerKind": "TEST_FIXTURE",
+          "runnerObservation": null,
           "commandTestIdentifier": "pnpm test:sql",
           "result": "PASS",
           "limitations": [
@@ -1474,6 +1680,8 @@
             "tests/integration/build001-f1-canonical-commit.integration.test.ts",
             "docs/builds/build-001/fixes/F1/04_FIX_EVIDENCE.md"
           ],
+          "artifactBindings": [],
+          "receiptIntegrity": null,
           "baselineSha": "7cc0e3b9951f276dbaf4f74f73662e430b9960c9",
           "resultSha": "bc2cc7179979b4fccd892d265bedf8d7b3ab7bf1",
           "timestamp": "2026-08-15T18:15:00.000Z"
@@ -1486,7 +1694,7 @@
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "candidate-immutability",
       "criterionVersion": 1,
-      "criterionDefinitionHash": "7c6bd2f96ec77922ce256a21a4ac780f91efcc249cac95b7e7114db496de4273",
+      "criterionDefinitionHash": "7f1acd05b6a509ae47e050c9ff735fbfdff5d2df52c9e7da18306cae48b11633",
       "minimumEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY",
       "highestPassingEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY",
       "status": "PROVEN",
@@ -1504,6 +1712,14 @@
           "reasons": []
         }
       ],
+      "provenanceAssessments": [
+        {
+          "evidenceId": "71000000-0000-4000-8000-000000000005",
+          "claimedClass": "DECLARED_ONLY",
+          "status": "VALID",
+          "reasons": []
+        }
+      ],
       "limitations": [
         "Does not prove deployed Supabase RLS, Auth, Storage or platform concurrency."
       ],
@@ -1515,7 +1731,7 @@
           "specId": "virro-vnext-build-001-trust-foundation",
           "criterionId": "candidate-immutability",
           "criterionVersion": 1,
-          "criterionDefinitionHash": "7c6bd2f96ec77922ce256a21a4ac780f91efcc249cac95b7e7114db496de4273",
+          "criterionDefinitionHash": "7f1acd05b6a509ae47e050c9ff735fbfdff5d2df52c9e7da18306cae48b11633",
           "subjectId": "CANDIDATE_ASSET",
           "controlId": "POSTGRES_CANDIDATE_IMMUTABILITY",
           "boundaryId": "PGLITE_POSTGRES",
@@ -1548,6 +1764,9 @@
             "source": "tests/integration/build001-f1-canonical-commit.integration.test.ts",
             "immutableRef": "bc2cc7179979b4fccd892d265bedf8d7b3ab7bf1"
           },
+          "provenanceClass": "DECLARED_ONLY",
+          "issuerKind": "TEST_FIXTURE",
+          "runnerObservation": null,
           "commandTestIdentifier": "pnpm test:sql",
           "result": "PASS",
           "limitations": [
@@ -1558,6 +1777,8 @@
             "tests/integration/build001-f1-canonical-commit.integration.test.ts",
             "docs/builds/build-001/fixes/F1/04_FIX_EVIDENCE.md"
           ],
+          "artifactBindings": [],
+          "receiptIntegrity": null,
           "baselineSha": "7cc0e3b9951f276dbaf4f74f73662e430b9960c9",
           "resultSha": "bc2cc7179979b4fccd892d265bedf8d7b3ab7bf1",
           "timestamp": "2026-08-15T18:15:00.000Z"
@@ -1570,7 +1791,7 @@
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "asset-version-immutability",
       "criterionVersion": 1,
-      "criterionDefinitionHash": "720422027decaf29e4b94e6ed22c804e4a1824ab8962524c50e7a6d22f5f6ec8",
+      "criterionDefinitionHash": "26fb08a2c2dbdd26418327451a126903447878debcf0ed850e2bf2bcfebfe32a",
       "minimumEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY",
       "highestPassingEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY",
       "status": "PROVEN",
@@ -1588,6 +1809,14 @@
           "reasons": []
         }
       ],
+      "provenanceAssessments": [
+        {
+          "evidenceId": "71000000-0000-4000-8000-000000000006",
+          "claimedClass": "DECLARED_ONLY",
+          "status": "VALID",
+          "reasons": []
+        }
+      ],
       "limitations": [
         "Does not prove deployed Supabase RLS, Auth, Storage or platform concurrency."
       ],
@@ -1599,7 +1828,7 @@
           "specId": "virro-vnext-build-001-trust-foundation",
           "criterionId": "asset-version-immutability",
           "criterionVersion": 1,
-          "criterionDefinitionHash": "720422027decaf29e4b94e6ed22c804e4a1824ab8962524c50e7a6d22f5f6ec8",
+          "criterionDefinitionHash": "26fb08a2c2dbdd26418327451a126903447878debcf0ed850e2bf2bcfebfe32a",
           "subjectId": "ASSET_VERSION",
           "controlId": "POSTGRES_ASSET_VERSION_IMMUTABILITY",
           "boundaryId": "PGLITE_POSTGRES",
@@ -1632,6 +1861,9 @@
             "source": "tests/integration/build001-f1-canonical-commit.integration.test.ts",
             "immutableRef": "bc2cc7179979b4fccd892d265bedf8d7b3ab7bf1"
           },
+          "provenanceClass": "DECLARED_ONLY",
+          "issuerKind": "TEST_FIXTURE",
+          "runnerObservation": null,
           "commandTestIdentifier": "pnpm test:sql",
           "result": "PASS",
           "limitations": [
@@ -1642,6 +1874,8 @@
             "tests/integration/build001-f1-canonical-commit.integration.test.ts",
             "docs/builds/build-001/fixes/F1/04_FIX_EVIDENCE.md"
           ],
+          "artifactBindings": [],
+          "receiptIntegrity": null,
           "baselineSha": "7cc0e3b9951f276dbaf4f74f73662e430b9960c9",
           "resultSha": "bc2cc7179979b4fccd892d265bedf8d7b3ab7bf1",
           "timestamp": "2026-08-15T18:15:00.000Z"
@@ -1654,7 +1888,7 @@
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "stale-head",
       "criterionVersion": 1,
-      "criterionDefinitionHash": "bf5855fb520144e77774ddb2d9e79f2881283dc71664f52d5da7f04bf308dda3",
+      "criterionDefinitionHash": "510ebbda98771bc82fb150d6b49d836c392b1fd9f858d09278d94b31e9c378e9",
       "minimumEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY",
       "highestPassingEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY",
       "status": "PROVEN",
@@ -1672,6 +1906,14 @@
           "reasons": []
         }
       ],
+      "provenanceAssessments": [
+        {
+          "evidenceId": "71000000-0000-4000-8000-000000000007",
+          "claimedClass": "DECLARED_ONLY",
+          "status": "VALID",
+          "reasons": []
+        }
+      ],
       "limitations": [
         "Does not prove deployed Supabase RLS, Auth, Storage or platform concurrency."
       ],
@@ -1683,7 +1925,7 @@
           "specId": "virro-vnext-build-001-trust-foundation",
           "criterionId": "stale-head",
           "criterionVersion": 1,
-          "criterionDefinitionHash": "bf5855fb520144e77774ddb2d9e79f2881283dc71664f52d5da7f04bf308dda3",
+          "criterionDefinitionHash": "510ebbda98771bc82fb150d6b49d836c392b1fd9f858d09278d94b31e9c378e9",
           "subjectId": "CANONICAL_HEAD",
           "controlId": "POSTGRES_STALE_HEAD_CAS",
           "boundaryId": "PGLITE_POSTGRES",
@@ -1716,6 +1958,9 @@
             "source": "tests/integration/build001-f1-canonical-commit.integration.test.ts",
             "immutableRef": "bc2cc7179979b4fccd892d265bedf8d7b3ab7bf1"
           },
+          "provenanceClass": "DECLARED_ONLY",
+          "issuerKind": "TEST_FIXTURE",
+          "runnerObservation": null,
           "commandTestIdentifier": "pnpm test:sql",
           "result": "PASS",
           "limitations": [
@@ -1726,6 +1971,8 @@
             "tests/integration/build001-f1-canonical-commit.integration.test.ts",
             "docs/builds/build-001/fixes/F1/04_FIX_EVIDENCE.md"
           ],
+          "artifactBindings": [],
+          "receiptIntegrity": null,
           "baselineSha": "7cc0e3b9951f276dbaf4f74f73662e430b9960c9",
           "resultSha": "bc2cc7179979b4fccd892d265bedf8d7b3ab7bf1",
           "timestamp": "2026-08-15T18:15:00.000Z"
@@ -1738,7 +1985,7 @@
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "commit-idempotency",
       "criterionVersion": 1,
-      "criterionDefinitionHash": "4112c10450432080142cf9cb3906198fccb08795433c2d23d752f96981a5a135",
+      "criterionDefinitionHash": "f7602171af970a1b1edd2e04826846a4288df3787e67fb60be186f4e9c1ec186",
       "minimumEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY",
       "highestPassingEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY",
       "status": "PROVEN",
@@ -1756,6 +2003,14 @@
           "reasons": []
         }
       ],
+      "provenanceAssessments": [
+        {
+          "evidenceId": "71000000-0000-4000-8000-000000000008",
+          "claimedClass": "DECLARED_ONLY",
+          "status": "VALID",
+          "reasons": []
+        }
+      ],
       "limitations": [
         "Does not prove deployed Supabase RLS, Auth, Storage or platform concurrency."
       ],
@@ -1767,7 +2022,7 @@
           "specId": "virro-vnext-build-001-trust-foundation",
           "criterionId": "commit-idempotency",
           "criterionVersion": 1,
-          "criterionDefinitionHash": "4112c10450432080142cf9cb3906198fccb08795433c2d23d752f96981a5a135",
+          "criterionDefinitionHash": "f7602171af970a1b1edd2e04826846a4288df3787e67fb60be186f4e9c1ec186",
           "subjectId": "CANONICAL_COMMIT",
           "controlId": "POSTGRES_COMMIT_IDEMPOTENCY",
           "boundaryId": "PGLITE_POSTGRES",
@@ -1800,6 +2055,9 @@
             "source": "tests/integration/build001-f1-canonical-commit.integration.test.ts",
             "immutableRef": "bc2cc7179979b4fccd892d265bedf8d7b3ab7bf1"
           },
+          "provenanceClass": "DECLARED_ONLY",
+          "issuerKind": "TEST_FIXTURE",
+          "runnerObservation": null,
           "commandTestIdentifier": "pnpm test:sql",
           "result": "PASS",
           "limitations": [
@@ -1810,6 +2068,8 @@
             "tests/integration/build001-f1-canonical-commit.integration.test.ts",
             "docs/builds/build-001/fixes/F1/04_FIX_EVIDENCE.md"
           ],
+          "artifactBindings": [],
+          "receiptIntegrity": null,
           "baselineSha": "7cc0e3b9951f276dbaf4f74f73662e430b9960c9",
           "resultSha": "bc2cc7179979b4fccd892d265bedf8d7b3ab7bf1",
           "timestamp": "2026-08-15T18:15:00.000Z"
@@ -1822,7 +2082,7 @@
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "legacy-route-isolation",
       "criterionVersion": 1,
-      "criterionDefinitionHash": "d255e4203e3ed56e60e1bc76873e003908e6951ccf24b79afad2211de1a37a4f",
+      "criterionDefinitionHash": "a8678b334cd264fdd5e93f76c6b99d6e880c00cfe4bef08be00af9755d37980b",
       "minimumEvidenceLevel": "E2_APPLICATION",
       "highestPassingEvidenceLevel": "E2_APPLICATION",
       "status": "PROVEN",
@@ -1840,6 +2100,14 @@
           "reasons": []
         }
       ],
+      "provenanceAssessments": [
+        {
+          "evidenceId": "71000000-0000-4000-8000-000000000009",
+          "claimedClass": "DECLARED_ONLY",
+          "status": "VALID",
+          "reasons": []
+        }
+      ],
       "limitations": [
         "Deployed CDN and edge routing were not exercised."
       ],
@@ -1851,7 +2119,7 @@
           "specId": "virro-vnext-build-001-trust-foundation",
           "criterionId": "legacy-route-isolation",
           "criterionVersion": 1,
-          "criterionDefinitionHash": "d255e4203e3ed56e60e1bc76873e003908e6951ccf24b79afad2211de1a37a4f",
+          "criterionDefinitionHash": "a8678b334cd264fdd5e93f76c6b99d6e880c00cfe4bef08be00af9755d37980b",
           "subjectId": "LEGACY_PRECISION_EDIT_ROUTE",
           "controlId": "NEXT_LEGACY_ROUTE_ISOLATION",
           "boundaryId": "NEXT_ROUTE_HANDLER",
@@ -1884,6 +2152,9 @@
             "source": "tests/security/build001-f2-legacy-precision-edit-isolation.test.ts",
             "immutableRef": "33556d8dcb4f1542cb80706f10068aa77fef1006"
           },
+          "provenanceClass": "DECLARED_ONLY",
+          "issuerKind": "TEST_FIXTURE",
+          "runnerObservation": null,
           "commandTestIdentifier": "pnpm test:application",
           "result": "PASS",
           "limitations": [
@@ -1894,6 +2165,8 @@
             "tests/security/build001-f2-legacy-precision-edit-isolation.test.ts",
             "docs/builds/build-001/fixes/F2/05_FIX_EVIDENCE.md"
           ],
+          "artifactBindings": [],
+          "receiptIntegrity": null,
           "baselineSha": "7cc0e3b9951f276dbaf4f74f73662e430b9960c9",
           "resultSha": "33556d8dcb4f1542cb80706f10068aa77fef1006",
           "timestamp": "2026-08-15T18:15:00.000Z"
@@ -1906,7 +2179,7 @@
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "f1-sql-regression",
       "criterionVersion": 1,
-      "criterionDefinitionHash": "ec4ffdef850c71c54abc94d89cf11046c28f5de7986e18d4557cfaedfbb93165",
+      "criterionDefinitionHash": "10a93ebb9b52eded6ef4544a24a9e88df2aff94789a81cc5743de970489ca008",
       "minimumEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY",
       "highestPassingEvidenceLevel": "E3_LOCAL_REAL_BOUNDARY",
       "status": "PROVEN",
@@ -1924,6 +2197,14 @@
           "reasons": []
         }
       ],
+      "provenanceAssessments": [
+        {
+          "evidenceId": "71000000-0000-4000-8000-00000000000a",
+          "claimedClass": "DECLARED_ONLY",
+          "status": "VALID",
+          "reasons": []
+        }
+      ],
       "limitations": [
         "Does not prove deployed Supabase RLS, Auth, Storage or platform concurrency."
       ],
@@ -1935,7 +2216,7 @@
           "specId": "virro-vnext-build-001-trust-foundation",
           "criterionId": "f1-sql-regression",
           "criterionVersion": 1,
-          "criterionDefinitionHash": "ec4ffdef850c71c54abc94d89cf11046c28f5de7986e18d4557cfaedfbb93165",
+          "criterionDefinitionHash": "10a93ebb9b52eded6ef4544a24a9e88df2aff94789a81cc5743de970489ca008",
           "subjectId": "CANONICAL_COMMIT",
           "controlId": "POSTGRES_F1_REGRESSION",
           "boundaryId": "PGLITE_POSTGRES",
@@ -1968,6 +2249,9 @@
             "source": "tests/integration/build001-f1-canonical-commit.integration.test.ts",
             "immutableRef": "33556d8dcb4f1542cb80706f10068aa77fef1006"
           },
+          "provenanceClass": "DECLARED_ONLY",
+          "issuerKind": "TEST_FIXTURE",
+          "runnerObservation": null,
           "commandTestIdentifier": "pnpm test:sql",
           "result": "PASS",
           "limitations": [
@@ -1978,6 +2262,8 @@
             "tests/integration/build001-f1-canonical-commit.integration.test.ts",
             "docs/builds/build-001/fixes/F1/04_FIX_EVIDENCE.md"
           ],
+          "artifactBindings": [],
+          "receiptIntegrity": null,
           "baselineSha": "7cc0e3b9951f276dbaf4f74f73662e430b9960c9",
           "resultSha": "33556d8dcb4f1542cb80706f10068aa77fef1006",
           "timestamp": "2026-08-15T18:15:00.000Z"
@@ -1990,7 +2276,7 @@
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "deployed-cache-retirement",
       "criterionVersion": 1,
-      "criterionDefinitionHash": "8de33dfbc8611453512d67eaea8547322ef1d275cbf76c91591e3fbd395e9e64",
+      "criterionDefinitionHash": "5cc37460ebeeb093d3f7d98123b566bce3881368e66fd6f525183c86fe0b3864",
       "minimumEvidenceLevel": "E4_REMOTE_STAGING",
       "highestPassingEvidenceLevel": null,
       "status": "UNKNOWN",
@@ -2015,6 +2301,14 @@
           "reasons": []
         }
       ],
+      "provenanceAssessments": [
+        {
+          "evidenceId": "71000000-0000-4000-8000-00000000000b",
+          "claimedClass": "DECLARED_ONLY",
+          "status": "VALID",
+          "reasons": []
+        }
+      ],
       "limitations": [
         "No deployed CDN, alias cutover or stale-cache behavior was exercised.",
         "71000000-0000-4000-8000-00000000000b: BOUNDARY_ID_MISMATCH",
@@ -2029,7 +2323,7 @@
           "specId": "virro-vnext-build-001-trust-foundation",
           "criterionId": "deployed-cache-retirement",
           "criterionVersion": 1,
-          "criterionDefinitionHash": "8de33dfbc8611453512d67eaea8547322ef1d275cbf76c91591e3fbd395e9e64",
+          "criterionDefinitionHash": "5cc37460ebeeb093d3f7d98123b566bce3881368e66fd6f525183c86fe0b3864",
           "subjectId": "DEPLOYED_LEGACY_PRECISION_EDIT_ROUTE",
           "controlId": "DEPLOYED_CACHE_RETIREMENT",
           "boundaryId": "REPOSITORY_STATIC_INSPECTION",
@@ -2062,6 +2356,9 @@
             "source": "not run in deployed staging",
             "immutableRef": "33556d8dcb4f1542cb80706f10068aa77fef1006"
           },
+          "provenanceClass": "DECLARED_ONLY",
+          "issuerKind": "TEST_FIXTURE",
+          "runnerObservation": null,
           "commandTestIdentifier": "not run in deployed staging",
           "result": "UNKNOWN",
           "limitations": [
@@ -2069,6 +2366,8 @@
           ],
           "skippedReason": null,
           "artifactRefs": [],
+          "artifactBindings": [],
+          "receiptIntegrity": null,
           "baselineSha": "7cc0e3b9951f276dbaf4f74f73662e430b9960c9",
           "resultSha": "33556d8dcb4f1542cb80706f10068aa77fef1006",
           "timestamp": "2026-08-15T18:15:00.000Z"
@@ -2081,7 +2380,7 @@
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "deployed-rls",
       "criterionVersion": 1,
-      "criterionDefinitionHash": "846a5bf2ed56cde39062845492db9dacb82e320361a028dc20bcbd1026710ad3",
+      "criterionDefinitionHash": "a48950bd963bc603bd83e66092073966caeb19da681a28dbbb3fdab47a1ce4bc",
       "minimumEvidenceLevel": "E4_REMOTE_STAGING",
       "highestPassingEvidenceLevel": "E0_STATIC",
       "status": "NOT_PROVEN",
@@ -2106,6 +2405,14 @@
           "reasons": []
         }
       ],
+      "provenanceAssessments": [
+        {
+          "evidenceId": "71000000-0000-4000-8000-00000000000c",
+          "claimedClass": "DECLARED_ONLY",
+          "status": "VALID",
+          "reasons": []
+        }
+      ],
       "limitations": [
         "Policy text inspection does not execute deployed RLS with real tenant JWTs.",
         "71000000-0000-4000-8000-00000000000c: BOUNDARY_ID_MISMATCH",
@@ -2120,7 +2427,7 @@
           "specId": "virro-vnext-build-001-trust-foundation",
           "criterionId": "deployed-rls",
           "criterionVersion": 1,
-          "criterionDefinitionHash": "846a5bf2ed56cde39062845492db9dacb82e320361a028dc20bcbd1026710ad3",
+          "criterionDefinitionHash": "a48950bd963bc603bd83e66092073966caeb19da681a28dbbb3fdab47a1ce4bc",
           "subjectId": "TENANT_DATA",
           "controlId": "SUPABASE_RLS_TENANT_READ",
           "boundaryId": "REPOSITORY_STATIC_INSPECTION",
@@ -2153,6 +2460,9 @@
             "source": "tests/security/phase-b-tenant-lifecycle-rls.test.ts",
             "immutableRef": "33556d8dcb4f1542cb80706f10068aa77fef1006"
           },
+          "provenanceClass": "DECLARED_ONLY",
+          "issuerKind": "TEST_FIXTURE",
+          "runnerObservation": null,
           "commandTestIdentifier": "pnpm test:security",
           "result": "PASS",
           "limitations": [
@@ -2162,6 +2472,8 @@
           "artifactRefs": [
             "tests/security/phase-b-tenant-lifecycle-rls.test.ts"
           ],
+          "artifactBindings": [],
+          "receiptIntegrity": null,
           "baselineSha": "7cc0e3b9951f276dbaf4f74f73662e430b9960c9",
           "resultSha": "33556d8dcb4f1542cb80706f10068aa77fef1006",
           "timestamp": "2026-08-15T18:15:00.000Z"
@@ -2174,7 +2486,7 @@
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "supabase-auth",
       "criterionVersion": 1,
-      "criterionDefinitionHash": "563e8bdef2923efbfd4a793cb456c091cc6aaddeba05d2b3e1a343cc2bec6768",
+      "criterionDefinitionHash": "7b14644b0cefb6057eec359b9c488e849762a69ec60eefc37eb6c6d3f6ab9167",
       "minimumEvidenceLevel": "E4_REMOTE_STAGING",
       "highestPassingEvidenceLevel": null,
       "status": "UNKNOWN",
@@ -2199,6 +2511,14 @@
           "reasons": []
         }
       ],
+      "provenanceAssessments": [
+        {
+          "evidenceId": "71000000-0000-4000-8000-00000000000d",
+          "claimedClass": "DECLARED_ONLY",
+          "status": "VALID",
+          "reasons": []
+        }
+      ],
       "limitations": [
         "No real Supabase users, JWTs or membership lifecycle were exercised.",
         "71000000-0000-4000-8000-00000000000d: BOUNDARY_ID_MISMATCH",
@@ -2213,7 +2533,7 @@
           "specId": "virro-vnext-build-001-trust-foundation",
           "criterionId": "supabase-auth",
           "criterionVersion": 1,
-          "criterionDefinitionHash": "563e8bdef2923efbfd4a793cb456c091cc6aaddeba05d2b3e1a343cc2bec6768",
+          "criterionDefinitionHash": "7b14644b0cefb6057eec359b9c488e849762a69ec60eefc37eb6c6d3f6ab9167",
           "subjectId": "REQUEST_IDENTITY",
           "controlId": "SUPABASE_AUTH_MEMBERSHIP",
           "boundaryId": "NOT_EXECUTED",
@@ -2246,6 +2566,9 @@
             "source": "not run",
             "immutableRef": "33556d8dcb4f1542cb80706f10068aa77fef1006"
           },
+          "provenanceClass": "DECLARED_ONLY",
+          "issuerKind": "TEST_FIXTURE",
+          "runnerObservation": null,
           "commandTestIdentifier": "not run",
           "result": "NOT_RUN",
           "limitations": [
@@ -2253,6 +2576,8 @@
           ],
           "skippedReason": null,
           "artifactRefs": [],
+          "artifactBindings": [],
+          "receiptIntegrity": null,
           "baselineSha": "7cc0e3b9951f276dbaf4f74f73662e430b9960c9",
           "resultSha": "33556d8dcb4f1542cb80706f10068aa77fef1006",
           "timestamp": "2026-08-15T18:15:00.000Z"
@@ -2265,7 +2590,7 @@
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "rpc-acl",
       "criterionVersion": 1,
-      "criterionDefinitionHash": "2a0542f8a791d30e92b449d6fdba1f602fc6b081fb987609374fa899d99e1b54",
+      "criterionDefinitionHash": "49cac47113cbb7dae4a27b06b117f677e2322a04d92fc2c8a0d9018ea51b5db8",
       "minimumEvidenceLevel": "E4_REMOTE_STAGING",
       "highestPassingEvidenceLevel": null,
       "status": "SKIPPED",
@@ -2290,6 +2615,14 @@
           "reasons": []
         }
       ],
+      "provenanceAssessments": [
+        {
+          "evidenceId": "71000000-0000-4000-8000-00000000000e",
+          "claimedClass": "DECLARED_ONLY",
+          "status": "VALID",
+          "reasons": []
+        }
+      ],
       "limitations": [
         "The deployed function owner, ACL and authenticated success path remain unverified.",
         "71000000-0000-4000-8000-00000000000e: BOUNDARY_ID_MISMATCH",
@@ -2306,7 +2639,7 @@
           "specId": "virro-vnext-build-001-trust-foundation",
           "criterionId": "rpc-acl",
           "criterionVersion": 1,
-          "criterionDefinitionHash": "2a0542f8a791d30e92b449d6fdba1f602fc6b081fb987609374fa899d99e1b54",
+          "criterionDefinitionHash": "49cac47113cbb7dae4a27b06b117f677e2322a04d92fc2c8a0d9018ea51b5db8",
           "subjectId": "CANONICAL_COMMIT_RPC",
           "controlId": "SUPABASE_RPC_ACL",
           "boundaryId": "NOT_EXECUTED",
@@ -2339,6 +2672,9 @@
             "source": "pnpm test:staging",
             "immutableRef": "33556d8dcb4f1542cb80706f10068aa77fef1006"
           },
+          "provenanceClass": "DECLARED_ONLY",
+          "issuerKind": "TEST_FIXTURE",
+          "runnerObservation": null,
           "commandTestIdentifier": "pnpm test:staging",
           "result": "SKIPPED_ENVIRONMENT",
           "limitations": [
@@ -2346,6 +2682,8 @@
           ],
           "skippedReason": "BUILD 001 staging credentials were not supplied.",
           "artifactRefs": [],
+          "artifactBindings": [],
+          "receiptIntegrity": null,
           "baselineSha": "7cc0e3b9951f276dbaf4f74f73662e430b9960c9",
           "resultSha": "33556d8dcb4f1542cb80706f10068aa77fef1006",
           "timestamp": "2026-08-15T18:15:00.000Z"
@@ -2358,7 +2696,7 @@
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "storage-policy",
       "criterionVersion": 1,
-      "criterionDefinitionHash": "790fe79be7a21b30afd6059a7c318a3620495c9ec1d859e2e2e0cc9763604cb0",
+      "criterionDefinitionHash": "b454dba95a8901d60cca0f1a07ff7dab986c007f1f7330dd37693139dfec4058",
       "minimumEvidenceLevel": "E4_REMOTE_STAGING",
       "highestPassingEvidenceLevel": null,
       "status": "UNKNOWN",
@@ -2383,6 +2721,14 @@
           "reasons": []
         }
       ],
+      "provenanceAssessments": [
+        {
+          "evidenceId": "71000000-0000-4000-8000-00000000000f",
+          "claimedClass": "DECLARED_ONLY",
+          "status": "VALID",
+          "reasons": []
+        }
+      ],
       "limitations": [
         "No deployed Storage policy was exercised.",
         "71000000-0000-4000-8000-00000000000f: BOUNDARY_ID_MISMATCH",
@@ -2397,7 +2743,7 @@
           "specId": "virro-vnext-build-001-trust-foundation",
           "criterionId": "storage-policy",
           "criterionVersion": 1,
-          "criterionDefinitionHash": "790fe79be7a21b30afd6059a7c318a3620495c9ec1d859e2e2e0cc9763604cb0",
+          "criterionDefinitionHash": "b454dba95a8901d60cca0f1a07ff7dab986c007f1f7330dd37693139dfec4058",
           "subjectId": "TENANT_STORAGE",
           "controlId": "STORAGE_TENANT_ISOLATION",
           "boundaryId": "NOT_EXECUTED",
@@ -2430,6 +2776,9 @@
             "source": "not run",
             "immutableRef": "33556d8dcb4f1542cb80706f10068aa77fef1006"
           },
+          "provenanceClass": "DECLARED_ONLY",
+          "issuerKind": "TEST_FIXTURE",
+          "runnerObservation": null,
           "commandTestIdentifier": "not run",
           "result": "NOT_RUN",
           "limitations": [
@@ -2437,6 +2786,8 @@
           ],
           "skippedReason": null,
           "artifactRefs": [],
+          "artifactBindings": [],
+          "receiptIntegrity": null,
           "baselineSha": "7cc0e3b9951f276dbaf4f74f73662e430b9960c9",
           "resultSha": "33556d8dcb4f1542cb80706f10068aa77fef1006",
           "timestamp": "2026-08-15T18:15:00.000Z"
@@ -2449,7 +2800,7 @@
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "service-role-storage",
       "criterionVersion": 1,
-      "criterionDefinitionHash": "574c3d6114725b53d5546d9a1061ffb1bcc0b4305e516de79baca0118a9a0591",
+      "criterionDefinitionHash": "a1dc45d9ad8caa720d33eb61a5dbc434f045b981b73222f1b893e26db38cc2bf",
       "minimumEvidenceLevel": "E4_REMOTE_STAGING",
       "highestPassingEvidenceLevel": null,
       "status": "UNKNOWN",
@@ -2474,6 +2825,14 @@
           "reasons": []
         }
       ],
+      "provenanceAssessments": [
+        {
+          "evidenceId": "71000000-0000-4000-8000-000000000010",
+          "claimedClass": "DECLARED_ONLY",
+          "status": "VALID",
+          "reasons": []
+        }
+      ],
       "limitations": [
         "No real service-role Storage operation was exercised.",
         "71000000-0000-4000-8000-000000000010: BOUNDARY_ID_MISMATCH",
@@ -2488,7 +2847,7 @@
           "specId": "virro-vnext-build-001-trust-foundation",
           "criterionId": "service-role-storage",
           "criterionVersion": 1,
-          "criterionDefinitionHash": "574c3d6114725b53d5546d9a1061ffb1bcc0b4305e516de79baca0118a9a0591",
+          "criterionDefinitionHash": "a1dc45d9ad8caa720d33eb61a5dbc434f045b981b73222f1b893e26db38cc2bf",
           "subjectId": "PRIVILEGED_STORAGE",
           "controlId": "SERVICE_ROLE_STORAGE_ISOLATION",
           "boundaryId": "NOT_EXECUTED",
@@ -2521,6 +2880,9 @@
             "source": "not run",
             "immutableRef": "33556d8dcb4f1542cb80706f10068aa77fef1006"
           },
+          "provenanceClass": "DECLARED_ONLY",
+          "issuerKind": "TEST_FIXTURE",
+          "runnerObservation": null,
           "commandTestIdentifier": "not run",
           "result": "NOT_RUN",
           "limitations": [
@@ -2528,6 +2890,8 @@
           ],
           "skippedReason": null,
           "artifactRefs": [],
+          "artifactBindings": [],
+          "receiptIntegrity": null,
           "baselineSha": "7cc0e3b9951f276dbaf4f74f73662e430b9960c9",
           "resultSha": "33556d8dcb4f1542cb80706f10068aa77fef1006",
           "timestamp": "2026-08-15T18:15:00.000Z"
@@ -2540,7 +2904,7 @@
       "specId": "virro-vnext-build-001-trust-foundation",
       "criterionId": "remote-concurrency",
       "criterionVersion": 1,
-      "criterionDefinitionHash": "d43110cf3bf117da52ffc08df72b2f9213c282f6c3e94e67e92fda34d6549233",
+      "criterionDefinitionHash": "a25308e634dae2fdf06e25db66b0e6ea95cdd454623a3e9b594ff9fddcaf6eb6",
       "minimumEvidenceLevel": "E4_REMOTE_STAGING",
       "highestPassingEvidenceLevel": null,
       "status": "UNKNOWN",
@@ -2565,6 +2929,14 @@
           "reasons": []
         }
       ],
+      "provenanceAssessments": [
+        {
+          "evidenceId": "71000000-0000-4000-8000-000000000011",
+          "claimedClass": "DECLARED_ONLY",
+          "status": "VALID",
+          "reasons": []
+        }
+      ],
       "limitations": [
         "PGlite proves local transaction semantics, not remote platform concurrency behavior.",
         "71000000-0000-4000-8000-000000000011: BOUNDARY_ID_MISMATCH",
@@ -2579,7 +2951,7 @@
           "specId": "virro-vnext-build-001-trust-foundation",
           "criterionId": "remote-concurrency",
           "criterionVersion": 1,
-          "criterionDefinitionHash": "d43110cf3bf117da52ffc08df72b2f9213c282f6c3e94e67e92fda34d6549233",
+          "criterionDefinitionHash": "a25308e634dae2fdf06e25db66b0e6ea95cdd454623a3e9b594ff9fddcaf6eb6",
           "subjectId": "CANONICAL_HEAD",
           "controlId": "POSTGRES_REMOTE_CONCURRENCY",
           "boundaryId": "NOT_EXECUTED",
@@ -2612,6 +2984,9 @@
             "source": "not run",
             "immutableRef": "33556d8dcb4f1542cb80706f10068aa77fef1006"
           },
+          "provenanceClass": "DECLARED_ONLY",
+          "issuerKind": "TEST_FIXTURE",
+          "runnerObservation": null,
           "commandTestIdentifier": "not run",
           "result": "NOT_RUN",
           "limitations": [
@@ -2619,6 +2994,8 @@
           ],
           "skippedReason": null,
           "artifactRefs": [],
+          "artifactBindings": [],
+          "receiptIntegrity": null,
           "baselineSha": "7cc0e3b9951f276dbaf4f74f73662e430b9960c9",
           "resultSha": "33556d8dcb4f1542cb80706f10068aa77fef1006",
           "timestamp": "2026-08-15T18:15:00.000Z"

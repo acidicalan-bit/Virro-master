@@ -98,11 +98,11 @@ const evidence: DevelopmentEvidenceReceipt[] = [
 ];
 
 export const build001EvidenceSource: AssuranceManifestSource = {
-  schemaVersion: "virro-development-assurance-v2",
+  schemaVersion: "virro-development-assurance-v3",
   generatedAt: "2026-08-15T18:15:00.000Z",
   buildId: "BUILD-001-F7",
   baselineSha: F2_SHA,
-  resultSha: F2_SHA,
+  evidenceHistoryThroughSha: F2_SHA,
   claims,
   evidence,
 };
@@ -128,6 +128,9 @@ function claim(
     acceptedEnvironmentClasses: [environmentClass],
     minimumEvidenceLevel,
     independenceRequirement: "AUTOMATED_OR_INDEPENDENT" as const,
+    acceptedProvenanceClasses: ["DECLARED_ONLY" as const],
+    acceptedRunnerCommandIds: [],
+    artifactRequirement: "NONE" as const,
   };
   return {
     scope,
@@ -195,11 +198,16 @@ function receipt(
       source: options.artifactRefs?.[0] ?? options.command,
       immutableRef: resultSha,
     },
+    provenanceClass: "DECLARED_ONLY",
+    issuerKind: options.provenanceKind === "DOCUMENTED_HISTORICAL" ? "IMPORTED" : "TEST_FIXTURE",
+    runnerObservation: null,
     commandTestIdentifier: options.command,
     result,
     limitations: options.limitations,
     skippedReason: options.skippedReason ?? null,
     artifactRefs: options.artifactRefs ?? [],
+    artifactBindings: [],
+    receiptIntegrity: null,
     baselineSha: PRE_F1_SHA,
     resultSha,
     timestamp: options.timestamp ?? "2026-08-15T18:15:00.000Z",
