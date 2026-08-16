@@ -98,7 +98,7 @@ const evidence: DevelopmentEvidenceReceipt[] = [
 ];
 
 export const build001EvidenceSource: AssuranceManifestSource = {
-  schemaVersion: "virro-development-assurance-v3",
+  schemaVersion: "virro-development-assurance-v4",
   generatedAt: "2026-08-15T18:15:00.000Z",
   buildId: "BUILD-001-F7",
   baselineSha: F2_SHA,
@@ -129,7 +129,7 @@ function claim(
     minimumEvidenceLevel,
     independenceRequirement: "AUTOMATED_OR_INDEPENDENT" as const,
     acceptedProvenanceClasses: ["DECLARED_ONLY" as const],
-    acceptedRunnerCommandIds: [],
+    acceptedRunnerCommands: [],
     artifactRequirement: "NONE" as const,
   };
   return {

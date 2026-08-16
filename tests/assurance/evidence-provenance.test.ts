@@ -11,6 +11,7 @@ import {
   AssuranceClaimSchema,
   canonicalizeJson,
   canonicalizeJsonText,
+  createRunnerCommandRequirement,
   createCriterionDefinitionHash,
   createLocalEvidenceRunner,
   createReceiptIntegrityDigest,
@@ -157,11 +158,12 @@ describe("F7-R2 evidence integrity and provenance", () => {
       if (target === "actor") mutated.participantBindings.executor!.actorId = "actor:mutated-executor";
       if (target === "context") mutated.participantBindings.executor!.contextId = "context:mutated-execution";
       if (target === "command") {
-        mutated.commandTestIdentifier = "observed failure";
-        mutated.provenance.source = "observed failure";
-        mutated.runnerObservation!.commandId = "observed failure";
+        const failureCommand = createRunnerCommandRequirement("assurance:runner-self-test:fail");
+        mutated.commandTestIdentifier = failureCommand.commandId;
+        mutated.provenance.source = failureCommand.commandId;
+        mutated.runnerObservation!.commandId = failureCommand.commandId;
+        mutated.runnerObservation!.commandDefinitionHash = failureCommand.commandDefinitionHash;
         mutated.runnerObservation!.args = ["-e", "process.exit(3)"];
-        mutated.runnerObservation!.commandDigest = "b".repeat(64);
       }
       if (target === "artifactRef") {
         mutated.artifactRefs = ["mutated-artifact.log"];
@@ -213,7 +215,7 @@ describe("F7-R2 evidence integrity and provenance", () => {
     const runner = createTestRunner(repository);
     const receipt = await runner.run({
       ...runInput(claim),
-      commandId: "observed failure",
+      commandId: "assurance:runner-self-test:fail",
     });
 
     expect(receipt.result).toBe("FAIL");
@@ -280,7 +282,10 @@ function provenanceClaim(acceptedProvenanceClasses: ProvenanceClass[]): Assuranc
     minimumEvidenceLevel: "E0_STATIC",
     independenceRequirement: "AUTOMATED_OR_INDEPENDENT",
     acceptedProvenanceClasses,
-    acceptedRunnerCommandIds: ["deterministic repository fixture", "observed failure"],
+    acceptedRunnerCommands: [
+      createRunnerCommandRequirement("assurance:runner-self-test:pass"),
+      createRunnerCommandRequirement("assurance:runner-self-test:fail"),
+    ],
     artifactRequirement: "AT_LEAST_ONE",
   };
   return AssuranceClaimSchema.parse({
@@ -302,7 +307,7 @@ function runInput(claim: AssuranceClaim) {
     environmentClass: "STATIC_ANALYSIS" as const,
     boundaryTested: "repository-local Node.js process",
     environment: "temporary clean Git repository",
-    commandId: "deterministic repository fixture",
+    commandId: "assurance:runner-self-test:pass",
     artifactPaths: ["artifact.log"],
     limitations: ["Local runner recording is not external attestation."],
   };
@@ -325,13 +330,6 @@ function createTestRunner(repository: string): LocalEvidenceRunner {
   return createLocalEvidenceRunner({
     repositoryRoot: repository,
     issuerId: "runner:test-local",
-    commandRegistry: {
-      "deterministic repository fixture": {
-        executable: process.execPath,
-        args: ["-e", "require('node:fs').readFileSync('source.txt'); process.exit(0)"],
-      },
-      "observed failure": { executable: process.execPath, args: ["-e", "process.exit(3)"] },
-    },
   });
 }
 

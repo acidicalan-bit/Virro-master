@@ -148,6 +148,10 @@ export type ArtifactRequirement = z.infer<typeof ArtifactRequirementSchema>;
 const GitShaSchema = z.string().regex(/^[0-9a-f]{40}$/);
 const Sha256Schema = z.string().regex(/^[0-9a-f]{64}$/);
 const NonEmptyText = z.string().trim().min(1);
+const ExactCommandIdSchema = z.string().min(1).refine(
+  (value) => value === value.trim(),
+  "Command IDs must match exactly without surrounding whitespace.",
+);
 const StableAssuranceIdentifierSchema = z.string().trim().regex(/^[a-z0-9][a-z0-9._:@/-]{2,127}$/i);
 const RepositoryRelativePathSchema = z.string().trim().min(1).refine((value) => {
   const normalized = value.replaceAll("\\", "/");
@@ -155,6 +159,24 @@ const RepositoryRelativePathSchema = z.string().trim().min(1).refine((value) => 
     && !normalized.startsWith("/")
     && !normalized.split("/").includes("..");
 }, "Artifact paths must be safe repository-relative paths.");
+
+export const AuthoritativeCommandDefinitionSchema = z.object({
+  commandId: ExactCommandIdSchema,
+  executable: z.literal("NODE_RUNTIME"),
+  argv: z.array(z.string()),
+  workingDirectoryPolicy: z.literal("REPOSITORY_ROOT"),
+  packageScriptBinding: z.object({
+    scriptName: NonEmptyText,
+    expectedDefinition: NonEmptyText,
+  }).strict().nullable(),
+}).strict();
+export type AuthoritativeCommandDefinition = z.infer<typeof AuthoritativeCommandDefinitionSchema>;
+
+export const RunnerCommandRequirementSchema = z.object({
+  commandId: ExactCommandIdSchema,
+  commandDefinitionHash: Sha256Schema,
+}).strict();
+export type RunnerCommandRequirement = z.infer<typeof RunnerCommandRequirementSchema>;
 
 export const AssuranceParticipantBindingSchema = z.object({
   actorId: StableAssuranceIdentifierSchema.nullable(),
@@ -177,10 +199,11 @@ export const RunnerObservationSchema = z.object({
   sourceSha: GitShaSchema,
   dirty: z.boolean(),
   executionId: z.uuid(),
-  commandId: NonEmptyText,
+  commandId: ExactCommandIdSchema,
+  commandDefinitionHash: Sha256Schema,
   executable: NonEmptyText,
   args: z.array(z.string()),
-  commandDigest: Sha256Schema,
+  workingDirectoryPolicy: z.literal("REPOSITORY_ROOT"),
   startedAt: z.string().datetime({ offset: true }),
   completedAt: z.string().datetime({ offset: true }),
   exitCode: z.number().int(),
@@ -233,7 +256,7 @@ const CriterionDefinitionInputSchema = z.object({
   minimumEvidenceLevel: EvidenceLevelSchema,
   independenceRequirement: IndependenceRequirementSchema,
   acceptedProvenanceClasses: z.array(ProvenanceClassSchema).min(1),
-  acceptedRunnerCommandIds: z.array(NonEmptyText),
+  acceptedRunnerCommands: z.array(RunnerCommandRequirementSchema),
   artifactRequirement: ArtifactRequirementSchema,
 }).strict().superRefine((definition, context) => {
   if (new Set(definition.acceptedEnvironmentClasses).size !== definition.acceptedEnvironmentClasses.length) {
@@ -242,11 +265,12 @@ const CriterionDefinitionInputSchema = z.object({
   if (new Set(definition.acceptedProvenanceClasses).size !== definition.acceptedProvenanceClasses.length) {
     context.addIssue({ code: "custom", path: ["acceptedProvenanceClasses"], message: "Provenance classes must be unique." });
   }
-  if (new Set(definition.acceptedRunnerCommandIds).size !== definition.acceptedRunnerCommandIds.length) {
-    context.addIssue({ code: "custom", path: ["acceptedRunnerCommandIds"], message: "Runner command IDs must be unique." });
+  const runnerCommandIds = definition.acceptedRunnerCommands.map((command) => command.commandId);
+  if (new Set(runnerCommandIds).size !== runnerCommandIds.length) {
+    context.addIssue({ code: "custom", path: ["acceptedRunnerCommands"], message: "Runner command IDs must be unique." });
   }
-  if (definition.acceptedProvenanceClasses.includes("RUNNER_RECORDED") && definition.acceptedRunnerCommandIds.length === 0) {
-    context.addIssue({ code: "custom", path: ["acceptedRunnerCommandIds"], message: "RUNNER_RECORDED criteria require an explicit runner command ID." });
+  if (definition.acceptedProvenanceClasses.includes("RUNNER_RECORDED") && definition.acceptedRunnerCommands.length === 0) {
+    context.addIssue({ code: "custom", path: ["acceptedRunnerCommands"], message: "RUNNER_RECORDED criteria require an explicit command ID and definition hash." });
   }
   for (const environmentClass of definition.acceptedEnvironmentClasses) {
     if (LEVEL_ORDER[ENVIRONMENT_LEVEL[environmentClass]] < LEVEL_ORDER[definition.minimumEvidenceLevel]) {
@@ -272,7 +296,8 @@ export function createCriterionDefinitionHash(untrustedDefinition: CriterionDefi
     minimumEvidenceLevel: definition.minimumEvidenceLevel,
     independenceRequirement: definition.independenceRequirement,
     acceptedProvenanceClasses: [...definition.acceptedProvenanceClasses].sort(),
-    acceptedRunnerCommandIds: [...definition.acceptedRunnerCommandIds].sort(),
+    acceptedRunnerCommands: [...definition.acceptedRunnerCommands]
+      .sort((left, right) => left.commandId.localeCompare(right.commandId)),
     artifactRequirement: definition.artifactRequirement,
   };
   return createHash("sha256").update(JSON.stringify(canonical)).digest("hex");
@@ -411,7 +436,7 @@ export const AssuranceClaimSchema = z.object({
   minimumEvidenceLevel: EvidenceLevelSchema,
   independenceRequirement: IndependenceRequirementSchema,
   acceptedProvenanceClasses: z.array(ProvenanceClassSchema).min(1),
-  acceptedRunnerCommandIds: z.array(NonEmptyText),
+  acceptedRunnerCommands: z.array(RunnerCommandRequirementSchema),
   artifactRequirement: ArtifactRequirementSchema,
   subject: NonEmptyText,
   control: NonEmptyText,
@@ -436,7 +461,7 @@ export const AssuranceClaimSchema = z.object({
 export type AssuranceClaim = z.infer<typeof AssuranceClaimSchema>;
 
 export const AssuranceManifestSourceSchema = z.object({
-  schemaVersion: z.literal("virro-development-assurance-v3"),
+  schemaVersion: z.literal("virro-development-assurance-v4"),
   generatedAt: z.string().datetime({ offset: true }),
   buildId: NonEmptyText,
   baselineSha: GitShaSchema,
@@ -602,9 +627,14 @@ function incompatibilityReasons(
   if (!claim.acceptedProvenanceClasses.includes(receipt.provenanceClass)) {
     reasons.push("PROVENANCE_CLASS_NOT_ACCEPTED");
   }
-  if (receipt.provenanceClass === "RUNNER_RECORDED"
-    && !claim.acceptedRunnerCommandIds.includes(receipt.runnerObservation?.commandId ?? "")) {
-    reasons.push("RUNNER_COMMAND_NOT_ACCEPTED");
+  if (receipt.provenanceClass === "RUNNER_RECORDED") {
+    const commandRequirement = claim.acceptedRunnerCommands.find(
+      (candidate) => candidate.commandId === receipt.runnerObservation?.commandId,
+    );
+    if (!commandRequirement) reasons.push("RUNNER_COMMAND_NOT_ACCEPTED");
+    else if (commandRequirement.commandDefinitionHash !== receipt.runnerObservation?.commandDefinitionHash) {
+      reasons.push("COMMAND_DEFINITION_HASH_MISMATCH");
+    }
   }
   if (claim.artifactRequirement === "AT_LEAST_ONE" && receipt.artifactBindings.length === 0) {
     reasons.push("REQUIRED_ARTIFACT_BINDING_MISSING");
@@ -690,11 +720,81 @@ export function deriveStructuralIndependence(receipt: DevelopmentEvidenceReceipt
   return { evidenceId: receipt.evidenceId, status: "STRUCTURALLY_INDEPENDENT", reasons: [] };
 }
 
-export type LocalEvidenceCommand = {
-  id: string;
+const TEST_SQL_PACKAGE_SCRIPT = "vitest run tests/integration/build001-f1-canonical-commit.integration.test.ts --reporter=verbose";
+
+const AUTHORITATIVE_COMMAND_DEFINITIONS = Object.freeze({
+  "test:sql": {
+    commandId: "test:sql",
+    executable: "NODE_RUNTIME",
+    argv: [
+      "node_modules/vitest/vitest.mjs",
+      "run",
+      "tests/integration/build001-f1-canonical-commit.integration.test.ts",
+      "--reporter=verbose",
+    ],
+    workingDirectoryPolicy: "REPOSITORY_ROOT",
+    packageScriptBinding: {
+      scriptName: "test:sql",
+      expectedDefinition: TEST_SQL_PACKAGE_SCRIPT,
+    },
+  },
+  "assurance:runner-self-test:pass": {
+    commandId: "assurance:runner-self-test:pass",
+    executable: "NODE_RUNTIME",
+    argv: ["-e", "require('node:fs').readFileSync('source.txt'); process.exit(0)"],
+    workingDirectoryPolicy: "REPOSITORY_ROOT",
+    packageScriptBinding: null,
+  },
+  "assurance:runner-self-test:fail": {
+    commandId: "assurance:runner-self-test:fail",
+    executable: "NODE_RUNTIME",
+    argv: ["-e", "process.exit(3)"],
+    workingDirectoryPolicy: "REPOSITORY_ROOT",
+    packageScriptBinding: null,
+  },
+} as const satisfies Record<string, AuthoritativeCommandDefinition>);
+
+export function createAuthoritativeCommandDefinitionHash(
+  untrustedDefinition: AuthoritativeCommandDefinition,
+): string {
+  const definition = AuthoritativeCommandDefinitionSchema.parse(untrustedDefinition);
+  return sha256(canonicalizeJson(definition));
+}
+
+export function createRunnerCommandRequirement(commandId: string): RunnerCommandRequirement {
+  const definition = getAuthoritativeCommandDefinition(commandId);
+  if (!definition) throw new Error(`UNKNOWN_AUTHORITATIVE_COMMAND:${commandId}`);
+  return RunnerCommandRequirementSchema.parse({
+    commandId: definition.commandId,
+    commandDefinitionHash: createAuthoritativeCommandDefinitionHash(definition),
+  });
+}
+
+function getAuthoritativeCommandDefinition(commandId: string): AuthoritativeCommandDefinition | null {
+  if (!Object.hasOwn(AUTHORITATIVE_COMMAND_DEFINITIONS, commandId)) return null;
+  const definition = AUTHORITATIVE_COMMAND_DEFINITIONS[
+    commandId as keyof typeof AUTHORITATIVE_COMMAND_DEFINITIONS
+  ];
+  return AuthoritativeCommandDefinitionSchema.parse(definition);
+}
+
+function resolveAuthoritativeCommand(definition: AuthoritativeCommandDefinition): {
   executable: string;
-  args?: string[];
-};
+  args: string[];
+} {
+  return { executable: process.execPath, args: [...definition.argv] };
+}
+
+function verifyPackageScriptBinding(repositoryRoot: string, definition: AuthoritativeCommandDefinition): void {
+  if (!definition.packageScriptBinding) return;
+  const packageJson = JSON.parse(readFileSync(resolve(repositoryRoot, "package.json"), "utf8")) as {
+    scripts?: Record<string, unknown>;
+  };
+  const actual = packageJson.scripts?.[definition.packageScriptBinding.scriptName];
+  if (actual !== definition.packageScriptBinding.expectedDefinition) {
+    throw new Error(`PACKAGE_SCRIPT_BINDING_MISMATCH:${definition.commandId}`);
+  }
+}
 
 export type LocalEvidenceRunInput = {
   claim: AssuranceClaim;
@@ -751,12 +851,25 @@ class LocalRunnerAuthority implements InternalProvenanceAuthority {
     }
     if (record && record.receiptDigest !== computedDigest) reasons.push("ISSUED_RECEIPT_MUTATED");
     if (receipt.runnerObservation) {
-      const commandDigest = sha256(canonicalizeJson({
-        id: receipt.runnerObservation.commandId,
-        executable: receipt.runnerObservation.executable,
-        args: receipt.runnerObservation.args,
-      }));
-      if (commandDigest !== receipt.runnerObservation.commandDigest) reasons.push("COMMAND_OBSERVATION_INTEGRITY_MISMATCH");
+      const definition = getAuthoritativeCommandDefinition(receipt.runnerObservation.commandId);
+      if (!definition) reasons.push("AUTHORITATIVE_COMMAND_DEFINITION_MISSING");
+      else {
+        const definitionHash = createAuthoritativeCommandDefinitionHash(definition);
+        const resolved = resolveAuthoritativeCommand(definition);
+        if (receipt.runnerObservation.commandDefinitionHash !== definitionHash) {
+          reasons.push("COMMAND_DEFINITION_HASH_MISMATCH");
+        }
+        if (receipt.runnerObservation.executable !== resolved.executable
+          || canonicalizeJson(receipt.runnerObservation.args) !== canonicalizeJson(resolved.args)
+          || receipt.runnerObservation.workingDirectoryPolicy !== definition.workingDirectoryPolicy) {
+          reasons.push("COMMAND_OBSERVATION_INTEGRITY_MISMATCH");
+        }
+        try {
+          verifyPackageScriptBinding(this.repositoryRoot, definition);
+        } catch {
+          reasons.push("PACKAGE_SCRIPT_BINDING_MISMATCH");
+        }
+      }
     }
 
     let sourceState: GitSourceState | null = null;
@@ -796,16 +909,11 @@ class RepositoryLocalEvidenceRunner implements LocalEvidenceRunner {
   readonly #repositoryRoot: string;
   readonly #issuerId: string;
   readonly #authority: LocalRunnerAuthority;
-  readonly #commands: ReadonlyMap<string, { executable: string; args: string[] }>;
 
-  constructor(repositoryRoot: string, issuerId: string, commandRegistry: Record<string, Omit<LocalEvidenceCommand, "id">>) {
+  constructor(repositoryRoot: string, issuerId: string) {
     this.#repositoryRoot = realpathSync(repositoryRoot);
     this.#issuerId = StableAssuranceIdentifierSchema.parse(issuerId);
     this.#authority = new LocalRunnerAuthority(this.#repositoryRoot);
-    this.#commands = new Map(Object.entries(commandRegistry).map(([id, command]) => [
-      NonEmptyText.parse(id),
-      { executable: NonEmptyText.parse(command.executable), args: command.args ?? [] },
-    ]));
   }
 
   evaluationContext(): ProvenanceEvaluationContext {
@@ -821,10 +929,12 @@ class RepositoryLocalEvidenceRunner implements LocalEvidenceRunner {
       throw new Error("BASELINE_NOT_ANCESTOR: baselineSha must identify an ancestor of the executed source revision.");
     }
 
-    const commandId = NonEmptyText.parse(input.commandId);
-    const commandSpec = this.#commands.get(commandId);
-    if (!commandSpec) throw new Error(`UNAUTHORIZED_RUNNER_COMMAND:${commandId}`);
-    const command = { id: commandId, ...commandSpec };
+    const commandId = ExactCommandIdSchema.parse(input.commandId);
+    const commandDefinition = getAuthoritativeCommandDefinition(commandId);
+    if (!commandDefinition) throw new Error(`UNAUTHORIZED_RUNNER_COMMAND:${commandId}`);
+    verifyPackageScriptBinding(this.#repositoryRoot, commandDefinition);
+    const command = resolveAuthoritativeCommand(commandDefinition);
+    const commandDefinitionHash = createAuthoritativeCommandDefinitionHash(commandDefinition);
     const startedAt = new Date().toISOString();
     const observed = await executeObservedCommand(command, this.#repositoryRoot);
     const completedAt = new Date().toISOString();
@@ -860,7 +970,7 @@ class RepositoryLocalEvidenceRunner implements LocalEvidenceRunner {
         executor: { actorId: `actor:runner:${actorNamespace}:executor`, contextId: `context:${executionId}:execution`, role: "EXECUTION" as const },
         verifier: { actorId: `actor:runner:${actorNamespace}:gate`, contextId: `context:${executionId}:gate`, role: "AUTOMATED_GATE" as const },
       },
-      provenance: { kind: "REPOSITORY_TEST" as const, source: command.id, immutableRef: before.sha },
+      provenance: { kind: "REPOSITORY_TEST" as const, source: commandDefinition.commandId, immutableRef: before.sha },
       provenanceClass: "RUNNER_RECORDED" as const,
       issuerKind: "AUTHORITATIVE_RUNNER" as const,
       runnerObservation: {
@@ -868,17 +978,18 @@ class RepositoryLocalEvidenceRunner implements LocalEvidenceRunner {
         sourceSha: before.sha,
         dirty: false,
         executionId,
-        commandId: command.id,
+        commandId: commandDefinition.commandId,
+        commandDefinitionHash,
         executable: command.executable,
         args: command.args,
-        commandDigest: sha256(canonicalizeJson(command)),
+        workingDirectoryPolicy: commandDefinition.workingDirectoryPolicy,
         startedAt,
         completedAt,
         exitCode: observed.exitCode,
         stdoutDigest: observed.stdoutDigest,
         stderrDigest: observed.stderrDigest,
       },
-      commandTestIdentifier: command.id,
+      commandTestIdentifier: commandDefinition.commandId,
       result: observed.exitCode === 0 ? "PASS" as const : "FAIL" as const,
       limitations: input.limitations ?? ["Local runner recording is not externally attested."],
       skippedReason: null,
@@ -905,9 +1016,8 @@ class RepositoryLocalEvidenceRunner implements LocalEvidenceRunner {
 export function createLocalEvidenceRunner(options: {
   repositoryRoot: string;
   issuerId: string;
-  commandRegistry: Record<string, Omit<LocalEvidenceCommand, "id">>;
 }): LocalEvidenceRunner {
-  return new RepositoryLocalEvidenceRunner(options.repositoryRoot, options.issuerId, options.commandRegistry);
+  return new RepositoryLocalEvidenceRunner(options.repositoryRoot, options.issuerId);
 }
 
 export function canonicalizeJson(value: unknown): string {
@@ -1001,6 +1111,7 @@ function executeObservedCommand(
     const stderr = createHash("sha256");
     const child = spawn(command.executable, command.args, {
       cwd: repositoryRoot,
+      env: sanitizedRunnerEnvironment(),
       shell: false,
       windowsHide: true,
       stdio: ["ignore", "pipe", "pipe"],
@@ -1014,6 +1125,13 @@ function executeObservedCommand(
       stderrDigest: stderr.digest("hex"),
     }));
   });
+}
+
+function sanitizedRunnerEnvironment(): NodeJS.ProcessEnv {
+  const environment = { ...process.env };
+  delete environment.NODE_OPTIONS;
+  delete environment.NODE_PATH;
+  return environment;
 }
 
 function sha256(value: string): string {
@@ -1030,7 +1148,7 @@ function criterionDefinition(input: {
   minimumEvidenceLevel: EvidenceLevel;
   independenceRequirement: IndependenceRequirement;
   acceptedProvenanceClasses: ProvenanceClass[];
-  acceptedRunnerCommandIds: string[];
+  acceptedRunnerCommands: RunnerCommandRequirement[];
   artifactRequirement: ArtifactRequirement;
 }): CriterionDefinitionInput {
   return {
@@ -1043,7 +1161,7 @@ function criterionDefinition(input: {
     minimumEvidenceLevel: input.minimumEvidenceLevel,
     independenceRequirement: input.independenceRequirement,
     acceptedProvenanceClasses: input.acceptedProvenanceClasses,
-    acceptedRunnerCommandIds: input.acceptedRunnerCommandIds,
+    acceptedRunnerCommands: input.acceptedRunnerCommands,
     artifactRequirement: input.artifactRequirement,
   };
 }

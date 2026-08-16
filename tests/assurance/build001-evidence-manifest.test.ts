@@ -43,7 +43,7 @@ describe("BUILD 001 machine-readable assurance manifest", () => {
     const evaluation = generated.evaluations.find((item: { buildId: string; criterionId: string }) =>
       item.buildId === "BUILD-001" && item.criterionId === "deployed-rls",
     );
-    expect(generated.schemaVersion).toBe("virro-development-assurance-v3");
+    expect(generated.schemaVersion).toBe("virro-development-assurance-v4");
     expect(evaluation.status).toBe("NOT_PROVEN");
     expect(evaluation.compatibleEvidenceIds).toEqual([]);
     expect(evaluation.incompatibilities[0].reasons).toEqual(expect.arrayContaining([

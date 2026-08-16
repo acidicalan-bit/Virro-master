@@ -163,7 +163,7 @@ function claim(minimumEvidenceLevel: EvidenceLevel, overrides: ClaimOverrides = 
     minimumEvidenceLevel,
     independenceRequirement: overrides.independenceRequirement ?? "AUTOMATED_OR_INDEPENDENT",
     acceptedProvenanceClasses: overrides.acceptedProvenanceClasses ?? ["DECLARED_ONLY"],
-    acceptedRunnerCommandIds: overrides.acceptedRunnerCommandIds ?? [],
+    acceptedRunnerCommands: overrides.acceptedRunnerCommands ?? [],
     artifactRequirement: overrides.artifactRequirement ?? "NONE",
   };
   return AssuranceClaimSchema.parse({

@@ -127,7 +127,7 @@ function claim(independenceRequirement: CriterionDefinitionInput["independenceRe
     minimumEvidenceLevel: "E3_LOCAL_REAL_BOUNDARY",
     independenceRequirement,
     acceptedProvenanceClasses: ["DECLARED_ONLY"],
-    acceptedRunnerCommandIds: [],
+    acceptedRunnerCommands: [],
     artifactRequirement: "NONE",
   };
   return AssuranceClaimSchema.parse({

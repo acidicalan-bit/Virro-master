@@ -203,7 +203,7 @@ function makeClaim(overrides: DefinitionOverrides): AssuranceClaim {
     minimumEvidenceLevel: overrides.minimumEvidenceLevel ?? "E3_LOCAL_REAL_BOUNDARY",
     independenceRequirement: overrides.independenceRequirement ?? "AUTOMATED_OR_INDEPENDENT",
     acceptedProvenanceClasses: overrides.acceptedProvenanceClasses ?? ["DECLARED_ONLY"],
-    acceptedRunnerCommandIds: overrides.acceptedRunnerCommandIds ?? [],
+    acceptedRunnerCommands: overrides.acceptedRunnerCommands ?? [],
     artifactRequirement: overrides.artifactRequirement ?? "NONE",
   };
   return AssuranceClaimSchema.parse({
