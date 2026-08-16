@@ -50,7 +50,7 @@ Cada evaluación conserva:
 - mayor nivel PASS observado;
 - IDs de evidencia considerada;
 - limitations y skipped reasons;
-- receipts completos, incluido verifier e independence.
+- receipts completos, incluidos participantes tipados; desde R1.1 la independencia se deriva y la declaracion no otorga autoridad.
 
 `allCurrentCriteriaProven` sólo es true si todos los criterios actuales son `PROVEN`. Los resultados históricos se cuentan por separado para que el fallo pre-F1 permanezca visible sin presentarse como fallo del candidato actual. No existe promedio ni estado agregado que oculte gaps.
 

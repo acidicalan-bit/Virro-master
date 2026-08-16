@@ -13,7 +13,7 @@
 5. Match required boundary ID.
 6. Require an explicitly accepted environment class.
 7. Require the minimum evidence level.
-8. Enforce the criterion independence policy.
+8. Enforce the criterion independence policy from the R1.1 system-derived participant relationship, never from a receipt label.
 9. Interpret PASS/FAIL only after all preceding checks succeed.
 
 The evaluation output includes `compatibleEvidenceIds` and structured incompatibility reason codes. A high incompatible PASS remains visible but cannot become proof.

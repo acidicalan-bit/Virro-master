@@ -15,7 +15,7 @@ Human `subject` and `control` remain non-authoritative metadata.
 
 ## Required receipt dimensions
 
-Every receipt records criterion version/hash, typed subject/control/boundary/environment, actual evidence level, result, executor, verifier and independence. Human boundary/environment descriptions remain visible but cannot grant authority.
+Every receipt records criterion version/hash, typed subject/control/boundary/environment, actual evidence level, result and declared participant data. Human descriptions remain visible but cannot grant authority. As amended by R1.1, `declaredIndependence` is non-authoritative metadata; eligibility uses the system-derived participant relationship.
 
 ## Status contract
 

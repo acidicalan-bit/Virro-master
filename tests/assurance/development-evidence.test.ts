@@ -102,17 +102,27 @@ describe("development evidence claim satisfaction", () => {
     expect(evaluateClaim(requirement, [receipt(requirement, override)]).status).toBe("NOT_PROVEN");
   });
 
-  it("preserves independent verifier metadata", () => {
+  it("preserves declared metadata but derives structural independence", () => {
     const requirement = claim("E3_LOCAL_REAL_BOUNDARY");
-    const evaluation = evaluateClaim(requirement, [receipt(requirement, { independence: "INDEPENDENT_VERIFIER" })]);
+    const evaluation = evaluateClaim(requirement, [receipt(requirement, {
+      declaredIndependence: "INDEPENDENT_VERIFIER",
+      participantBindings: independentBindings(),
+    })]);
     expect(evaluation.consideredEvidence[0].verifier).toEqual({ name: "F7 verifier", role: "independent security verifier" });
-    expect(evaluation.consideredEvidence[0].independence).toBe("INDEPENDENT_VERIFIER");
+    expect(evaluation.consideredEvidence[0].declaredIndependence).toBe("INDEPENDENT_VERIFIER");
+    expect(evaluation.independenceAssessments[0].status).toBe("STRUCTURALLY_INDEPENDENT");
   });
 
   it("enforces criterion-specific independence", () => {
     const requirement = claim("E3_LOCAL_REAL_BOUNDARY", { independenceRequirement: "INDEPENDENT_VERIFIER" });
-    expect(evaluateClaim(requirement, [receipt(requirement, { independence: "IMPLEMENTER" })]).status).toBe("NOT_PROVEN");
-    expect(evaluateClaim(requirement, [receipt(requirement, { independence: "INDEPENDENT_VERIFIER" })]).status).toBe("PROVEN");
+    expect(evaluateClaim(requirement, [receipt(requirement, {
+      declaredIndependence: "INDEPENDENT_VERIFIER",
+      participantBindings: sameActorBindings(),
+    })]).status).toBe("NOT_PROVEN");
+    expect(evaluateClaim(requirement, [receipt(requirement, {
+      declaredIndependence: "IMPLEMENTER",
+      participantBindings: independentBindings(),
+    })]).status).toBe("PROVEN");
   });
 
   it("keeps limitations and incompatibility reasons visible", () => {
@@ -183,7 +193,8 @@ function receipt(requirement: AssuranceClaim, overrides: Partial<DevelopmentEvid
     environment: "Vitest",
     executor: "Vitest",
     verifier: { name: "F7 verifier", role: "independent security verifier" },
-    independence: "AUTOMATED_GATE",
+    declaredIndependence: "AUTOMATED_GATE",
+    participantBindings: automatedGateBindings(),
     provenance: { kind: "REPOSITORY_TEST", source: "tests/assurance/development-evidence.test.ts", immutableRef: "2b6196a382565267069f836f878a82d80df9f223" },
     commandTestIdentifier: "development evidence evaluator fixture",
     result: "PASS",
@@ -195,4 +206,25 @@ function receipt(requirement: AssuranceClaim, overrides: Partial<DevelopmentEvid
     timestamp: "2026-08-15T20:10:00.000Z",
     ...overrides,
   });
+}
+
+function automatedGateBindings(): DevelopmentEvidenceReceipt["participantBindings"] {
+  return {
+    executor: { actorId: "actor:test-executor", contextId: "context:test-execution", role: "EXECUTION" },
+    verifier: { actorId: "actor:test-gate", contextId: "context:test-gate", role: "AUTOMATED_GATE" },
+  };
+}
+
+function independentBindings(): DevelopmentEvidenceReceipt["participantBindings"] {
+  return {
+    executor: { actorId: "actor:executor-a", contextId: "context:execution-x", role: "EXECUTION" },
+    verifier: { actorId: "actor:verifier-b", contextId: "context:verification-y", role: "VERIFICATION" },
+  };
+}
+
+function sameActorBindings(): DevelopmentEvidenceReceipt["participantBindings"] {
+  return {
+    executor: { actorId: "actor:same", contextId: "context:execution-x", role: "EXECUTION" },
+    verifier: { actorId: "actor:same", contextId: "context:verification-y", role: "VERIFICATION" },
+  };
 }

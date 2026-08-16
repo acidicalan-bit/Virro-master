@@ -102,6 +102,19 @@ describe("F7-R1 false-proof regression", () => {
     })).toThrow(/does not match the authoritative criterion semantics/);
   });
 
+  it.each([
+    "subjectId",
+    "controlId",
+    "boundaryId",
+    "environmentClass",
+    "criterionDefinitionHash",
+  ] as const)("rejects a receipt that omits authoritative %s", (field) => {
+    const untrusted = { ...receipt(atomicClaim()) } as Record<string, unknown>;
+    delete untrusted[field];
+
+    expect(DevelopmentEvidenceReceiptSchema.safeParse(untrusted).success).toBe(false);
+  });
+
   it("does not aggregate ten E1 receipts into E3", () => {
     const requirement = atomicClaim();
     const weak = Array.from({ length: 10 }, () => receipt(requirement, {
@@ -220,7 +233,11 @@ function receipt(requirement: AssuranceClaim, overrides: Partial<DevelopmentEvid
     environment: requirement.acceptedEnvironmentClasses[0],
     executor: "F7-R1",
     verifier: { name: "F7-R1", role: "security assurance" },
-    independence: "AUTOMATED_GATE",
+    declaredIndependence: "AUTOMATED_GATE",
+    participantBindings: {
+      executor: { actorId: "actor:r1-executor", contextId: "context:r1-execution", role: "EXECUTION" },
+      verifier: { actorId: "actor:r1-gate", contextId: "context:r1-gate", role: "AUTOMATED_GATE" },
+    },
     provenance: { kind: "REPOSITORY_TEST", source: "tests/assurance/semantic-evidence-qualification.test.ts", immutableRef: "2b6196a382565267069f836f878a82d80df9f223" },
     commandTestIdentifier: "F7-R1 semantic qualification",
     result: "PASS",

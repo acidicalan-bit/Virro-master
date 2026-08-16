@@ -315,7 +315,19 @@
         "name": "BUILD 001 assurance",
         "role": "security evidence verifier"
       },
-      "independence": "AUTOMATED_GATE",
+      "declaredIndependence": "AUTOMATED_GATE",
+      "participantBindings": {
+        "executor": {
+          "actorId": "actor:repository-vitest",
+          "contextId": "context:71000000-0000-4000-8000-000000000001:execution",
+          "role": "EXECUTION"
+        },
+        "verifier": {
+          "actorId": "actor:repository-assurance-gate",
+          "contextId": "context:71000000-0000-4000-8000-000000000001:gate",
+          "role": "AUTOMATED_GATE"
+        }
+      },
       "provenance": {
         "kind": "REPOSITORY_TEST",
         "source": "docs/builds/build-001/06_IMPLEMENTATION_EVIDENCE.md",
@@ -355,7 +367,19 @@
         "name": "BUILD 001 assurance",
         "role": "security evidence verifier"
       },
-      "independence": "INDEPENDENT_VERIFIER",
+      "declaredIndependence": "INDEPENDENT_VERIFIER",
+      "participantBindings": {
+        "executor": {
+          "actorId": "actor:historical-build-executor",
+          "contextId": "context:71000000-0000-4000-8000-000000000002:execution",
+          "role": "EXECUTION"
+        },
+        "verifier": {
+          "actorId": "actor:historical-independent-verifier",
+          "contextId": "context:71000000-0000-4000-8000-000000000002:verification",
+          "role": "VERIFICATION"
+        }
+      },
       "provenance": {
         "kind": "DOCUMENTED_HISTORICAL",
         "source": "docs/builds/build-001/fixes/F1/03_REPRODUCTION.md",
@@ -395,7 +419,19 @@
         "name": "BUILD 001 assurance",
         "role": "security evidence verifier"
       },
-      "independence": "AUTOMATED_GATE",
+      "declaredIndependence": "AUTOMATED_GATE",
+      "participantBindings": {
+        "executor": {
+          "actorId": "actor:repository-vitest",
+          "contextId": "context:71000000-0000-4000-8000-000000000003:execution",
+          "role": "EXECUTION"
+        },
+        "verifier": {
+          "actorId": "actor:repository-assurance-gate",
+          "contextId": "context:71000000-0000-4000-8000-000000000003:gate",
+          "role": "AUTOMATED_GATE"
+        }
+      },
       "provenance": {
         "kind": "REPOSITORY_TEST",
         "source": "pnpm test:model",
@@ -433,7 +469,19 @@
         "name": "BUILD 001 assurance",
         "role": "security evidence verifier"
       },
-      "independence": "AUTOMATED_GATE",
+      "declaredIndependence": "AUTOMATED_GATE",
+      "participantBindings": {
+        "executor": {
+          "actorId": "actor:repository-vitest",
+          "contextId": "context:71000000-0000-4000-8000-000000000004:execution",
+          "role": "EXECUTION"
+        },
+        "verifier": {
+          "actorId": "actor:repository-assurance-gate",
+          "contextId": "context:71000000-0000-4000-8000-000000000004:gate",
+          "role": "AUTOMATED_GATE"
+        }
+      },
       "provenance": {
         "kind": "REPOSITORY_TEST",
         "source": "tests/integration/build001-f1-canonical-commit.integration.test.ts",
@@ -474,7 +522,19 @@
         "name": "BUILD 001 assurance",
         "role": "security evidence verifier"
       },
-      "independence": "AUTOMATED_GATE",
+      "declaredIndependence": "AUTOMATED_GATE",
+      "participantBindings": {
+        "executor": {
+          "actorId": "actor:repository-vitest",
+          "contextId": "context:71000000-0000-4000-8000-000000000005:execution",
+          "role": "EXECUTION"
+        },
+        "verifier": {
+          "actorId": "actor:repository-assurance-gate",
+          "contextId": "context:71000000-0000-4000-8000-000000000005:gate",
+          "role": "AUTOMATED_GATE"
+        }
+      },
       "provenance": {
         "kind": "REPOSITORY_TEST",
         "source": "tests/integration/build001-f1-canonical-commit.integration.test.ts",
@@ -515,7 +575,19 @@
         "name": "BUILD 001 assurance",
         "role": "security evidence verifier"
       },
-      "independence": "AUTOMATED_GATE",
+      "declaredIndependence": "AUTOMATED_GATE",
+      "participantBindings": {
+        "executor": {
+          "actorId": "actor:repository-vitest",
+          "contextId": "context:71000000-0000-4000-8000-000000000006:execution",
+          "role": "EXECUTION"
+        },
+        "verifier": {
+          "actorId": "actor:repository-assurance-gate",
+          "contextId": "context:71000000-0000-4000-8000-000000000006:gate",
+          "role": "AUTOMATED_GATE"
+        }
+      },
       "provenance": {
         "kind": "REPOSITORY_TEST",
         "source": "tests/integration/build001-f1-canonical-commit.integration.test.ts",
@@ -556,7 +628,19 @@
         "name": "BUILD 001 assurance",
         "role": "security evidence verifier"
       },
-      "independence": "AUTOMATED_GATE",
+      "declaredIndependence": "AUTOMATED_GATE",
+      "participantBindings": {
+        "executor": {
+          "actorId": "actor:repository-vitest",
+          "contextId": "context:71000000-0000-4000-8000-000000000007:execution",
+          "role": "EXECUTION"
+        },
+        "verifier": {
+          "actorId": "actor:repository-assurance-gate",
+          "contextId": "context:71000000-0000-4000-8000-000000000007:gate",
+          "role": "AUTOMATED_GATE"
+        }
+      },
       "provenance": {
         "kind": "REPOSITORY_TEST",
         "source": "tests/integration/build001-f1-canonical-commit.integration.test.ts",
@@ -597,7 +681,19 @@
         "name": "BUILD 001 assurance",
         "role": "security evidence verifier"
       },
-      "independence": "AUTOMATED_GATE",
+      "declaredIndependence": "AUTOMATED_GATE",
+      "participantBindings": {
+        "executor": {
+          "actorId": "actor:repository-vitest",
+          "contextId": "context:71000000-0000-4000-8000-000000000008:execution",
+          "role": "EXECUTION"
+        },
+        "verifier": {
+          "actorId": "actor:repository-assurance-gate",
+          "contextId": "context:71000000-0000-4000-8000-000000000008:gate",
+          "role": "AUTOMATED_GATE"
+        }
+      },
       "provenance": {
         "kind": "REPOSITORY_TEST",
         "source": "tests/integration/build001-f1-canonical-commit.integration.test.ts",
@@ -638,7 +734,19 @@
         "name": "BUILD 001 assurance",
         "role": "security evidence verifier"
       },
-      "independence": "AUTOMATED_GATE",
+      "declaredIndependence": "AUTOMATED_GATE",
+      "participantBindings": {
+        "executor": {
+          "actorId": "actor:repository-vitest",
+          "contextId": "context:71000000-0000-4000-8000-000000000009:execution",
+          "role": "EXECUTION"
+        },
+        "verifier": {
+          "actorId": "actor:repository-assurance-gate",
+          "contextId": "context:71000000-0000-4000-8000-000000000009:gate",
+          "role": "AUTOMATED_GATE"
+        }
+      },
       "provenance": {
         "kind": "REPOSITORY_TEST",
         "source": "tests/security/build001-f2-legacy-precision-edit-isolation.test.ts",
@@ -679,7 +787,19 @@
         "name": "BUILD 001 assurance",
         "role": "security evidence verifier"
       },
-      "independence": "AUTOMATED_GATE",
+      "declaredIndependence": "AUTOMATED_GATE",
+      "participantBindings": {
+        "executor": {
+          "actorId": "actor:repository-vitest",
+          "contextId": "context:71000000-0000-4000-8000-00000000000a:execution",
+          "role": "EXECUTION"
+        },
+        "verifier": {
+          "actorId": "actor:repository-assurance-gate",
+          "contextId": "context:71000000-0000-4000-8000-00000000000a:gate",
+          "role": "AUTOMATED_GATE"
+        }
+      },
       "provenance": {
         "kind": "REPOSITORY_TEST",
         "source": "tests/integration/build001-f1-canonical-commit.integration.test.ts",
@@ -720,7 +840,19 @@
         "name": "BUILD 001 assurance",
         "role": "security evidence verifier"
       },
-      "independence": "AUTOMATED_GATE",
+      "declaredIndependence": "AUTOMATED_GATE",
+      "participantBindings": {
+        "executor": {
+          "actorId": "actor:repository-vitest",
+          "contextId": "context:71000000-0000-4000-8000-00000000000b:execution",
+          "role": "EXECUTION"
+        },
+        "verifier": {
+          "actorId": "actor:repository-assurance-gate",
+          "contextId": "context:71000000-0000-4000-8000-00000000000b:gate",
+          "role": "AUTOMATED_GATE"
+        }
+      },
       "provenance": {
         "kind": "REPOSITORY_TEST",
         "source": "not run in deployed staging",
@@ -758,7 +890,19 @@
         "name": "BUILD 001 assurance",
         "role": "security evidence verifier"
       },
-      "independence": "AUTOMATED_GATE",
+      "declaredIndependence": "AUTOMATED_GATE",
+      "participantBindings": {
+        "executor": {
+          "actorId": "actor:repository-vitest",
+          "contextId": "context:71000000-0000-4000-8000-00000000000c:execution",
+          "role": "EXECUTION"
+        },
+        "verifier": {
+          "actorId": "actor:repository-assurance-gate",
+          "contextId": "context:71000000-0000-4000-8000-00000000000c:gate",
+          "role": "AUTOMATED_GATE"
+        }
+      },
       "provenance": {
         "kind": "REPOSITORY_TEST",
         "source": "tests/security/phase-b-tenant-lifecycle-rls.test.ts",
@@ -798,7 +942,19 @@
         "name": "BUILD 001 assurance",
         "role": "security evidence verifier"
       },
-      "independence": "AUTOMATED_GATE",
+      "declaredIndependence": "AUTOMATED_GATE",
+      "participantBindings": {
+        "executor": {
+          "actorId": "actor:repository-vitest",
+          "contextId": "context:71000000-0000-4000-8000-00000000000d:execution",
+          "role": "EXECUTION"
+        },
+        "verifier": {
+          "actorId": "actor:repository-assurance-gate",
+          "contextId": "context:71000000-0000-4000-8000-00000000000d:gate",
+          "role": "AUTOMATED_GATE"
+        }
+      },
       "provenance": {
         "kind": "REPOSITORY_TEST",
         "source": "not run",
@@ -836,7 +992,19 @@
         "name": "BUILD 001 assurance",
         "role": "security evidence verifier"
       },
-      "independence": "AUTOMATED_GATE",
+      "declaredIndependence": "AUTOMATED_GATE",
+      "participantBindings": {
+        "executor": {
+          "actorId": "actor:repository-vitest",
+          "contextId": "context:71000000-0000-4000-8000-00000000000e:execution",
+          "role": "EXECUTION"
+        },
+        "verifier": {
+          "actorId": "actor:repository-assurance-gate",
+          "contextId": "context:71000000-0000-4000-8000-00000000000e:gate",
+          "role": "AUTOMATED_GATE"
+        }
+      },
       "provenance": {
         "kind": "REPOSITORY_TEST",
         "source": "pnpm test:staging",
@@ -874,7 +1042,19 @@
         "name": "BUILD 001 assurance",
         "role": "security evidence verifier"
       },
-      "independence": "AUTOMATED_GATE",
+      "declaredIndependence": "AUTOMATED_GATE",
+      "participantBindings": {
+        "executor": {
+          "actorId": "actor:repository-vitest",
+          "contextId": "context:71000000-0000-4000-8000-00000000000f:execution",
+          "role": "EXECUTION"
+        },
+        "verifier": {
+          "actorId": "actor:repository-assurance-gate",
+          "contextId": "context:71000000-0000-4000-8000-00000000000f:gate",
+          "role": "AUTOMATED_GATE"
+        }
+      },
       "provenance": {
         "kind": "REPOSITORY_TEST",
         "source": "not run",
@@ -912,7 +1092,19 @@
         "name": "BUILD 001 assurance",
         "role": "security evidence verifier"
       },
-      "independence": "AUTOMATED_GATE",
+      "declaredIndependence": "AUTOMATED_GATE",
+      "participantBindings": {
+        "executor": {
+          "actorId": "actor:repository-vitest",
+          "contextId": "context:71000000-0000-4000-8000-000000000010:execution",
+          "role": "EXECUTION"
+        },
+        "verifier": {
+          "actorId": "actor:repository-assurance-gate",
+          "contextId": "context:71000000-0000-4000-8000-000000000010:gate",
+          "role": "AUTOMATED_GATE"
+        }
+      },
       "provenance": {
         "kind": "REPOSITORY_TEST",
         "source": "not run",
@@ -950,7 +1142,19 @@
         "name": "BUILD 001 assurance",
         "role": "security evidence verifier"
       },
-      "independence": "AUTOMATED_GATE",
+      "declaredIndependence": "AUTOMATED_GATE",
+      "participantBindings": {
+        "executor": {
+          "actorId": "actor:repository-vitest",
+          "contextId": "context:71000000-0000-4000-8000-000000000011:execution",
+          "role": "EXECUTION"
+        },
+        "verifier": {
+          "actorId": "actor:repository-assurance-gate",
+          "contextId": "context:71000000-0000-4000-8000-000000000011:gate",
+          "role": "AUTOMATED_GATE"
+        }
+      },
       "provenance": {
         "kind": "REPOSITORY_TEST",
         "source": "not run",
@@ -996,6 +1200,18 @@
           ]
         }
       ],
+      "independenceAssessments": [
+        {
+          "evidenceId": "71000000-0000-4000-8000-000000000001",
+          "status": "AUTOMATED_GATE",
+          "reasons": []
+        },
+        {
+          "evidenceId": "71000000-0000-4000-8000-000000000002",
+          "status": "STRUCTURALLY_INDEPENDENT",
+          "reasons": []
+        }
+      ],
       "limitations": [
         "No PostgreSQL engine, migration, trigger or RPC was executed.",
         "Local PostgreSQL semantics do not prove deployed Supabase ACL or RLS.",
@@ -1026,7 +1242,19 @@
             "name": "BUILD 001 assurance",
             "role": "security evidence verifier"
           },
-          "independence": "AUTOMATED_GATE",
+          "declaredIndependence": "AUTOMATED_GATE",
+          "participantBindings": {
+            "executor": {
+              "actorId": "actor:repository-vitest",
+              "contextId": "context:71000000-0000-4000-8000-000000000001:execution",
+              "role": "EXECUTION"
+            },
+            "verifier": {
+              "actorId": "actor:repository-assurance-gate",
+              "contextId": "context:71000000-0000-4000-8000-000000000001:gate",
+              "role": "AUTOMATED_GATE"
+            }
+          },
           "provenance": {
             "kind": "REPOSITORY_TEST",
             "source": "docs/builds/build-001/06_IMPLEMENTATION_EVIDENCE.md",
@@ -1066,7 +1294,19 @@
             "name": "BUILD 001 assurance",
             "role": "security evidence verifier"
           },
-          "independence": "INDEPENDENT_VERIFIER",
+          "declaredIndependence": "INDEPENDENT_VERIFIER",
+          "participantBindings": {
+            "executor": {
+              "actorId": "actor:historical-build-executor",
+              "contextId": "context:71000000-0000-4000-8000-000000000002:execution",
+              "role": "EXECUTION"
+            },
+            "verifier": {
+              "actorId": "actor:historical-independent-verifier",
+              "contextId": "context:71000000-0000-4000-8000-000000000002:verification",
+              "role": "VERIFICATION"
+            }
+          },
           "provenance": {
             "kind": "DOCUMENTED_HISTORICAL",
             "source": "docs/builds/build-001/fixes/F1/03_REPRODUCTION.md",
@@ -1114,6 +1354,18 @@
           ]
         }
       ],
+      "independenceAssessments": [
+        {
+          "evidenceId": "71000000-0000-4000-8000-000000000003",
+          "status": "AUTOMATED_GATE",
+          "reasons": []
+        },
+        {
+          "evidenceId": "71000000-0000-4000-8000-000000000004",
+          "status": "AUTOMATED_GATE",
+          "reasons": []
+        }
+      ],
       "limitations": [
         "Model coverage supports exploration but cannot prove SQL transaction semantics.",
         "Does not prove deployed Supabase RLS, Auth, Storage or platform concurrency.",
@@ -1144,7 +1396,19 @@
             "name": "BUILD 001 assurance",
             "role": "security evidence verifier"
           },
-          "independence": "AUTOMATED_GATE",
+          "declaredIndependence": "AUTOMATED_GATE",
+          "participantBindings": {
+            "executor": {
+              "actorId": "actor:repository-vitest",
+              "contextId": "context:71000000-0000-4000-8000-000000000003:execution",
+              "role": "EXECUTION"
+            },
+            "verifier": {
+              "actorId": "actor:repository-assurance-gate",
+              "contextId": "context:71000000-0000-4000-8000-000000000003:gate",
+              "role": "AUTOMATED_GATE"
+            }
+          },
           "provenance": {
             "kind": "REPOSITORY_TEST",
             "source": "pnpm test:model",
@@ -1182,7 +1446,19 @@
             "name": "BUILD 001 assurance",
             "role": "security evidence verifier"
           },
-          "independence": "AUTOMATED_GATE",
+          "declaredIndependence": "AUTOMATED_GATE",
+          "participantBindings": {
+            "executor": {
+              "actorId": "actor:repository-vitest",
+              "contextId": "context:71000000-0000-4000-8000-000000000004:execution",
+              "role": "EXECUTION"
+            },
+            "verifier": {
+              "actorId": "actor:repository-assurance-gate",
+              "contextId": "context:71000000-0000-4000-8000-000000000004:gate",
+              "role": "AUTOMATED_GATE"
+            }
+          },
           "provenance": {
             "kind": "REPOSITORY_TEST",
             "source": "tests/integration/build001-f1-canonical-commit.integration.test.ts",
@@ -1221,6 +1497,13 @@
         "71000000-0000-4000-8000-000000000005"
       ],
       "incompatibilities": [],
+      "independenceAssessments": [
+        {
+          "evidenceId": "71000000-0000-4000-8000-000000000005",
+          "status": "AUTOMATED_GATE",
+          "reasons": []
+        }
+      ],
       "limitations": [
         "Does not prove deployed Supabase RLS, Auth, Storage or platform concurrency."
       ],
@@ -1247,7 +1530,19 @@
             "name": "BUILD 001 assurance",
             "role": "security evidence verifier"
           },
-          "independence": "AUTOMATED_GATE",
+          "declaredIndependence": "AUTOMATED_GATE",
+          "participantBindings": {
+            "executor": {
+              "actorId": "actor:repository-vitest",
+              "contextId": "context:71000000-0000-4000-8000-000000000005:execution",
+              "role": "EXECUTION"
+            },
+            "verifier": {
+              "actorId": "actor:repository-assurance-gate",
+              "contextId": "context:71000000-0000-4000-8000-000000000005:gate",
+              "role": "AUTOMATED_GATE"
+            }
+          },
           "provenance": {
             "kind": "REPOSITORY_TEST",
             "source": "tests/integration/build001-f1-canonical-commit.integration.test.ts",
@@ -1286,6 +1581,13 @@
         "71000000-0000-4000-8000-000000000006"
       ],
       "incompatibilities": [],
+      "independenceAssessments": [
+        {
+          "evidenceId": "71000000-0000-4000-8000-000000000006",
+          "status": "AUTOMATED_GATE",
+          "reasons": []
+        }
+      ],
       "limitations": [
         "Does not prove deployed Supabase RLS, Auth, Storage or platform concurrency."
       ],
@@ -1312,7 +1614,19 @@
             "name": "BUILD 001 assurance",
             "role": "security evidence verifier"
           },
-          "independence": "AUTOMATED_GATE",
+          "declaredIndependence": "AUTOMATED_GATE",
+          "participantBindings": {
+            "executor": {
+              "actorId": "actor:repository-vitest",
+              "contextId": "context:71000000-0000-4000-8000-000000000006:execution",
+              "role": "EXECUTION"
+            },
+            "verifier": {
+              "actorId": "actor:repository-assurance-gate",
+              "contextId": "context:71000000-0000-4000-8000-000000000006:gate",
+              "role": "AUTOMATED_GATE"
+            }
+          },
           "provenance": {
             "kind": "REPOSITORY_TEST",
             "source": "tests/integration/build001-f1-canonical-commit.integration.test.ts",
@@ -1351,6 +1665,13 @@
         "71000000-0000-4000-8000-000000000007"
       ],
       "incompatibilities": [],
+      "independenceAssessments": [
+        {
+          "evidenceId": "71000000-0000-4000-8000-000000000007",
+          "status": "AUTOMATED_GATE",
+          "reasons": []
+        }
+      ],
       "limitations": [
         "Does not prove deployed Supabase RLS, Auth, Storage or platform concurrency."
       ],
@@ -1377,7 +1698,19 @@
             "name": "BUILD 001 assurance",
             "role": "security evidence verifier"
           },
-          "independence": "AUTOMATED_GATE",
+          "declaredIndependence": "AUTOMATED_GATE",
+          "participantBindings": {
+            "executor": {
+              "actorId": "actor:repository-vitest",
+              "contextId": "context:71000000-0000-4000-8000-000000000007:execution",
+              "role": "EXECUTION"
+            },
+            "verifier": {
+              "actorId": "actor:repository-assurance-gate",
+              "contextId": "context:71000000-0000-4000-8000-000000000007:gate",
+              "role": "AUTOMATED_GATE"
+            }
+          },
           "provenance": {
             "kind": "REPOSITORY_TEST",
             "source": "tests/integration/build001-f1-canonical-commit.integration.test.ts",
@@ -1416,6 +1749,13 @@
         "71000000-0000-4000-8000-000000000008"
       ],
       "incompatibilities": [],
+      "independenceAssessments": [
+        {
+          "evidenceId": "71000000-0000-4000-8000-000000000008",
+          "status": "AUTOMATED_GATE",
+          "reasons": []
+        }
+      ],
       "limitations": [
         "Does not prove deployed Supabase RLS, Auth, Storage or platform concurrency."
       ],
@@ -1442,7 +1782,19 @@
             "name": "BUILD 001 assurance",
             "role": "security evidence verifier"
           },
-          "independence": "AUTOMATED_GATE",
+          "declaredIndependence": "AUTOMATED_GATE",
+          "participantBindings": {
+            "executor": {
+              "actorId": "actor:repository-vitest",
+              "contextId": "context:71000000-0000-4000-8000-000000000008:execution",
+              "role": "EXECUTION"
+            },
+            "verifier": {
+              "actorId": "actor:repository-assurance-gate",
+              "contextId": "context:71000000-0000-4000-8000-000000000008:gate",
+              "role": "AUTOMATED_GATE"
+            }
+          },
           "provenance": {
             "kind": "REPOSITORY_TEST",
             "source": "tests/integration/build001-f1-canonical-commit.integration.test.ts",
@@ -1481,6 +1833,13 @@
         "71000000-0000-4000-8000-000000000009"
       ],
       "incompatibilities": [],
+      "independenceAssessments": [
+        {
+          "evidenceId": "71000000-0000-4000-8000-000000000009",
+          "status": "AUTOMATED_GATE",
+          "reasons": []
+        }
+      ],
       "limitations": [
         "Deployed CDN and edge routing were not exercised."
       ],
@@ -1507,7 +1866,19 @@
             "name": "BUILD 001 assurance",
             "role": "security evidence verifier"
           },
-          "independence": "AUTOMATED_GATE",
+          "declaredIndependence": "AUTOMATED_GATE",
+          "participantBindings": {
+            "executor": {
+              "actorId": "actor:repository-vitest",
+              "contextId": "context:71000000-0000-4000-8000-000000000009:execution",
+              "role": "EXECUTION"
+            },
+            "verifier": {
+              "actorId": "actor:repository-assurance-gate",
+              "contextId": "context:71000000-0000-4000-8000-000000000009:gate",
+              "role": "AUTOMATED_GATE"
+            }
+          },
           "provenance": {
             "kind": "REPOSITORY_TEST",
             "source": "tests/security/build001-f2-legacy-precision-edit-isolation.test.ts",
@@ -1546,6 +1917,13 @@
         "71000000-0000-4000-8000-00000000000a"
       ],
       "incompatibilities": [],
+      "independenceAssessments": [
+        {
+          "evidenceId": "71000000-0000-4000-8000-00000000000a",
+          "status": "AUTOMATED_GATE",
+          "reasons": []
+        }
+      ],
       "limitations": [
         "Does not prove deployed Supabase RLS, Auth, Storage or platform concurrency."
       ],
@@ -1572,7 +1950,19 @@
             "name": "BUILD 001 assurance",
             "role": "security evidence verifier"
           },
-          "independence": "AUTOMATED_GATE",
+          "declaredIndependence": "AUTOMATED_GATE",
+          "participantBindings": {
+            "executor": {
+              "actorId": "actor:repository-vitest",
+              "contextId": "context:71000000-0000-4000-8000-00000000000a:execution",
+              "role": "EXECUTION"
+            },
+            "verifier": {
+              "actorId": "actor:repository-assurance-gate",
+              "contextId": "context:71000000-0000-4000-8000-00000000000a:gate",
+              "role": "AUTOMATED_GATE"
+            }
+          },
           "provenance": {
             "kind": "REPOSITORY_TEST",
             "source": "tests/integration/build001-f1-canonical-commit.integration.test.ts",
@@ -1618,6 +2008,13 @@
           ]
         }
       ],
+      "independenceAssessments": [
+        {
+          "evidenceId": "71000000-0000-4000-8000-00000000000b",
+          "status": "AUTOMATED_GATE",
+          "reasons": []
+        }
+      ],
       "limitations": [
         "No deployed CDN, alias cutover or stale-cache behavior was exercised.",
         "71000000-0000-4000-8000-00000000000b: BOUNDARY_ID_MISMATCH",
@@ -1647,7 +2044,19 @@
             "name": "BUILD 001 assurance",
             "role": "security evidence verifier"
           },
-          "independence": "AUTOMATED_GATE",
+          "declaredIndependence": "AUTOMATED_GATE",
+          "participantBindings": {
+            "executor": {
+              "actorId": "actor:repository-vitest",
+              "contextId": "context:71000000-0000-4000-8000-00000000000b:execution",
+              "role": "EXECUTION"
+            },
+            "verifier": {
+              "actorId": "actor:repository-assurance-gate",
+              "contextId": "context:71000000-0000-4000-8000-00000000000b:gate",
+              "role": "AUTOMATED_GATE"
+            }
+          },
           "provenance": {
             "kind": "REPOSITORY_TEST",
             "source": "not run in deployed staging",
@@ -1690,6 +2099,13 @@
           ]
         }
       ],
+      "independenceAssessments": [
+        {
+          "evidenceId": "71000000-0000-4000-8000-00000000000c",
+          "status": "AUTOMATED_GATE",
+          "reasons": []
+        }
+      ],
       "limitations": [
         "Policy text inspection does not execute deployed RLS with real tenant JWTs.",
         "71000000-0000-4000-8000-00000000000c: BOUNDARY_ID_MISMATCH",
@@ -1719,7 +2135,19 @@
             "name": "BUILD 001 assurance",
             "role": "security evidence verifier"
           },
-          "independence": "AUTOMATED_GATE",
+          "declaredIndependence": "AUTOMATED_GATE",
+          "participantBindings": {
+            "executor": {
+              "actorId": "actor:repository-vitest",
+              "contextId": "context:71000000-0000-4000-8000-00000000000c:execution",
+              "role": "EXECUTION"
+            },
+            "verifier": {
+              "actorId": "actor:repository-assurance-gate",
+              "contextId": "context:71000000-0000-4000-8000-00000000000c:gate",
+              "role": "AUTOMATED_GATE"
+            }
+          },
           "provenance": {
             "kind": "REPOSITORY_TEST",
             "source": "tests/security/phase-b-tenant-lifecycle-rls.test.ts",
@@ -1764,6 +2192,13 @@
           ]
         }
       ],
+      "independenceAssessments": [
+        {
+          "evidenceId": "71000000-0000-4000-8000-00000000000d",
+          "status": "AUTOMATED_GATE",
+          "reasons": []
+        }
+      ],
       "limitations": [
         "No real Supabase users, JWTs or membership lifecycle were exercised.",
         "71000000-0000-4000-8000-00000000000d: BOUNDARY_ID_MISMATCH",
@@ -1793,7 +2228,19 @@
             "name": "BUILD 001 assurance",
             "role": "security evidence verifier"
           },
-          "independence": "AUTOMATED_GATE",
+          "declaredIndependence": "AUTOMATED_GATE",
+          "participantBindings": {
+            "executor": {
+              "actorId": "actor:repository-vitest",
+              "contextId": "context:71000000-0000-4000-8000-00000000000d:execution",
+              "role": "EXECUTION"
+            },
+            "verifier": {
+              "actorId": "actor:repository-assurance-gate",
+              "contextId": "context:71000000-0000-4000-8000-00000000000d:gate",
+              "role": "AUTOMATED_GATE"
+            }
+          },
           "provenance": {
             "kind": "REPOSITORY_TEST",
             "source": "not run",
@@ -1836,6 +2283,13 @@
           ]
         }
       ],
+      "independenceAssessments": [
+        {
+          "evidenceId": "71000000-0000-4000-8000-00000000000e",
+          "status": "AUTOMATED_GATE",
+          "reasons": []
+        }
+      ],
       "limitations": [
         "The deployed function owner, ACL and authenticated success path remain unverified.",
         "71000000-0000-4000-8000-00000000000e: BOUNDARY_ID_MISMATCH",
@@ -1867,7 +2321,19 @@
             "name": "BUILD 001 assurance",
             "role": "security evidence verifier"
           },
-          "independence": "AUTOMATED_GATE",
+          "declaredIndependence": "AUTOMATED_GATE",
+          "participantBindings": {
+            "executor": {
+              "actorId": "actor:repository-vitest",
+              "contextId": "context:71000000-0000-4000-8000-00000000000e:execution",
+              "role": "EXECUTION"
+            },
+            "verifier": {
+              "actorId": "actor:repository-assurance-gate",
+              "contextId": "context:71000000-0000-4000-8000-00000000000e:gate",
+              "role": "AUTOMATED_GATE"
+            }
+          },
           "provenance": {
             "kind": "REPOSITORY_TEST",
             "source": "pnpm test:staging",
@@ -1910,6 +2376,13 @@
           ]
         }
       ],
+      "independenceAssessments": [
+        {
+          "evidenceId": "71000000-0000-4000-8000-00000000000f",
+          "status": "AUTOMATED_GATE",
+          "reasons": []
+        }
+      ],
       "limitations": [
         "No deployed Storage policy was exercised.",
         "71000000-0000-4000-8000-00000000000f: BOUNDARY_ID_MISMATCH",
@@ -1939,7 +2412,19 @@
             "name": "BUILD 001 assurance",
             "role": "security evidence verifier"
           },
-          "independence": "AUTOMATED_GATE",
+          "declaredIndependence": "AUTOMATED_GATE",
+          "participantBindings": {
+            "executor": {
+              "actorId": "actor:repository-vitest",
+              "contextId": "context:71000000-0000-4000-8000-00000000000f:execution",
+              "role": "EXECUTION"
+            },
+            "verifier": {
+              "actorId": "actor:repository-assurance-gate",
+              "contextId": "context:71000000-0000-4000-8000-00000000000f:gate",
+              "role": "AUTOMATED_GATE"
+            }
+          },
           "provenance": {
             "kind": "REPOSITORY_TEST",
             "source": "not run",
@@ -1982,6 +2467,13 @@
           ]
         }
       ],
+      "independenceAssessments": [
+        {
+          "evidenceId": "71000000-0000-4000-8000-000000000010",
+          "status": "AUTOMATED_GATE",
+          "reasons": []
+        }
+      ],
       "limitations": [
         "No real service-role Storage operation was exercised.",
         "71000000-0000-4000-8000-000000000010: BOUNDARY_ID_MISMATCH",
@@ -2011,7 +2503,19 @@
             "name": "BUILD 001 assurance",
             "role": "security evidence verifier"
           },
-          "independence": "AUTOMATED_GATE",
+          "declaredIndependence": "AUTOMATED_GATE",
+          "participantBindings": {
+            "executor": {
+              "actorId": "actor:repository-vitest",
+              "contextId": "context:71000000-0000-4000-8000-000000000010:execution",
+              "role": "EXECUTION"
+            },
+            "verifier": {
+              "actorId": "actor:repository-assurance-gate",
+              "contextId": "context:71000000-0000-4000-8000-000000000010:gate",
+              "role": "AUTOMATED_GATE"
+            }
+          },
           "provenance": {
             "kind": "REPOSITORY_TEST",
             "source": "not run",
@@ -2054,6 +2558,13 @@
           ]
         }
       ],
+      "independenceAssessments": [
+        {
+          "evidenceId": "71000000-0000-4000-8000-000000000011",
+          "status": "AUTOMATED_GATE",
+          "reasons": []
+        }
+      ],
       "limitations": [
         "PGlite proves local transaction semantics, not remote platform concurrency behavior.",
         "71000000-0000-4000-8000-000000000011: BOUNDARY_ID_MISMATCH",
@@ -2083,7 +2594,19 @@
             "name": "BUILD 001 assurance",
             "role": "security evidence verifier"
           },
-          "independence": "AUTOMATED_GATE",
+          "declaredIndependence": "AUTOMATED_GATE",
+          "participantBindings": {
+            "executor": {
+              "actorId": "actor:repository-vitest",
+              "contextId": "context:71000000-0000-4000-8000-000000000011:execution",
+              "role": "EXECUTION"
+            },
+            "verifier": {
+              "actorId": "actor:repository-assurance-gate",
+              "contextId": "context:71000000-0000-4000-8000-000000000011:gate",
+              "role": "AUTOMATED_GATE"
+            }
+          },
           "provenance": {
             "kind": "REPOSITORY_TEST",
             "source": "not run",

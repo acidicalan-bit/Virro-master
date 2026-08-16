@@ -180,7 +180,16 @@ function receipt(
     environment: options.environmentClass === "REMOTE_STAGING" ? "isolated Supabase staging" : "local repository assurance",
     executor: options.provenanceKind === "DOCUMENTED_HISTORICAL" ? "historical BUILD verifier" : "Vitest / repository command",
     verifier: { name: "BUILD 001 assurance", role: "security evidence verifier" },
-    independence: options.provenanceKind === "DOCUMENTED_HISTORICAL" ? "INDEPENDENT_VERIFIER" : "AUTOMATED_GATE",
+    declaredIndependence: options.provenanceKind === "DOCUMENTED_HISTORICAL" ? "INDEPENDENT_VERIFIER" : "AUTOMATED_GATE",
+    participantBindings: options.provenanceKind === "DOCUMENTED_HISTORICAL"
+      ? {
+          executor: { actorId: "actor:historical-build-executor", contextId: `context:${evidenceId}:execution`, role: "EXECUTION" },
+          verifier: { actorId: "actor:historical-independent-verifier", contextId: `context:${evidenceId}:verification`, role: "VERIFICATION" },
+        }
+      : {
+          executor: { actorId: "actor:repository-vitest", contextId: `context:${evidenceId}:execution`, role: "EXECUTION" },
+          verifier: { actorId: "actor:repository-assurance-gate", contextId: `context:${evidenceId}:gate`, role: "AUTOMATED_GATE" },
+        },
     provenance: {
       kind: options.provenanceKind ?? "REPOSITORY_TEST",
       source: options.artifactRefs?.[0] ?? options.command,

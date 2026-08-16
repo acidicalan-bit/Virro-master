@@ -93,12 +93,26 @@ export const ClaimSatisfactionStatusSchema = z.enum([
 ]);
 export type ClaimSatisfactionStatus = z.infer<typeof ClaimSatisfactionStatusSchema>;
 
-export const EvidenceIndependenceSchema = z.enum([
+export const DeclaredIndependenceSchema = z.enum([
   "IMPLEMENTER",
   "INDEPENDENT_VERIFIER",
   "AUTOMATED_GATE",
 ]);
-export type EvidenceIndependence = z.infer<typeof EvidenceIndependenceSchema>;
+export type DeclaredIndependence = z.infer<typeof DeclaredIndependenceSchema>;
+
+export const AssuranceParticipantRoleSchema = z.enum([
+  "EXECUTION",
+  "VERIFICATION",
+  "AUTOMATED_GATE",
+]);
+export type AssuranceParticipantRole = z.infer<typeof AssuranceParticipantRoleSchema>;
+
+export const DerivedIndependenceStatusSchema = z.enum([
+  "STRUCTURALLY_INDEPENDENT",
+  "AUTOMATED_GATE",
+  "NOT_STRUCTURALLY_INDEPENDENT",
+]);
+export type DerivedIndependenceStatus = z.infer<typeof DerivedIndependenceStatusSchema>;
 
 export const IndependenceRequirementSchema = z.enum([
   "RECORDED_ONLY",
@@ -110,6 +124,14 @@ export type IndependenceRequirement = z.infer<typeof IndependenceRequirementSche
 const GitShaSchema = z.string().regex(/^[0-9a-f]{40}$/);
 const Sha256Schema = z.string().regex(/^[0-9a-f]{64}$/);
 const NonEmptyText = z.string().trim().min(1);
+const StableAssuranceIdentifierSchema = z.string().trim().regex(/^[a-z0-9][a-z0-9._:@/-]{2,127}$/i);
+
+export const AssuranceParticipantBindingSchema = z.object({
+  actorId: StableAssuranceIdentifierSchema.nullable(),
+  contextId: StableAssuranceIdentifierSchema.nullable(),
+  role: AssuranceParticipantRoleSchema.nullable(),
+}).strict();
+export type AssuranceParticipantBinding = z.infer<typeof AssuranceParticipantBindingSchema>;
 
 const LEVEL_ORDER: Record<EvidenceLevel, number> = {
   E0_STATIC: 0,
@@ -199,7 +221,11 @@ export const DevelopmentEvidenceReceiptSchema = z.object({
     name: NonEmptyText,
     role: NonEmptyText,
   }).strict(),
-  independence: EvidenceIndependenceSchema,
+  declaredIndependence: DeclaredIndependenceSchema,
+  participantBindings: z.object({
+    executor: AssuranceParticipantBindingSchema.nullable(),
+    verifier: AssuranceParticipantBindingSchema.nullable(),
+  }).strict(),
   provenance: z.object({
     kind: z.enum(["REPOSITORY_TEST", "DOCUMENTED_HISTORICAL", "REMOTE_RUN", "MANUAL_INSPECTION"]),
     source: NonEmptyText,
@@ -297,6 +323,12 @@ export type EvidenceIncompatibility = {
   reasons: string[];
 };
 
+export type StructuralIndependenceAssessment = {
+  evidenceId: string;
+  status: DerivedIndependenceStatus;
+  reasons: string[];
+};
+
 export type ClaimEvaluation = {
   scope: "CURRENT" | "HISTORICAL";
   buildId: string;
@@ -310,6 +342,7 @@ export type ClaimEvaluation = {
   evidenceIds: string[];
   compatibleEvidenceIds: string[];
   incompatibilities: EvidenceIncompatibility[];
+  independenceAssessments: StructuralIndependenceAssessment[];
   limitations: string[];
   skippedReasons: string[];
   consideredEvidence: DevelopmentEvidenceReceipt[];
@@ -348,6 +381,7 @@ export function evaluateClaim(
   const incompatibilities = compatibility
     .filter((item) => item.reasons.length > 0)
     .map((item) => ({ evidenceId: item.receipt.evidenceId, reasons: item.reasons }));
+  const independenceAssessments = matching.map((receipt) => deriveStructuralIndependence(receipt));
   const qualificationLimitations = incompatibilities.flatMap((item) =>
     item.reasons.map((reason) => `${item.evidenceId}: ${reason}`),
   );
@@ -365,6 +399,7 @@ export function evaluateClaim(
     evidenceIds: matching.map((receipt) => receipt.evidenceId),
     compatibleEvidenceIds: compatible.map((receipt) => receipt.evidenceId),
     incompatibilities,
+    independenceAssessments,
     limitations: unique([...matching.flatMap((receipt) => receipt.limitations), ...qualificationLimitations]),
     skippedReasons: unique(definitionBound.flatMap((receipt) => receipt.skippedReason ? [receipt.skippedReason] : [])),
     consideredEvidence: matching,
@@ -400,8 +435,13 @@ function incompatibilityReasons(claim: AssuranceClaim, receipt: DevelopmentEvide
   if (!evidenceLevelSatisfies(receipt.actualEvidenceLevel, claim.minimumEvidenceLevel)) {
     reasons.push("EVIDENCE_LEVEL_BELOW_MINIMUM");
   }
-  if (!independenceSatisfies(receipt.independence, claim.independenceRequirement)) {
+  const independenceAssessment = deriveStructuralIndependence(receipt);
+  if (!independenceSatisfies(independenceAssessment.status, claim.independenceRequirement)) {
     reasons.push("INDEPENDENCE_REQUIREMENT_NOT_MET");
+    reasons.push(...independenceAssessment.reasons);
+    if (receipt.declaredIndependence === "INDEPENDENT_VERIFIER") {
+      reasons.push("DECLARED_INDEPENDENCE_CONFLICTS_WITH_DERIVED_RELATIONSHIP");
+    }
   }
   return reasons;
 }
@@ -413,10 +453,39 @@ function isDefinitionBound(claim: AssuranceClaim, receipt: DevelopmentEvidenceRe
     && receipt.controlId === claim.controlId;
 }
 
-function independenceSatisfies(actual: EvidenceIndependence, required: IndependenceRequirement): boolean {
+function independenceSatisfies(actual: DerivedIndependenceStatus, required: IndependenceRequirement): boolean {
   if (required === "RECORDED_ONLY") return true;
-  if (required === "INDEPENDENT_VERIFIER") return actual === "INDEPENDENT_VERIFIER";
-  return actual === "AUTOMATED_GATE" || actual === "INDEPENDENT_VERIFIER";
+  if (required === "INDEPENDENT_VERIFIER") return actual === "STRUCTURALLY_INDEPENDENT";
+  return actual === "AUTOMATED_GATE" || actual === "STRUCTURALLY_INDEPENDENT";
+}
+
+export function deriveStructuralIndependence(receipt: DevelopmentEvidenceReceipt): StructuralIndependenceAssessment {
+  const executor = receipt.participantBindings.executor;
+  const verifier = receipt.participantBindings.verifier;
+  const reasons: string[] = [];
+
+  if (!executor) reasons.push("EXECUTOR_BINDING_MISSING");
+  if (!verifier) reasons.push("VERIFIER_BINDING_MISSING");
+  if (!executor || !verifier) {
+    return { evidenceId: receipt.evidenceId, status: "NOT_STRUCTURALLY_INDEPENDENT", reasons };
+  }
+
+  if (!executor.actorId) reasons.push("EXECUTOR_IDENTITY_MISSING");
+  if (!verifier.actorId) reasons.push("VERIFIER_IDENTITY_MISSING");
+  if (!executor.contextId) reasons.push("EXECUTOR_CONTEXT_MISSING");
+  if (!verifier.contextId) reasons.push("VERIFIER_CONTEXT_MISSING");
+  if (executor.role !== "EXECUTION") reasons.push("EXECUTOR_ROLE_NOT_EXECUTION");
+  if (executor.actorId && executor.actorId === verifier.actorId) reasons.push("EXECUTOR_VERIFIER_ACTOR_NOT_DISTINCT");
+  if (executor.contextId && executor.contextId === verifier.contextId) reasons.push("EXECUTOR_VERIFIER_CONTEXT_NOT_DISTINCT");
+
+  if (verifier.role === "AUTOMATED_GATE" && executor.role === "EXECUTION" && reasons.length === 0) {
+    return { evidenceId: receipt.evidenceId, status: "AUTOMATED_GATE", reasons };
+  }
+  if (verifier.role !== "VERIFICATION") reasons.push("VERIFIER_ROLE_NOT_VERIFICATION");
+  if (reasons.length > 0) {
+    return { evidenceId: receipt.evidenceId, status: "NOT_STRUCTURALLY_INDEPENDENT", reasons: unique(reasons) };
+  }
+  return { evidenceId: receipt.evidenceId, status: "STRUCTURALLY_INDEPENDENT", reasons: [] };
 }
 
 function criterionDefinition(input: {

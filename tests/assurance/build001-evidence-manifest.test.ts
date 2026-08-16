@@ -62,6 +62,7 @@ describe("BUILD 001 machine-readable assurance manifest", () => {
       expect(evaluation.criterionVersion).toBe(1);
       expect(evaluation.criterionDefinitionHash).toMatch(/^[0-9a-f]{64}$/);
       expect(evaluation.compatibleEvidenceIds.length).toBeGreaterThan(0);
+      expect(evaluation.independenceAssessments[0].status).toBe("AUTOMATED_GATE");
     }
   });
 

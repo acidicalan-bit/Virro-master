@@ -37,7 +37,7 @@ Campos obligatorios:
 - `subjectId`, `controlId`, `boundaryId`, `environmentClass`;
 - `subject`, `control`, `boundaryTested`, `environment` como metadata humana;
 - `actualEvidenceLevel`;
-- `executor`, `verifier`, `independence`;
+- display `executor`/`verifier`, non-authoritative `declaredIndependence`, and typed `participantBindings` (R1.1);
 - `provenance`, `commandTestIdentifier`;
 - `result`, `limitations`, `skippedReason`, `artifactRefs`;
 - `baselineSha`, `resultSha`, `timestamp`.
