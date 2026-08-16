@@ -48,18 +48,21 @@ describe("F7-R2 evidence integrity and provenance", () => {
       sizeBytes: 12,
     }];
     const perfectForgery = reseal(forged);
-    const exposedAuthority = issued.runner.evaluationContext().authority as {
-      record(token: symbol, receipt: DevelopmentEvidenceReceipt): void;
-    };
-    expect(() => exposedAuthority.record(Symbol("forged"), perfectForgery)).toThrow(/UNAUTHORIZED_ISSUANCE_RECORD/);
+    const publicContext = issued.runner.evaluationContext();
+    expect(publicContext).not.toHaveProperty("authority");
+    expect(Object.isFrozen(publicContext)).toBe(true);
+    expect(() => {
+      (publicContext as unknown as Record<string, unknown>).authority = { verify: () => ({ status: "VALID" }) };
+    }).toThrow();
 
     const evaluation = evaluateClaim(issued.claim, [perfectForgery]);
     expect(evaluation.status).toBe("NOT_PROVEN");
     expect(evaluation.provenanceAssessments[0].reasons).toContain("AUTHORITATIVE_ISSUANCE_RECORD_MISSING");
 
     const fakeAuthorityEvaluation = evaluateClaim(issued.claim, [perfectForgery], {
+      contextId: publicContext.contextId,
       authority: { verify: () => ({ status: "VALID" as const, reasons: [] }) },
-    });
+    } as never);
     expect(fakeAuthorityEvaluation.status).toBe("NOT_PROVEN");
     expect(fakeAuthorityEvaluation.provenanceAssessments[0].reasons).toContain(
       "AUTHORITATIVE_ISSUANCE_RECORD_MISSING",

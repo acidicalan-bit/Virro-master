@@ -495,7 +495,6 @@ type ProvenanceAuthorityRecord = {
   artifactBindings: ArtifactIntegrityBinding[];
 };
 
-const authorizedProvenanceAuthorities = new WeakSet<object>();
 const provenanceAuthorityRecordToken = Symbol("virro-runner-record");
 
 type InternalProvenanceAuthority = {
@@ -503,8 +502,10 @@ type InternalProvenanceAuthority = {
 };
 
 export type ProvenanceEvaluationContext = {
-  authority?: object;
+  readonly contextId: string;
 };
+
+const provenanceAuthoritiesByContext = new WeakMap<object, InternalProvenanceAuthority>();
 
 export type ClaimEvaluation = {
   scope: "CURRENT" | "HISTORICAL";
@@ -533,7 +534,7 @@ export function evidenceLevelSatisfies(actual: EvidenceLevel, required: Evidence
 export function evaluateClaim(
   untrustedClaim: AssuranceClaim,
   untrustedEvidence: DevelopmentEvidenceReceipt[],
-  context: ProvenanceEvaluationContext = {},
+  context?: ProvenanceEvaluationContext,
 ): ClaimEvaluation {
   const claim = AssuranceClaimSchema.parse(untrustedClaim);
   const evidence = z.array(DevelopmentEvidenceReceiptSchema).parse(untrustedEvidence);
@@ -653,7 +654,7 @@ function incompatibilityReasons(
 
 function assessProvenance(
   receipt: DevelopmentEvidenceReceipt,
-  context: ProvenanceEvaluationContext,
+  context?: ProvenanceEvaluationContext,
 ): ProvenanceAssessment {
   if (receipt.provenanceClass === "DECLARED_ONLY") {
     return { evidenceId: receipt.evidenceId, claimedClass: receipt.provenanceClass, status: "VALID", reasons: [] };
@@ -666,8 +667,8 @@ function assessProvenance(
       reasons: ["ATTESTED_PROVENANCE_AUTHORITY_UNAVAILABLE"],
     };
   }
-  const authority = context.authority;
-  if (!authority || !authorizedProvenanceAuthorities.has(authority)) {
+  const authority = context ? provenanceAuthoritiesByContext.get(context) : undefined;
+  if (!authority) {
     return {
       evidenceId: receipt.evidenceId,
       claimedClass: receipt.provenanceClass,
@@ -675,7 +676,7 @@ function assessProvenance(
       reasons: ["AUTHORITATIVE_ISSUANCE_RECORD_MISSING"],
     };
   }
-  return (authority as InternalProvenanceAuthority).verify(receipt);
+  return authority.verify(receipt);
 }
 
 function isDefinitionBound(claim: AssuranceClaim, receipt: DevelopmentEvidenceReceipt): boolean {
@@ -828,7 +829,6 @@ class LocalRunnerAuthority implements InternalProvenanceAuthority {
 
   constructor(repositoryRoot: string) {
     this.repositoryRoot = repositoryRoot;
-    authorizedProvenanceAuthorities.add(this);
   }
 
   record(token: symbol, receipt: DevelopmentEvidenceReceipt): void {
@@ -909,15 +909,17 @@ class RepositoryLocalEvidenceRunner implements LocalEvidenceRunner {
   readonly #repositoryRoot: string;
   readonly #issuerId: string;
   readonly #authority: LocalRunnerAuthority;
+  readonly #evaluationContext: ProvenanceEvaluationContext;
 
   constructor(repositoryRoot: string, issuerId: string) {
     this.#repositoryRoot = realpathSync(repositoryRoot);
     this.#issuerId = StableAssuranceIdentifierSchema.parse(issuerId);
     this.#authority = new LocalRunnerAuthority(this.#repositoryRoot);
+    this.#evaluationContext = createProvenanceEvaluationContext(this.#authority);
   }
 
   evaluationContext(): ProvenanceEvaluationContext {
-    return { authority: this.#authority };
+    return this.#evaluationContext;
   }
 
   async run(input: LocalEvidenceRunInput): Promise<DevelopmentEvidenceReceipt> {
@@ -1011,6 +1013,12 @@ class RepositoryLocalEvidenceRunner implements LocalEvidenceRunner {
     this.#authority.record(provenanceAuthorityRecordToken, receipt);
     return receipt;
   }
+}
+
+function createProvenanceEvaluationContext(authority: InternalProvenanceAuthority): ProvenanceEvaluationContext {
+  const context = Object.freeze({ contextId: randomUUID() });
+  provenanceAuthoritiesByContext.set(context, authority);
+  return context;
 }
 
 export function createLocalEvidenceRunner(options: {
