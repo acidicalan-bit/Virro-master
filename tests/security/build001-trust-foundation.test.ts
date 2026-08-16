@@ -10,6 +10,8 @@ import type { AuthorityContext } from "@/src/domain/auth/authority";
 import { attachTaskSpecHash, type TaskSpec } from "@/src/domain/outcome/specification/task-spec";
 
 const migration = readFileSync(resolve(process.cwd(), "supabase/migrations/20260815030000_build_001_trust_foundation_atomic_commit.sql"), "utf8");
+const f4Migration = readFileSync(resolve(process.cwd(), "supabase/migrations/20260816090000_build_001_f4_owner_revocation_toctou.sql"), "utf8");
+const canonicalRepository = readFileSync(resolve(process.cwd(), "src/infrastructure/persistence/outcome/supabase-canonical-commit-repository.ts"), "utf8");
 
 const ids = {
   tenantA: "10000000-0000-4000-8000-000000000001",
@@ -76,6 +78,27 @@ describe("BUILD 001 migration security contract", () => {
     expect(migration).not.toMatch(/update\s+public\.[a-z_]+\s+set\s+owner_tenant_id/i);
     expect(migration).toContain("revoke insert, update, delete on table public.assets from authenticated");
     expect(migration).toContain("revoke insert, update, delete on table public.asset_versions from authenticated");
+  });
+});
+
+describe("BUILD 001-F4 owner revocation linearization", () => {
+  it("locks current tenant and OWNER memberships before delegating to F1", () => {
+    expect(f4Migration).toContain("rename to commit_accepted_field_outcome_unlocked");
+    expect(f4Migration).toContain("tenant.status = 'ACTIVE'");
+    expect(f4Migration).toContain("membership.role = 'OWNER'");
+    expect(f4Migration).toContain("membership.status = 'ACTIVE'");
+    expect(f4Migration).toContain("for update");
+    expect(f4Migration).toContain("order by membership.id");
+    expect(f4Migration).toContain("commit_accepted_field_outcome_unlocked");
+    expect(f4Migration).toContain("TRUST_COMMIT_NOT_AUTHORIZED");
+    expect(f4Migration).toContain("TRUST_HUMAN_ACCEPTANCE_AUTHORITY_REVOKED");
+  });
+
+  it("does not send cached role, tenant or lease authority to the RPC", () => {
+    expect(canonicalRepository).toContain("p_field_outcome_id: fieldOutcomeId");
+    expect(canonicalRepository).not.toContain("membershipRole");
+    expect(canonicalRepository).not.toContain("membership_id");
+    expect(canonicalRepository).not.toContain("owner_tenant_id: authority");
   });
 });
 

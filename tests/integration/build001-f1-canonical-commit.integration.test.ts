@@ -43,7 +43,7 @@ describe("BUILD 001-F1 local real PostgreSQL canonical commit boundary", () => {
     const vulnerableDb = new PGlite({ extensions: { pgcrypto } }) as SqlDatabase;
     try {
       await bootstrapSupabase(vulnerableDb);
-      for (const name of readdirSync(migrationsDir).filter((item) => item.endsWith(".sql") && !item.includes("_f1_")).sort()) {
+      for (const name of readdirSync(migrationsDir).filter((item) => item.endsWith(".sql") && !item.includes("_f1_") && !item.includes("_f4_")).sort()) {
         await vulnerableDb.exec(readFileSync(resolve(migrationsDir, name), "utf8"));
       }
       await seedAuthority(vulnerableDb);
@@ -174,6 +174,129 @@ describe("BUILD 001-F1 local real PostgreSQL canonical commit boundary", () => {
     await expectNoCanonicalTransition(db, fixture, fixture.baseVersion, 1);
     await db.exec("drop trigger f1_injected_state_commit_failure on public.state_commits");
     await db.exec("drop function public.f1_injected_state_commit_failure()");
+  });
+
+  it("denies a commit after OWNER revocation and leaves canonical state unchanged", async () => {
+    const fixture = await seedCanonicalFixture(db, 9);
+    await db.exec(`
+      update public.tenant_memberships
+      set status = 'REVOKED', revoked_at = now()
+      where tenant_id = '${TENANT}' and principal_id = '${ACTOR}';
+    `);
+    try {
+      await expectSqlError(
+        db,
+        `select public.commit_accepted_field_outcome('${fixture.outcome}'::uuid)`,
+        "TRUST_COMMIT_NOT_AUTHORIZED",
+      );
+      await expectNoCanonicalTransition(db, fixture, fixture.baseVersion, 1);
+    } finally {
+      await db.exec(`
+        update public.tenant_memberships
+        set status = 'ACTIVE', revoked_at = null
+        where tenant_id = '${TENANT}' and principal_id = '${ACTOR}';
+      `);
+    }
+  });
+
+  it("denies a forged or stale OWNER identity while the database says MEMBER", async () => {
+    const forgedActor = "10000000-0000-4000-8000-000000000002";
+    const fixture = await seedCanonicalFixture(db, 10);
+    await db.exec(`
+      insert into auth.users(id) values ('${forgedActor}');
+      insert into public.tenant_memberships(tenant_id, principal_id, role, status)
+      values ('${TENANT}', '${forgedActor}', 'MEMBER', 'ACTIVE');
+      set request.jwt.claim.sub = '${forgedActor}';
+    `);
+    try {
+      await expectSqlError(
+        db,
+        `select public.commit_accepted_field_outcome('${fixture.outcome}'::uuid)`,
+        "TRUST_COMMIT_NOT_AUTHORIZED",
+      );
+      await expectNoCanonicalTransition(db, fixture, fixture.baseVersion, 1);
+    } finally {
+      await db.exec(`set request.jwt.claim.sub = '${ACTOR}';`);
+    }
+  });
+
+  it("denies acceptance followed by revocation at the commit boundary", async () => {
+    const fixture = await seedCanonicalFixture(db, 11);
+    await db.exec(`
+      update public.tenant_memberships
+      set status = 'REVOKED', revoked_at = now()
+      where tenant_id = '${TENANT}' and principal_id = '${ACTOR}';
+    `);
+    try {
+      await expectSqlError(
+        db,
+        `select public.commit_accepted_field_outcome('${fixture.outcome}'::uuid)`,
+        "TRUST_COMMIT_NOT_AUTHORIZED",
+      );
+      await expectNoCanonicalTransition(db, fixture, fixture.baseVersion, 1);
+    } finally {
+      await db.exec(`
+        update public.tenant_memberships
+        set status = 'ACTIVE', revoked_at = null
+        where tenant_id = '${TENANT}' and principal_id = '${ACTOR}';
+      `);
+    }
+  });
+
+  it("permits a different currently-authorized OWNER and locks both authority rows", async () => {
+    const secondOwner = "10000000-0000-4000-8000-000000000004";
+    const fixture = await seedCanonicalFixture(db, 12);
+    await db.exec(`
+      insert into auth.users(id) values ('${secondOwner}');
+      insert into public.tenant_memberships(tenant_id, principal_id, role, status)
+      values ('${TENANT}', '${secondOwner}', 'OWNER', 'ACTIVE');
+      set request.jwt.claim.sub = '${secondOwner}';
+    `);
+    try {
+      const result = await db.query<{ result: { idempotent: boolean } }>(
+        "select public.commit_accepted_field_outcome($1::uuid) as result",
+        [fixture.outcome],
+      );
+      expect(result.rows[0].result.idempotent).toBe(false);
+      await expectCommittedState(db, fixture);
+    } finally {
+      await db.exec(`set request.jwt.claim.sub = '${ACTOR}';`);
+    }
+  });
+
+  it("does not let a current commit OWNER rely on a revoked accepting OWNER", async () => {
+    const secondOwner = "10000000-0000-4000-8000-000000000004";
+    const fixture = await seedCanonicalFixture(db, 13);
+    await db.exec(`
+      update public.tenant_memberships
+      set status = 'REVOKED', revoked_at = now()
+      where tenant_id = '${TENANT}' and principal_id = '${ACTOR}';
+      set request.jwt.claim.sub = '${secondOwner}';
+    `);
+    try {
+      await expectSqlError(
+        db,
+        `select public.commit_accepted_field_outcome('${fixture.outcome}'::uuid)`,
+        "TRUST_HUMAN_ACCEPTANCE_AUTHORITY_REVOKED",
+      );
+      await expectNoCanonicalTransition(db, fixture, fixture.baseVersion, 1);
+    } finally {
+      await db.exec(`
+        update public.tenant_memberships
+        set status = 'ACTIVE', revoked_at = null
+        where tenant_id = '${TENANT}' and principal_id = '${ACTOR}';
+        set request.jwt.claim.sub = '${ACTOR}';
+      `);
+    }
+  });
+
+  it("exposes an explicit lock-based authorization linearization point", async () => {
+    const definition = await db.query<{ definition: string }>(
+      "select pg_get_functiondef('public.commit_accepted_field_outcome(uuid)'::regprocedure) as definition",
+    );
+    expect(definition.rows[0].definition).toContain("for update");
+    expect(definition.rows[0].definition).toContain("order by membership.id");
+    expect(definition.rows[0].definition).toContain("commit_accepted_field_outcome_unlocked");
   });
 });
 
