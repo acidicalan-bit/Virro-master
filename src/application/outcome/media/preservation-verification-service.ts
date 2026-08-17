@@ -30,6 +30,7 @@ import { createRecoveryMetadata } from "@/src/application/outcome/recovery/execu
 import type { FieldBetaFaultInjector } from "@/src/application/outcome/media/field-beta-fault-injection";
 import type { AuthorityContext } from "@/src/domain/auth/authority";
 import { bindExecutionAuthority } from "@/src/application/outcome/execution-authority";
+import { precisionEditVerificationBinding } from "@/src/application/outcome/specification/verification-definition";
 
 const SOURCE_MAX_BYTES = 10 * 1024 * 1024;
 
@@ -572,6 +573,7 @@ export class PreservationVerificationService {
           compilerName: taskSpec.compiler.name,
           compilerVersion: taskSpec.compiler.version,
         } : null,
+        verificationDefinition: precisionEditVerificationBinding(),
       },
     });
     await this.repositories.outcomeTransactions.updateStatus(

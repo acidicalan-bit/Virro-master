@@ -14,6 +14,11 @@ export const CriterionEvidenceVerifierSchema = z.object({
   name: z.string().trim().min(1).max(200),
   version: z.string().trim().min(1).max(100),
   policyVersion: z.string().trim().min(1).max(120),
+  // Optional for legacy rows; binding-required qualification rejects absence.
+  verifierId: z.string().trim().min(1).max(160).optional(),
+  verifierDefinitionHash: z.string().regex(SHA256_PATTERN).optional(),
+  policyId: z.string().trim().min(1).max(160).optional(),
+  policyDefinitionHash: z.string().regex(SHA256_PATTERN).optional(),
 }).strict();
 
 export const CriterionEvidenceRecordSchema = z.object({

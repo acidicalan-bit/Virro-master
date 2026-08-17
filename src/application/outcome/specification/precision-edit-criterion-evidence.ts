@@ -1,10 +1,16 @@
 import type { PreservationExperimentView } from "@/src/application/outcome/media/preservation-verification-service";
 import type { CreateCriterionEvidenceRecord, CriterionEvidenceRecord } from "@/src/domain/outcome/criterion-evidence";
 import type { TaskSpec } from "@/src/domain/outcome/specification/task-spec";
+import {
+  PRECISION_EDIT_CRITERION_EVIDENCE_MAP_VERSION,
+  PRECISION_EDIT_VERIFIER_ID,
+  PRECISION_EDIT_VERIFIER_VERSION,
+  precisionEditVerificationBinding,
+  verificationDefinitionMatches,
+} from "@/src/application/outcome/specification/verification-definition";
 
-export const PRECISION_EDIT_CRITERION_EVIDENCE_MAP_VERSION = "precision-edit-criterion-evidence-v0.1" as const;
-export const PRECISION_EDIT_VERIFIER_NAME = "precision-edit-same-spec-verifier" as const;
-export const PRECISION_EDIT_VERIFIER_VERSION = "0.1.0" as const;
+export { PRECISION_EDIT_CRITERION_EVIDENCE_MAP_VERSION, PRECISION_EDIT_VERIFIER_VERSION } from "@/src/application/outcome/specification/verification-definition";
+export const PRECISION_EDIT_VERIFIER_NAME = PRECISION_EDIT_VERIFIER_ID;
 
 type Assertion = PreservationExperimentView["machineVerification"]["assertions"][number];
 
@@ -40,7 +46,18 @@ export function buildPrecisionEditCriterionEvidence(input: {
       rawCandidateId: base.rawCandidateId,
       preservedCandidateId: base.preservedCandidateId,
     },
-    verifier: { name: PRECISION_EDIT_VERIFIER_NAME, version: PRECISION_EDIT_VERIFIER_VERSION, policyVersion: PRECISION_EDIT_CRITERION_EVIDENCE_MAP_VERSION },
+    verifier: (() => {
+      const binding = precisionEditVerificationBinding();
+      return {
+        name: PRECISION_EDIT_VERIFIER_NAME,
+        version: binding.verifierVersion,
+        policyVersion: binding.policyVersion,
+        verifierId: binding.verifierId,
+        verifierDefinitionHash: binding.verifierDefinitionHash,
+        policyId: binding.policyId,
+        policyDefinitionHash: binding.policyDefinitionHash,
+      };
+    })(),
   } as const;
   return [
     record(common, "REQUESTED_EDIT_HAS_CHANGE", edit.passed ? "PASS" : "FAIL", "METRIC", "VERIFIER", `verification://${base.verificationRunId}/REQUESTED_EDIT_HAS_CHANGE`, { sourceAssertion: edit }),
@@ -106,6 +123,7 @@ export function deriveMachineSameSpecFromDurableEvidence(input: {
       || evidence.verifier.name !== PRECISION_EDIT_VERIFIER_NAME
       || evidence.verifier.version !== PRECISION_EDIT_VERIFIER_VERSION
       || evidence.verifier.policyVersion !== PRECISION_EDIT_CRITERION_EVIDENCE_MAP_VERSION
+      || !verificationDefinitionMatches(evidence.verifier, precisionEditVerificationBinding())
     ) return "INCOMPLETE";
     const criterion = required.find((item) => item.id === evidence.criterionId)!;
     if (!criterion.evidenceTypes.includes(evidence.evidenceType) || evidence.status === "UNKNOWN") return "INCOMPLETE";

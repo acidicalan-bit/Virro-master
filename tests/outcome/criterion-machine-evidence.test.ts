@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { DeterministicPrecisionEditSpecCompiler } from "@/src/application/outcome/specification/deterministic-spec-compiler";
 import { createPrecisionEditBlueprintDefinition } from "@/src/application/outcome/specification/precision-edit-blueprint";
 import { buildPrecisionEditCriterionEvidence, deriveMachineSameSpecFromDurableEvidence } from "@/src/application/outcome/specification/precision-edit-criterion-evidence";
+import { createVerificationDefinitionFingerprint, precisionEditVerificationBinding } from "@/src/application/outcome/specification/verification-definition";
 import type { PreservationExperimentView } from "@/src/application/outcome/media/preservation-verification-service";
 import { publishOutcomeBlueprint } from "@/src/domain/outcome/specification/outcome-blueprint";
 import { InMemoryCriterionEvidenceRepository } from "@/src/infrastructure/persistence/outcome/in-memory-outcome-repositories";
@@ -64,10 +65,26 @@ describe("criterion-level Machine Same-Spec evidence", () => {
     ["wrong artifact binding", (records: EvidenceRecords) => records.map((record, index) => index === 0 ? { ...record, artifactBindings: { ...record.artifactBindings, rawCandidateId: "70000000-0000-4000-8000-000000000099" } } : record), "INCOMPLETE"],
     ["foreign tenant", (records: EvidenceRecords) => records.map((record, index) => index === 0 ? { ...record, tenantId: "foreign" } : record), "INCOMPLETE"],
     ["wrong verifier identity", (records: EvidenceRecords) => records.map((record, index) => index === 0 ? { ...record, verifier: { ...record.verifier, version: "stale" } } : record), "INCOMPLETE"],
+    ["wrong verifier definition", (records: EvidenceRecords) => records.map((record, index) => index === 0 ? { ...record, verifier: { ...record.verifier, verifierDefinitionHash: "b".repeat(64) } } : record), "INCOMPLETE"],
+    ["wrong policy definition", (records: EvidenceRecords) => records.map((record, index) => index === 0 ? { ...record, verifier: { ...record.verifier, policyDefinitionHash: "b".repeat(64) } } : record), "INCOMPLETE"],
+    ["historical unbound evidence", (records: EvidenceRecords) => records.map((record, index) => index === 0 ? { ...record, verifier: { name: record.verifier.name, version: record.verifier.version, policyVersion: record.verifier.policyVersion } } : record), "INCOMPLETE"],
+    ["caller spoofed binding", (records: EvidenceRecords) => records.map((record, index) => index === 0 ? { ...record, verifier: { ...record.verifier, verifierId: "precision-edit-same-spec-verifier", policyId: "precision-edit-criterion-evidence-policy", verifierDefinitionHash: "c".repeat(64), policyDefinitionHash: "c".repeat(64) } } : record), "INCOMPLETE"],
   ])("fails closed for %s", async (_name, mutate, expected) => {
     const { spec, records } = await evidence();
     const baseRecords: PersistedEvidenceRecords = records.map((record, index) => ({ ...record, id: `70000000-0000-4000-8000-${String(index + 20).padStart(12, "0")}`, createdAt: "2026-08-13T00:00:02.000Z" }));
     expect(deriveMachineSameSpecFromDurableEvidence({ taskSpec: spec, evidence: mutate(baseRecords) as PersistedEvidenceRecords, expectedArtifactBindings: { sourceVersionId: ids.source, rawCandidateId: ids.raw, preservedCandidateId: ids.preserved }, tenantId: "internal-lab", transactionId: ids.transaction, executionRunId: ids.execution, verificationRunId: ids.verification })).toBe(expected);
+  });
+
+  it("binds the authoritative verifier and policy definitions to stable fingerprints", () => {
+    const binding = precisionEditVerificationBinding();
+    expect(binding.verifierDefinitionHash).toMatch(/^[0-9a-f]{64}$/);
+    expect(binding.policyDefinitionHash).toMatch(/^[0-9a-f]{64}$/);
+    expect(createVerificationDefinitionFingerprint({ b: 2, a: 1 }))
+      .toBe(createVerificationDefinitionFingerprint({ a: 1, b: 2 }));
+    expect(createVerificationDefinitionFingerprint({ a: 1 }))
+      .not.toBe(createVerificationDefinitionFingerprint({ a: 2 }));
+    binding.verifierDefinitionHash = "d".repeat(64);
+    expect(precisionEditVerificationBinding().verifierDefinitionHash).not.toBe(binding.verifierDefinitionHash);
   });
 
   it("rejects incompatible duplicate evidence instead of silently ignoring it", async () => {
