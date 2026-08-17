@@ -43,7 +43,7 @@ describe("BUILD 001-F1 local real PostgreSQL canonical commit boundary", () => {
     const vulnerableDb = new PGlite({ extensions: { pgcrypto } }) as SqlDatabase;
     try {
       await bootstrapSupabase(vulnerableDb);
-      for (const name of readdirSync(migrationsDir).filter((item) => item.endsWith(".sql") && !item.includes("_f1_") && !item.includes("_f4_")).sort()) {
+      for (const name of readdirSync(migrationsDir).filter((item) => item.endsWith(".sql") && !item.includes("_f1_") && !item.includes("_f3_") && !item.includes("_f4_")).sort()) {
         await vulnerableDb.exec(readFileSync(resolve(migrationsDir, name), "utf8"));
       }
       await seedAuthority(vulnerableDb);
@@ -54,6 +54,25 @@ describe("BUILD 001-F1 local real PostgreSQL canonical commit boundary", () => {
         "TRUST_STATE_COMMIT_IMMUTABLE",
       );
       await expectNoCanonicalTransition(vulnerableDb, fixture, fixture.baseVersion, 1);
+
+      const existing = await seedCanonicalFixture(vulnerableDb, 16);
+      await vulnerableDb.exec(`
+        insert into public.asset_versions(id, owner_tenant_id, asset_id, version_number, state, parent_version_id)
+        values ('${existing.externalVersion}', '${TENANT}', '${existing.asset}', 2, '{"media":{"sha256":"${SOURCE_HASH}"}}'::jsonb, '${existing.baseVersion}');
+        update public.assets set current_version_id = '${existing.externalVersion}' where id = '${existing.asset}';
+        update public.outcome_transactions set status = 'COMMITTED' where id = '${existing.transaction}';
+        insert into public.state_commits(owner_tenant_id, transaction_id, asset_id, new_version_id, previous_version_id)
+        values ('${TENANT}', '${existing.transaction}', '${existing.asset}', '${existing.externalVersion}', '${existing.baseVersion}');
+        set role service_role;
+        update public.state_commits set committed_at = committed_at + interval '1 second' where transaction_id = '${existing.transaction}';
+        delete from public.state_commits where transaction_id = '${existing.transaction}';
+        reset role;
+      `);
+      const mutated = await vulnerableDb.query<{ commits: number }>(
+        "select count(*)::integer as commits from public.state_commits where transaction_id = $1::uuid",
+        [existing.transaction],
+      );
+      expect(mutated.rows[0].commits).toBe(0);
     } finally {
       await vulnerableDb.close();
     }
@@ -75,6 +94,81 @@ describe("BUILD 001-F1 local real PostgreSQL canonical commit boundary", () => {
     );
     expect(retry.rows[0].result.idempotent).toBe(true);
     await expectCommittedState(db, fixture);
+  });
+
+  it("keeps an existing StateCommit immutable for normal and privileged SQL roles", async () => {
+    const fixture = await seedCanonicalFixture(db, 14);
+    await db.query<{ result: { idempotent: boolean } }>(
+      "select public.commit_accepted_field_outcome($1::uuid) as result",
+      [fixture.outcome],
+    );
+    const before = await db.query<Record<string, unknown>>("select * from public.state_commits where transaction_id = $1::uuid", [fixture.transaction]);
+
+    await db.exec("set role authenticated");
+    await expectSqlError(
+      db,
+      `update public.state_commits set asset_id = '${fixture.foreignTransaction}' where transaction_id = '${fixture.transaction}'`,
+      "permission denied",
+    );
+    await expectSqlError(
+      db,
+      `delete from public.state_commits where transaction_id = '${fixture.transaction}'`,
+      "permission denied",
+    );
+    await db.exec("reset role");
+
+    await db.exec("set role service_role");
+    for (const assignment of [
+      `owner_tenant_id = null`,
+      `transaction_id = '${fixture.foreignTransaction}'`,
+      `asset_id = '${fixture.foreignTransaction}'`,
+      `new_version_id = '${fixture.baseVersion}'`,
+      `previous_version_id = '${fixture.baseVersion}'`,
+      `committed_at = committed_at + interval '1 second'`,
+    ]) {
+      await expectSqlError(
+        db,
+        `update public.state_commits set ${assignment} where transaction_id = '${fixture.transaction}'`,
+        "TRUST_STATE_COMMIT_IMMUTABLE",
+      );
+    }
+    await expectSqlError(
+      db,
+      `delete from public.state_commits where transaction_id = '${fixture.transaction}'`,
+      "TRUST_STATE_COMMIT_IMMUTABLE",
+    );
+    await db.exec("reset role");
+
+    const after = await db.query<Record<string, unknown>>("select * from public.state_commits where transaction_id = $1::uuid", [fixture.transaction]);
+    expect(after.rows).toEqual(before.rows);
+  });
+
+  it("does not allow a parent transaction cascade to erase StateCommit history", async () => {
+    const fixture = await seedCanonicalFixture(db, 15);
+    await db.query<{ result: { idempotent: boolean } }>(
+      "select public.commit_accepted_field_outcome($1::uuid) as result",
+      [fixture.outcome],
+    );
+    const constraint = await db.query<{ delete_action: string }>(`
+      select case confdeltype when 'r' then 'RESTRICT' when 'a' then 'NO ACTION' else confdeltype::text end as delete_action
+      from pg_constraint where conname = 'state_commits_transaction_id_restrict_fkey'
+    `);
+    expect(constraint.rows[0]?.delete_action).toBe("RESTRICT");
+    await db.exec("set role service_role");
+    try {
+      await expectSqlError(
+        db,
+        `delete from public.outcome_transactions where id = '${fixture.transaction}'`,
+        "immutable",
+      );
+    } finally {
+      await db.exec("reset role");
+    }
+    const remaining = await db.query<{ commits: number }>(
+      "select count(*)::integer as commits from public.state_commits where transaction_id = $1::uuid",
+      [fixture.transaction],
+    );
+    expect(remaining.rows[0].commits).toBe(1);
   });
 
   it("keeps canonical candidate content, lineage and workflow columns immutable", async () => {
