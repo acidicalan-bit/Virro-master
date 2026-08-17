@@ -1,12 +1,12 @@
 import "server-only";
 
-import type { RepositoryBundle } from "@/src/application/ports/repositories";
+import type { GlobalRepositoryBundle } from "@/src/application/ports/repositories";
 import { getInMemoryRepositories } from "@/src/infrastructure/persistence/in-memory-repositories";
-import { createSupabaseRepositories } from "@/src/infrastructure/persistence/supabase-repositories";
+import { createSystemRepositories } from "@/src/infrastructure/persistence/supabase-repositories";
 
-let cached: RepositoryBundle | null = null;
+let cached: GlobalRepositoryBundle | null = null;
 
-export function createRepositories(): RepositoryBundle {
+export function createRepositories(): GlobalRepositoryBundle {
   if (cached) return cached;
 
   const hasSupabase = Boolean(
@@ -15,7 +15,7 @@ export function createRepositories(): RepositoryBundle {
   );
 
   if (hasSupabase) {
-    cached = createSupabaseRepositories();
+    cached = createSystemRepositories();
     return cached;
   }
 

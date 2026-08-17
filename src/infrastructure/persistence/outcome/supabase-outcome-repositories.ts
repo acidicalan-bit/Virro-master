@@ -71,7 +71,14 @@ import { CriterionEvidenceRecordSchema } from "@/src/domain/outcome/criterion-ev
 type FilterableQuery = { eq(column: string, value: unknown): FilterableQuery };
 
 function ownedQuery<T>(query: T, ownerTenantId?: string): T {
-  return ownerTenantId ? (query as unknown as FilterableQuery).eq("owner_tenant_id", ownerTenantId) as unknown as T : query;
+  const scope = requireTenantScope(ownerTenantId);
+  return (query as unknown as FilterableQuery).eq("owner_tenant_id", scope) as unknown as T;
+}
+
+function requireTenantScope(ownerTenantId: string | undefined): string {
+  const scope = ownerTenantId?.trim();
+  if (!scope) throw new Error("TRUST_TENANT_SCOPE_REQUIRED");
+  return scope;
 }
 
 export class SupabaseProjectRepository implements ProjectRepository {
@@ -208,7 +215,7 @@ export class SupabasePartialIntentRepository implements PartialIntentRepository 
   async create(input: CreatePartialIntentRecord): Promise<PartialIntentRecord> {
     const { data, error } = await this.client
       .from("partial_intents")
-      .insert({ owner_tenant_id: this.ownerTenantId ?? null, transaction_id: input.transactionId, raw_input: input.rawInput, target_path: input.targetPath, operation: input.operation, desired_value: input.desiredValue })
+      .insert({ owner_tenant_id: requireTenantScope(this.ownerTenantId), transaction_id: input.transactionId, raw_input: input.rawInput, target_path: input.targetPath, operation: input.operation, desired_value: input.desiredValue })
       .select("*")
       .single();
     if (error || !data) throw new Error("No se pudo crear el intent parcial.", { cause: error ?? undefined });
@@ -228,7 +235,7 @@ export class SupabaseSemanticPatchRepository implements SemanticPatchRepository 
   async create(input: CreateSemanticPatchRecord): Promise<SemanticPatchRecord> {
     const { data, error } = await this.client
       .from("transaction_patches")
-      .insert({ owner_tenant_id: this.ownerTenantId ?? null, transaction_id: input.transactionId, partial_intent_id: input.partialIntentId, operation: input.operation, target_path: input.targetPath, parameters: input.parameters })
+      .insert({ owner_tenant_id: requireTenantScope(this.ownerTenantId), transaction_id: input.transactionId, partial_intent_id: input.partialIntentId, operation: input.operation, target_path: input.targetPath, parameters: input.parameters })
       .select("*")
       .single();
     if (error || !data) throw new Error("No se pudo crear el parche semántico.", { cause: error ?? undefined });
@@ -248,7 +255,7 @@ export class SupabaseMutationLeaseRepository implements MutationLeaseRepository 
   async create(input: CreateMutationLeaseRecord): Promise<MutationLeaseRecord> {
     const { data, error } = await this.client
       .from("mutation_leases")
-      .insert({ owner_tenant_id: this.ownerTenantId ?? null, transaction_id: input.transactionId, target_path: input.targetPath, category: input.category, reason: input.reason })
+      .insert({ owner_tenant_id: requireTenantScope(this.ownerTenantId), transaction_id: input.transactionId, target_path: input.targetPath, category: input.category, reason: input.reason })
       .select("*")
       .single();
     if (error || !data) throw new Error("No se pudo crear el lease de mutación.");
@@ -268,7 +275,7 @@ export class SupabaseExecutionRunRepository implements ExecutionRunRepository {
   async create(input: CreateExecutionRunRecord): Promise<ExecutionRunRecord> {
     const { data, error } = await this.client
       .from("execution_runs")
-      .insert({ owner_tenant_id: this.ownerTenantId ?? null, transaction_id: input.transactionId, status: input.status, executor: input.executor, started_at: input.startedAt, completed_at: input.completedAt, latency_ms: input.latencyMs, cost_usd: input.costUsd, error_message: input.errorMessage, metadata: input.metadata })
+      .insert({ owner_tenant_id: requireTenantScope(this.ownerTenantId), transaction_id: input.transactionId, status: input.status, executor: input.executor, started_at: input.startedAt, completed_at: input.completedAt, latency_ms: input.latencyMs, cost_usd: input.costUsd, error_message: input.errorMessage, metadata: input.metadata })
       .select("*")
       .single();
     if (error || !data) throw new Error("No se pudo crear la ejecución.");
@@ -302,7 +309,7 @@ export class SupabaseEvidenceReceiptRepository implements EvidenceReceiptReposit
   async create(input: CreateEvidenceReceiptRecord): Promise<EvidenceReceiptRecord> {
     const { data, error } = await this.client
       .from("evidence_receipts")
-      .insert({ owner_tenant_id: this.ownerTenantId ?? null, transaction_id: input.transactionId, execution_run_id: input.executionRunId, base_version_id: input.baseVersionId, operation: input.operation, target: input.target, requested_effect: input.requestedEffect, observed_effect: input.observedEffect, executor: input.executor, started_at: input.startedAt, completed_at: input.completedAt, cost_usd: input.costUsd, success: input.success })
+      .insert({ owner_tenant_id: requireTenantScope(this.ownerTenantId), transaction_id: input.transactionId, execution_run_id: input.executionRunId, base_version_id: input.baseVersionId, operation: input.operation, target: input.target, requested_effect: input.requestedEffect, observed_effect: input.observedEffect, executor: input.executor, started_at: input.startedAt, completed_at: input.completedAt, cost_usd: input.costUsd, success: input.success })
       .select("*")
       .single();
     if (error || !data) throw new Error("No se pudo crear el recibo de evidencia.");
@@ -322,7 +329,7 @@ export class SupabaseVerificationRunRepository implements VerificationRunReposit
   async create(input: CreateVerificationRunRecord): Promise<VerificationRunRecord> {
     const { data, error } = await this.client
       .from("verification_runs")
-      .insert({ owner_tenant_id: this.ownerTenantId ?? null, transaction_id: input.transactionId, execution_run_id: input.executionRunId, status: input.status, checks: input.checks, details: input.details })
+      .insert({ owner_tenant_id: requireTenantScope(this.ownerTenantId), transaction_id: input.transactionId, execution_run_id: input.executionRunId, status: input.status, checks: input.checks, details: input.details })
       .select("*")
       .single();
     if (error || !data) throw new Error("No se pudo crear la verificación.");
@@ -341,8 +348,8 @@ export class SupabaseCriterionEvidenceRepository implements CriterionEvidenceRep
 
   async create(input: CreateCriterionEvidenceRecord): Promise<CriterionEvidenceRecord> {
     const { data, error } = await this.client.from("verification_criterion_evidence").insert({
-      tenant_id: this.ownerTenantId ?? input.tenantId,
-      owner_tenant_id: this.ownerTenantId ?? null,
+      tenant_id: requireTenantScope(this.ownerTenantId),
+      owner_tenant_id: requireTenantScope(this.ownerTenantId),
       transaction_id: input.transactionId,
       verification_run_id: input.verificationRunId,
       execution_run_id: input.executionRunId,
@@ -381,7 +388,7 @@ export class SupabaseStateCommitRepository implements StateCommitRepository {
   async create(input: CreateStateCommitRecord): Promise<StateCommitRecord> {
     const { data, error } = await this.client
       .from("state_commits")
-      .insert({ owner_tenant_id: this.ownerTenantId ?? null, transaction_id: input.transactionId, asset_id: input.assetId, new_version_id: input.newVersionId, previous_version_id: input.previousVersionId })
+      .insert({ owner_tenant_id: requireTenantScope(this.ownerTenantId), transaction_id: input.transactionId, asset_id: input.assetId, new_version_id: input.newVersionId, previous_version_id: input.previousVersionId })
       .select("*")
       .single();
     if (error || !data) throw new Error("No se pudo crear el commit de estado.");
@@ -405,7 +412,7 @@ export class SupabaseCostRecordRepository implements CostRecordRepository {
   async create(input: CreateCostRecordRecord): Promise<CostRecordRecord> {
     const { data, error } = await this.client
       .from("cost_records")
-      .insert({ owner_tenant_id: this.ownerTenantId ?? null, transaction_id: input.transactionId, execution_run_id: input.executionRunId, amount_usd: input.amountUsd, description: input.description })
+      .insert({ owner_tenant_id: requireTenantScope(this.ownerTenantId), transaction_id: input.transactionId, execution_run_id: input.executionRunId, amount_usd: input.amountUsd, description: input.description })
       .select("*")
       .single();
     if (error || !data) throw new Error("No se pudo crear el registro de costo.");
@@ -425,7 +432,7 @@ export class SupabaseMediaStorageRepository implements MediaStorageRepository {
   async create(input: CreateMediaStorageRecord): Promise<MediaStorageRecord> {
     const { data, error } = await this.client
       .from("media_storage")
-      .insert({ owner_tenant_id: this.ownerTenantId ?? null, storage_key: input.storageKey, mime_type: input.mimeType, width: input.width, height: input.height, byte_size: input.byteSize, sha256: input.sha256, asset_id: input.assetId })
+      .insert({ owner_tenant_id: requireTenantScope(this.ownerTenantId), storage_key: input.storageKey, mime_type: input.mimeType, width: input.width, height: input.height, byte_size: input.byteSize, sha256: input.sha256, asset_id: input.assetId })
       .select("*")
       .single();
     if (error || !data) throw new Error("No se pudo crear el registro de almacenamiento.");
@@ -451,7 +458,7 @@ export class SupabaseSemanticSnapshotRepository implements SemanticSnapshotRepos
   async create(input: CreateSemanticSnapshotRecord): Promise<SemanticSnapshotRecord> {
     const { data, error } = await this.client
       .from("semantic_snapshots")
-      .insert({ owner_tenant_id: this.ownerTenantId ?? null, transaction_id: input.transactionId, transaction_schema_version: input.transactionSchemaVersion, patch_schema_version: input.patchSchemaVersion, executor_adapter_version: input.executorAdapterVersion, provider: input.provider, image_model_identifier: input.imageModelIdentifier, verification_methodology_version: input.verificationMethodologyVersion })
+      .insert({ owner_tenant_id: requireTenantScope(this.ownerTenantId), transaction_id: input.transactionId, transaction_schema_version: input.transactionSchemaVersion, patch_schema_version: input.patchSchemaVersion, executor_adapter_version: input.executorAdapterVersion, provider: input.provider, image_model_identifier: input.imageModelIdentifier, verification_methodology_version: input.verificationMethodologyVersion })
       .select("*")
       .single();
     if (error || !data) throw new Error("No se pudo crear el snapshot semantico.");
@@ -471,7 +478,7 @@ export class SupabaseImageEvidenceRepository implements ImageEvidenceRepository 
   async create(input: CreateImageEvidenceRecord): Promise<ImageEvidenceRecord> {
     const { data, error } = await this.client
       .from("image_evidence")
-      .insert({ owner_tenant_id: this.ownerTenantId ?? null, evidence_receipt_id: input.evidenceReceiptId, source_hash: input.sourceHash, candidate_hash: input.candidateHash, source_width: input.sourceWidth, source_height: input.sourceHeight, candidate_width: input.candidateWidth, candidate_height: input.candidateHeight, normalized_total_diff: input.normalizedTotalDiff, normalized_roi_diff: input.normalizedRoiDiff, normalized_outside_roi_diff: input.normalizedOutsideRoiDiff, changed_pixel_ratio_total: input.changedPixelRatioTotal, changed_pixel_ratio_inside: input.changedPixelRatioInside, changed_pixel_ratio_outside: input.changedPixelRatioOutside, methodology: input.methodology })
+      .insert({ owner_tenant_id: requireTenantScope(this.ownerTenantId), evidence_receipt_id: input.evidenceReceiptId, source_hash: input.sourceHash, candidate_hash: input.candidateHash, source_width: input.sourceWidth, source_height: input.sourceHeight, candidate_width: input.candidateWidth, candidate_height: input.candidateHeight, normalized_total_diff: input.normalizedTotalDiff, normalized_roi_diff: input.normalizedRoiDiff, normalized_outside_roi_diff: input.normalizedOutsideRoiDiff, changed_pixel_ratio_total: input.changedPixelRatioTotal, changed_pixel_ratio_inside: input.changedPixelRatioInside, changed_pixel_ratio_outside: input.changedPixelRatioOutside, methodology: input.methodology })
       .select("*")
       .single();
     if (error || !data) throw new Error("No se pudo crear la evidencia de imagen.");
@@ -491,7 +498,7 @@ export class SupabaseCandidateAssetRepository implements CandidateAssetRepositor
   async create(input: CreateCandidateAssetRecord): Promise<CandidateAssetRecord> {
     const { data, error } = await this.client
       .from("candidate_assets")
-      .insert({ owner_tenant_id: this.ownerTenantId ?? null, transaction_id: input.transactionId, execution_run_id: input.executionRunId, storage_key: input.storageKey, mime_type: input.mimeType, width: input.width, height: input.height, byte_size: input.byteSize, sha256: input.sha256, roi: input.roi, instruction: input.instruction, provider: input.provider, model: input.model, cost_usd: input.costUsd, candidate_type: input.candidateType, source_version_id: input.sourceVersionId, raw_candidate_id: input.rawCandidateId, preservation_run_id: input.preservationRunId, committed: input.committed })
+      .insert({ owner_tenant_id: requireTenantScope(this.ownerTenantId), transaction_id: input.transactionId, execution_run_id: input.executionRunId, storage_key: input.storageKey, mime_type: input.mimeType, width: input.width, height: input.height, byte_size: input.byteSize, sha256: input.sha256, roi: input.roi, instruction: input.instruction, provider: input.provider, model: input.model, cost_usd: input.costUsd, candidate_type: input.candidateType, source_version_id: input.sourceVersionId, raw_candidate_id: input.rawCandidateId, preservation_run_id: input.preservationRunId, committed: input.committed })
       .select("*")
       .single();
     if (error || !data) throw new Error("No se pudo crear el asset candidato.");
@@ -533,7 +540,7 @@ export class SupabasePreservationRunRepository implements PreservationRunReposit
   constructor(private readonly client: SupabaseClient, private readonly ownerTenantId?: string) {}
 
   async create(input: CreatePreservationRunRecord): Promise<PreservationRunRecord> {
-    const { data, error } = await this.client.from("preservation_runs").insert({ ...toPreservationRunRow(input), owner_tenant_id: this.ownerTenantId ?? null }).select("*").single();
+    const { data, error } = await this.client.from("preservation_runs").insert({ ...toPreservationRunRow(input), owner_tenant_id: requireTenantScope(this.ownerTenantId) }).select("*").single();
     if (error || !data) throw new Error("No se pudo crear la ejecución de preservación.");
     return fromPreservationRunRow(data);
   }
@@ -571,7 +578,7 @@ export class SupabasePreservationEvidenceRepository implements PreservationEvide
   async create(input: CreatePreservationEvidenceRecord): Promise<PreservationEvidenceRecord> {
     const metrics = input.metrics;
     const { data, error } = await this.client.from("preservation_evidence").insert({
-      owner_tenant_id: this.ownerTenantId ?? null,
+      owner_tenant_id: requireTenantScope(this.ownerTenantId),
       preservation_run_id: input.preservationRunId,
       candidate_id: input.candidateId,
       candidate_type: input.candidateType,
@@ -607,7 +614,7 @@ export class SupabaseCandidatePreferenceRepository implements CandidatePreferenc
 
   async create(input: CreateCandidatePreferenceRecord): Promise<CandidatePreferenceRecord> {
     const { data, error } = await this.client.from("candidate_preferences").insert({
-      owner_tenant_id: this.ownerTenantId ?? null,
+      owner_tenant_id: requireTenantScope(this.ownerTenantId),
       transaction_id: input.transactionId,
       raw_candidate_id: input.rawCandidateId,
       preserved_candidate_id: input.preservedCandidateId,
@@ -696,10 +703,11 @@ function fromCandidatePreferenceRow(row: Record<string, unknown>): CandidatePref
 }
 
 function resolveOwner(inputOwner: string | null | undefined, scopedOwner: string | undefined): string | null {
-  if (scopedOwner && inputOwner && inputOwner !== scopedOwner) {
+  const scope = requireTenantScope(scopedOwner);
+  if (inputOwner && inputOwner !== scope) {
     throw new Error("Canonical tenant ownership does not match the authorized repository scope.");
   }
-  return scopedOwner ?? inputOwner ?? null;
+  return scope;
 }
 
 function criterionEvidenceRow(row: Record<string, unknown>): CriterionEvidenceRecord {

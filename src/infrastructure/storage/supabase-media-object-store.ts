@@ -54,7 +54,9 @@ export class SupabaseMediaObjectStore implements MediaObjectStore {
   }
 
   private assertTenantKey(storageKey: string): void {
-    if (this.ownerTenantId && !storageKey.startsWith(`tenants/${this.ownerTenantId}/`)) {
+    const scope = this.ownerTenantId?.trim();
+    if (!scope) throw new Error("TRUST_TENANT_SCOPE_REQUIRED");
+    if (!storageKey.startsWith(`tenants/${scope}/`)) {
       throw new Error("Storage object is outside the canonical tenant namespace.");
     }
   }

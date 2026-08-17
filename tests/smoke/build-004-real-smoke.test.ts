@@ -9,7 +9,7 @@ import { PreservationVerificationService } from "@/src/application/outcome/media
 import { createDefaultPreservationPolicy } from "@/src/domain/outcome/media/preservation";
 import { encodePixelsToPng } from "@/src/infrastructure/evidence/png-encoder";
 import { OpenAIImageEditExecutor } from "@/src/infrastructure/executors/image/openai-image-edit-executor";
-import { createSupabaseRepositories } from "@/src/infrastructure/persistence/supabase-repositories";
+import { createTenantSupabaseRepositories } from "@/src/infrastructure/persistence/supabase-repositories";
 import { CompositingImagePreservationEngine } from "@/src/infrastructure/preservation/compositing-image-preservation-engine";
 import { SupabaseMediaObjectStore } from "@/src/infrastructure/storage/supabase-media-object-store";
 
@@ -23,8 +23,8 @@ describe.skipIf(!enabled)("BUILD 004 real OpenAI + Supabase smoke", () => {
     expect(key, "SUPABASE_SERVICE_ROLE_KEY is required").toBeTruthy();
     expect(process.env.OPENAI_API_KEY, "OPENAI_API_KEY is required").toBeTruthy();
     const client = createClient(url!, key!, { auth: { persistSession: false, autoRefreshToken: false } });
-    const repositories = createSupabaseRepositories();
-    const store = new SupabaseMediaObjectStore(client);
+    const repositories = createTenantSupabaseRepositories(process.env.BUILD004_OWNER_TENANT_ID?.trim() || "internal-lab");
+    const store = new SupabaseMediaObjectStore(client, "media", process.env.BUILD004_OWNER_TENANT_ID?.trim() || "internal-lab");
     const service = new PreservationVerificationService(
       repositories,
       new OpenAIImageEditExecutor(),

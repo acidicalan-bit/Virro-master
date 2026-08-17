@@ -7,7 +7,7 @@ import type { ImageEditExecutor } from "@/src/application/ports/outcome/image-ed
 import { FakeImageEditExecutor } from "@/src/infrastructure/executors/image/fake-image-edit-executor";
 import { OpenAIImageEditExecutor } from "@/src/infrastructure/executors/image/openai-image-edit-executor";
 import { ControlledFieldBetaImageEditExecutor } from "@/src/infrastructure/executors/image/controlled-field-beta-image-edit-executor";
-import { createSupabaseRepositories } from "@/src/infrastructure/persistence/supabase-repositories";
+import { createTenantSupabaseRepositories } from "@/src/infrastructure/persistence/supabase-repositories";
 import { CompositingImagePreservationEngine } from "@/src/infrastructure/preservation/compositing-image-preservation-engine";
 import { SupabaseMediaObjectStore } from "@/src/infrastructure/storage/supabase-media-object-store";
 import { createTransientJwtRetryFetch } from "@/src/infrastructure/supabase/transient-jwt-retry-fetch";
@@ -26,7 +26,7 @@ export function createPreservationVerificationService(ownerTenantId = "internal-
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
     global: { fetch: createTransientJwtRetryFetch() },
   });
-  const repositories = createSupabaseRepositories(ownerTenantId);
+  const repositories = createTenantSupabaseRepositories(ownerTenantId);
   const storage = new SupabaseMediaObjectStore(client, "media", ownerTenantId);
   const created = new PreservationVerificationService(
     repositories,

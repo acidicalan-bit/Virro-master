@@ -21,6 +21,7 @@ import type {
   CreateIntentFeedback,
   CreateIntentModelFailure,
   CreateIntentRun,
+  GlobalRepositoryBundle,
   IntentFeedbackRepository,
   IntentModelFailureRepository,
   IntentRunRepository,
@@ -440,17 +441,33 @@ class SupabaseBlindEvaluationRepository implements BlindEvaluationRepository {
   }
 }
 
-export function createSupabaseRepositories(ownerTenantId?: string): RepositoryBundle {
+function createPrivilegedClient(): SupabaseClient {
   const url = process.env.SUPABASE_URL?.trim() || process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
   if (!url || !serviceRoleKey) {
     throw new Error("Faltan SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY en el servidor.");
   }
-
-  const client = createClient(url, serviceRoleKey, {
+  return createClient(url, serviceRoleKey, {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
     global: { fetch: createTransientJwtRetryFetch() },
   });
+}
+
+export function createSystemRepositories(): GlobalRepositoryBundle {
+  const client = createPrivilegedClient();
+  return {
+    intentRuns: new SupabaseIntentRunRepository(client),
+    modelFailures: new SupabaseIntentModelFailureRepository(client),
+    feedback: new SupabaseIntentFeedbackRepository(client),
+    benchmarks: new SupabaseBenchmarkRepository(client),
+    blindEvaluations: new SupabaseBlindEvaluationRepository(client),
+    storageMode: "supabase",
+  };
+}
+
+export function createTenantSupabaseRepositories(ownerTenantId: string): RepositoryBundle {
+  const scope = requireTenantScope(ownerTenantId);
+  const client = createPrivilegedClient();
 
   return {
     intentRuns: new SupabaseIntentRunRepository(client),
@@ -458,28 +475,34 @@ export function createSupabaseRepositories(ownerTenantId?: string): RepositoryBu
     feedback: new SupabaseIntentFeedbackRepository(client),
     benchmarks: new SupabaseBenchmarkRepository(client),
     blindEvaluations: new SupabaseBlindEvaluationRepository(client),
-    projects: new SupabaseProjectRepository(client, ownerTenantId),
-    assets: new SupabaseAssetRepository(client, ownerTenantId),
-    assetVersions: new SupabaseAssetVersionRepository(client, ownerTenantId),
-    outcomeTransactions: new SupabaseOutcomeTransactionRepository(client, ownerTenantId),
-    partialIntents: new SupabasePartialIntentRepository(client, ownerTenantId),
-    semanticPatches: new SupabaseSemanticPatchRepository(client, ownerTenantId),
-    mutationLeases: new SupabaseMutationLeaseRepository(client, ownerTenantId),
-    executionRuns: new SupabaseExecutionRunRepository(client, ownerTenantId),
-    evidenceReceipts: new SupabaseEvidenceReceiptRepository(client, ownerTenantId),
-    verificationRuns: new SupabaseVerificationRunRepository(client, ownerTenantId),
-    criterionEvidence: new SupabaseCriterionEvidenceRepository(client, ownerTenantId),
-    stateCommits: new SupabaseStateCommitRepository(client, ownerTenantId),
-    costRecords: new SupabaseCostRecordRepository(client, ownerTenantId),
-    mediaStorage: new SupabaseMediaStorageRepository(client, ownerTenantId),
-    semanticSnapshots: new SupabaseSemanticSnapshotRepository(client, ownerTenantId),
-    imageEvidence: new SupabaseImageEvidenceRepository(client, ownerTenantId),
-    candidateAssets: new SupabaseCandidateAssetRepository(client, ownerTenantId),
-    preservationRuns: new SupabasePreservationRunRepository(client, ownerTenantId),
-    preservationEvidence: new SupabasePreservationEvidenceRepository(client, ownerTenantId),
-    candidatePreferences: new SupabaseCandidatePreferenceRepository(client, ownerTenantId),
+    projects: new SupabaseProjectRepository(client, scope),
+    assets: new SupabaseAssetRepository(client, scope),
+    assetVersions: new SupabaseAssetVersionRepository(client, scope),
+    outcomeTransactions: new SupabaseOutcomeTransactionRepository(client, scope),
+    partialIntents: new SupabasePartialIntentRepository(client, scope),
+    semanticPatches: new SupabaseSemanticPatchRepository(client, scope),
+    mutationLeases: new SupabaseMutationLeaseRepository(client, scope),
+    executionRuns: new SupabaseExecutionRunRepository(client, scope),
+    evidenceReceipts: new SupabaseEvidenceReceiptRepository(client, scope),
+    verificationRuns: new SupabaseVerificationRunRepository(client, scope),
+    criterionEvidence: new SupabaseCriterionEvidenceRepository(client, scope),
+    stateCommits: new SupabaseStateCommitRepository(client, scope),
+    costRecords: new SupabaseCostRecordRepository(client, scope),
+    mediaStorage: new SupabaseMediaStorageRepository(client, scope),
+    semanticSnapshots: new SupabaseSemanticSnapshotRepository(client, scope),
+    imageEvidence: new SupabaseImageEvidenceRepository(client, scope),
+    candidateAssets: new SupabaseCandidateAssetRepository(client, scope),
+    preservationRuns: new SupabasePreservationRunRepository(client, scope),
+    preservationEvidence: new SupabasePreservationEvidenceRepository(client, scope),
+    candidatePreferences: new SupabaseCandidatePreferenceRepository(client, scope),
     storageMode: "supabase",
   };
+}
+
+export function requireTenantScope(ownerTenantId: string | undefined): string {
+  const scope = ownerTenantId?.trim();
+  if (!scope) throw new Error("TRUST_TENANT_SCOPE_REQUIRED");
+  return scope;
 }
 
 function fromFailureRow(row: Record<string, unknown>) {

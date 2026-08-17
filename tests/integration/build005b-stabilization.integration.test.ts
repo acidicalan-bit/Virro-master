@@ -26,7 +26,7 @@ describe.skipIf(!enabled)("BUILD 005-B.S fresh-process recovery", () => {
   it("loads the persisted context independently of request memory", async () => {
     const executionRunId = process.env.BUILD005B_RECOVERY_EXECUTION_ID!;
     const client = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { auth: { persistSession: false } });
-    const loader = new DurableExecutionRecoveryContextLoader(new SupabaseExecutionRunRepository(client));
+    const loader = new DurableExecutionRecoveryContextLoader(new SupabaseExecutionRunRepository(client, "internal-lab"));
     const loaded = await loader.load(executionRunId, { tenantId: "internal-lab" });
     expect(loaded.status).toBe("REDRIVABLE");
     if (loaded.status === "REDRIVABLE") {

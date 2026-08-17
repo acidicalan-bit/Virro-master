@@ -584,3 +584,8 @@ export type RepositoryBundle = {
   candidatePreferences: CandidatePreferenceRepository;
   storageMode: "supabase" | "memory";
 };
+
+export type GlobalRepositoryBundle = Pick<
+  RepositoryBundle,
+  "intentRuns" | "modelFailures" | "feedback" | "benchmarks" | "blindEvaluations" | "storageMode"
+>;

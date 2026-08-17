@@ -4,7 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 
 import { FieldBetaService } from "@/src/application/outcome/media/field-beta-service";
 import { SupabaseFieldBetaRepository } from "@/src/infrastructure/persistence/outcome/supabase-field-beta-repository";
-import { createSupabaseRepositories } from "@/src/infrastructure/persistence/supabase-repositories";
+import { createTenantSupabaseRepositories } from "@/src/infrastructure/persistence/supabase-repositories";
 import { SupabaseMediaObjectStore } from "@/src/infrastructure/storage/supabase-media-object-store";
 import { createTransientJwtRetryFetch } from "@/src/infrastructure/supabase/transient-jwt-retry-fetch";
 import { createPreservationVerificationService, resetPreservationVerificationServiceForTests } from "@/src/server/preservation-services";
@@ -29,7 +29,7 @@ export function createFieldBetaService(authorityOrTenant: AuthorityContext | str
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
     global: { fetch: createTransientJwtRetryFetch() },
   });
-  const repositories = createSupabaseRepositories(tenantId);
+  const repositories = createTenantSupabaseRepositories(tenantId);
   const samplingRate = parseSamplingRate(process.env.FIELD_EVAL_SAMPLING_RATE);
   const created = new FieldBetaService(
     preservationVerificationService,
