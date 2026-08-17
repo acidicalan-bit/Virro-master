@@ -5,7 +5,6 @@ import { FakeExecutor } from "@/src/infrastructure/executors/fake-executor";
 import { OutcomeTransactionService } from "@/src/application/outcome/outcome-transaction-service";
 import type { MutationLeaseCategory } from "@/src/domain/outcome";
 import type { RepositoryBundle } from "@/src/application/ports/repositories";
-import { createSupabaseRepositories } from "@/src/infrastructure/persistence/supabase-repositories";
 import { isLegacyInternalRouteEnabled, legacyRouteDisabledResponse } from "@/src/server/legacy-route-guard";
 
 export const runtime = "nodejs";
@@ -26,15 +25,8 @@ function getRepositories(): Pick<
   | "stateCommits"
   | "costRecords"
 > {
-  const supabaseUrl = process.env.SUPABASE_URL?.trim() || process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
-  if (supabaseUrl && supabaseKey) {
-    try {
-      return createSupabaseRepositories();
-    } catch {
-      // fall through to in-memory
-    }
-  }
+  // This legacy lab has no authenticated tenant authority. Keep it disposable
+  // and in-memory rather than creating an unscoped service-role repository.
   return getInMemoryOutcomeRepositories();
 }
 

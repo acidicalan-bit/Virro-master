@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { SupabaseFieldBetaRepository } from "@/src/infrastructure/persistence/outcome/supabase-field-beta-repository";
@@ -69,5 +71,11 @@ describe("BUILD 001 F5 canonical tenant ownership", () => {
     const download = () => Promise.resolve({ data: null, error: null });
     const client = { storage: { from: () => ({ download }) } } as unknown as SupabaseClient;
     await expect(new SupabaseMediaObjectStore(client, "media", tenantA).get(`tenants/${tenantB}/candidate.png`)).rejects.toThrow("canonical tenant namespace");
+  });
+
+  it("does not give the legacy transaction lab an unscoped service-role path", () => {
+    const source = readFileSync(resolve(process.cwd(), "app/api/transaction-lab/route.ts"), "utf8");
+    expect(source).not.toContain("createSupabaseRepositories");
+    expect(source).toContain("in-memory rather than creating an unscoped service-role repository");
   });
 });

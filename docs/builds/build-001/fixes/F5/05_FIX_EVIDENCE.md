@@ -11,11 +11,13 @@
   transaction-lineage triggers.
 - Storage access outside the authorized tenant namespace fails before the
   service-role client is called.
+- The legacy transaction lab cannot fall back to an unscoped service-role
+  bundle; it is disposable in-memory only.
 - Same-tenant repository construction remains compatible with the existing
   server path.
 
 Focused regression: `tests/security/build001-f5-tenant-ownership.test.ts`
-passes 4/4.
+passes 5/5.
 
 Regression results from this worktree:
 
