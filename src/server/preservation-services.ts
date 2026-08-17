@@ -12,12 +12,13 @@ import { CompositingImagePreservationEngine } from "@/src/infrastructure/preserv
 import { SupabaseMediaObjectStore } from "@/src/infrastructure/storage/supabase-media-object-store";
 import { createTransientJwtRetryFetch } from "@/src/infrastructure/supabase/transient-jwt-retry-fetch";
 
-let service: PreservationVerificationService | null = null;
+const services = new Map<string, PreservationVerificationService>();
 
-export function resetPreservationVerificationServiceForTests(): void { service = null; }
+export function resetPreservationVerificationServiceForTests(): void { services.clear(); }
 
-export function createPreservationVerificationService(): PreservationVerificationService {
-  if (service) return service;
+export function createPreservationVerificationService(ownerTenantId = "internal-lab"): PreservationVerificationService {
+  const existing = services.get(ownerTenantId);
+  if (existing) return existing;
   const url = process.env.SUPABASE_URL?.trim() || process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
   if (!url || !serviceRoleKey) throw new Error("Supabase server credentials are required.");
@@ -25,15 +26,16 @@ export function createPreservationVerificationService(): PreservationVerificatio
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
     global: { fetch: createTransientJwtRetryFetch() },
   });
-  const repositories = createSupabaseRepositories();
-  const storage = new SupabaseMediaObjectStore(client);
-  service = new PreservationVerificationService(
+  const repositories = createSupabaseRepositories(ownerTenantId);
+  const storage = new SupabaseMediaObjectStore(client, "media", ownerTenantId);
+  const created = new PreservationVerificationService(
     repositories,
     createImageExecutor(client),
     new CompositingImagePreservationEngine(),
     storage,
   );
-  return service;
+  services.set(ownerTenantId, created);
+  return created;
 }
 
 function createImageExecutor(client: SupabaseClient): ImageEditExecutor {

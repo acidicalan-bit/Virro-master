@@ -68,13 +68,19 @@ import type { TransactionStatus } from "@/src/domain/outcome";
 import type { CandidateType } from "@/src/domain/outcome/media/preservation";
 import { CriterionEvidenceRecordSchema } from "@/src/domain/outcome/criterion-evidence";
 
+type FilterableQuery = { eq(column: string, value: unknown): FilterableQuery };
+
+function ownedQuery<T>(query: T, ownerTenantId?: string): T {
+  return ownerTenantId ? (query as unknown as FilterableQuery).eq("owner_tenant_id", ownerTenantId) as unknown as T : query;
+}
+
 export class SupabaseProjectRepository implements ProjectRepository {
-  constructor(private readonly client: SupabaseClient) {}
+  constructor(private readonly client: SupabaseClient, private readonly ownerTenantId?: string) {}
 
   async create(input: CreateProjectRecord): Promise<ProjectRecord> {
     const { data, error } = await this.client
       .from("projects")
-      .insert({ owner_tenant_id: input.ownerTenantId ?? null, name: input.name, description: input.description })
+      .insert({ owner_tenant_id: resolveOwner(input.ownerTenantId, this.ownerTenantId), name: input.name, description: input.description })
       .select("*")
       .single();
     if (error || !data) throw new Error("No se pudo crear el proyecto.");
@@ -82,31 +88,31 @@ export class SupabaseProjectRepository implements ProjectRepository {
   }
 
   async findById(id: string): Promise<ProjectRecord | null> {
-    const { data, error } = await this.client.from("projects").select("*").eq("id", id).maybeSingle();
+    const { data, error } = await ownedQuery(this.client.from("projects").select("*"), this.ownerTenantId).eq("id", id).maybeSingle();
     if (error) throw new Error("No se pudo leer el proyecto.");
     return data ? { id: String(data.id), ownerTenantId: data.owner_tenant_id ? String(data.owner_tenant_id) : null, name: String(data.name), description: data.description ? String(data.description) : null, createdAt: String(data.created_at), updatedAt: String(data.updated_at) } : null;
   }
 
   async list(): Promise<ProjectRecord[]> {
-    const { data, error } = await this.client.from("projects").select("*").order("created_at", { ascending: false });
+    const { data, error } = await ownedQuery(this.client.from("projects").select("*"), this.ownerTenantId).order("created_at", { ascending: false });
     if (error || !data) throw new Error("No se pudieron leer los proyectos.");
     return data.map((row) => ({ id: String(row.id), ownerTenantId: row.owner_tenant_id ? String(row.owner_tenant_id) : null, name: String(row.name), description: row.description ? String(row.description) : null, createdAt: String(row.created_at), updatedAt: String(row.updated_at) }));
   }
 
   async update(id: string, input: Partial<CreateProjectRecord>): Promise<ProjectRecord> {
-    const { data, error } = await this.client.from("projects").update({ name: input.name, description: input.description }).eq("id", id).select("*").single();
+    const { data, error } = await ownedQuery(this.client.from("projects").update({ name: input.name, description: input.description }), this.ownerTenantId).eq("id", id).select("*").single();
     if (error || !data) throw new Error("No se pudo actualizar el proyecto.");
     return { id: String(data.id), ownerTenantId: data.owner_tenant_id ? String(data.owner_tenant_id) : null, name: String(data.name), description: data.description ? String(data.description) : null, createdAt: String(data.created_at), updatedAt: String(data.updated_at) };
   }
 }
 
 export class SupabaseAssetRepository implements AssetRepository {
-  constructor(private readonly client: SupabaseClient) {}
+  constructor(private readonly client: SupabaseClient, private readonly ownerTenantId?: string) {}
 
   async create(input: CreateAssetRecord): Promise<AssetRecord> {
     const { data, error } = await this.client
       .from("assets")
-      .insert({ owner_tenant_id: input.ownerTenantId ?? null, project_id: input.projectId, name: input.name, description: input.description })
+      .insert({ owner_tenant_id: resolveOwner(input.ownerTenantId, this.ownerTenantId), project_id: input.projectId, name: input.name, description: input.description })
       .select("*")
       .single();
     if (error || !data) throw new Error("No se pudo crear el activo.");
@@ -114,31 +120,31 @@ export class SupabaseAssetRepository implements AssetRepository {
   }
 
   async findById(id: string): Promise<AssetRecord | null> {
-    const { data, error } = await this.client.from("assets").select("*").eq("id", id).maybeSingle();
+    const { data, error } = await ownedQuery(this.client.from("assets").select("*"), this.ownerTenantId).eq("id", id).maybeSingle();
     if (error) throw new Error("No se pudo leer el activo.");
     return data ? { id: String(data.id), ownerTenantId: data.owner_tenant_id ? String(data.owner_tenant_id) : null, projectId: String(data.project_id), name: String(data.name), description: data.description ? String(data.description) : null, currentVersionId: data.current_version_id ? String(data.current_version_id) : null, createdAt: String(data.created_at), updatedAt: String(data.updated_at) } : null;
   }
 
   async findByProjectId(projectId: string): Promise<AssetRecord[]> {
-    const { data, error } = await this.client.from("assets").select("*").eq("project_id", projectId);
+    const { data, error } = await ownedQuery(this.client.from("assets").select("*"), this.ownerTenantId).eq("project_id", projectId);
     if (error || !data) throw new Error("No se pudieron leer los activos.");
     return data.map((row) => ({ id: String(row.id), ownerTenantId: row.owner_tenant_id ? String(row.owner_tenant_id) : null, projectId: String(row.project_id), name: String(row.name), description: row.description ? String(row.description) : null, currentVersionId: row.current_version_id ? String(row.current_version_id) : null, createdAt: String(row.created_at), updatedAt: String(row.updated_at) }));
   }
 
   async update(id: string, input: Partial<CreateAssetRecord> & { currentVersionId?: string | null }): Promise<AssetRecord> {
-    const { data, error } = await this.client.from("assets").update({ project_id: input.projectId, name: input.name, description: input.description, current_version_id: input.currentVersionId }).eq("id", id).select("*").single();
+    const { data, error } = await ownedQuery(this.client.from("assets").update({ project_id: input.projectId, name: input.name, description: input.description, current_version_id: input.currentVersionId }), this.ownerTenantId).eq("id", id).select("*").single();
     if (error || !data) throw new Error("No se pudo actualizar el activo.");
     return { id: String(data.id), ownerTenantId: data.owner_tenant_id ? String(data.owner_tenant_id) : null, projectId: String(data.project_id), name: String(data.name), description: data.description ? String(data.description) : null, currentVersionId: data.current_version_id ? String(data.current_version_id) : null, createdAt: String(data.created_at), updatedAt: String(data.updated_at) };
   }
 }
 
 export class SupabaseAssetVersionRepository implements AssetVersionRepository {
-  constructor(private readonly client: SupabaseClient) {}
+  constructor(private readonly client: SupabaseClient, private readonly ownerTenantId?: string) {}
 
   async create(input: CreateAssetVersionRecord): Promise<AssetVersionRecord> {
     const { data, error } = await this.client
       .from("asset_versions")
-      .insert({ owner_tenant_id: input.ownerTenantId ?? null, asset_id: input.assetId, version_number: input.versionNumber, state: input.state, parent_version_id: input.parentVersionId })
+      .insert({ owner_tenant_id: resolveOwner(input.ownerTenantId, this.ownerTenantId), asset_id: input.assetId, version_number: input.versionNumber, state: input.state, parent_version_id: input.parentVersionId })
       .select("*")
       .single();
     if (error || !data) throw new Error("No se pudo crear la versión.");
@@ -146,31 +152,31 @@ export class SupabaseAssetVersionRepository implements AssetVersionRepository {
   }
 
   async findById(id: string): Promise<AssetVersionRecord | null> {
-    const { data, error } = await this.client.from("asset_versions").select("*").eq("id", id).maybeSingle();
+    const { data, error } = await ownedQuery(this.client.from("asset_versions").select("*"), this.ownerTenantId).eq("id", id).maybeSingle();
     if (error) throw new Error("No se pudo leer la versión.");
     return data ? { id: String(data.id), ownerTenantId: data.owner_tenant_id ? String(data.owner_tenant_id) : null, assetId: String(data.asset_id), versionNumber: Number(data.version_number), state: data.state as Record<string, unknown>, parentVersionId: data.parent_version_id ? String(data.parent_version_id) : null, createdAt: String(data.created_at) } : null;
   }
 
   async findByAssetId(assetId: string): Promise<AssetVersionRecord[]> {
-    const { data, error } = await this.client.from("asset_versions").select("*").eq("asset_id", assetId).order("version_number");
+    const { data, error } = await ownedQuery(this.client.from("asset_versions").select("*"), this.ownerTenantId).eq("asset_id", assetId).order("version_number");
     if (error || !data) throw new Error("No se pudieron leer las versiones.");
     return data.map((row) => ({ id: String(row.id), ownerTenantId: row.owner_tenant_id ? String(row.owner_tenant_id) : null, assetId: String(row.asset_id), versionNumber: Number(row.version_number), state: row.state as Record<string, unknown>, parentVersionId: row.parent_version_id ? String(row.parent_version_id) : null, createdAt: String(row.created_at) }));
   }
 
   async findLatestByAssetId(assetId: string): Promise<AssetVersionRecord | null> {
-    const { data, error } = await this.client.from("asset_versions").select("*").eq("asset_id", assetId).order("version_number", { ascending: false }).limit(1).maybeSingle();
+    const { data, error } = await ownedQuery(this.client.from("asset_versions").select("*"), this.ownerTenantId).eq("asset_id", assetId).order("version_number", { ascending: false }).limit(1).maybeSingle();
     if (error) throw new Error("No se pudo leer la última versión.");
     return data ? { id: String(data.id), ownerTenantId: data.owner_tenant_id ? String(data.owner_tenant_id) : null, assetId: String(data.asset_id), versionNumber: Number(data.version_number), state: data.state as Record<string, unknown>, parentVersionId: data.parent_version_id ? String(data.parent_version_id) : null, createdAt: String(data.created_at) } : null;
   }
 }
 
 export class SupabaseOutcomeTransactionRepository implements OutcomeTransactionRepository {
-  constructor(private readonly client: SupabaseClient) {}
+  constructor(private readonly client: SupabaseClient, private readonly ownerTenantId?: string) {}
 
   async create(input: CreateOutcomeTransactionRecord): Promise<OutcomeTransactionRecord> {
     const { data, error } = await this.client
       .from("outcome_transactions")
-      .insert({ owner_tenant_id: input.ownerTenantId ?? null, project_id: input.projectId, asset_id: input.assetId, base_version_id: input.baseVersionId, raw_request: input.rawRequest, status: "DRAFT" })
+      .insert({ owner_tenant_id: resolveOwner(input.ownerTenantId, this.ownerTenantId), project_id: input.projectId, asset_id: input.assetId, base_version_id: input.baseVersionId, raw_request: input.rawRequest, status: "DRAFT" })
       .select("*")
       .single();
     if (error || !data) throw new Error("No se pudo crear la transacción.");
@@ -178,31 +184,31 @@ export class SupabaseOutcomeTransactionRepository implements OutcomeTransactionR
   }
 
   async findById(id: string): Promise<OutcomeTransactionRecord | null> {
-    const { data, error } = await this.client.from("outcome_transactions").select("*").eq("id", id).maybeSingle();
+    const { data, error } = await ownedQuery(this.client.from("outcome_transactions").select("*"), this.ownerTenantId).eq("id", id).maybeSingle();
     if (error) throw new Error("No se pudo leer la transacción.");
     return data ? { id: String(data.id), ownerTenantId: data.owner_tenant_id ? String(data.owner_tenant_id) : null, projectId: String(data.project_id), assetId: String(data.asset_id), baseVersionId: String(data.base_version_id), status: data.status as TransactionStatus, rawRequest: String(data.raw_request), createdAt: String(data.created_at), updatedAt: String(data.updated_at), completedAt: data.completed_at ? String(data.completed_at) : null, abortReason: data.abort_reason ? String(data.abort_reason) : null } : null;
   }
 
   async findByAssetId(assetId: string): Promise<OutcomeTransactionRecord[]> {
-    const { data, error } = await this.client.from("outcome_transactions").select("*").eq("asset_id", assetId);
+    const { data, error } = await ownedQuery(this.client.from("outcome_transactions").select("*"), this.ownerTenantId).eq("asset_id", assetId);
     if (error || !data) throw new Error("No se pudieron leer las transacciones.");
     return data.map((row) => ({ id: String(row.id), ownerTenantId: row.owner_tenant_id ? String(row.owner_tenant_id) : null, projectId: String(row.project_id), assetId: String(row.asset_id), baseVersionId: String(row.base_version_id), status: row.status as TransactionStatus, rawRequest: String(row.raw_request), createdAt: String(row.created_at), updatedAt: String(row.updated_at), completedAt: row.completed_at ? String(row.completed_at) : null, abortReason: row.abort_reason ? String(row.abort_reason) : null }));
   }
 
   async updateStatus(id: string, status: TransactionStatus, extra?: { abortReason?: string | null; completedAt?: string | null }): Promise<OutcomeTransactionRecord> {
-    const { data, error } = await this.client.from("outcome_transactions").update({ status, abort_reason: extra?.abortReason, completed_at: extra?.completedAt }).eq("id", id).select("*").single();
+    const { data, error } = await ownedQuery(this.client.from("outcome_transactions").update({ status, abort_reason: extra?.abortReason, completed_at: extra?.completedAt }), this.ownerTenantId).eq("id", id).select("*").single();
     if (error || !data) throw new Error("No se pudo actualizar la transacción.");
     return { id: String(data.id), ownerTenantId: data.owner_tenant_id ? String(data.owner_tenant_id) : null, projectId: String(data.project_id), assetId: String(data.asset_id), baseVersionId: String(data.base_version_id), status: data.status as TransactionStatus, rawRequest: String(data.raw_request), createdAt: String(data.created_at), updatedAt: String(data.updated_at), completedAt: data.completed_at ? String(data.completed_at) : null, abortReason: data.abort_reason ? String(data.abort_reason) : null };
   }
 }
 
 export class SupabasePartialIntentRepository implements PartialIntentRepository {
-  constructor(private readonly client: SupabaseClient) {}
+  constructor(private readonly client: SupabaseClient, private readonly ownerTenantId?: string) {}
 
   async create(input: CreatePartialIntentRecord): Promise<PartialIntentRecord> {
     const { data, error } = await this.client
       .from("partial_intents")
-      .insert({ transaction_id: input.transactionId, raw_input: input.rawInput, target_path: input.targetPath, operation: input.operation, desired_value: input.desiredValue })
+      .insert({ owner_tenant_id: this.ownerTenantId ?? null, transaction_id: input.transactionId, raw_input: input.rawInput, target_path: input.targetPath, operation: input.operation, desired_value: input.desiredValue })
       .select("*")
       .single();
     if (error || !data) throw new Error("No se pudo crear el intent parcial.", { cause: error ?? undefined });
@@ -210,19 +216,19 @@ export class SupabasePartialIntentRepository implements PartialIntentRepository 
   }
 
   async findByTransactionId(transactionId: string): Promise<PartialIntentRecord[]> {
-    const { data, error } = await this.client.from("partial_intents").select("*").eq("transaction_id", transactionId);
+    const { data, error } = await ownedQuery(this.client.from("partial_intents").select("*"), this.ownerTenantId).eq("transaction_id", transactionId);
     if (error || !data) throw new Error("No se pudieron leer los intents parciales.");
     return data.map((row) => ({ id: String(row.id), transactionId: String(row.transaction_id), rawInput: String(row.raw_input), targetPath: String(row.target_path), operation: row.operation as PartialIntentRecord["operation"], desiredValue: row.desired_value, createdAt: String(row.created_at) }));
   }
 }
 
 export class SupabaseSemanticPatchRepository implements SemanticPatchRepository {
-  constructor(private readonly client: SupabaseClient) {}
+  constructor(private readonly client: SupabaseClient, private readonly ownerTenantId?: string) {}
 
   async create(input: CreateSemanticPatchRecord): Promise<SemanticPatchRecord> {
     const { data, error } = await this.client
       .from("transaction_patches")
-      .insert({ transaction_id: input.transactionId, partial_intent_id: input.partialIntentId, operation: input.operation, target_path: input.targetPath, parameters: input.parameters })
+      .insert({ owner_tenant_id: this.ownerTenantId ?? null, transaction_id: input.transactionId, partial_intent_id: input.partialIntentId, operation: input.operation, target_path: input.targetPath, parameters: input.parameters })
       .select("*")
       .single();
     if (error || !data) throw new Error("No se pudo crear el parche semántico.", { cause: error ?? undefined });
@@ -230,19 +236,19 @@ export class SupabaseSemanticPatchRepository implements SemanticPatchRepository 
   }
 
   async findByTransactionId(transactionId: string): Promise<SemanticPatchRecord[]> {
-    const { data, error } = await this.client.from("transaction_patches").select("*").eq("transaction_id", transactionId);
+    const { data, error } = await ownedQuery(this.client.from("transaction_patches").select("*"), this.ownerTenantId).eq("transaction_id", transactionId);
     if (error || !data) throw new Error("No se pudieron leer los parches.");
     return data.map((row) => ({ id: String(row.id), transactionId: String(row.transaction_id), partialIntentId: String(row.partial_intent_id), operation: row.operation as SemanticPatchRecord["operation"], targetPath: String(row.target_path), parameters: row.parameters as Record<string, unknown>, createdAt: String(row.created_at) }));
   }
 }
 
 export class SupabaseMutationLeaseRepository implements MutationLeaseRepository {
-  constructor(private readonly client: SupabaseClient) {}
+  constructor(private readonly client: SupabaseClient, private readonly ownerTenantId?: string) {}
 
   async create(input: CreateMutationLeaseRecord): Promise<MutationLeaseRecord> {
     const { data, error } = await this.client
       .from("mutation_leases")
-      .insert({ transaction_id: input.transactionId, target_path: input.targetPath, category: input.category, reason: input.reason })
+      .insert({ owner_tenant_id: this.ownerTenantId ?? null, transaction_id: input.transactionId, target_path: input.targetPath, category: input.category, reason: input.reason })
       .select("*")
       .single();
     if (error || !data) throw new Error("No se pudo crear el lease de mutación.");
@@ -250,19 +256,19 @@ export class SupabaseMutationLeaseRepository implements MutationLeaseRepository 
   }
 
   async findByTransactionId(transactionId: string): Promise<MutationLeaseRecord[]> {
-    const { data, error } = await this.client.from("mutation_leases").select("*").eq("transaction_id", transactionId);
+    const { data, error } = await ownedQuery(this.client.from("mutation_leases").select("*"), this.ownerTenantId).eq("transaction_id", transactionId);
     if (error || !data) throw new Error("No se pudieron leer los leases.");
     return data.map((row) => ({ id: String(row.id), transactionId: String(row.transaction_id), targetPath: String(row.target_path), category: row.category as MutationLeaseRecord["category"], reason: row.reason ? String(row.reason) : null, createdAt: String(row.created_at) }));
   }
 }
 
 export class SupabaseExecutionRunRepository implements ExecutionRunRepository {
-  constructor(private readonly client: SupabaseClient) {}
+  constructor(private readonly client: SupabaseClient, private readonly ownerTenantId?: string) {}
 
   async create(input: CreateExecutionRunRecord): Promise<ExecutionRunRecord> {
     const { data, error } = await this.client
       .from("execution_runs")
-      .insert({ transaction_id: input.transactionId, status: input.status, executor: input.executor, started_at: input.startedAt, completed_at: input.completedAt, latency_ms: input.latencyMs, cost_usd: input.costUsd, error_message: input.errorMessage, metadata: input.metadata })
+      .insert({ owner_tenant_id: this.ownerTenantId ?? null, transaction_id: input.transactionId, status: input.status, executor: input.executor, started_at: input.startedAt, completed_at: input.completedAt, latency_ms: input.latencyMs, cost_usd: input.costUsd, error_message: input.errorMessage, metadata: input.metadata })
       .select("*")
       .single();
     if (error || !data) throw new Error("No se pudo crear la ejecución.");
@@ -270,19 +276,19 @@ export class SupabaseExecutionRunRepository implements ExecutionRunRepository {
   }
 
   async updateMetadata(id: string, metadata: Record<string, unknown>): Promise<ExecutionRunRecord> {
-    const { data, error } = await this.client.from("execution_runs").update({ metadata }).eq("id", id).select("*").single();
+    const { data, error } = await ownedQuery(this.client.from("execution_runs").update({ metadata }), this.ownerTenantId).eq("id", id).select("*").single();
     if (error || !data) throw new Error("No se pudo actualizar el checkpoint de ejecución.");
     return executionRow(data);
   }
 
   async findById(id: string): Promise<ExecutionRunRecord | null> {
-    const { data, error } = await this.client.from("execution_runs").select("*").eq("id", id).maybeSingle();
+    const { data, error } = await ownedQuery(this.client.from("execution_runs").select("*"), this.ownerTenantId).eq("id", id).maybeSingle();
     if (error) throw new Error("No se pudo leer la ejecución.");
     return data ? executionRow(data) : null;
   }
 
   async findByTransactionId(transactionId: string): Promise<ExecutionRunRecord[]> {
-    const { data, error } = await this.client.from("execution_runs").select("*").eq("transaction_id", transactionId);
+    const { data, error } = await ownedQuery(this.client.from("execution_runs").select("*"), this.ownerTenantId).eq("transaction_id", transactionId);
     if (error || !data) throw new Error("No se pudieron leer las ejecuciones.");
     return data.map(executionRow);
   }
@@ -291,12 +297,12 @@ export class SupabaseExecutionRunRepository implements ExecutionRunRepository {
 function executionRow(row: Record<string, unknown>): ExecutionRunRecord { return { id: String(row.id), transactionId: String(row.transaction_id), status: row.status as ExecutionRunRecord["status"], executor: String(row.executor), startedAt: String(row.started_at), completedAt: String(row.completed_at), latencyMs: Number(row.latency_ms), costUsd: row.cost_usd === null ? null : Number(row.cost_usd), errorMessage: row.error_message ? String(row.error_message) : null, metadata: row.metadata as Record<string, unknown> }; }
 
 export class SupabaseEvidenceReceiptRepository implements EvidenceReceiptRepository {
-  constructor(private readonly client: SupabaseClient) {}
+  constructor(private readonly client: SupabaseClient, private readonly ownerTenantId?: string) {}
 
   async create(input: CreateEvidenceReceiptRecord): Promise<EvidenceReceiptRecord> {
     const { data, error } = await this.client
       .from("evidence_receipts")
-      .insert({ transaction_id: input.transactionId, execution_run_id: input.executionRunId, base_version_id: input.baseVersionId, operation: input.operation, target: input.target, requested_effect: input.requestedEffect, observed_effect: input.observedEffect, executor: input.executor, started_at: input.startedAt, completed_at: input.completedAt, cost_usd: input.costUsd, success: input.success })
+      .insert({ owner_tenant_id: this.ownerTenantId ?? null, transaction_id: input.transactionId, execution_run_id: input.executionRunId, base_version_id: input.baseVersionId, operation: input.operation, target: input.target, requested_effect: input.requestedEffect, observed_effect: input.observedEffect, executor: input.executor, started_at: input.startedAt, completed_at: input.completedAt, cost_usd: input.costUsd, success: input.success })
       .select("*")
       .single();
     if (error || !data) throw new Error("No se pudo crear el recibo de evidencia.");
@@ -304,19 +310,19 @@ export class SupabaseEvidenceReceiptRepository implements EvidenceReceiptReposit
   }
 
   async findByTransactionId(transactionId: string): Promise<EvidenceReceiptRecord[]> {
-    const { data, error } = await this.client.from("evidence_receipts").select("*").eq("transaction_id", transactionId);
+    const { data, error } = await ownedQuery(this.client.from("evidence_receipts").select("*"), this.ownerTenantId).eq("transaction_id", transactionId);
     if (error || !data) throw new Error("No se pudieron leer los recibos de evidencia.");
     return data.map((row) => ({ id: String(row.id), transactionId: String(row.transaction_id), executionRunId: String(row.execution_run_id), baseVersionId: String(row.base_version_id), operation: String(row.operation), target: String(row.target), requestedEffect: row.requested_effect, observedEffect: row.observed_effect, executor: String(row.executor), startedAt: String(row.started_at), completedAt: String(row.completed_at), costUsd: row.cost_usd === null ? null : Number(row.cost_usd), success: Boolean(row.success) }));
   }
 }
 
 export class SupabaseVerificationRunRepository implements VerificationRunRepository {
-  constructor(private readonly client: SupabaseClient) {}
+  constructor(private readonly client: SupabaseClient, private readonly ownerTenantId?: string) {}
 
   async create(input: CreateVerificationRunRecord): Promise<VerificationRunRecord> {
     const { data, error } = await this.client
       .from("verification_runs")
-      .insert({ transaction_id: input.transactionId, execution_run_id: input.executionRunId, status: input.status, checks: input.checks, details: input.details })
+      .insert({ owner_tenant_id: this.ownerTenantId ?? null, transaction_id: input.transactionId, execution_run_id: input.executionRunId, status: input.status, checks: input.checks, details: input.details })
       .select("*")
       .single();
     if (error || !data) throw new Error("No se pudo crear la verificación.");
@@ -324,18 +330,19 @@ export class SupabaseVerificationRunRepository implements VerificationRunReposit
   }
 
   async findByTransactionId(transactionId: string): Promise<VerificationRunRecord[]> {
-    const { data, error } = await this.client.from("verification_runs").select("*").eq("transaction_id", transactionId);
+    const { data, error } = await ownedQuery(this.client.from("verification_runs").select("*"), this.ownerTenantId).eq("transaction_id", transactionId);
     if (error || !data) throw new Error("No se pudieron leer las verificaciones.");
     return data.map((row) => ({ id: String(row.id), transactionId: String(row.transaction_id), executionRunId: String(row.execution_run_id), status: row.status as VerificationRunRecord["status"], checks: row.checks as Record<string, boolean>, details: row.details as Record<string, unknown>, verifiedAt: String(row.verified_at) }));
   }
 }
 
 export class SupabaseCriterionEvidenceRepository implements CriterionEvidenceRepository {
-  constructor(private readonly client: SupabaseClient) {}
+  constructor(private readonly client: SupabaseClient, private readonly ownerTenantId?: string) {}
 
   async create(input: CreateCriterionEvidenceRecord): Promise<CriterionEvidenceRecord> {
     const { data, error } = await this.client.from("verification_criterion_evidence").insert({
-      tenant_id: input.tenantId,
+      tenant_id: this.ownerTenantId ?? input.tenantId,
+      owner_tenant_id: this.ownerTenantId ?? null,
       transaction_id: input.transactionId,
       verification_run_id: input.verificationRunId,
       execution_run_id: input.executionRunId,
@@ -356,25 +363,25 @@ export class SupabaseCriterionEvidenceRepository implements CriterionEvidenceRep
   }
 
   async findByTransactionId(transactionId: string): Promise<CriterionEvidenceRecord[]> {
-    const { data, error } = await this.client.from("verification_criterion_evidence").select("*").eq("transaction_id", transactionId).order("created_at");
+    const { data, error } = await ownedQuery(this.client.from("verification_criterion_evidence").select("*"), this.ownerTenantId).eq("transaction_id", transactionId).order("created_at");
     if (error || !data) throw new Error("No se pudo leer la evidencia de criterios.");
     return data.map(criterionEvidenceRow);
   }
 
   async findByVerificationRunId(verificationRunId: string): Promise<CriterionEvidenceRecord[]> {
-    const { data, error } = await this.client.from("verification_criterion_evidence").select("*").eq("verification_run_id", verificationRunId).order("created_at");
+    const { data, error } = await ownedQuery(this.client.from("verification_criterion_evidence").select("*"), this.ownerTenantId).eq("verification_run_id", verificationRunId).order("created_at");
     if (error || !data) throw new Error("No se pudo leer la evidencia de criterios.");
     return data.map(criterionEvidenceRow);
   }
 }
 
 export class SupabaseStateCommitRepository implements StateCommitRepository {
-  constructor(private readonly client: SupabaseClient) {}
+  constructor(private readonly client: SupabaseClient, private readonly ownerTenantId?: string) {}
 
   async create(input: CreateStateCommitRecord): Promise<StateCommitRecord> {
     const { data, error } = await this.client
       .from("state_commits")
-      .insert({ transaction_id: input.transactionId, asset_id: input.assetId, new_version_id: input.newVersionId, previous_version_id: input.previousVersionId })
+      .insert({ owner_tenant_id: this.ownerTenantId ?? null, transaction_id: input.transactionId, asset_id: input.assetId, new_version_id: input.newVersionId, previous_version_id: input.previousVersionId })
       .select("*")
       .single();
     if (error || !data) throw new Error("No se pudo crear el commit de estado.");
@@ -382,7 +389,7 @@ export class SupabaseStateCommitRepository implements StateCommitRepository {
   }
 
   async findByTransactionId(transactionId: string): Promise<StateCommitRecord | null> {
-    const { data, error } = await this.client.from("state_commits").select("*").eq("transaction_id", transactionId).maybeSingle();
+    const { data, error } = await ownedQuery(this.client.from("state_commits").select("*"), this.ownerTenantId).eq("transaction_id", transactionId).maybeSingle();
     if (error) throw new Error("No se pudo leer el commit.");
     return data ? stateCommitRow(data) : null;
   }
@@ -393,12 +400,12 @@ function stateCommitRow(row: Record<string, unknown>): StateCommitRecord {
 }
 
 export class SupabaseCostRecordRepository implements CostRecordRepository {
-  constructor(private readonly client: SupabaseClient) {}
+  constructor(private readonly client: SupabaseClient, private readonly ownerTenantId?: string) {}
 
   async create(input: CreateCostRecordRecord): Promise<CostRecordRecord> {
     const { data, error } = await this.client
       .from("cost_records")
-      .insert({ transaction_id: input.transactionId, execution_run_id: input.executionRunId, amount_usd: input.amountUsd, description: input.description })
+      .insert({ owner_tenant_id: this.ownerTenantId ?? null, transaction_id: input.transactionId, execution_run_id: input.executionRunId, amount_usd: input.amountUsd, description: input.description })
       .select("*")
       .single();
     if (error || !data) throw new Error("No se pudo crear el registro de costo.");
@@ -406,19 +413,19 @@ export class SupabaseCostRecordRepository implements CostRecordRepository {
   }
 
   async findByTransactionId(transactionId: string): Promise<CostRecordRecord[]> {
-    const { data, error } = await this.client.from("cost_records").select("*").eq("transaction_id", transactionId);
+    const { data, error } = await ownedQuery(this.client.from("cost_records").select("*"), this.ownerTenantId).eq("transaction_id", transactionId);
     if (error || !data) throw new Error("No se pudieron leer los registros de costo.");
     return data.map((row) => ({ id: String(row.id), transactionId: String(row.transaction_id), executionRunId: row.execution_run_id ? String(row.execution_run_id) : null, amountUsd: Number(row.amount_usd), description: String(row.description), recordedAt: String(row.recorded_at) }));
   }
 }
 
 export class SupabaseMediaStorageRepository implements MediaStorageRepository {
-  constructor(private readonly client: SupabaseClient) {}
+  constructor(private readonly client: SupabaseClient, private readonly ownerTenantId?: string) {}
 
   async create(input: CreateMediaStorageRecord): Promise<MediaStorageRecord> {
     const { data, error } = await this.client
       .from("media_storage")
-      .insert({ storage_key: input.storageKey, mime_type: input.mimeType, width: input.width, height: input.height, byte_size: input.byteSize, sha256: input.sha256, asset_id: input.assetId })
+      .insert({ owner_tenant_id: this.ownerTenantId ?? null, storage_key: input.storageKey, mime_type: input.mimeType, width: input.width, height: input.height, byte_size: input.byteSize, sha256: input.sha256, asset_id: input.assetId })
       .select("*")
       .single();
     if (error || !data) throw new Error("No se pudo crear el registro de almacenamiento.");
@@ -426,25 +433,25 @@ export class SupabaseMediaStorageRepository implements MediaStorageRepository {
   }
 
   async findByAssetId(assetId: string): Promise<MediaStorageRecord[]> {
-    const { data, error } = await this.client.from("media_storage").select("*").eq("asset_id", assetId);
+    const { data, error } = await ownedQuery(this.client.from("media_storage").select("*"), this.ownerTenantId).eq("asset_id", assetId);
     if (error || !data) throw new Error("No se pudieron leer los registros de almacenamiento.");
     return data.map((row) => ({ id: String(row.id), storageKey: String(row.storage_key), mimeType: String(row.mime_type), width: Number(row.width), height: Number(row.height), byteSize: Number(row.byte_size), sha256: String(row.sha256), assetId: String(row.asset_id), createdAt: String(row.created_at) }));
   }
 
   async findByStorageKey(storageKey: string): Promise<MediaStorageRecord | null> {
-    const { data, error } = await this.client.from("media_storage").select("*").eq("storage_key", storageKey).maybeSingle();
+    const { data, error } = await ownedQuery(this.client.from("media_storage").select("*"), this.ownerTenantId).eq("storage_key", storageKey).maybeSingle();
     if (error) throw new Error("No se pudo leer el registro de almacenamiento.");
     return data ? { id: String(data.id), storageKey: String(data.storage_key), mimeType: String(data.mime_type), width: Number(data.width), height: Number(data.height), byteSize: Number(data.byte_size), sha256: String(data.sha256), assetId: String(data.asset_id), createdAt: String(data.created_at) } : null;
   }
 }
 
 export class SupabaseSemanticSnapshotRepository implements SemanticSnapshotRepository {
-  constructor(private readonly client: SupabaseClient) {}
+  constructor(private readonly client: SupabaseClient, private readonly ownerTenantId?: string) {}
 
   async create(input: CreateSemanticSnapshotRecord): Promise<SemanticSnapshotRecord> {
     const { data, error } = await this.client
       .from("semantic_snapshots")
-      .insert({ transaction_id: input.transactionId, transaction_schema_version: input.transactionSchemaVersion, patch_schema_version: input.patchSchemaVersion, executor_adapter_version: input.executorAdapterVersion, provider: input.provider, image_model_identifier: input.imageModelIdentifier, verification_methodology_version: input.verificationMethodologyVersion })
+      .insert({ owner_tenant_id: this.ownerTenantId ?? null, transaction_id: input.transactionId, transaction_schema_version: input.transactionSchemaVersion, patch_schema_version: input.patchSchemaVersion, executor_adapter_version: input.executorAdapterVersion, provider: input.provider, image_model_identifier: input.imageModelIdentifier, verification_methodology_version: input.verificationMethodologyVersion })
       .select("*")
       .single();
     if (error || !data) throw new Error("No se pudo crear el snapshot semantico.");
@@ -452,19 +459,19 @@ export class SupabaseSemanticSnapshotRepository implements SemanticSnapshotRepos
   }
 
   async findByTransactionId(transactionId: string): Promise<SemanticSnapshotRecord | null> {
-    const { data, error } = await this.client.from("semantic_snapshots").select("*").eq("transaction_id", transactionId).maybeSingle();
+    const { data, error } = await ownedQuery(this.client.from("semantic_snapshots").select("*"), this.ownerTenantId).eq("transaction_id", transactionId).maybeSingle();
     if (error) throw new Error("No se pudo leer el snapshot semantico.");
     return data ? { id: String(data.id), transactionId: String(data.transaction_id), transactionSchemaVersion: String(data.transaction_schema_version), patchSchemaVersion: String(data.patch_schema_version), executorAdapterVersion: String(data.executor_adapter_version), provider: String(data.provider), imageModelIdentifier: String(data.image_model_identifier), verificationMethodologyVersion: String(data.verification_methodology_version), createdAt: String(data.created_at) } : null;
   }
 }
 
 export class SupabaseImageEvidenceRepository implements ImageEvidenceRepository {
-  constructor(private readonly client: SupabaseClient) {}
+  constructor(private readonly client: SupabaseClient, private readonly ownerTenantId?: string) {}
 
   async create(input: CreateImageEvidenceRecord): Promise<ImageEvidenceRecord> {
     const { data, error } = await this.client
       .from("image_evidence")
-      .insert({ evidence_receipt_id: input.evidenceReceiptId, source_hash: input.sourceHash, candidate_hash: input.candidateHash, source_width: input.sourceWidth, source_height: input.sourceHeight, candidate_width: input.candidateWidth, candidate_height: input.candidateHeight, normalized_total_diff: input.normalizedTotalDiff, normalized_roi_diff: input.normalizedRoiDiff, normalized_outside_roi_diff: input.normalizedOutsideRoiDiff, changed_pixel_ratio_total: input.changedPixelRatioTotal, changed_pixel_ratio_inside: input.changedPixelRatioInside, changed_pixel_ratio_outside: input.changedPixelRatioOutside, methodology: input.methodology })
+      .insert({ owner_tenant_id: this.ownerTenantId ?? null, evidence_receipt_id: input.evidenceReceiptId, source_hash: input.sourceHash, candidate_hash: input.candidateHash, source_width: input.sourceWidth, source_height: input.sourceHeight, candidate_width: input.candidateWidth, candidate_height: input.candidateHeight, normalized_total_diff: input.normalizedTotalDiff, normalized_roi_diff: input.normalizedRoiDiff, normalized_outside_roi_diff: input.normalizedOutsideRoiDiff, changed_pixel_ratio_total: input.changedPixelRatioTotal, changed_pixel_ratio_inside: input.changedPixelRatioInside, changed_pixel_ratio_outside: input.changedPixelRatioOutside, methodology: input.methodology })
       .select("*")
       .single();
     if (error || !data) throw new Error("No se pudo crear la evidencia de imagen.");
@@ -472,19 +479,19 @@ export class SupabaseImageEvidenceRepository implements ImageEvidenceRepository 
   }
 
   async findByEvidenceReceiptId(evidenceReceiptId: string): Promise<ImageEvidenceRecord | null> {
-    const { data, error } = await this.client.from("image_evidence").select("*").eq("evidence_receipt_id", evidenceReceiptId).maybeSingle();
+    const { data, error } = await ownedQuery(this.client.from("image_evidence").select("*"), this.ownerTenantId).eq("evidence_receipt_id", evidenceReceiptId).maybeSingle();
     if (error) throw new Error("No se pudo leer la evidencia de imagen.");
     return data ? { id: String(data.id), evidenceReceiptId: String(data.evidence_receipt_id), sourceHash: String(data.source_hash), candidateHash: String(data.candidate_hash), sourceWidth: Number(data.source_width), sourceHeight: Number(data.source_height), candidateWidth: Number(data.candidate_width), candidateHeight: Number(data.candidate_height), normalizedTotalDiff: Number(data.normalized_total_diff), normalizedRoiDiff: Number(data.normalized_roi_diff), normalizedOutsideRoiDiff: Number(data.normalized_outside_roi_diff), changedPixelRatioTotal: Number(data.changed_pixel_ratio_total), changedPixelRatioInside: Number(data.changed_pixel_ratio_inside), changedPixelRatioOutside: Number(data.changed_pixel_ratio_outside), methodology: String(data.methodology), createdAt: String(data.created_at) } : null;
   }
 }
 
 export class SupabaseCandidateAssetRepository implements CandidateAssetRepository {
-  constructor(private readonly client: SupabaseClient) {}
+  constructor(private readonly client: SupabaseClient, private readonly ownerTenantId?: string) {}
 
   async create(input: CreateCandidateAssetRecord): Promise<CandidateAssetRecord> {
     const { data, error } = await this.client
       .from("candidate_assets")
-      .insert({ transaction_id: input.transactionId, execution_run_id: input.executionRunId, storage_key: input.storageKey, mime_type: input.mimeType, width: input.width, height: input.height, byte_size: input.byteSize, sha256: input.sha256, roi: input.roi, instruction: input.instruction, provider: input.provider, model: input.model, cost_usd: input.costUsd, candidate_type: input.candidateType, source_version_id: input.sourceVersionId, raw_candidate_id: input.rawCandidateId, preservation_run_id: input.preservationRunId, committed: input.committed })
+      .insert({ owner_tenant_id: this.ownerTenantId ?? null, transaction_id: input.transactionId, execution_run_id: input.executionRunId, storage_key: input.storageKey, mime_type: input.mimeType, width: input.width, height: input.height, byte_size: input.byteSize, sha256: input.sha256, roi: input.roi, instruction: input.instruction, provider: input.provider, model: input.model, cost_usd: input.costUsd, candidate_type: input.candidateType, source_version_id: input.sourceVersionId, raw_candidate_id: input.rawCandidateId, preservation_run_id: input.preservationRunId, committed: input.committed })
       .select("*")
       .single();
     if (error || !data) throw new Error("No se pudo crear el asset candidato.");
@@ -492,53 +499,53 @@ export class SupabaseCandidateAssetRepository implements CandidateAssetRepositor
   }
 
   async findById(id: string): Promise<CandidateAssetRecord | null> {
-    const { data, error } = await this.client.from("candidate_assets").select("*").eq("id", id).maybeSingle();
+    const { data, error } = await ownedQuery(this.client.from("candidate_assets").select("*"), this.ownerTenantId).eq("id", id).maybeSingle();
     if (error) throw new Error("No se pudo leer el asset candidato.");
     return data ? fromCandidateAssetRow(data) : null;
   }
 
   async findByTransactionId(transactionId: string): Promise<CandidateAssetRecord[]> {
-    const { data, error } = await this.client.from("candidate_assets").select("*").eq("transaction_id", transactionId);
+    const { data, error } = await ownedQuery(this.client.from("candidate_assets").select("*"), this.ownerTenantId).eq("transaction_id", transactionId);
     if (error || !data) throw new Error("No se pudieron leer los assets candidatos.");
     return data.map(fromCandidateAssetRow);
   }
 
   async findByExecutionRunId(executionRunId: string): Promise<CandidateAssetRecord | null> {
-    const { data, error } = await this.client.from("candidate_assets").select("*").eq("execution_run_id", executionRunId).eq("candidate_type", "RAW_PROVIDER").maybeSingle();
+    const { data, error } = await ownedQuery(this.client.from("candidate_assets").select("*"), this.ownerTenantId).eq("execution_run_id", executionRunId).eq("candidate_type", "RAW_PROVIDER").maybeSingle();
     if (error) throw new Error("No se pudo leer el asset candidato.");
     return data ? fromCandidateAssetRow(data) : null;
   }
 
   async findByExecutionRunIdAndType(executionRunId: string, candidateType: CandidateType): Promise<CandidateAssetRecord | null> {
-    const { data, error } = await this.client.from("candidate_assets").select("*").eq("execution_run_id", executionRunId).eq("candidate_type", candidateType).maybeSingle();
+    const { data, error } = await ownedQuery(this.client.from("candidate_assets").select("*"), this.ownerTenantId).eq("execution_run_id", executionRunId).eq("candidate_type", candidateType).maybeSingle();
     if (error) throw new Error("No se pudo leer el asset candidato por tipo.");
     return data ? fromCandidateAssetRow(data) : null;
   }
 
   async markCommitted(id: string): Promise<CandidateAssetRecord> {
-    const { data, error } = await this.client.from("candidate_assets").update({ committed: true }).eq("id", id).select("*").single();
+    const { data, error } = await ownedQuery(this.client.from("candidate_assets").update({ committed: true }), this.ownerTenantId).eq("id", id).select("*").single();
     if (error || !data) throw new Error("No se pudo marcar el asset candidato como commitido.");
     return fromCandidateAssetRow(data);
   }
 }
 
 export class SupabasePreservationRunRepository implements PreservationRunRepository {
-  constructor(private readonly client: SupabaseClient) {}
+  constructor(private readonly client: SupabaseClient, private readonly ownerTenantId?: string) {}
 
   async create(input: CreatePreservationRunRecord): Promise<PreservationRunRecord> {
-    const { data, error } = await this.client.from("preservation_runs").insert(toPreservationRunRow(input)).select("*").single();
+    const { data, error } = await this.client.from("preservation_runs").insert({ ...toPreservationRunRow(input), owner_tenant_id: this.ownerTenantId ?? null }).select("*").single();
     if (error || !data) throw new Error("No se pudo crear la ejecución de preservación.");
     return fromPreservationRunRow(data);
   }
 
   async findById(id: string): Promise<PreservationRunRecord | null> {
-    const { data, error } = await this.client.from("preservation_runs").select("*").eq("id", id).maybeSingle();
+    const { data, error } = await ownedQuery(this.client.from("preservation_runs").select("*"), this.ownerTenantId).eq("id", id).maybeSingle();
     if (error) throw new Error("No se pudo leer la ejecución de preservación.");
     return data ? fromPreservationRunRow(data) : null;
   }
 
   async findByTransactionId(transactionId: string): Promise<PreservationRunRecord[]> {
-    const { data, error } = await this.client.from("preservation_runs").select("*").eq("transaction_id", transactionId).order("started_at");
+    const { data, error } = await ownedQuery(this.client.from("preservation_runs").select("*"), this.ownerTenantId).eq("transaction_id", transactionId).order("started_at");
     if (error || !data) throw new Error("No se pudieron leer las ejecuciones de preservación.");
     return data.map(fromPreservationRunRow);
   }
@@ -552,18 +559,19 @@ export class SupabasePreservationRunRepository implements PreservationRunReposit
     if (input.errorMessage !== undefined) payload.error_message = input.errorMessage;
     if (input.processingTimeMs !== undefined) payload.processing_time_ms = input.processingTimeMs;
     if (input.completedAt !== undefined) payload.completed_at = input.completedAt;
-    const { data, error } = await this.client.from("preservation_runs").update(payload).eq("id", id).select("*").single();
+    const { data, error } = await ownedQuery(this.client.from("preservation_runs").update(payload), this.ownerTenantId).eq("id", id).select("*").single();
     if (error || !data) throw new Error("No se pudo actualizar la ejecución de preservación.");
     return fromPreservationRunRow(data);
   }
 }
 
 export class SupabasePreservationEvidenceRepository implements PreservationEvidenceRepository {
-  constructor(private readonly client: SupabaseClient) {}
+  constructor(private readonly client: SupabaseClient, private readonly ownerTenantId?: string) {}
 
   async create(input: CreatePreservationEvidenceRecord): Promise<PreservationEvidenceRecord> {
     const metrics = input.metrics;
     const { data, error } = await this.client.from("preservation_evidence").insert({
+      owner_tenant_id: this.ownerTenantId ?? null,
       preservation_run_id: input.preservationRunId,
       candidate_id: input.candidateId,
       candidate_type: input.candidateType,
@@ -582,23 +590,24 @@ export class SupabasePreservationEvidenceRepository implements PreservationEvide
   }
 
   async findByPreservationRunId(preservationRunId: string): Promise<PreservationEvidenceRecord[]> {
-    const { data, error } = await this.client.from("preservation_evidence").select("*").eq("preservation_run_id", preservationRunId).order("created_at");
+    const { data, error } = await ownedQuery(this.client.from("preservation_evidence").select("*"), this.ownerTenantId).eq("preservation_run_id", preservationRunId).order("created_at");
     if (error || !data) throw new Error("No se pudo leer la evidencia de preservación.");
     return data.map(fromPreservationEvidenceRow);
   }
 
   async findByCandidateId(candidateId: string): Promise<PreservationEvidenceRecord | null> {
-    const { data, error } = await this.client.from("preservation_evidence").select("*").eq("candidate_id", candidateId).maybeSingle();
+    const { data, error } = await ownedQuery(this.client.from("preservation_evidence").select("*"), this.ownerTenantId).eq("candidate_id", candidateId).maybeSingle();
     if (error) throw new Error("No se pudo leer la evidencia del candidato.");
     return data ? fromPreservationEvidenceRow(data) : null;
   }
 }
 
 export class SupabaseCandidatePreferenceRepository implements CandidatePreferenceRepository {
-  constructor(private readonly client: SupabaseClient) {}
+  constructor(private readonly client: SupabaseClient, private readonly ownerTenantId?: string) {}
 
   async create(input: CreateCandidatePreferenceRecord): Promise<CandidatePreferenceRecord> {
     const { data, error } = await this.client.from("candidate_preferences").insert({
+      owner_tenant_id: this.ownerTenantId ?? null,
       transaction_id: input.transactionId,
       raw_candidate_id: input.rawCandidateId,
       preserved_candidate_id: input.preservedCandidateId,
@@ -611,13 +620,13 @@ export class SupabaseCandidatePreferenceRepository implements CandidatePreferenc
   }
 
   async findByTransactionId(transactionId: string): Promise<CandidatePreferenceRecord | null> {
-    const { data, error } = await this.client.from("candidate_preferences").select("*").eq("transaction_id", transactionId).maybeSingle();
+    const { data, error } = await ownedQuery(this.client.from("candidate_preferences").select("*"), this.ownerTenantId).eq("transaction_id", transactionId).maybeSingle();
     if (error) throw new Error("No se pudo leer la preferencia.");
     return data ? fromCandidatePreferenceRow(data) : null;
   }
 
   async recordAcceptance(transactionId: string, humanAccepted: boolean, acceptedCandidateId: string | null): Promise<CandidatePreferenceRecord> {
-    const { data, error } = await this.client.from("candidate_preferences").update({ human_accepted: humanAccepted, accepted_candidate_id: acceptedCandidateId, updated_at: new Date().toISOString() }).eq("transaction_id", transactionId).select("*").single();
+    const { data, error } = await ownedQuery(this.client.from("candidate_preferences").update({ human_accepted: humanAccepted, accepted_candidate_id: acceptedCandidateId, updated_at: new Date().toISOString() }), this.ownerTenantId).eq("transaction_id", transactionId).select("*").single();
     if (error || !data) throw new Error("No se pudo registrar la decisión humana.");
     return fromCandidatePreferenceRow(data);
   }
@@ -684,6 +693,13 @@ function fromCandidatePreferenceRow(row: Record<string, unknown>): CandidatePref
     acceptedCandidateId: row.accepted_candidate_id === null ? null : String(row.accepted_candidate_id),
     createdAt: String(row.created_at), updatedAt: String(row.updated_at),
   };
+}
+
+function resolveOwner(inputOwner: string | null | undefined, scopedOwner: string | undefined): string | null {
+  if (scopedOwner && inputOwner && inputOwner !== scopedOwner) {
+    throw new Error("Canonical tenant ownership does not match the authorized repository scope.");
+  }
+  return scopedOwner ?? inputOwner ?? null;
 }
 
 function criterionEvidenceRow(row: Record<string, unknown>): CriterionEvidenceRecord {

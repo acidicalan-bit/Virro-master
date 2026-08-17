@@ -440,7 +440,7 @@ class SupabaseBlindEvaluationRepository implements BlindEvaluationRepository {
   }
 }
 
-export function createSupabaseRepositories(): RepositoryBundle {
+export function createSupabaseRepositories(ownerTenantId?: string): RepositoryBundle {
   const url = process.env.SUPABASE_URL?.trim() || process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
   if (!url || !serviceRoleKey) {
@@ -458,26 +458,26 @@ export function createSupabaseRepositories(): RepositoryBundle {
     feedback: new SupabaseIntentFeedbackRepository(client),
     benchmarks: new SupabaseBenchmarkRepository(client),
     blindEvaluations: new SupabaseBlindEvaluationRepository(client),
-    projects: new SupabaseProjectRepository(client),
-    assets: new SupabaseAssetRepository(client),
-    assetVersions: new SupabaseAssetVersionRepository(client),
-    outcomeTransactions: new SupabaseOutcomeTransactionRepository(client),
-    partialIntents: new SupabasePartialIntentRepository(client),
-    semanticPatches: new SupabaseSemanticPatchRepository(client),
-    mutationLeases: new SupabaseMutationLeaseRepository(client),
-    executionRuns: new SupabaseExecutionRunRepository(client),
-    evidenceReceipts: new SupabaseEvidenceReceiptRepository(client),
-    verificationRuns: new SupabaseVerificationRunRepository(client),
-    criterionEvidence: new SupabaseCriterionEvidenceRepository(client),
-    stateCommits: new SupabaseStateCommitRepository(client),
-    costRecords: new SupabaseCostRecordRepository(client),
-    mediaStorage: new SupabaseMediaStorageRepository(client),
-    semanticSnapshots: new SupabaseSemanticSnapshotRepository(client),
-    imageEvidence: new SupabaseImageEvidenceRepository(client),
-    candidateAssets: new SupabaseCandidateAssetRepository(client),
-    preservationRuns: new SupabasePreservationRunRepository(client),
-    preservationEvidence: new SupabasePreservationEvidenceRepository(client),
-    candidatePreferences: new SupabaseCandidatePreferenceRepository(client),
+    projects: new SupabaseProjectRepository(client, ownerTenantId),
+    assets: new SupabaseAssetRepository(client, ownerTenantId),
+    assetVersions: new SupabaseAssetVersionRepository(client, ownerTenantId),
+    outcomeTransactions: new SupabaseOutcomeTransactionRepository(client, ownerTenantId),
+    partialIntents: new SupabasePartialIntentRepository(client, ownerTenantId),
+    semanticPatches: new SupabaseSemanticPatchRepository(client, ownerTenantId),
+    mutationLeases: new SupabaseMutationLeaseRepository(client, ownerTenantId),
+    executionRuns: new SupabaseExecutionRunRepository(client, ownerTenantId),
+    evidenceReceipts: new SupabaseEvidenceReceiptRepository(client, ownerTenantId),
+    verificationRuns: new SupabaseVerificationRunRepository(client, ownerTenantId),
+    criterionEvidence: new SupabaseCriterionEvidenceRepository(client, ownerTenantId),
+    stateCommits: new SupabaseStateCommitRepository(client, ownerTenantId),
+    costRecords: new SupabaseCostRecordRepository(client, ownerTenantId),
+    mediaStorage: new SupabaseMediaStorageRepository(client, ownerTenantId),
+    semanticSnapshots: new SupabaseSemanticSnapshotRepository(client, ownerTenantId),
+    imageEvidence: new SupabaseImageEvidenceRepository(client, ownerTenantId),
+    candidateAssets: new SupabaseCandidateAssetRepository(client, ownerTenantId),
+    preservationRuns: new SupabasePreservationRunRepository(client, ownerTenantId),
+    preservationEvidence: new SupabasePreservationEvidenceRepository(client, ownerTenantId),
+    candidatePreferences: new SupabaseCandidatePreferenceRepository(client, ownerTenantId),
     storageMode: "supabase",
   };
 }

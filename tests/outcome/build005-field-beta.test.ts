@@ -181,7 +181,8 @@ describe("BUILD 005 recovery invariants", () => {
     expect(source).toContain('from("field_golden_cases")');
     expect(source).not.toContain('from("regression_candidates")');
     expect(source).not.toContain('from("golden_cases")');
-    expect(source.match(/\.eq\("tenant_id", this\.tenantId\)/g)?.length).toBeGreaterThanOrEqual(12);
+    expect(source.match(/\.eq\("tenant_id", this\.tenantId\)/g)?.length ?? 0).toBe(0);
+    expect(source.match(/\.eq\("owner_tenant_id", this\.tenantId\)/g)?.length ?? 0).toBeGreaterThanOrEqual(12);
   });
 
   it("enforces the internal PNG dimensions and resource envelope before inflation", () => {

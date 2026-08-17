@@ -19,8 +19,8 @@ export function createFieldBetaService(authorityOrTenant: AuthorityContext | str
   const tenantId = typeof authorityOrTenant === "string" ? authorityOrTenant : authorityOrTenant.tenantId;
   const principalId = typeof authorityOrTenant === "string" ? legacyPrincipalId : authorityOrTenant.principalId;
   if (!isFieldBetaEnabled(process.env.FIELD_BETA_INTERNAL_ENABLED)) throw new Error("BUILD 005 field beta is disabled unless FIELD_BETA_INTERNAL_ENABLED=true.");
-  const preservationVerificationService = createPreservationVerificationService();
-  if (tenantId === "internal-lab" && process.env.NODE_ENV !== "test") throw new Error("Field Beta requires an authenticated tenant authority in non-test environments.");
+  const preservationVerificationService = createPreservationVerificationService(tenantId);
+  if (!authority && process.env.NODE_ENV !== "test") throw new Error("Field Beta requires an authenticated tenant authority in non-test environments.");
   const existing = services.get(`${tenantId}:${principalId}`);
   if (existing) return existing;
   const url = getSupabaseUrl();
@@ -29,14 +29,14 @@ export function createFieldBetaService(authorityOrTenant: AuthorityContext | str
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
     global: { fetch: createTransientJwtRetryFetch() },
   });
-  const repositories = createSupabaseRepositories();
+  const repositories = createSupabaseRepositories(tenantId);
   const samplingRate = parseSamplingRate(process.env.FIELD_EVAL_SAMPLING_RATE);
   const created = new FieldBetaService(
     preservationVerificationService,
     repositories.candidateAssets,
     repositories.assetVersions,
     new SupabaseFieldBetaRepository(client, tenantId),
-    new SupabaseMediaObjectStore(client),
+    new SupabaseMediaObjectStore(client, "media", tenantId),
     undefined,
     samplingRate,
     Math.random,

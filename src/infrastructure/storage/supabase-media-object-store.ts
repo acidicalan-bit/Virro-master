@@ -8,9 +8,11 @@ export class SupabaseMediaObjectStore implements MediaObjectStore {
   constructor(
     private readonly client: SupabaseClient,
     private readonly bucket = "media",
+    private readonly ownerTenantId?: string,
   ) {}
 
   async put(storageKey: string, bytes: Uint8Array, mimeType: string): Promise<void> {
+    this.assertTenantKey(storageKey);
     const { error } = await this.client.storage.from(this.bucket).upload(
       storageKey,
       Buffer.from(bytes),
@@ -20,6 +22,7 @@ export class SupabaseMediaObjectStore implements MediaObjectStore {
   }
 
   async get(storageKey: string): Promise<Uint8Array> {
+    this.assertTenantKey(storageKey);
     const { data, error } = await this.client.storage.from(this.bucket).download(storageKey);
     if (error || !data) throw new Error(`Storage download failed for ${storageKey}: ${error?.message ?? "unknown"}`);
     const blobLike = data as unknown as { arrayBuffer?: () => Promise<ArrayBuffer>; stream?: () => ReadableStream<Uint8Array> };
@@ -44,8 +47,15 @@ export class SupabaseMediaObjectStore implements MediaObjectStore {
   }
 
   async createReadUrl(storageKey: string, expiresInSeconds = 3600): Promise<string> {
+    this.assertTenantKey(storageKey);
     const { data, error } = await this.client.storage.from(this.bucket).createSignedUrl(storageKey, expiresInSeconds);
     if (error || !data?.signedUrl) throw new Error(`Could not sign ${storageKey}: ${error?.message ?? "unknown"}`);
     return data.signedUrl;
+  }
+
+  private assertTenantKey(storageKey: string): void {
+    if (this.ownerTenantId && !storageKey.startsWith(`tenants/${this.ownerTenantId}/`)) {
+      throw new Error("Storage object is outside the canonical tenant namespace.");
+    }
   }
 }
