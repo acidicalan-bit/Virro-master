@@ -9,6 +9,11 @@ export const CriterionEvidenceTypeSchema = z.enum(["METRIC", "HASH", "POLICY_CHE
 export type CriterionEvidenceType = z.infer<typeof CriterionEvidenceTypeSchema>;
 
 export const CriterionEvidenceArtifactBindingsSchema = z.record(z.string().trim().min(1).max(120), z.string().uuid().nullable());
+const CriterionEvidenceAssertionResultSchema = z.object({
+  id: z.string().trim().min(1).max(160),
+  required: z.literal(true),
+  passed: z.boolean(),
+}).strict();
 
 export const CriterionEvidenceVerifierSchema = z.object({
   name: z.string().trim().min(1).max(200),
@@ -19,6 +24,10 @@ export const CriterionEvidenceVerifierSchema = z.object({
   verifierDefinitionHash: z.string().regex(SHA256_PATTERN).optional(),
   policyId: z.string().trim().min(1).max(160).optional(),
   policyDefinitionHash: z.string().regex(SHA256_PATTERN).optional(),
+  // Optional for legacy rows; binding-required qualification requires all seven.
+  assertionResults: z.array(CriterionEvidenceAssertionResultSchema).length(7).optional(),
+  // Optional for legacy rows; new rows bind the aggregate result to its assertion outcomes.
+  machineVerificationStatus: z.enum(["PASSED", "FAILED"]).optional(),
 }).strict();
 
 export const CriterionEvidenceRecordSchema = z.object({

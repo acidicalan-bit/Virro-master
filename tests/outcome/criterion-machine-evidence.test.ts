@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { DeterministicPrecisionEditSpecCompiler } from "@/src/application/outcome/specification/deterministic-spec-compiler";
 import { createPrecisionEditBlueprintDefinition } from "@/src/application/outcome/specification/precision-edit-blueprint";
 import { buildPrecisionEditCriterionEvidence, deriveMachineSameSpecFromDurableEvidence } from "@/src/application/outcome/specification/precision-edit-criterion-evidence";
-import { createVerificationDefinitionFingerprint, precisionEditVerificationBinding } from "@/src/application/outcome/specification/verification-definition";
+import { createVerificationDefinitionFingerprint, precisionEditPolicyDefinitionSnapshot, precisionEditVerifierDefinitionSnapshot, precisionEditVerificationBinding } from "@/src/application/outcome/specification/verification-definition";
 import type { PreservationExperimentView } from "@/src/application/outcome/media/preservation-verification-service";
 import { publishOutcomeBlueprint } from "@/src/domain/outcome/specification/outcome-blueprint";
 import { InMemoryCriterionEvidenceRepository } from "@/src/infrastructure/persistence/outcome/in-memory-outcome-repositories";
@@ -41,7 +41,7 @@ async function evidence() {
     rawCandidateId: ids.raw,
     preservedCandidateId: ids.preserved,
     taskSpecBinding: { id: spec.id, version: spec.version, hash: spec.hash, blueprintId: spec.blueprint.id, blueprintVersion: spec.blueprint.version, blueprintHash: spec.blueprint.hash, compilerName: spec.compiler.name, compilerVersion: spec.compiler.version },
-    machineVerification: { status: "PASSED", assertions: ["EDIT_REGION_HAS_CHANGE", "SOURCE_IMMUTABLE", "PROVENANCE_VALID"].map((type) => ({ type: type as never, required: true, passed: true, evidence: {} })), methodologyVersion: "creative-assertions-v0.1" },
+    machineVerification: { status: "PASSED", assertions: ["SOURCE_IMMUTABLE", "DIMENSIONS_MATCH", "RAW_CANDIDATE_EXISTS", "PRESERVED_CANDIDATE_EXISTS", "PROVENANCE_VALID", "LOCKED_OUTSIDE_EXACTLY_PRESERVED", "EDIT_REGION_HAS_CHANGE"].map((type) => ({ type: type as never, required: true, passed: true, evidence: {} })), methodologyVersion: "creative-assertions-v0.1" },
   } as unknown as PreservationExperimentView;
   return { spec, records: buildPrecisionEditCriterionEvidence({ taskSpec: spec, base, tenantId: "internal-lab" }) };
 }
@@ -68,7 +68,13 @@ describe("criterion-level Machine Same-Spec evidence", () => {
     ["wrong verifier definition", (records: EvidenceRecords) => records.map((record, index) => index === 0 ? { ...record, verifier: { ...record.verifier, verifierDefinitionHash: "b".repeat(64) } } : record), "INCOMPLETE"],
     ["wrong policy definition", (records: EvidenceRecords) => records.map((record, index) => index === 0 ? { ...record, verifier: { ...record.verifier, policyDefinitionHash: "b".repeat(64) } } : record), "INCOMPLETE"],
     ["historical unbound evidence", (records: EvidenceRecords) => records.map((record, index) => index === 0 ? { ...record, verifier: { name: record.verifier.name, version: record.verifier.version, policyVersion: record.verifier.policyVersion } } : record), "INCOMPLETE"],
+    ["partial F6 binding", (records: EvidenceRecords) => records.map((record, index) => index === 0 ? { ...record, verifier: { ...record.verifier, assertionResults: undefined } } : record), "INCOMPLETE"],
     ["caller spoofed binding", (records: EvidenceRecords) => records.map((record, index) => index === 0 ? { ...record, verifier: { ...record.verifier, verifierId: "precision-edit-same-spec-verifier", policyId: "precision-edit-criterion-evidence-policy", verifierDefinitionHash: "c".repeat(64), policyDefinitionHash: "c".repeat(64) } } : record), "INCOMPLETE"],
+    ["failed DIMENSIONS_MATCH", (records: EvidenceRecords) => records.map((record) => ({ ...record, verifier: { ...record.verifier, machineVerificationStatus: "FAILED" as const, assertionResults: record.verifier.assertionResults!.map((item) => item.id === "DIMENSIONS_MATCH" ? { ...item, passed: false } : item) } })), "FAILED"],
+    ["failed RAW_CANDIDATE_EXISTS", (records: EvidenceRecords) => records.map((record) => ({ ...record, verifier: { ...record.verifier, machineVerificationStatus: "FAILED" as const, assertionResults: record.verifier.assertionResults!.map((item) => item.id === "RAW_CANDIDATE_EXISTS" ? { ...item, passed: false } : item) } })), "FAILED"],
+    ["failed PRESERVED_CANDIDATE_EXISTS", (records: EvidenceRecords) => records.map((record) => ({ ...record, verifier: { ...record.verifier, machineVerificationStatus: "FAILED" as const, assertionResults: record.verifier.assertionResults!.map((item) => item.id === "PRESERVED_CANDIDATE_EXISTS" ? { ...item, passed: false } : item) } })), "FAILED"],
+    ["failed LOCKED_OUTSIDE_EXACTLY_PRESERVED", (records: EvidenceRecords) => records.map((record) => ({ ...record, verifier: { ...record.verifier, machineVerificationStatus: "FAILED" as const, assertionResults: record.verifier.assertionResults!.map((item) => item.id === "LOCKED_OUTSIDE_EXACTLY_PRESERVED" ? { ...item, passed: false } : item) } })), "FAILED"],
+    ["missing required assertion result", (records: EvidenceRecords) => records.map((record) => ({ ...record, verifier: { ...record.verifier, assertionResults: record.verifier.assertionResults!.filter((item) => item.id !== "DIMENSIONS_MATCH") } })), "INCOMPLETE"],
   ])("fails closed for %s", async (_name, mutate, expected) => {
     const { spec, records } = await evidence();
     const baseRecords: PersistedEvidenceRecords = records.map((record, index) => ({ ...record, id: `70000000-0000-4000-8000-${String(index + 20).padStart(12, "0")}`, createdAt: "2026-08-13T00:00:02.000Z" }));
@@ -85,6 +91,18 @@ describe("criterion-level Machine Same-Spec evidence", () => {
       .not.toBe(createVerificationDefinitionFingerprint({ a: 2 }));
     binding.verifierDefinitionHash = "d".repeat(64);
     expect(precisionEditVerificationBinding().verifierDefinitionHash).not.toBe(binding.verifierDefinitionHash);
+  });
+
+  it("changes the authoritative verifier fingerprint for every material semantic mutation", () => {
+    const original = precisionEditVerifierDefinitionSnapshot() as { requiredAssertions: Array<Record<string, string>>; methodologyVersion: string; resultRule: string };
+    const baseline = createVerificationDefinitionFingerprint(original);
+    expect(createVerificationDefinitionFingerprint({ ...original, requiredAssertions: original.requiredAssertions.slice(1) })).not.toBe(baseline);
+    expect(createVerificationDefinitionFingerprint({ ...original, requiredAssertions: [...original.requiredAssertions, { id: "NEW_REQUIRED", scope: "GLOBAL_VERIFIER_REQUIREMENT", semanticVersion: "v1", semantics: "new" }] })).not.toBe(baseline);
+    expect(createVerificationDefinitionFingerprint({ ...original, requiredAssertions: original.requiredAssertions.map((item, index) => index === 0 ? { ...item, semanticVersion: "creative-assertions-v0.2" } : item) })).not.toBe(baseline);
+    expect(createVerificationDefinitionFingerprint({ ...original, methodologyVersion: "creative-assertions-v0.2" })).not.toBe(baseline);
+    expect(createVerificationDefinitionFingerprint({ ...original, resultRule: "any-required-assertion-may-pass" })).not.toBe(baseline);
+    const policy = precisionEditPolicyDefinitionSnapshot() as { criteria: Array<Record<string, string>> };
+    expect(createVerificationDefinitionFingerprint({ ...policy, criteria: policy.criteria.map((item, index) => index === 0 ? { ...item, evidenceType: "HASH" } : item) })).not.toBe(createVerificationDefinitionFingerprint(policy));
   });
 
   it("rejects incompatible duplicate evidence instead of silently ignoring it", async () => {

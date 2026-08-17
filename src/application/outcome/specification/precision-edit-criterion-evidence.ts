@@ -5,6 +5,7 @@ import {
   PRECISION_EDIT_CRITERION_EVIDENCE_MAP_VERSION,
   PRECISION_EDIT_VERIFIER_ID,
   PRECISION_EDIT_VERIFIER_VERSION,
+  evaluatePrecisionEditAssertionResults,
   precisionEditVerificationBinding,
   verificationDefinitionMatches,
 } from "@/src/application/outcome/specification/verification-definition";
@@ -48,6 +49,7 @@ export function buildPrecisionEditCriterionEvidence(input: {
     },
     verifier: (() => {
       const binding = precisionEditVerificationBinding();
+      const assertionResults = base.machineVerification.assertions.map(({ type, passed }) => ({ id: type, required: true as const, passed }));
       return {
         name: PRECISION_EDIT_VERIFIER_NAME,
         version: binding.verifierVersion,
@@ -56,6 +58,8 @@ export function buildPrecisionEditCriterionEvidence(input: {
         verifierDefinitionHash: binding.verifierDefinitionHash,
         policyId: binding.policyId,
         policyDefinitionHash: binding.policyDefinitionHash,
+        assertionResults,
+        machineVerificationStatus: base.machineVerification.status,
       };
     })(),
   } as const;
@@ -107,6 +111,7 @@ export function deriveMachineSameSpecFromDurableEvidence(input: {
   const required = input.taskSpec.criteria.filter((criterion) => criterion.critical && criterion.verifier !== "HUMAN_REVIEW");
   const relevant = input.evidence.filter((evidence) => required.some((criterion) => criterion.id === evidence.criterionId));
   const byCriterion = new Map<string, CriterionEvidenceRecord>();
+  let globalVerifierStatus: "PASSED" | "FAILED" | "INCOMPLETE" | null = null;
   for (const evidence of relevant) {
     if (byCriterion.has(evidence.criterionId)) return "INCOMPLETE";
     if (
@@ -125,11 +130,18 @@ export function deriveMachineSameSpecFromDurableEvidence(input: {
       || evidence.verifier.policyVersion !== PRECISION_EDIT_CRITERION_EVIDENCE_MAP_VERSION
       || !verificationDefinitionMatches(evidence.verifier, precisionEditVerificationBinding())
     ) return "INCOMPLETE";
+    const currentGlobalStatus = evaluatePrecisionEditAssertionResults(evidence.verifier.assertionResults);
+    if (currentGlobalStatus === "INCOMPLETE") return "INCOMPLETE";
+    if (evidence.verifier.machineVerificationStatus !== currentGlobalStatus) return "INCOMPLETE";
+    if (globalVerifierStatus && globalVerifierStatus !== currentGlobalStatus) return "INCOMPLETE";
+    globalVerifierStatus = currentGlobalStatus;
     const criterion = required.find((item) => item.id === evidence.criterionId)!;
     if (!criterion.evidenceTypes.includes(evidence.evidenceType) || evidence.status === "UNKNOWN") return "INCOMPLETE";
     byCriterion.set(evidence.criterionId, evidence);
   }
   if (byCriterion.size !== required.length) return "INCOMPLETE";
+  if (!globalVerifierStatus) return "INCOMPLETE";
+  if (globalVerifierStatus === "FAILED") return "FAILED";
   if ([...byCriterion.values()].some((evidence) => evidence.status === "FAIL")) return "FAILED";
   return "PASSED";
 }
