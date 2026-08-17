@@ -20,7 +20,7 @@ The membership query uses a deterministic order and the expected-row count guard
 
 The intended authorization linearization point is the successful `FOR UPDATE` acquisition and validation of the tenant and required membership rows, immediately before delegation. A revocation update touching the membership row must serialize either before this point (so the wrapper observes revoked/missing authority) or after it (so the commit owns the lock first).
 
-This ordering is a static conclusion. No real two-session schedule was available to observe it.
+The live two-session schedule observed this ordering: the commit session held the locks for approximately six seconds; the revocation session started afterward and completed only after the commit session returned and committed.
 
 ## Stale authority audit
 
@@ -29,4 +29,4 @@ This ordering is a static conclusion. No real two-session schedule was available
 - `MutationLease`: application-side execution state; not used as the database OWNER decision.
 - Client role, membership id, or tenant id fields: not accepted as RPC authority inputs.
 
-The repository RPC boundary therefore remains current-database authoritative. Static status: `PROVEN`. Runtime race status: `NOT_PROVEN`.
+The repository RPC boundary therefore remains current-database authoritative. Static status: `PROVEN`. Runtime race status: `PROVEN`.

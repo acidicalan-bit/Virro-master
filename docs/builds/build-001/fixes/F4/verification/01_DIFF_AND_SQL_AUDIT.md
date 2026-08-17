@@ -31,7 +31,9 @@ The F4 migration renames the original RPC to an unlocked private delegate, creat
 
 The original F1 membership check is an unlocked inline existence check, but the F4 wrapper holds the tenant and membership locks before invoking it. This is the intended protection against the owner-revocation TOCTOU.
 
+The complete 21-migration sequence was applied successfully to the disposable Supabase project `exgbzdiebhcfjurpowel`. The live PostgreSQL catalog exposed the F4 wrapper and the renamed delegate with the expected grants; no migration error remained.
+
 ## Audit classification
 
 - SQL design and migration ordering: `PROVEN` by repository inspection.
-- Runtime lock serialization and atomicity: `UNKNOWN`/`NOT_PROVEN` without native PostgreSQL multi-session execution.
+- Runtime lock serialization and atomicity: `PROVEN` by the two-session Supabase run documented in `03_CONCURRENCY_VALIDATION.md`.

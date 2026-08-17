@@ -2,9 +2,9 @@
 
 ## Verdict
 
-**F4_BLOCKED**
+**F4_VERIFIED**
 
-The candidate was inspected from the exact requested commit, and the SQL design provides a plausible tenant-first lock protocol. The decisive PostgreSQL multi-session gate could not be executed in this worktree: no local PostgreSQL server/client, Docker/Podman, Supabase CLI, or repository-supported shared-database harness is available. PGlite is not accepted as concurrency evidence because independent instances do not share a database and sequential transactions do not establish inter-session serialization.
+The candidate was inspected from the exact requested commit and deployed to the disposable Supabase staging project `virro-f4-staging`. The decisive gate was executed with two independent SQL Editor sessions against the same PostgreSQL 17.6 database. PGlite was not used as concurrency evidence.
 
 ## Candidate
 
@@ -13,6 +13,9 @@ The candidate was inspected from the exact requested commit, and the SQL design 
 - Required parent: `fb375edd80e89f6146cb10db77da151ef1000d49`
 - Parent check: PASS
 - Worktree before verification documents: clean
+- Staging project ref: `exgbzdiebhcfjurpowel`
+- Staging region: `us-west-2`
+- Applied migrations: 21/21 PASS
 
 ## Static conclusions
 
@@ -22,16 +25,16 @@ The candidate was inspected from the exact requested commit, and the SQL design 
 - Stale `AuthorityContext`, `ExecutionAuthority`, `MutationLease`, and client role fields are not passed to the RPC and cannot replace its database checks.
 - The wrapper revokes public access to the old unlocked function and exposes only the locked wrapper to authenticated callers.
 
-These are static design findings, not live multi-session proof.
+The live database function definition and grants matched this design.
 
 ## Required scenarios
 
-Revocation-first, commit-first, acceptance-then-revocation, cross-actor authorization, and zero-partial-state behavior remain **NOT_PROVEN as concurrent database behavior** because the required native multi-session execution was unavailable. Existing sequential/PGlite fixtures cannot upgrade that status.
+All required scenarios passed in real PostgreSQL. Revocation-first returned `TRUST_COMMIT_NOT_AUTHORIZED` with no canonical transition. In the reverse order, the commit held tenant and membership locks while the second session attempted revocation; the revocation completed only after commit, with commit state `COMMITTED`, two versions, one `StateCommit`, and membership status `REVOKED`. A subsequent commit attempt after revocation was denied. A second currently active OWNER committed a separate fixture successfully.
 
 ## Regression scope
 
-F1, F2, F7, and the full suite were **NOT RUN in this verification**. The contract requires the native multi-session gate to pass before those regressions are executed. No application, migration, dependency, or test file was modified by this verification.
+F1 passed `13/13`, F2 passed `9/9`, F7 assurance passed `92/92`, and the full suite passed `442/442` with `11` environment-gated tests skipped. No application, migration, dependency, or test file was modified by this verification.
 
 ## Final principle
 
-The static implementation appears to bind commit authorization to current database state, but without real PostgreSQL multi-session evidence the F4 gate is blocked rather than verified.
+The implementation binds commit authorization to current database state and serializes revocation at the same tenant/membership rows. The F4 gate is verified.

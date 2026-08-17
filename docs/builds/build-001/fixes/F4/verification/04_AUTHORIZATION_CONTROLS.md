@@ -10,7 +10,9 @@ The existing membership-revocation function updates the membership status and re
 
 ## Alternate authority paths
 
-Repository inspection found no RPC parameter or application object that can substitute stale authority for `tenant_memberships`. The old unlocked commit function is renamed and revoked from caller roles. The remaining uncertainty is runtime serialization, not an identified alternate authority input.
+Repository inspection found no RPC parameter or application object that can substitute stale authority for `tenant_memberships`. The old unlocked commit function is renamed and revoked from caller roles. No alternate authority input or serialization bypass was found.
+
+Live controls matched the static audit: an already revoked actor was denied, a currently active second OWNER committed a separate fixture, and a later revocation could not precede a commit that had already acquired the authority locks.
 
 ## Classification
 

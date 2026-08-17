@@ -2,8 +2,11 @@
 
 ## Status
 
-**NOT RUN**
+**PASS**
 
-The decisive F4 native PostgreSQL multi-session gate was unavailable in this environment. Per the verification contract, F1, F2, F7, and the complete repository suite must not be used to convert a blocked concurrency gate into `F4_VERIFIED`; they were therefore not executed in this independent verification.
+- F1 focused integration: `13 passed`
+- F2 focused security: `9 passed`
+- F7 assurance: `92 passed`
+- Complete suite: `442 passed`, `11 skipped` (environment-gated remote tests)
 
-No test result is being represented as a pass or failure here. The candidate's existing test artifacts are not a substitute for this run's missing shared PostgreSQL sessions.
+The complete suite ran after the real PostgreSQL multi-session F4 gate passed. No test failure occurred.

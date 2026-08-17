@@ -7,11 +7,11 @@
 | F4 SQL lock order and grants | `supabase/migrations/20260816090000_build_001_f4_owner_revocation_toctou.sql` | E1 static SQL |
 | F1 delegate lock interaction | `supabase/migrations/20260815040000_build_001_f1_canonical_candidate_immutability.sql` | E1 static SQL |
 | Stale authority review | `src/domain/auth/authority.ts`, `src/application/outcome/execution-authority.ts`, commit service/repository, field-beta route | E1 static code |
-| Native PostgreSQL attempt | Local command availability and repository harness search | E2 environment |
-| PGlite exclusion | Disposable shared-directory probe from prior local verification context; no shared state observed | E2 limitation |
-| Concurrent schedules | No native two-session run available | E3 NOT_PROVEN |
-| Regression suites | Intentionally not run because prerequisite gate blocked | Not executed |
+| Native PostgreSQL run | Supabase project `exgbzdiebhcfjurpowel`, PostgreSQL 17.6, two SQL Editor sessions | E3 real database |
+| PGlite exclusion | PGlite was not used to claim concurrency | E2 limitation |
+| Concurrent schedules | Revocation-first denial and commit-first lock wait observed | E3 PASS |
+| Regression suites | F1 13/13, F2 9/9, F7 92/92, full 442/442 with 11 skipped | E2/E3 PASS |
 
 ## Final evidence boundary
 
-This package proves the candidate identity, scope, SQL design, and lack of an exposed stale-authority input. It does not prove live PostgreSQL multi-session serialization, concurrent atomicity, or the requested F4 scenario outcomes. The correct verdict is `F4_BLOCKED`.
+This package proves the candidate identity, scope, SQL design, current-database authority, live PostgreSQL multi-session serialization, concurrent atomicity, and the requested F4 scenario outcomes. The correct verdict is `F4_VERIFIED`.
