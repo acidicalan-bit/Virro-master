@@ -25,7 +25,7 @@ Regression results from this worktree:
 - F2 legacy isolation: 9/9 passed.
 - F4 trust-foundation/linearization contract: 32/32 passed.
 - F7 assurance suites: 42/42 passed.
-- Full Vitest: 446 passed, 11 skipped across 53 files (457 tests).
+- Full Vitest: 447 passed, 11 skipped across 53 files (458 tests).
 - TypeScript: passed.
 - Focused ESLint: passed.
 - Assurance manifest check: passed.
