@@ -64,7 +64,9 @@ describe("BUILD 002-B immutable readiness persistence and tenant RLS (PGlite sup
         allowed_mime_types text[]
       );
     `);
-    for (const name of readdirSync(migrationsDir).filter((item) => item.endsWith(".sql")).sort()) {
+    const migrations = readdirSync(migrationsDir).filter((item) => item.endsWith(".sql")).sort();
+    const r2Migration = migrations.find((name) => name.startsWith("20260819130000_"));
+    for (const name of migrations.filter((item) => item !== r2Migration)) {
       await db.exec(readFileSync(resolve(migrationsDir, name), "utf8"));
     }
     await db.exec(`
@@ -146,6 +148,7 @@ describe("BUILD 002-B immutable readiness persistence and tenant RLS (PGlite sup
       where r.readiness_content_hash = '${READINESS_HASH}' and q.qualification_content_hash = '${QUALIFICATION_HASH}';
       reset role;
     `);
+    if (r2Migration) await db.exec(readFileSync(resolve(migrationsDir, r2Migration), "utf8"));
   }, 30_000);
 
   afterAll(async () => db?.close());
@@ -183,12 +186,9 @@ describe("BUILD 002-B immutable readiness persistence and tenant RLS (PGlite sup
 
   it("rejects cross-tenant and missing-parent lineage", async () => {
     await db.exec("set role service_role");
-    const dependency = await db.query<{ id: string }>("insert into public.build002_dependency_snapshots(owner_tenant_id, outcome_transaction_id, requirement_definition_hashes, signal_references, dependency_bindings, schema_version, dependency_snapshot_hash) values ($1, $2, $3::jsonb, '[]'::jsonb, '[]'::jsonb, 'build002-dependency-snapshot-v0.2', $4) returning id::text", [TENANT_A, TX_A, JSON.stringify([REQUIREMENT_HASH]), "f".repeat(64)]);
-    const qualification = await db.query<{ id: string }>("insert into public.build002_signal_qualifications(id, owner_tenant_id, outcome_transaction_id, requirement_id, requirement_definition_hash, dependency_snapshot_id, dependency_snapshot_hash, signal_ids, signal_content_hashes, evaluator, outcome, reason_code, qualified_at, schema_version, qualification_content_hash) values ('90000000-0000-4000-8000-000000000099', $1, $2, 'signal.readiness', $3, $4, $5, '[]'::jsonb, '[]'::jsonb, '{\"schemaVersion\":\"build002-qualification-evaluator-v0.1\",\"version\":\"0.1.0\",\"definitionHash\":\"${QUALIFICATION_HASH}\"}'::jsonb, 'MISSING', 'SIGNAL_MISSING', now(), 'build002-signal-qualification-v0.3', $6) returning id::text", [TENANT_A, TX_A, REQUIREMENT_HASH, dependency.rows[0].id, "f".repeat(64), SECOND_QUALIFICATION_HASH]);
-    await expectSqlError(db, `insert into public.build002_dependency_signals(owner_tenant_id, outcome_transaction_id, dependency_snapshot_id, signal_id, signal_content_hash, requirement_id) values ('${TENANT_A}', '${TX_A}', '${dependency.rows[0].id}', '${SIGNAL_A}', '${WRONG_HASH}', 'signal.readiness')`, "violates foreign key");
-    await expectSqlError(db, `insert into public.build002_qualification_signals(owner_tenant_id, outcome_transaction_id, qualification_id, qualification_content_hash, signal_id, signal_content_hash, requirement_id) values ('${TENANT_A}', '${TX_A}', '${qualification.rows[0].id}', '${SECOND_QUALIFICATION_HASH}', '${SIGNAL_A}', '${WRONG_HASH}', 'signal.readiness')`, "violates foreign key");
-    await expectSqlError(db, `insert into public.build002_signals(signal_id, owner_tenant_id, outcome_transaction_id, requirement_id, requirement_definition_hash, payload, source, provenance, captured_at, dependency_identity, dependency_hash, schema_version, content_hash) values ('${SIGNAL_B}', '${TENANT_B}', '${TX_B}', 'signal.readiness', '${REQUIREMENT_HASH}', '{}'::jsonb, '{}'::jsonb, 'OBSERVED', now(), 'asset.version', '${SIGNAL_HASH}', 'build002-signal-v0.2', '${SIGNAL_HASH}')`, "violates foreign key");
-    await expectSqlError(db, `insert into public.build002_dependency_requirements(owner_tenant_id, outcome_transaction_id, dependency_snapshot_id, requirement_definition_hash) values ('${TENANT_A}', '${TX_A}', '90000000-0000-4000-8000-000000000099', '${REQUIREMENT_HASH}')`, "violates foreign key");
+    await expectSqlError(db, `insert into public.build002_dependency_snapshots(owner_tenant_id, outcome_transaction_id, requirement_definition_hashes, signal_references, dependency_bindings, schema_version, dependency_snapshot_hash) values ('${TENANT_A}', '${TX_A}', '[\"${REQUIREMENT_HASH}\"]'::jsonb, '[]'::jsonb, '[]'::jsonb, 'build002-dependency-snapshot-v0.2', '${"f".repeat(64)}')`, "permission denied");
+    await expectSqlError(db, `insert into public.build002_signal_qualifications(id, owner_tenant_id, outcome_transaction_id, requirement_id, requirement_definition_hash, dependency_snapshot_id, dependency_snapshot_hash, signal_ids, signal_content_hashes, evaluator, outcome, reason_code, qualified_at, schema_version, qualification_content_hash) values ('90000000-0000-4000-8000-000000000099', '${TENANT_A}', '${TX_A}', 'signal.readiness', '${REQUIREMENT_HASH}', '90000000-0000-4000-8000-000000000099', '${"f".repeat(64)}', '[]'::jsonb, '[]'::jsonb, '{\"schemaVersion\":\"build002-qualification-evaluator-v0.1\",\"version\":\"0.1.0\",\"definitionHash\":\"${QUALIFICATION_HASH}\"}'::jsonb, 'MISSING', 'SIGNAL_MISSING', now(), 'build002-signal-qualification-v0.3', '${SECOND_QUALIFICATION_HASH}')`, "permission denied");
+    await expectSqlError(db, `insert into public.build002_dependency_signals(owner_tenant_id, outcome_transaction_id, dependency_snapshot_id, signal_id, signal_content_hash, requirement_id) values ('${TENANT_A}', '${TX_A}', '90000000-0000-4000-8000-000000000099', '${SIGNAL_A}', '${WRONG_HASH}', 'signal.readiness')`, "permission denied");
     await db.exec("reset role");
   });
 
@@ -259,7 +259,7 @@ describe("BUILD 002-B immutable readiness persistence and tenant RLS (PGlite sup
     const rInserted = await db.query<{ id: string }>("select public.build002_insert_delegation_readiness($1::jsonb, $2::uuid, $3::jsonb) as id", [JSON.stringify(readiness), baseDependency.rows[0].id, JSON.stringify([RPC_QUALIFICATION_ID])]);
     expect(rInserted.rows[0].id).toBe(RPC_READINESS_ID);
     const readinessBefore = await db.query<{ count: number }>("select count(*)::integer as count from public.build002_delegation_readiness");
-    await expectSqlError(db, "select public.build002_insert_delegation_readiness($1::jsonb, $2::uuid, $3::jsonb)", "BUILD002_READINESS_QUALIFICATION_BINDING_MISMATCH", JSON.stringify({ ...readiness, id: "90000000-0000-4000-8000-000000000096", readiness_content_hash: "6".repeat(64) }), baseDependency.rows[0].id, JSON.stringify(["90000000-0000-4000-8000-000000000095"]));
+    await expectSqlError(db, "select public.build002_insert_delegation_readiness($1::jsonb, $2::uuid, $3::jsonb)", "BUILD002_READINESS_QUALIFICATION_SET_MISMATCH", JSON.stringify({ ...readiness, id: "90000000-0000-4000-8000-000000000096", readiness_content_hash: "6".repeat(64) }), baseDependency.rows[0].id, JSON.stringify(["90000000-0000-4000-8000-000000000095"]));
     const readinessAfter = await db.query<{ count: number }>("select count(*)::integer as count from public.build002_delegation_readiness");
     expect(readinessAfter.rows[0].count).toBe(readinessBefore.rows[0].count);
     await db.exec("reset role");

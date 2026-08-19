@@ -37,4 +37,12 @@ Changed only development assurance persistence, the tenant-scoped repository bun
 
 ## Known boundaries
 
-The repository methods validate BUILD 002-A hashes and enforce trusted tenant/transaction scope. They persist parent rows and immutable link rows through separate client calls; a later transaction orchestration boundary must group a complete snapshot set atomically. No claim is made for remote E4, multi-session concurrency, HTTP caller enforcement, or executor gating.
+The repository methods validate BUILD 002-A hashes and enforce trusted tenant/transaction scope. R2 routes all five authoritative writes through narrow RPC entrypoints, and aggregate RPCs persist parent/link graphs atomically. No claim is made for remote E4, HTTP caller enforcement, or executor gating.
+
+## R2 corrective candidate
+
+The independent R1 result reproduced `DIRECT_INSERT_PARTIAL_GRAPH`, so R1 is preserved as failed/blocked historical evidence and R2 appends normally from `7f10830e0d3fad85a061e04148f05ce1aef950a4`.
+
+R2 adds `supabase/migrations/20260819130000_build_002_b_r2_write_boundary.sql`. It revokes `service_role` INSERT on all nine BUILD002 tables, adds Requirement and Signal RPC entrypoints, hardens all five write functions as `SECURITY DEFINER` with `search_path = pg_catalog, public`, and enforces exact relational requirement coverage for Readiness. The repository now uses RPCs exclusively for all five authoritative writes and normalizes database timestamp output before domain parsing.
+
+R2 changes the supported production trust boundary to `DB_ENTRYPOINT_ENFORCED_ATOMICITY`; canonical BUILD002 hashes remain `SERVER_DOMAIN_REQUIRED` and are verified in the production repository before each RPC. Migration owners/superusers remain infrastructure authority and are outside this application-role claim.

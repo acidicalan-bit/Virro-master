@@ -11,6 +11,7 @@ const databaseUrl = process.env.BUILD002_NATIVE_PG_URL;
 const migrationsDir = resolve(process.cwd(), "supabase/migrations");
 const ACTOR_A = "10000000-0000-4000-8000-000000000001";
 const ACTOR_B = "10000000-0000-4000-8000-000000000002";
+const ACTOR_C = "10000000-0000-4000-8000-000000000003";
 const TENANT_A = "20000000-0000-4000-8000-000000000001";
 const TENANT_B = "20000000-0000-4000-8000-000000000002";
 const TX_A = "40000000-0000-4000-8000-000000000001";
@@ -30,6 +31,11 @@ const SIGNAL_HASH = "b".repeat(64);
 const DEPENDENCY_HASH = "c".repeat(64);
 const QUALIFICATION_HASH = "d".repeat(64);
 const READINESS_HASH = "e".repeat(64);
+const REQUIREMENT_B_HASH = "f".repeat(64);
+const SIGNAL_B_HASH = "1".repeat(64);
+const DEPENDENCY_B_HASH = "2".repeat(64);
+const QUALIFICATION_B_HASH = "3".repeat(64);
+const READINESS_B_HASH = "4".repeat(64);
 
 describe.runIf(enabled && Boolean(databaseUrl))("BUILD 002-B native PostgreSQL E3", () => {
   let admin: Client;
@@ -59,11 +65,13 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD 002-B native PostgreSQL E
         file_size_limit bigint, allowed_mime_types text[]
       );
     `);
-    for (const name of readdirSync(migrationsDir).filter((item) => item.endsWith(".sql")).sort()) {
+    const migrations = readdirSync(migrationsDir).filter((item) => item.endsWith(".sql")).sort();
+    const r2Migration = migrations.find((name) => name.startsWith("20260819130000_"));
+    for (const name of migrations.filter((item) => item !== r2Migration)) {
       await admin.query(readFileSync(resolve(migrationsDir, name), "utf8"));
     }
     await admin.query(`
-      insert into auth.users(id) values ('${ACTOR_A}'), ('${ACTOR_B}') on conflict do nothing;
+      insert into auth.users(id) values ('${ACTOR_A}'), ('${ACTOR_B}'), ('${ACTOR_C}') on conflict do nothing;
       insert into public.tenants(id, kind, personal_owner_principal_id, status) values
         ('${TENANT_A}', 'PERSONAL', '${ACTOR_A}', 'ACTIVE'), ('${TENANT_B}', 'PERSONAL', '${ACTOR_B}', 'ACTIVE')
       on conflict do nothing;
@@ -82,7 +90,7 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD 002-B native PostgreSQL E
       insert into public.outcome_transactions(id, owner_tenant_id, project_id, asset_id, base_version_id, raw_request)
       values ('${TX_A}', '${TENANT_A}', '${PROJECT_A}', '${ASSET_A}', '${VERSION_A}', 'A'),
              ('${TX_B}', '${TENANT_B}', '${PROJECT_B}', '${ASSET_B}', '${VERSION_B}', 'B') on conflict do nothing;
-    `);
+      `);
     service = new Client({ connectionString: databaseUrl });
     await service.connect();
     await service.query("set role service_role");
@@ -130,7 +138,53 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD 002-B native PostgreSQL E
         'READY', '[]', '[]', now(), 'build002-signal-readiness-v0.3', '${READINESS_HASH}') on conflict do nothing;
       insert into public.build002_readiness_qualifications(owner_tenant_id, outcome_transaction_id, readiness_id, readiness_content_hash, qualification_id, qualification_content_hash)
         values ('${TENANT_A}', '${TX_A}', '${READINESS_ID}', '${READINESS_HASH}', '${QUALIFICATION_ID}', '${QUALIFICATION_HASH}') on conflict do nothing;
-    `);
+      `);
+    if (r2Migration) await admin.query(readFileSync(resolve(migrationsDir, r2Migration), "utf8"));
+    await service.query("select public.build002_insert_signal_requirement($1::jsonb)", [JSON.stringify({
+      owner_tenant_id: TENANT_B, outcome_transaction_id: TX_B, requirement_id: "signal.other",
+      semantic_type: "text", critical: true, accepted_provenance: ["OBSERVED"],
+      qualification_rule: { version: "1", cardinality: "SINGLE_VALUED", humanReviewRequired: false },
+      dependency_selectors: [], blueprint_id: "90000000-0000-4000-8000-000000000004", blueprint_version: 1,
+      blueprint_hash: REQUIREMENT_B_HASH, policy_id: null, policy_hash: null,
+      schema_version: "build002-signal-requirement-v0.1", requirement_definition_hash: REQUIREMENT_B_HASH,
+      created_at: "2026-08-19T12:00:00.000Z",
+    })]);
+    await service.query("select public.build002_insert_signal($1::jsonb)", [JSON.stringify({
+      signal_id: SIGNAL_B, owner_tenant_id: TENANT_B, outcome_transaction_id: TX_B,
+      requirement_id: "signal.other", requirement_definition_hash: REQUIREMENT_B_HASH,
+      payload: { value: "B" }, source: { identity: "fixture", version: "1", hash: null },
+      provenance: "OBSERVED", captured_at: "2026-08-19T12:00:00.000Z", valid_until: null,
+      dependency_identity: "asset.version", dependency_hash: SIGNAL_B_HASH,
+      schema_version: "build002-signal-v0.2", content_hash: SIGNAL_B_HASH,
+    })]);
+    await service.query("select public.build002_insert_dependency_snapshot($1::jsonb)", [JSON.stringify({
+      owner_tenant_id: TENANT_B, outcome_transaction_id: TX_B,
+      requirement_definition_hashes: [REQUIREMENT_B_HASH],
+      signal_references: [{ requirementId: "signal.other", signalId: SIGNAL_B, contentHash: SIGNAL_B_HASH }],
+      dependency_bindings: [], blueprint_hash: null, policy_hash: null, task_spec_hash: null,
+      transaction_semantic_hash: null, source_asset_version_hash: null, context_lens_hash: null,
+      schema_version: "build002-dependency-snapshot-v0.2", dependency_snapshot_hash: DEPENDENCY_B_HASH,
+    })]);
+    const dependencyB = await service.query("select id::text from public.build002_dependency_snapshots where dependency_snapshot_hash = $1", [DEPENDENCY_B_HASH]);
+    await service.query("select public.build002_insert_signal_qualification($1::jsonb, $2::uuid)", [JSON.stringify({
+      id: "90000000-0000-4000-8000-000000000004", owner_tenant_id: TENANT_B, outcome_transaction_id: TX_B,
+      requirement_id: "signal.other", requirement_definition_hash: REQUIREMENT_B_HASH,
+      dependency_snapshot_hash: DEPENDENCY_B_HASH, signalIds: [SIGNAL_B], signalContentHashes: [SIGNAL_B_HASH],
+      evaluator: { schemaVersion: "build002-qualification-evaluator-v0.1", version: "0.1.0", definitionHash: QUALIFICATION_B_HASH },
+      outcome: "QUALIFIED", reason_code: "SIGNAL_QUALIFIED", evidence_valid_until: null,
+      qualified_at: "2026-08-19T12:00:00.000Z", schema_version: "build002-signal-qualification-v0.3",
+      qualification_content_hash: QUALIFICATION_B_HASH,
+    }), dependencyB.rows[0].id]);
+    const qualificationB = await service.query("select id::text from public.build002_signal_qualifications where qualification_content_hash = $1", [QUALIFICATION_B_HASH]);
+    await service.query("select public.build002_insert_delegation_readiness($1::jsonb, $2::uuid, $3::jsonb)", [JSON.stringify({
+      id: READINESS_ID.replace(/003$/, "004"), owner_tenant_id: TENANT_B, outcome_transaction_id: TX_B,
+      requirement_set_hash: REQUIREMENT_B_HASH, qualification_set_hash: QUALIFICATION_B_HASH,
+      dependency_snapshot_hash: DEPENDENCY_B_HASH, task_spec_hash: null, source_asset_version_hash: null,
+      blueprint_hash: null, policy_hash: null,
+      evaluator: { schemaVersion: "build002-qualification-evaluator-v0.1", version: "0.1.0", definitionHash: READINESS_B_HASH },
+      state: "READY", blocking_codes: [], condition_codes: [], created_at: "2026-08-19T12:00:00.000Z",
+      valid_until: null, schema_version: "build002-signal-readiness-v0.3", readiness_content_hash: READINESS_B_HASH,
+    }), dependencyB.rows[0].id, JSON.stringify([qualificationB.rows[0].id])]);
   }, 60_000);
 
   afterAll(async () => {
@@ -141,27 +195,87 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD 002-B native PostgreSQL E
   it("isolates tenant reads across independent authenticated sessions", async () => {
     const tenantA = new Client({ connectionString: databaseUrl });
     const tenantB = new Client({ connectionString: databaseUrl });
+    const tenantC = new Client({ connectionString: databaseUrl });
+    const revokedA = new Client({ connectionString: databaseUrl });
     await tenantA.connect();
     await tenantB.connect();
+    await tenantC.connect();
+    await revokedA.connect();
+    const tables = [
+      "build002_signal_requirements", "build002_signals", "build002_dependency_snapshots",
+      "build002_dependency_requirements", "build002_dependency_signals", "build002_signal_qualifications",
+      "build002_qualification_signals", "build002_delegation_readiness", "build002_readiness_qualifications",
+    ];
     try {
       await tenantA.query("set role authenticated");
       await tenantA.query(`set request.jwt.claim.sub = '${ACTOR_A}'`);
       await tenantB.query("set role authenticated");
       await tenantB.query(`set request.jwt.claim.sub = '${ACTOR_B}'`);
-      const a = await tenantA.query("select owner_tenant_id::text from public.build002_signal_requirements");
-      const b = await tenantB.query("select owner_tenant_id::text from public.build002_signal_requirements");
-      expect(a.rows).toEqual([{ owner_tenant_id: TENANT_A }]);
-      expect(b.rows).toEqual([]);
-      for (const table of ["build002_dependency_requirements", "build002_dependency_signals", "build002_qualification_signals", "build002_readiness_qualifications"]) {
+      await tenantC.query("set role authenticated");
+      await tenantC.query(`set request.jwt.claim.sub = '${ACTOR_C}'`);
+      await admin.query(`update public.tenant_memberships set status = 'REVOKED' where tenant_id = '${TENANT_A}' and principal_id = '${ACTOR_A}'`);
+      await revokedA.query("set role authenticated");
+      await revokedA.query(`set request.jwt.claim.sub = '${ACTOR_A}'`);
+      for (const table of tables) {
         const own = await tenantA.query(`select owner_tenant_id::text from public.${table}`);
         const foreign = await tenantB.query(`select owner_tenant_id::text from public.${table}`);
-        expect(own.rows.every((row) => row.owner_tenant_id === TENANT_A)).toBe(true);
-        expect(foreign.rows).toEqual([]);
+        const unrelated = await tenantC.query(`select owner_tenant_id::text from public.${table}`);
+        const revoked = await revokedA.query(`select owner_tenant_id::text from public.${table}`);
+        expect(own.rows).toEqual([{ owner_tenant_id: TENANT_A }]);
+        expect(foreign.rows).toEqual([{ owner_tenant_id: TENANT_B }]);
+        expect(unrelated.rows).toEqual([]);
+        expect(revoked.rows).toEqual([]);
       }
     } finally {
+      await admin.query(`update public.tenant_memberships set status = 'ACTIVE' where tenant_id = '${TENANT_A}' and principal_id = '${ACTOR_A}'`);
       await tenantA.end();
       await tenantB.end();
+      await tenantC.end();
+      await revokedA.end();
     }
+  });
+
+  it("denies service-role direct inserts and non-service RPC execution", async () => {
+    const tables = [
+      "build002_signal_requirements", "build002_signals", "build002_dependency_snapshots",
+      "build002_dependency_requirements", "build002_dependency_signals", "build002_signal_qualifications",
+      "build002_qualification_signals", "build002_delegation_readiness", "build002_readiness_qualifications",
+    ];
+    await service.query("set role service_role");
+    for (const table of tables) await expect(service.query(`insert into public.${table} default values`)).rejects.toThrow(/permission denied|violates/);
+    await service.query("reset role");
+    const anon = new Client({ connectionString: databaseUrl });
+    const authenticated = new Client({ connectionString: databaseUrl });
+    await anon.connect();
+    await authenticated.connect();
+    try {
+      await anon.query("set role anon");
+      await authenticated.query("set role authenticated");
+      for (const fn of ["build002_insert_signal_requirement('{}'::jsonb)", "build002_insert_signal('{}'::jsonb)"]) {
+        await expect(anon.query(`select public.${fn}`)).rejects.toThrow("permission denied");
+        await expect(authenticated.query(`select public.${fn}`)).rejects.toThrow("permission denied");
+      }
+      for (const table of tables) await expect(anon.query(`select * from public.${table}`)).rejects.toThrow("permission denied");
+    } finally {
+      await anon.end();
+      await authenticated.end();
+    }
+    const acl = await admin.query<{ routine_name: string; service_exec: boolean; anon_exec: boolean; auth_exec: boolean }>(`
+      select p.proname as routine_name,
+        has_function_privilege('service_role', p.oid, 'EXECUTE') as service_exec,
+        has_function_privilege('anon', p.oid, 'EXECUTE') as anon_exec,
+        has_function_privilege('authenticated', p.oid, 'EXECUTE') as auth_exec
+      from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+      where n.nspname = 'public' and p.proname like 'build002_insert_%'
+      order by p.proname
+    `);
+    expect(acl.rows).toEqual([
+      { routine_name: "build002_insert_delegation_readiness", service_exec: true, anon_exec: false, auth_exec: false },
+      { routine_name: "build002_insert_dependency_snapshot", service_exec: true, anon_exec: false, auth_exec: false },
+      { routine_name: "build002_insert_signal", service_exec: true, anon_exec: false, auth_exec: false },
+      { routine_name: "build002_insert_signal_qualification", service_exec: true, anon_exec: false, auth_exec: false },
+      { routine_name: "build002_insert_signal_requirement", service_exec: true, anon_exec: false, auth_exec: false },
+    ]);
   });
 
   it("denies authenticated writes and rejects exact wrong-hash lineage", async () => {
@@ -198,6 +312,63 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD 002-B native PostgreSQL E
       expect(result.rows).toEqual([]);
     } finally {
       await revoked.end();
+    }
+  });
+
+  it("rejects qualification failures and readiness subsets atomically", async () => {
+    await service.query("set role service_role");
+    const badQualification = {
+      id: "90000000-0000-4000-8000-000000000005", owner_tenant_id: TENANT_A, outcome_transaction_id: TX_A,
+      requirement_id: "signal.readiness", requirement_definition_hash: REQUIREMENT_HASH,
+      dependency_snapshot_hash: DEPENDENCY_HASH, signalIds: [SIGNAL_A], signalContentHashes: ["9".repeat(64)],
+      evaluator: { schemaVersion: "build002-qualification-evaluator-v0.1", version: "0.1.0", definitionHash: "5".repeat(64) },
+      outcome: "QUALIFIED", reason_code: "SIGNAL_QUALIFIED", evidence_valid_until: null,
+      qualified_at: "2026-08-19T12:00:00.000Z", schema_version: "build002-signal-qualification-v0.3",
+      qualification_content_hash: "5".repeat(64),
+    };
+    await expect(service.query("select public.build002_insert_signal_qualification($1::jsonb, $2::uuid)", [JSON.stringify(badQualification), DEPENDENCY_ID])).rejects.toThrow("BUILD002_QUALIFICATION_SIGNAL_SET_MISMATCH");
+    const absent = await service.query("select count(*)::integer as count from public.build002_signal_qualifications where id = $1", [badQualification.id]);
+    expect(absent.rows[0].count).toBe(0);
+    const readiness = {
+      id: "90000000-0000-4000-8000-000000000006", owner_tenant_id: TENANT_A, outcome_transaction_id: TX_A,
+      requirement_set_hash: REQUIREMENT_HASH, qualification_set_hash: QUALIFICATION_HASH,
+      dependency_snapshot_hash: DEPENDENCY_HASH, task_spec_hash: null, source_asset_version_hash: null,
+      blueprint_hash: null, policy_hash: null, evaluator: { schemaVersion: "build002-qualification-evaluator-v0.1", version: "0.1.0", definitionHash: READINESS_HASH },
+      state: "READY", blocking_codes: [], condition_codes: [], created_at: "2026-08-19T12:00:00.000Z", valid_until: null,
+      schema_version: "build002-signal-readiness-v0.3", readiness_content_hash: "6".repeat(64),
+    };
+    await expect(service.query("select public.build002_insert_delegation_readiness($1::jsonb, $2::uuid, $3::jsonb)", [JSON.stringify(readiness), DEPENDENCY_ID, JSON.stringify([])])).rejects.toThrow("BUILD002_READINESS_QUALIFICATION_SET_MISMATCH");
+    const readinessAbsent = await service.query("select count(*)::integer as count from public.build002_delegation_readiness where id = $1", [readiness.id]);
+    expect(readinessAbsent.rows[0].count).toBe(0);
+    await service.query("reset role");
+  });
+
+  it("serializes concurrent identical dependency writes without a partial graph", async () => {
+    const first = new Client({ connectionString: databaseUrl });
+    const second = new Client({ connectionString: databaseUrl });
+    await first.connect();
+    await second.connect();
+    const snapshot = {
+      owner_tenant_id: TENANT_A, outcome_transaction_id: TX_A,
+      requirement_definition_hashes: [REQUIREMENT_HASH],
+      signal_references: [{ requirementId: "signal.readiness", signalId: SIGNAL_A, contentHash: SIGNAL_HASH }],
+      dependency_bindings: [], blueprint_hash: null, policy_hash: null, task_spec_hash: null,
+      transaction_semantic_hash: null, source_asset_version_hash: null, context_lens_hash: null,
+      schema_version: "build002-dependency-snapshot-v0.2", dependency_snapshot_hash: "7".repeat(64),
+    };
+    try {
+      await first.query("set role service_role");
+      await second.query("set role service_role");
+      const results = await Promise.allSettled([
+        first.query("select public.build002_insert_dependency_snapshot($1::jsonb)", [JSON.stringify(snapshot)]),
+        second.query("select public.build002_insert_dependency_snapshot($1::jsonb)", [JSON.stringify(snapshot)]),
+      ]);
+      expect(results.filter((result) => result.status === "fulfilled")).toHaveLength(1);
+      const graph = await admin.query<{ parents: number; links: number }>("select (select count(*)::integer from public.build002_dependency_snapshots where dependency_snapshot_hash = $1) as parents, (select count(*)::integer from public.build002_dependency_signals where dependency_snapshot_id in (select id from public.build002_dependency_snapshots where dependency_snapshot_hash = $1)) as links", [snapshot.dependency_snapshot_hash]);
+      expect(graph.rows[0]).toEqual({ parents: 1, links: 1 });
+    } finally {
+      await first.end();
+      await second.end();
     }
   });
 });

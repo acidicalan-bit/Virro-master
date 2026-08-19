@@ -37,26 +37,13 @@ export class SupabaseBuild002PersistenceRepository implements Build002Persistenc
   async insertRequirementSnapshot(scope: Build002TenantSnapshotScope, requirement: SignalRequirement): Promise<SignalRequirement> {
     this.assertScope(scope);
     if (!verifySignalRequirementHash(requirement)) throw new Error("BUILD002_REQUIREMENT_HASH_INVALID");
-    const { data, error } = await this.client.from("build002_signal_requirements").insert({
-      owner_tenant_id: this.ownerTenantId,
-      outcome_transaction_id: scope.outcomeTransactionId,
-      requirement_id: requirement.requirementId,
-      semantic_type: requirement.semanticType,
-      critical: requirement.critical,
-      accepted_provenance: requirement.acceptedProvenance,
-      qualification_rule: requirement.qualificationRule,
-      dependency_selectors: requirement.dependencySelectors,
-      blueprint_id: requirement.blueprintId,
-      blueprint_version: requirement.blueprintVersion,
-      blueprint_hash: requirement.blueprintHash,
-      policy_id: requirement.policyId,
-      policy_hash: requirement.policyHash,
-      schema_version: requirement.definitionSchemaVersion,
-      requirement_definition_hash: requirement.requirementDefinitionHash,
-      created_at: requirement.createdAt,
-    }).select("*").single();
+    const { data, error } = await this.client.rpc("build002_insert_signal_requirement", {
+      p_requirement: requirementRpcPayload(this.ownerTenantId, scope.outcomeTransactionId, requirement),
+    });
     if (error || !data) throw new Error("BUILD002_REQUIREMENT_PERSISTENCE_FAILED");
-    return requirementFromRow(data as Row);
+    const persisted = await this.findRequirementSnapshot(scope, requirement.requirementDefinitionHash);
+    if (!persisted) throw new Error("BUILD002_REQUIREMENT_PERSISTENCE_FAILED");
+    return persisted;
   }
 
   async findRequirementSnapshot(scope: Build002TenantSnapshotScope, requirementDefinitionHash: string): Promise<SignalRequirement | null> {
@@ -70,24 +57,13 @@ export class SupabaseBuild002PersistenceRepository implements Build002Persistenc
     this.assertScope(scope);
     this.assertDomainScope(scope, signal.ownerTenantId, signal.transactionId);
     if (!verifySignalContentHash(signal)) throw new Error("BUILD002_SIGNAL_HASH_INVALID");
-    const { data, error } = await this.client.from("build002_signals").insert({
-      signal_id: signal.signalId,
-      owner_tenant_id: this.ownerTenantId,
-      outcome_transaction_id: scope.outcomeTransactionId,
-      requirement_id: signal.requirementId,
-      requirement_definition_hash: requirementDefinitionHash,
-      payload: signal.payload,
-      source: signal.source,
-      provenance: signal.provenance,
-      captured_at: signal.capturedAt,
-      valid_until: signal.validUntil,
-      dependency_identity: signal.dependency.identity,
-      dependency_hash: signal.dependency.hash,
-      schema_version: signal.schemaVersion,
-      content_hash: signal.contentHash,
-    }).select("*").single();
+    const { data, error } = await this.client.rpc("build002_insert_signal", {
+      p_signal: signalRpcPayload(this.ownerTenantId, scope.outcomeTransactionId, requirementDefinitionHash, signal),
+    });
     if (error || !data) throw new Error("BUILD002_SIGNAL_PERSISTENCE_FAILED");
-    return signalFromRow(data as Row);
+    const persisted = await this.findSignal(scope, signal.signalId);
+    if (!persisted) throw new Error("BUILD002_SIGNAL_PERSISTENCE_FAILED");
+    return persisted;
   }
 
   async findSignal(scope: Build002TenantSnapshotScope, signalId: string): Promise<Signal | null> {
@@ -131,7 +107,9 @@ export class SupabaseBuild002PersistenceRepository implements Build002Persistenc
       p_dependency_snapshot_id: dependencySnapshotId,
     });
     if (error || !data) throw new Error("BUILD002_QUALIFICATION_PERSISTENCE_FAILED");
-    return qualification;
+    const persisted = await this.findQualification(scope, qualification.id);
+    if (!persisted) throw new Error("BUILD002_QUALIFICATION_PERSISTENCE_FAILED");
+    return persisted;
   }
 
   async findQualification(scope: Build002TenantSnapshotScope, qualificationId: string): Promise<SignalQualification | null> {
@@ -163,7 +141,9 @@ export class SupabaseBuild002PersistenceRepository implements Build002Persistenc
       p_qualification_ids: qualificationLinks.map((link) => link.qualificationId),
     });
     if (error || !data) throw new Error("BUILD002_READINESS_PERSISTENCE_FAILED");
-    return readiness;
+    const persisted = await this.findReadiness(scope, readiness.id);
+    if (!persisted) throw new Error("BUILD002_READINESS_PERSISTENCE_FAILED");
+    return persisted;
   }
 
   async findReadiness(scope: Build002TenantSnapshotScope, readinessId: string): Promise<DelegationReadiness | null> {
@@ -195,11 +175,11 @@ export function createTenantBuild002PersistenceRepository(client: SupabaseClient
 }
 
 function requirementFromRow(row: Row): SignalRequirement {
-  return SignalRequirementSchema.parse({ requirementId: String(row.requirement_id), subjectKind: "OUTCOME_TRANSACTION", semanticType: String(row.semantic_type), critical: Boolean(row.critical), acceptedProvenance: row.accepted_provenance, qualificationRule: row.qualification_rule, dependencySelectors: row.dependency_selectors, blueprintId: String(row.blueprint_id), blueprintVersion: Number(row.blueprint_version), blueprintHash: String(row.blueprint_hash), policyId: row.policy_id === null ? null : String(row.policy_id), policyHash: row.policy_hash === null ? null : String(row.policy_hash), definitionSchemaVersion: String(row.schema_version), requirementDefinitionHash: String(row.requirement_definition_hash), createdAt: String(row.created_at) });
+  return SignalRequirementSchema.parse({ requirementId: String(row.requirement_id), subjectKind: "OUTCOME_TRANSACTION", semanticType: String(row.semantic_type), critical: Boolean(row.critical), acceptedProvenance: row.accepted_provenance, qualificationRule: row.qualification_rule, dependencySelectors: row.dependency_selectors, blueprintId: String(row.blueprint_id), blueprintVersion: Number(row.blueprint_version), blueprintHash: String(row.blueprint_hash), policyId: row.policy_id === null ? null : String(row.policy_id), policyHash: row.policy_hash === null ? null : String(row.policy_hash), definitionSchemaVersion: String(row.schema_version), requirementDefinitionHash: String(row.requirement_definition_hash), createdAt: normalizeDbInstant(row.created_at) });
 }
 
 function signalFromRow(row: Row): Signal {
-  return SignalSchema.parse({ signalId: String(row.signal_id), ownerTenantId: String(row.owner_tenant_id), transactionId: String(row.outcome_transaction_id), requirementId: String(row.requirement_id), payload: row.payload, source: row.source, provenance: String(row.provenance), capturedAt: String(row.captured_at), validUntil: row.valid_until === null ? null : String(row.valid_until), dependency: { identity: String(row.dependency_identity), hash: String(row.dependency_hash) }, schemaVersion: String(row.schema_version), contentHash: String(row.content_hash) });
+  return SignalSchema.parse({ signalId: String(row.signal_id), ownerTenantId: String(row.owner_tenant_id), transactionId: String(row.outcome_transaction_id), requirementId: String(row.requirement_id), payload: row.payload, source: row.source, provenance: String(row.provenance), capturedAt: normalizeDbInstant(row.captured_at), validUntil: row.valid_until === null ? null : normalizeDbInstant(row.valid_until), dependency: { identity: String(row.dependency_identity), hash: String(row.dependency_hash) }, schemaVersion: String(row.schema_version), contentHash: String(row.content_hash) });
 }
 
 function dependencyFromRow(row: Row): DependencySnapshot {
@@ -207,15 +187,64 @@ function dependencyFromRow(row: Row): DependencySnapshot {
 }
 
 function qualificationFromRow(row: Row): SignalQualification {
-  return SignalQualificationSchema.parse({ schemaVersion: String(row.schema_version), id: String(row.id), ownerTenantId: String(row.owner_tenant_id), transactionId: String(row.outcome_transaction_id), requirementId: String(row.requirement_id), requirementDefinitionHash: String(row.requirement_definition_hash), signalIds: row.signal_ids, signalContentHashes: row.signal_content_hashes, dependencySnapshotHash: String(row.dependency_snapshot_hash), evaluator: row.evaluator, outcome: String(row.outcome), reasonCode: String(row.reason_code), evidenceValidUntil: row.evidence_valid_until === null ? null : String(row.evidence_valid_until), qualifiedAt: String(row.qualified_at), qualificationContentHash: String(row.qualification_content_hash) });
+  return SignalQualificationSchema.parse({ schemaVersion: String(row.schema_version), id: String(row.id), ownerTenantId: String(row.owner_tenant_id), transactionId: String(row.outcome_transaction_id), requirementId: String(row.requirement_id), requirementDefinitionHash: String(row.requirement_definition_hash), signalIds: row.signal_ids, signalContentHashes: row.signal_content_hashes, dependencySnapshotHash: String(row.dependency_snapshot_hash), evaluator: row.evaluator, outcome: String(row.outcome), reasonCode: String(row.reason_code), evidenceValidUntil: row.evidence_valid_until === null ? null : normalizeDbInstant(row.evidence_valid_until), qualifiedAt: normalizeDbInstant(row.qualified_at), qualificationContentHash: String(row.qualification_content_hash) });
 }
 
 function readinessFromRow(row: Row): DelegationReadiness {
-  return DelegationReadinessSchema.parse({ schemaVersion: String(row.schema_version), id: String(row.id), ownerTenantId: String(row.owner_tenant_id), transactionId: String(row.outcome_transaction_id), requirementSetHash: String(row.requirement_set_hash), qualificationSetHash: String(row.qualification_set_hash), dependencySnapshotHash: String(row.dependency_snapshot_hash), taskSpecHash: row.task_spec_hash === null ? null : String(row.task_spec_hash), sourceAssetVersionHash: row.source_asset_version_hash === null ? null : String(row.source_asset_version_hash), blueprintHash: row.blueprint_hash === null ? null : String(row.blueprint_hash), policyHash: row.policy_hash === null ? null : String(row.policy_hash), evaluator: row.evaluator, state: String(row.state), blockingCodes: row.blocking_codes, conditionCodes: row.condition_codes, createdAt: String(row.created_at), validUntil: row.valid_until === null ? null : String(row.valid_until), readinessContentHash: String(row.readiness_content_hash) });
+  return DelegationReadinessSchema.parse({ schemaVersion: String(row.schema_version), id: String(row.id), ownerTenantId: String(row.owner_tenant_id), transactionId: String(row.outcome_transaction_id), requirementSetHash: String(row.requirement_set_hash), qualificationSetHash: String(row.qualification_set_hash), dependencySnapshotHash: String(row.dependency_snapshot_hash), taskSpecHash: row.task_spec_hash === null ? null : String(row.task_spec_hash), sourceAssetVersionHash: row.source_asset_version_hash === null ? null : String(row.source_asset_version_hash), blueprintHash: row.blueprint_hash === null ? null : String(row.blueprint_hash), policyHash: row.policy_hash === null ? null : String(row.policy_hash), evaluator: row.evaluator, state: String(row.state), blockingCodes: row.blocking_codes, conditionCodes: row.condition_codes, createdAt: normalizeDbInstant(row.created_at), validUntil: row.valid_until === null ? null : normalizeDbInstant(row.valid_until), readinessContentHash: String(row.readiness_content_hash) });
+}
+
+function normalizeDbInstant(value: unknown): string {
+  const candidate = value instanceof Date ? value.toISOString() : String(value);
+  const parsed = new Date(candidate);
+  if (!Number.isFinite(parsed.getTime())) throw new Error("BUILD002_INVALID_DB_TIMESTAMP");
+  const fraction = candidate.match(/\.(\d+)(?:Z|[+-]\d{2}:?\d{2})$/)?.[1];
+  if (fraction && fraction.length > 3 && /[^0]/.test(fraction.slice(3))) throw new Error("BUILD002_DB_TIMESTAMP_PRECISION_UNSUPPORTED");
+  return parsed.toISOString();
 }
 
 function sameSet(left: string[], right: string[]): boolean {
   return left.length === right.length && new Set(left).size === left.length && new Set(right).size === right.length && left.every((value) => right.includes(value));
+}
+
+function requirementRpcPayload(ownerTenantId: string, transactionId: string, requirement: SignalRequirement): Row {
+  return {
+    owner_tenant_id: ownerTenantId,
+    outcome_transaction_id: transactionId,
+    requirement_id: requirement.requirementId,
+    semantic_type: requirement.semanticType,
+    critical: requirement.critical,
+    accepted_provenance: requirement.acceptedProvenance,
+    qualification_rule: requirement.qualificationRule,
+    dependency_selectors: requirement.dependencySelectors,
+    blueprint_id: requirement.blueprintId,
+    blueprint_version: requirement.blueprintVersion,
+    blueprint_hash: requirement.blueprintHash,
+    policy_id: requirement.policyId,
+    policy_hash: requirement.policyHash,
+    schema_version: requirement.definitionSchemaVersion,
+    requirement_definition_hash: requirement.requirementDefinitionHash,
+    created_at: requirement.createdAt,
+  };
+}
+
+function signalRpcPayload(ownerTenantId: string, transactionId: string, requirementDefinitionHash: string, signal: Signal): Row {
+  return {
+    signal_id: signal.signalId,
+    owner_tenant_id: ownerTenantId,
+    outcome_transaction_id: transactionId,
+    requirement_id: signal.requirementId,
+    requirement_definition_hash: requirementDefinitionHash,
+    payload: signal.payload,
+    source: signal.source,
+    provenance: signal.provenance,
+    captured_at: signal.capturedAt,
+    valid_until: signal.validUntil,
+    dependency_identity: signal.dependency.identity,
+    dependency_hash: signal.dependency.hash,
+    schema_version: signal.schemaVersion,
+    content_hash: signal.contentHash,
+  };
 }
 
 function dependencyRpcPayload(ownerTenantId: string, transactionId: string, snapshot: DependencySnapshot): Row {

@@ -71,6 +71,18 @@ class FakeSupabaseClient {
 
   async rpc(name: string, args: Row) {
     this.rpcCalls.push({ name, args });
+    if (name === "build002_insert_signal_requirement") {
+      const payload = args.p_requirement as Row;
+      const row = { id: "80000000-0000-4000-8000-000000000008", ...payload };
+      this.tables.build002_signal_requirements = [...(this.tables.build002_signal_requirements ?? []), row];
+      return { data: row.id, error: null };
+    }
+    if (name === "build002_insert_signal") {
+      const payload = args.p_signal as Row;
+      const row = { ...payload };
+      this.tables.build002_signals = [...(this.tables.build002_signals ?? []), row];
+      return { data: row.signal_id, error: null };
+    }
     if (name === "build002_insert_dependency_snapshot") {
       const payload = args.p_snapshot as Row;
       const row = {
@@ -206,18 +218,13 @@ describe("BUILD 002-B production repository contract", () => {
     const { requirement, signal, dependency, qualification, readiness } = fixture();
     const scope = { ownerTenantId: TENANT, outcomeTransactionId: TRANSACTION };
 
-    db.tables.build002_signal_requirements = [{
-      owner_tenant_id: TENANT, outcome_transaction_id: TRANSACTION, requirement_id: requirement.requirementId,
-      semantic_type: requirement.semanticType, critical: requirement.critical, accepted_provenance: requirement.acceptedProvenance,
-      qualification_rule: requirement.qualificationRule, dependency_selectors: requirement.dependencySelectors,
-      blueprint_id: requirement.blueprintId, blueprint_version: requirement.blueprintVersion, blueprint_hash: requirement.blueprintHash,
-      policy_id: requirement.policyId, policy_hash: requirement.policyHash, schema_version: requirement.definitionSchemaVersion,
-      requirement_definition_hash: requirement.requirementDefinitionHash, created_at: requirement.createdAt,
-    }];
+    await repository.insertRequirementSnapshot(scope, requirement);
+    db.tables.build002_signal_requirements[0].created_at = "2026-08-19T12:00:00+00:00";
     const requirementRead = await repository.findRequirementSnapshot(scope, requirement.requirementDefinitionHash);
     expect(requirementRead).not.toBeNull();
     expect(verifySignalRequirementHash(requirementRead!)).toBe(true);
     await repository.insertSignal(scope, requirement.requirementDefinitionHash, signal);
+    db.tables.build002_signals[0].captured_at = "2026-08-19T12:00:00.000000+00:00";
     const signalRead = await repository.findSignal(scope, SIGNAL_ID);
     expect(signalRead).not.toBeNull();
     expect(verifySignalContentHash(signalRead!)).toBe(true);
@@ -226,14 +233,18 @@ describe("BUILD 002-B production repository contract", () => {
     expect(dependencyRead).not.toBeNull();
     expect(verifyDependencySnapshotHash(dependencyRead!)).toBe(true);
     await repository.insertQualification(scope, requirement.requirementDefinitionHash, DEPENDENCY_ID, qualification);
+    db.tables.build002_signal_qualifications[0].qualified_at = "2026-08-18T12:00:00+00:00";
     const qualificationRead = await repository.findQualification(scope, QUALIFICATION_ID);
     expect(qualificationRead).not.toBeNull();
     expect(verifyQualificationHash(qualificationRead!)).toBe(true);
     await repository.insertReadiness(scope, DEPENDENCY_ID, readiness, [{ qualificationId: QUALIFICATION_ID, qualificationContentHash: qualification.qualificationContentHash }]);
+    db.tables.build002_delegation_readiness[0].created_at = "2026-08-19T12:00:00.000+00:00";
     const readinessRead = await repository.findReadiness(scope, READINESS_ID);
     expect(readinessRead).not.toBeNull();
     expect(verifyReadinessHash(readinessRead!)).toBe(true);
     expect(db.rpcCalls.map((call) => call.name)).toEqual([
+      "build002_insert_signal_requirement",
+      "build002_insert_signal",
       "build002_insert_dependency_snapshot",
       "build002_insert_signal_qualification",
       "build002_insert_delegation_readiness",
