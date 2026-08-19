@@ -259,6 +259,13 @@ describe("BUILD 002-A R2 temporal and canonical dependency integrity", () => {
     expect(a.state).toBe("READY"); expect(evaluateReadinessValidity(a, d, "2026-08-18T13:01:00.000Z")).toBe("EXPIRED"); expect(isDelegable(a, "EXPIRED")).toBe(false);
   });
 
+  it("permits a new current qualification/readiness after historical expiry", () => {
+    const r = requirement(); const oldSignal = signal(r, "x", H_SOURCE, "40000000-0000-4000-8000-000000000004", "OBSERVED", "2026-08-18T13:00:00.000Z"); const oldDependency = boundDependency([r], [oldSignal]); const oldQualification = qualify(r, [oldSignal], oldDependency, at); const oldReadiness = evaluateDelegationReadiness({ subject, requirements: [r], qualifications: [oldQualification], dependencySnapshot: oldDependency, evaluationTime: at });
+    expect(evaluateReadinessValidity(oldReadiness, oldDependency, "2026-08-18T13:01:00.000Z")).toBe("EXPIRED");
+    const newSignal = signal(r, "x", H_SOURCE, "40000000-0000-4000-8000-000000000014", "OBSERVED", "2026-08-18T14:00:00.000Z"); const newDependency = boundDependency([r], [newSignal]); const newQualification = qualify(r, [newSignal], newDependency, "2026-08-18T13:01:00.000Z"); const newReadiness = evaluateDelegationReadiness({ subject, requirements: [r], qualifications: [newQualification], dependencySnapshot: newDependency, evaluationTime: "2026-08-18T13:01:00.000Z" });
+    expect(newReadiness.state).toBe("READY"); expect(evaluateReadinessValidity(newReadiness, newDependency, "2026-08-18T13:01:00.000Z")).toBe("CURRENT");
+  });
+
   it("keeps READY_WITH_CONDITIONS non-delegable with a derived horizon", () => {
     const r = requirement(); const s = signal(r, "x", H_SOURCE, undefined, "OBSERVED", "2026-08-18T13:00:00.000Z"); const d = boundDependency([r], [s]); const q = qualify(r, [s], d); const a = evaluateDelegationReadiness({ subject, requirements: [r], qualifications: [q], dependencySnapshot: d, evaluationTime: at, conditionCodes: ["REVIEW"] });
     expect(a.state).toBe("READY_WITH_CONDITIONS"); expect(a.validUntil).toBe("2026-08-18T13:00:00.000Z"); expect(isDelegable(a, "CURRENT")).toBe(false);
