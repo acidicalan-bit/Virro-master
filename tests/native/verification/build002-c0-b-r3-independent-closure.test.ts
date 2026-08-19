@@ -161,8 +161,8 @@ describe.runIf(enabled && Boolean(sourceUrl))("independent BUILD 002-C0-B R3 nat
     const triggers = await admin.query<{ tgname: string; definition: string; tgtype: number }>(`select tgname, tgtype, pg_get_triggerdef(oid) as definition from pg_trigger where tgrelid in ('public.outcome_blueprints'::regclass, 'public.outcome_requirement_profiles'::regclass) and not tgisinternal`);
     expect(triggers.rows.some((row) => row.tgname === "outcome_blueprints_lineage" && row.definition.includes("BEFORE INSERT") && row.definition.includes("build002_enforce_outcome_blueprint_lineage"))).toBe(true);
     expect(triggers.rows.some((row) => row.tgname === "outcome_requirement_profiles_lineage" && row.definition.includes("BEFORE INSERT") && row.definition.includes("build002_enforce_outcome_requirement_profile_lineage"))).toBe(true);
-    expect(triggers.rows.some((row) => row.tgname === "outcome_blueprints_immutable" && (row.tgtype & 2) === 2 && (row.tgtype & 4) === 4)).toBe(true);
-    expect(triggers.rows.some((row) => row.tgname === "outcome_requirement_profiles_immutable" && (row.tgtype & 2) === 2 && (row.tgtype & 4) === 4)).toBe(true);
+    expect(triggers.rows.some((row) => row.tgname === "outcome_blueprints_immutable" && (row.tgtype & 16) === 16 && (row.tgtype & 8) === 8)).toBe(true);
+    expect(triggers.rows.some((row) => row.tgname === "outcome_requirement_profiles_immutable" && (row.tgtype & 16) === 16 && (row.tgtype & 8) === 8)).toBe(true);
   });
 
   it("rejects independent Blueprint and Profile shape and table-lineage attacks", async () => {
