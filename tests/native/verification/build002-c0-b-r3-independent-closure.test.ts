@@ -283,6 +283,17 @@ describe.runIf(enabled && Boolean(sourceUrl))("independent BUILD 002-C0-B R3 nat
     try { const results = await Promise.allSettled(pclients.map((client) => client.query("select public.build002_publish_outcome_requirement_profile($1::jsonb)", [JSON.stringify(profilePayload(p1))]))); expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1); } finally { await Promise.all(pclients.map((client) => client.end())); }
     const p2 = profile(pb, p1.id, 2, p1.hash); const p2clients = [await service(dbUrl(sourceUrl!, isolated)), await service(dbUrl(sourceUrl!, isolated))];
     try { const results = await Promise.allSettled(p2clients.map((client) => client.query("select public.build002_publish_outcome_requirement_profile($1::jsonb)", [JSON.stringify(profilePayload(p2))]))); expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1); } finally { await Promise.all(p2clients.map((client) => client.end())); }
+    await rejected(admin, "update public.outcome_requirement_profiles set definition='{}'::jsonb where id=$1 and version=1", [p1.id]);
+    await rejected(admin, "delete from public.outcome_requirement_profiles where id=$1 and version=1", [p1.id]);
+    const roundTripBp = await admin.query<{ definition: Record<string, unknown>; published_at: Date }>("select definition, published_at from public.outcome_blueprints where id=$1 and version=1", [pb.id]);
+    const roundTripProfile = await admin.query<{ definition: Record<string, unknown>; published_at: Date }>("select definition, published_at from public.outcome_requirement_profiles where id=$1 and version=1", [p1.id]);
+    expect(roundTripBp.rows[0].published_at).toBeInstanceOf(Date);
+    expect(roundTripBp.rows[0].published_at.toISOString()).toBe(publishedAt);
+    expect(roundTripProfile.rows[0].published_at).toBeInstanceOf(Date);
+    expect(roundTripProfile.rows[0].published_at.toISOString()).toBe(publishedAt);
+    expect(roundTripBp.rows[0].definition.variables).toEqual(pb.variables);
+    expect(roundTripProfile.rows[0].definition.requirements).toEqual(p1.requirements);
+    expect(roundTripProfile.rows[0].definition.policy).toBeNull();
   });
 
   it("does not use uncommitted predecessors and then accepts them after commit", async () => {
@@ -297,5 +308,18 @@ describe.runIf(enabled && Boolean(sourceUrl))("independent BUILD 002-C0-B R3 nat
       await b.query("insert into public.outcome_blueprints(id,version,hash,previous_version_hash,status,published_at,definition) values ($1,2,$2,$3,'PUBLISHED',now(),$4::jsonb)", [v2.id,v2.hash,v2.previousVersionHash,JSON.stringify(bpPayload(v2).definition)]);
       expect((await admin.query("select count(*)::integer as count from public.outcome_blueprints where id=$1", [id])).rows[0].count).toBe(2);
     } finally { await a.end(); await b.end(); }
+    const profileBp = blueprint();
+    await svc.query("select public.build002_publish_outcome_blueprint($1::jsonb)", [JSON.stringify(bpPayload(profileBp))]);
+    const pa = await new Client({ connectionString: dbUrl(sourceUrl!, isolated) }); await pa.connect();
+    const pb = await new Client({ connectionString: dbUrl(sourceUrl!, isolated) }); await pb.connect();
+    const profileId = randomUUID() as Uuid; const pv1 = profile(profileBp, profileId); const pv2 = profile(profileBp, profileId, 2, pv1.hash);
+    try {
+      await pa.query("begin");
+      await pa.query("insert into public.outcome_requirement_profiles(id,version,hash,previous_version_hash,blueprint_id,blueprint_version,blueprint_hash,policy_id,policy_hash,status,published_at,definition) values ($1,1,$2,null,$3,$4,$5,null,null,'PUBLISHED',now(),$6::jsonb)", [pv1.id,pv1.hash,pv1.blueprint.id,pv1.blueprint.version,pv1.blueprint.hash,JSON.stringify(profilePayload(pv1).definition)]);
+      await rejected(pb, "insert into public.outcome_requirement_profiles(id,version,hash,previous_version_hash,blueprint_id,blueprint_version,blueprint_hash,policy_id,policy_hash,status,published_at,definition) values ($1,2,$2,$3,$4,$5,$6,null,null,'PUBLISHED',now(),$7::jsonb)", [pv2.id,pv2.hash,pv2.previousVersionHash,pv2.blueprint.id,pv2.blueprint.version,pv2.blueprint.hash,JSON.stringify(profilePayload(pv2).definition)]);
+      await pa.query("commit");
+      await pb.query("insert into public.outcome_requirement_profiles(id,version,hash,previous_version_hash,blueprint_id,blueprint_version,blueprint_hash,policy_id,policy_hash,status,published_at,definition) values ($1,2,$2,$3,$4,$5,$6,null,null,'PUBLISHED',now(),$7::jsonb)", [pv2.id,pv2.hash,pv2.previousVersionHash,pv2.blueprint.id,pv2.blueprint.version,pv2.blueprint.hash,JSON.stringify(profilePayload(pv2).definition)]);
+      expect((await admin.query("select count(*)::integer as count from public.outcome_requirement_profiles where id=$1", [profileId])).rows[0].count).toBe(2);
+    } finally { await pa.end(); await pb.end(); }
   });
 });
