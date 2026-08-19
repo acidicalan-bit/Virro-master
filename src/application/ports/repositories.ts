@@ -36,6 +36,7 @@ import type {
   PreservationRunStatus,
   ResolvedPreservationZones,
 } from "@/src/domain/outcome/media/preservation";
+import type { Build002PersistenceRepository } from "@/src/application/ports/outcome/build002-persistence-repository";
 
 export type IntentRunRecord = {
   id: string;
@@ -582,6 +583,7 @@ export type RepositoryBundle = {
   preservationRuns: PreservationRunRepository;
   preservationEvidence: PreservationEvidenceRepository;
   candidatePreferences: CandidatePreferenceRepository;
+  build002Readiness?: Build002PersistenceRepository;
   storageMode: "supabase" | "memory";
 };
 
