@@ -214,17 +214,19 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD 002-B native PostgreSQL E
       await tenantB.query(`set request.jwt.claim.sub = '${ACTOR_B}'`);
       await tenantC.query("set role authenticated");
       await tenantC.query(`set request.jwt.claim.sub = '${ACTOR_C}'`);
-      await admin.query(`update public.tenant_memberships set status = 'REVOKED' where tenant_id = '${TENANT_A}' and principal_id = '${ACTOR_A}'`);
       await revokedA.query("set role authenticated");
       await revokedA.query(`set request.jwt.claim.sub = '${ACTOR_A}'`);
       for (const table of tables) {
         const own = await tenantA.query(`select owner_tenant_id::text from public.${table}`);
         const foreign = await tenantB.query(`select owner_tenant_id::text from public.${table}`);
         const unrelated = await tenantC.query(`select owner_tenant_id::text from public.${table}`);
-        const revoked = await revokedA.query(`select owner_tenant_id::text from public.${table}`);
         expect(own.rows).toEqual([{ owner_tenant_id: TENANT_A }]);
         expect(foreign.rows).toEqual([{ owner_tenant_id: TENANT_B }]);
         expect(unrelated.rows).toEqual([]);
+      }
+      await admin.query(`update public.tenant_memberships set status = 'REVOKED' where tenant_id = '${TENANT_A}' and principal_id = '${ACTOR_A}'`);
+      for (const table of tables) {
+        const revoked = await revokedA.query(`select owner_tenant_id::text from public.${table}`);
         expect(revoked.rows).toEqual([]);
       }
     } finally {
