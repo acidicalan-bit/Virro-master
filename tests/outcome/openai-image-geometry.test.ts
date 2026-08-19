@@ -1,9 +1,15 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { validateOpenAIImageGeometry } from "@/src/infrastructure/executors/image/openai-image-geometry";
 import { OpenAIImageEditExecutor } from "@/src/infrastructure/executors/image/openai-image-edit-executor";
 import OpenAI from "openai";
 import { createPrecisionEditFinalFixture } from "@/tests/fixtures/precision-edit-final-fixture";
+
+const TEST_OPENAI_API_KEY = "rg1-test-only-placeholder";
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+});
 
 describe("gpt-image-2 geometry preflight", () => {
   it("rejects the previous 256x256 request", () => {
@@ -29,6 +35,7 @@ describe("gpt-image-2 geometry preflight", () => {
 
   it("does not invoke the provider for invalid geometry", async () => {
     const edit = vi.fn();
+    vi.stubEnv("OPENAI_API_KEY", TEST_OPENAI_API_KEY);
     const executor = new OpenAIImageEditExecutor({ images: { edit } } as unknown as OpenAI);
     await expect(executor.execute({ transactionId: "tx", sourceStorageKey: "source", sourceMimeType: "image/png", sourceWidth: 256, sourceHeight: 256, roi: { x: 0, y: 0, width: 1, height: 1 }, instruction: "test", sourceBytes: new Uint8Array() })).rejects.toMatchObject({ code: "SOURCE_GEOMETRY_UNSUPPORTED_BY_CURRENT_PROVIDER" });
     expect(edit).not.toHaveBeenCalled();
@@ -36,11 +43,17 @@ describe("gpt-image-2 geometry preflight", () => {
 
   it("permits a valid adapter invocation and records same-geometry output", async () => {
     const edit = vi.fn().mockResolvedValue({ data: [{ b64_json: createPrecisionEditFinalFixture().toString("base64") }] });
+    vi.stubEnv("OPENAI_API_KEY", TEST_OPENAI_API_KEY);
     const executor = new OpenAIImageEditExecutor({ images: { edit } } as unknown as OpenAI);
     const result = await executor.execute({ transactionId: "tx", sourceStorageKey: "source", sourceMimeType: "image/png", sourceWidth: 1024, sourceHeight: 1024, roi: { x: 0.25, y: 0.25, width: 0.5, height: 0.5 }, instruction: "Change only the central marker", sourceBytes: createPrecisionEditFinalFixture() });
     expect(edit).toHaveBeenCalledWith(expect.objectContaining({ size: "1024x1024" }));
     expect(result.candidateWidth).toBe(1024);
     expect(result.candidateHeight).toBe(1024);
     expect(result.providerMetadata).toMatchObject({ requestedWidth: 1024, requestedHeight: 1024, actualWidth: 1024, actualHeight: 1024 });
+  });
+
+  it("fails closed without an injected client or an API key", () => {
+    vi.stubEnv("OPENAI_API_KEY", "");
+    expect(() => new OpenAIImageEditExecutor()).toThrow("OPENAI_API_KEY is required");
   });
 });
