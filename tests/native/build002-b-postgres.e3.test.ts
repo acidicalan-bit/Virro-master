@@ -22,8 +22,14 @@ const ASSET_B = "60000000-0000-4000-8000-000000000002";
 const VERSION_A = "70000000-0000-4000-8000-000000000001";
 const VERSION_B = "70000000-0000-4000-8000-000000000002";
 const SIGNAL_A = "80000000-0000-4000-8000-000000000001";
+const DEPENDENCY_ID = "90000000-0000-4000-8000-000000000001";
+const QUALIFICATION_ID = "90000000-0000-4000-8000-000000000002";
+const READINESS_ID = "90000000-0000-4000-8000-000000000003";
 const REQUIREMENT_HASH = "a".repeat(64);
 const SIGNAL_HASH = "b".repeat(64);
+const DEPENDENCY_HASH = "c".repeat(64);
+const QUALIFICATION_HASH = "d".repeat(64);
+const READINESS_HASH = "e".repeat(64);
 
 describe.runIf(enabled && Boolean(databaseUrl))("BUILD 002-B native PostgreSQL E3", () => {
   let admin: Client;
@@ -95,6 +101,35 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD 002-B native PostgreSQL E
       ) values ('${SIGNAL_A}', '${TENANT_A}', '${TX_A}', 'signal.readiness', '${REQUIREMENT_HASH}',
         '{"value":"ready"}', '{"identity":"fixture"}', 'OBSERVED', now(), 'asset.version', '${SIGNAL_HASH}',
         'build002-signal-v0.2', '${SIGNAL_HASH}') on conflict do nothing;
+      insert into public.build002_dependency_snapshots(
+        id, owner_tenant_id, outcome_transaction_id, requirement_definition_hashes, signal_references,
+        dependency_bindings, schema_version, dependency_snapshot_hash
+      ) values ('${DEPENDENCY_ID}', '${TENANT_A}', '${TX_A}', '["${REQUIREMENT_HASH}"]',
+        '[{"requirementId":"signal.readiness","signalId":"${SIGNAL_A}","contentHash":"${SIGNAL_HASH}"}]',
+        '[]', 'build002-dependency-snapshot-v0.2', '${DEPENDENCY_HASH}') on conflict do nothing;
+      insert into public.build002_dependency_requirements(owner_tenant_id, outcome_transaction_id, dependency_snapshot_id, requirement_definition_hash)
+        values ('${TENANT_A}', '${TX_A}', '${DEPENDENCY_ID}', '${REQUIREMENT_HASH}') on conflict do nothing;
+      insert into public.build002_dependency_signals(owner_tenant_id, outcome_transaction_id, dependency_snapshot_id, signal_id, signal_content_hash, requirement_id)
+        values ('${TENANT_A}', '${TX_A}', '${DEPENDENCY_ID}', '${SIGNAL_A}', '${SIGNAL_HASH}', 'signal.readiness') on conflict do nothing;
+      insert into public.build002_signal_qualifications(
+        id, owner_tenant_id, outcome_transaction_id, requirement_id, requirement_definition_hash,
+        dependency_snapshot_id, dependency_snapshot_hash, signal_ids, signal_content_hashes, evaluator,
+        outcome, reason_code, qualified_at, schema_version, qualification_content_hash
+      ) values ('${QUALIFICATION_ID}', '${TENANT_A}', '${TX_A}', 'signal.readiness', '${REQUIREMENT_HASH}',
+        '${DEPENDENCY_ID}', '${DEPENDENCY_HASH}', '["${SIGNAL_A}"]', '["${SIGNAL_HASH}"]',
+        '{"schemaVersion":"build002-qualification-evaluator-v0.1","version":"0.1.0","definitionHash":"${QUALIFICATION_HASH}"}',
+        'QUALIFIED', 'SIGNAL_QUALIFIED', now(), 'build002-signal-qualification-v0.3', '${QUALIFICATION_HASH}') on conflict do nothing;
+      insert into public.build002_qualification_signals(owner_tenant_id, outcome_transaction_id, qualification_id, qualification_content_hash, signal_id, signal_content_hash, requirement_id)
+        values ('${TENANT_A}', '${TX_A}', '${QUALIFICATION_ID}', '${QUALIFICATION_HASH}', '${SIGNAL_A}', '${SIGNAL_HASH}', 'signal.readiness') on conflict do nothing;
+      insert into public.build002_delegation_readiness(
+        id, owner_tenant_id, outcome_transaction_id, requirement_set_hash, qualification_set_hash,
+        dependency_snapshot_id, dependency_snapshot_hash, evaluator, state, blocking_codes, condition_codes,
+        created_at, schema_version, readiness_content_hash
+      ) values ('${READINESS_ID}', '${TENANT_A}', '${TX_A}', '${REQUIREMENT_HASH}', '${QUALIFICATION_HASH}',
+        '${DEPENDENCY_ID}', '${DEPENDENCY_HASH}', '{"schemaVersion":"build002-qualification-evaluator-v0.1","version":"0.1.0","definitionHash":"${READINESS_HASH}"}',
+        'READY', '[]', '[]', now(), 'build002-signal-readiness-v0.3', '${READINESS_HASH}') on conflict do nothing;
+      insert into public.build002_readiness_qualifications(owner_tenant_id, outcome_transaction_id, readiness_id, readiness_content_hash, qualification_id, qualification_content_hash)
+        values ('${TENANT_A}', '${TX_A}', '${READINESS_ID}', '${READINESS_HASH}', '${QUALIFICATION_ID}', '${QUALIFICATION_HASH}') on conflict do nothing;
     `);
   }, 60_000);
 
@@ -117,6 +152,12 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD 002-B native PostgreSQL E
       const b = await tenantB.query("select owner_tenant_id::text from public.build002_signal_requirements");
       expect(a.rows).toEqual([{ owner_tenant_id: TENANT_A }]);
       expect(b.rows).toEqual([]);
+      for (const table of ["build002_dependency_requirements", "build002_dependency_signals", "build002_qualification_signals", "build002_readiness_qualifications"]) {
+        const own = await tenantA.query(`select owner_tenant_id::text from public.${table}`);
+        const foreign = await tenantB.query(`select owner_tenant_id::text from public.${table}`);
+        expect(own.rows.every((row) => row.owner_tenant_id === TENANT_A)).toBe(true);
+        expect(foreign.rows).toEqual([]);
+      }
     } finally {
       await tenantA.end();
       await tenantB.end();
@@ -129,11 +170,21 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD 002-B native PostgreSQL E
     try {
       await actor.query("set role authenticated");
       await actor.query(`set request.jwt.claim.sub = '${ACTOR_A}'`);
+      await expect(actor.query(`insert into public.build002_signals(signal_id, owner_tenant_id, outcome_transaction_id, requirement_id, requirement_definition_hash, payload, source, provenance, captured_at, dependency_identity, dependency_hash, schema_version, content_hash) values ('90000000-0000-4000-8000-000000000099', '${TENANT_A}', '${TX_A}', 'signal.readiness', '${REQUIREMENT_HASH}', '{}', '{}', 'OBSERVED', now(), 'asset.version', '${SIGNAL_HASH}', 'build002-signal-v0.2', '${SIGNAL_HASH}')`)).rejects.toThrow();
+      await expect(actor.query(`update public.build002_signals set provenance = 'UNKNOWN' where signal_id = '${SIGNAL_A}'`)).rejects.toThrow();
       await expect(actor.query(`delete from public.build002_signals where signal_id = '${SIGNAL_A}'`)).rejects.toThrow();
     } finally {
       await actor.end();
     }
-    await expect(service.query(`insert into public.build002_dependency_signals(owner_tenant_id, outcome_transaction_id, dependency_snapshot_id, signal_id, signal_content_hash, requirement_id) values ('${TENANT_A}', '${TX_A}', '90000000-0000-4000-8000-000000000099', '${SIGNAL_A}', '${"c".repeat(64)}', 'signal.readiness')`)).rejects.toThrow();
+    await expect(service.query(`insert into public.build002_dependency_signals(owner_tenant_id, outcome_transaction_id, dependency_snapshot_id, signal_id, signal_content_hash, requirement_id) values ('${TENANT_A}', '${TX_A}', '${DEPENDENCY_ID}', '${SIGNAL_A}', '${"1".repeat(64)}', 'signal.readiness')`)).rejects.toThrow();
+    await expect(service.query(`insert into public.build002_qualification_signals(owner_tenant_id, outcome_transaction_id, qualification_id, qualification_content_hash, signal_id, signal_content_hash, requirement_id) values ('${TENANT_A}', '${TX_A}', '${QUALIFICATION_ID}', '${QUALIFICATION_HASH}', '${SIGNAL_A}', '${"1".repeat(64)}', 'signal.readiness')`)).rejects.toThrow();
+    const before = await admin.query<{ count: string }>("select count(*)::text as count from public.build002_dependency_snapshots");
+    const invalidSnapshot = { owner_tenant_id: TENANT_A, outcome_transaction_id: TX_A, requirement_definition_hashes: [REQUIREMENT_HASH], signal_references: [{ requirementId: "signal.readiness", signalId: SIGNAL_A, contentHash: "1".repeat(64) }], dependency_bindings: [], schema_version: "build002-dependency-snapshot-v0.2", dependency_snapshot_hash: "2".repeat(64) };
+    await expect(service.query("select public.build002_insert_dependency_snapshot($1::jsonb)", [JSON.stringify(invalidSnapshot)])).rejects.toThrow();
+    const after = await admin.query<{ count: string }>("select count(*)::text as count from public.build002_dependency_snapshots");
+    expect(after.rows[0].count).toBe(before.rows[0].count);
+    await expect(admin.query(`update public.build002_signals set provenance = 'UNKNOWN' where signal_id = '${SIGNAL_A}'`)).rejects.toThrow();
+    await expect(admin.query(`delete from public.build002_signals where signal_id = '${SIGNAL_A}'`)).rejects.toThrow();
   });
 
   it("rejects revoked membership reads in a separate session", async () => {
