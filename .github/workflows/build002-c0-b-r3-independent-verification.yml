@@ -1,0 +1,52 @@
+name: BUILD 002-C0-B R3 independent closure
+
+on:
+  pull_request:
+    branches:
+      - build/build002-c0-b-requirement-catalog-persistence
+  push:
+    branches:
+      - verify/build002-c0-b-r3-independent-closure
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  independent-closure:
+    name: Independent C0-B R3 PostgreSQL closure
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: virro_r3_independent
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d virro_r3_independent"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+        with:
+          version: 11.19.0
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Independent repository boundary controls
+        run: pnpm exec vitest run tests/verification/build002-c0-b-r3-repository-boundary.test.ts --reporter=verbose
+      - name: Independent native PostgreSQL 17 controls
+        env:
+          BUILD002_NATIVE_PG_C0_B_R3: "true"
+          BUILD002_NATIVE_PG_URL: postgresql://postgres:postgres@localhost:5432/virro_r3_independent
+        run: pnpm exec vitest run tests/native/verification/build002-c0-b-r3-independent-closure.test.ts --reporter=verbose
+      - name: Product regressions after independent controls
+        run: pnpm test:sql && pnpm test:model && pnpm test:application && pnpm test:assurance && pnpm test
+      - name: TypeScript, ESLint, assurance and production build
+        run: pnpm typecheck && pnpm lint && pnpm assurance:check && pnpm build
