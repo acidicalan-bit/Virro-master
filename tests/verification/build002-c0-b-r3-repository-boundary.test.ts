@@ -36,10 +36,10 @@ function fakeClient(rows: Record<string, Record<string, unknown> | null>, rpcRes
   const client = {
     rpc: async () => { rpcCalls += 1; return rpcResult; },
     from: (table: string) => {
-      let result = rows[table] ?? null;
+      const result = rows[table] ?? null;
       const builder = {
         select: () => builder,
-        eq: (_column: string, _value: unknown) => builder,
+        eq: () => builder,
         maybeSingle: async () => ({ data: result, error: null }),
       };
       return builder;
