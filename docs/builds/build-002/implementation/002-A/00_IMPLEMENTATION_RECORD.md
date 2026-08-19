@@ -18,6 +18,10 @@ Qualification is fail-closed and deterministic: `QUALIFIED`, `MISSING`, `UNKNOWN
 
 Tenant and transaction identity are taken from the server-supplied subject/dependency context. Caller-supplied final states, hashes, verifier callbacks, and unknown object keys do not become authoritative inputs. Returned objects are deep-frozen as defense-in-depth; the security boundary is the server-controlled constructors/evaluators and not object freezing.
 
+## Test evidence
+
+The focused E1 matrix is `tests/assurance/build002-a-signal-readiness.test.ts` and covers qualification outcomes, inferred-provenance controls, contradiction/no-winner behavior, canonical permutation properties, material hash changes, caller-field negative controls, immutable assessments, validity, and delegation. The final focused run reports `38/38` passing. The final repository assurance run reports `8` files and `130` tests passing; the final full Vitest run reports `52` files passing, `5` skipped, with `511` tests passing and `11` skipped.
+
 ## Scope and limits
 
 This change adds only domain code, focused E1 tests, and this documentation. It does not add persistence, migrations, RLS, API enforcement, executor changes, TaskSpec changes, or a runtime readiness choke-point.
