@@ -25,7 +25,7 @@ Changed only development assurance persistence, the tenant-scoped repository bun
 - The two F7 assurance files pass in isolation: 37/37 PASS. A concurrent full-suite run reached 580 PASS/11 skipped but hit three existing Windows temporary-directory timeouts; this is retained as an environmental full-suite limitation, not presented as a clean full-suite PASS.
 - Native PostgreSQL E3: unavailable in the local Windows environment; protected CI is the authoritative native boundary.
 
-The local environment still skips native PostgreSQL, but protected CI run `32257490710` at R2 candidate head `8bb98c2dd3cd491a7ad78b317c840d5c0fcb47b7` supplied the required E3 evidence: PostgreSQL 17 native test 6/6 PASS, local PostgreSQL support 15/15 PASS, full deterministic regression 54 files passed and 6 skipped (587 tests passed and 17 skipped), TypeScript, ESLint, and production build PASS. E4 remains not run.
+The local environment still skips native PostgreSQL, but protected CI run `32258343579` at R2 candidate head `96346520b72b6833bdccf6c5dc442d34b65165bd` supplied the required E3 evidence: PostgreSQL 17 native tests 7/7 PASS, local PostgreSQL support 15/15 PASS, full deterministic regression 54 files passed and 6 skipped (587 tests passed and 18 skipped), TypeScript, ESLint, and production build PASS. E4 remains not run.
 
 ## R1 corrective record
 
