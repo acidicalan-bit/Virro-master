@@ -365,6 +365,24 @@ describe("BUILD 002-A R3 canonical instants and temporal causality", () => {
     expect(a.readinessContentHash).toBe(b.readinessContentHash);
     expect(evaluateReadinessValidity(a, d, "2026-08-19T12:30:00Z")).toBe("CURRENT");
     expect(evaluateReadinessValidity(a, d, "2026-08-19T13:00:00.000Z")).toBe("EXPIRED");
+    expect(evaluateReadinessValidity(a, d, "2026-08-19T13:00:00.001Z")).toBe("EXPIRED");
+  });
+
+  it("changes semantic hashes when a temporal instant actually changes", () => {
+    const r = requirement();
+    const early = signal(r, "x", H_SOURCE, "40000000-0000-4000-8000-000000000004", "OBSERVED", "2026-08-19T13:00:00Z");
+    const late = signal(r, "x", H_SOURCE, "40000000-0000-4000-8000-000000000004", "OBSERVED", "2026-08-19T13:00:00.001Z");
+    expect(early.contentHash).not.toBe(late.contentHash);
+    const d = boundDependency([r], [early]);
+    const atNoMillis = qualify(r, [early], d, "2026-08-19T12:00:00Z");
+    const oneMillisecondLater = qualify(r, [early], d, "2026-08-19T12:00:00.001Z");
+    expect(atNoMillis.qualificationContentHash).not.toBe(oneMillisecondLater.qualificationContentHash);
+    const changedEvidence = { ...atNoMillis, evidenceValidUntil: "2026-08-19T13:00:00.001Z" };
+    const { id: _id, qualificationContentHash: _hash, ...material } = changedEvidence;
+    void _id; void _hash;
+    const changed = { ...changedEvidence, qualificationContentHash: canonicalSha256(material) };
+    expect(verifyQualificationHash(changed as never)).toBe(true);
+    expect(changed.qualificationContentHash).not.toBe(atNoMillis.qualificationContentHash);
   });
 
   it("forbids READY when the critical horizon is at the evaluation instant", () => {
