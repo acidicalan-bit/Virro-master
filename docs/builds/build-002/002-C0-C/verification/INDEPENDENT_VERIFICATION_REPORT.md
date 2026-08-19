@@ -58,3 +58,35 @@ with product head `505a6ab81062d6260db66990cbf3fc17804e5fad`.
 The product candidate is not modified or promoted by this verifier run. A
 fresh PostgreSQL 17 execution environment and a clean full-regression runtime
 are required before an independent PASS/FAIL decision can be issued.
+
+## R2 CI Closure
+
+The environmental blocker was closed through a verifier-only pull request
+against the product branch (PR #15, base `build/build002-c0-c-transaction-requirement-binding`).
+The product candidate remained unchanged.
+
+* verifier base: `505a6ab81062d6260db66990cbf3fc17804e5fad`;
+* verifier result: `8fab5bc6b8bf97c34e2151dcd1a0df12563e698a`;
+* workflow: `BUILD 002-C0-C independent verification`;
+* run: `32307061117`, job `96241982301`, Ubuntu 24.04;
+* PostgreSQL: 17.11;
+* migrations: 29, lexical order, first `20260809110000_intent_lab_build_001.sql`,
+  last `20260819150000_build_002_c0_c_transaction_requirement_binding.sql`,
+  C0-C occurrence `1`;
+* independent verifier: 1 file, 4/4 tests passed;
+* SQL 15/15, assurance 236/236, model 32/32, application 9/9;
+* full Vitest: 58 files passed, 8 skipped; 623 passed, 43 skipped;
+* TypeScript, ESLint, assurance manifest, and production build: passed;
+* real provider calls: none.
+
+The independent test separately inspected PostgreSQL catalogs and effective
+ACLs, published two canonical C0-B catalog pairs, exercised valid and rejected
+raw RPC payloads, exact-address and policy attacks, identical and competing
+multi-session publication, privileged immutability, parent delete restriction,
+side-effect snapshots, repository offset normalization, post-write roundtrip,
+unpersisted catalog rejection, tenant-scoped reads, and catalog revalidation.
+
+The verifier PR remains open and unmerged. PR #14 remains open and unmerged;
+`main` remains `5ca44b2358e4f62abfd4de879fce2f555229b379`.
+
+R2 verdict: `BUILD002_C0_C_INDEPENDENTLY_VERIFIED`.
