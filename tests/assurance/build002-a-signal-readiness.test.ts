@@ -13,12 +13,14 @@ import {
   evaluateReadinessValidity,
   evaluateSignalQualification,
   isDelegable,
+  parseInstant,
   verifyQualificationHash,
   verifyReadinessHash,
   type DependencySnapshot,
   type Signal,
   type SignalRequirement,
 } from "@/src/domain/outcome/signal-readiness";
+import { canonicalSha256 } from "@/src/domain/outcome/specification/canonical";
 
 const H_SOURCE = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 const H_OTHER = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
@@ -274,5 +276,120 @@ describe("BUILD 002-A R2 temporal and canonical dependency integrity", () => {
   it("does not hash audit id or createdAt while hashing validity", () => {
     const r = requirement(); const s = signal(r, "x"); const d = boundDependency([r], [s]); const q = qualify(r, [s], d); const a = evaluateDelegationReadiness({ subject, requirements: [r], qualifications: [q], dependencySnapshot: d, evaluationTime: at, idFactory: () => "60000000-0000-4000-8000-000000000006" }); const b = evaluateDelegationReadiness({ subject, requirements: [r], qualifications: [q], dependencySnapshot: d, evaluationTime: at, idFactory: () => "60000000-0000-4000-8000-000000000016" });
     expect(a.readinessContentHash).toBe(b.readinessContentHash); expect(verifyReadinessHash(a)).toBe(true);
+  });
+});
+
+describe("BUILD 002-A R3 canonical instants and temporal causality", () => {
+  it("canonicalizes supported ISO forms and rejects unsupported precision/offsets", () => {
+    expect(parseInstant("2026-08-19T12:00:00Z")).toBe("2026-08-19T12:00:00.000Z");
+    expect(parseInstant("2026-08-19T12:00:00.1Z")).toBe("2026-08-19T12:00:00.100Z");
+    expect(parseInstant("2026-08-19T12:00:00.000Z")).toBe("2026-08-19T12:00:00.000Z");
+    expect(() => parseInstant("2026-08-19T12:00:00.0001Z")).toThrow();
+    expect(() => parseInstant("2026-08-19T14:00:00.000+02:00")).toThrow();
+  });
+
+  it("normalizes equivalent signal validity before hashing", () => {
+    const r = requirement();
+    const a = signal(r, "same", H_SOURCE, "40000000-0000-4000-8000-000000000004", "OBSERVED", "2026-08-19T12:00:00Z");
+    const b = signal(r, "same", H_SOURCE, "40000000-0000-4000-8000-000000000004", "OBSERVED", "2026-08-19T12:00:00.000Z");
+    expect(a.validUntil).toBe(b.validUntil);
+    expect(a.contentHash).toBe(b.contentHash);
+  });
+
+  it("uses instant equality at the signal expiry boundary", () => {
+    const r = requirement();
+    const s = signal(r, "x", H_SOURCE, undefined, "OBSERVED", "2026-08-19T12:00:00Z");
+    expect(qualify(r, [s], dependency([s]), "2026-08-19T11:59:59.999Z").outcome).toBe("QUALIFIED");
+    expect(qualify(r, [s], dependency([s]), "2026-08-19T12:00:00.000Z").outcome).toBe("STALE_SOURCE");
+    expect(qualify(r, [s], dependency([s]), "2026-08-19T12:00:00.001Z").outcome).toBe("STALE_SOURCE");
+  });
+
+  it("derives the chronological earliest horizon independent of order and format", () => {
+    const r1 = requirement("critical.one");
+    const r2 = requirement("critical.two");
+    const first = signal(r1, "a", H_SOURCE, "40000000-0000-4000-8000-000000000004", "OBSERVED", "2026-08-19T12:00:00Z");
+    const second = signal(r2, "b", H_SOURCE, "40000000-0000-4000-8000-000000000014", "OBSERVED", "2026-08-19T12:00:00.500Z");
+    const d = boundDependency([r1, r2], [first, second]);
+    const q1 = qualify(r1, [first], d, "2026-08-19T11:00:00Z");
+    const q2 = qualify(r2, [second], d, "2026-08-19T11:00:00.000Z");
+    const a = evaluateDelegationReadiness({ subject, requirements: [r1, r2], qualifications: [q1, q2], dependencySnapshot: d, evaluationTime: "2026-08-19T11:30:00Z", idFactory: () => "60000000-0000-4000-8000-000000000006" });
+    const b = evaluateDelegationReadiness({ subject, requirements: [r2, r1], qualifications: [q2, q1], dependencySnapshot: d, evaluationTime: "2026-08-19T11:30:00.000Z", idFactory: () => "60000000-0000-4000-8000-000000000006" });
+    expect(a.validUntil).toBe("2026-08-19T12:00:00.000Z");
+    expect(a.readinessContentHash).toBe(b.readinessContentHash);
+  });
+
+  it("rejects a hash-valid qualification created in the future", () => {
+    const r = requirement();
+    const s = signal(r, "x");
+    const d = boundDependency([r], [s]);
+    const future = qualify(r, [s], d, "2026-08-19T12:00:00Z");
+    const a = evaluateDelegationReadiness({ subject, requirements: [r], qualifications: [future], dependencySnapshot: d, evaluationTime: "2026-08-19T11:59:59.999Z" });
+    expect(verifyQualificationHash(future)).toBe(true);
+    expect(a.state).toBe("INSUFFICIENT_SIGNAL");
+    expect(a.blockingCodes).toContain("QUALIFICATION_FROM_FUTURE");
+  });
+
+  it("allows qualification at the same instant as readiness evaluation", () => {
+    const r = requirement();
+    const s = signal(r, "x");
+    const d = boundDependency([r], [s]);
+    const q = qualify(r, [s], d, "2026-08-19T12:00:00Z");
+    expect(evaluateDelegationReadiness({ subject, requirements: [r], qualifications: [q], dependencySnapshot: d, evaluationTime: "2026-08-19T12:00:00.000Z" }).state).toBe("READY");
+  });
+
+  it("fails closed for a hash-valid qualification whose evidence ends at qualification time", () => {
+    const r = requirement();
+    const s = signal(r, "x", H_SOURCE, undefined, "OBSERVED", "2026-08-19T13:00:00Z");
+    const d = boundDependency([r], [s]);
+    const q = qualify(r, [s], d, "2026-08-19T12:00:00Z");
+    const impossible = { ...q, evidenceValidUntil: "2026-08-19T12:00:00.000Z" };
+    const { id: _id, qualificationContentHash: _hash, ...material } = impossible;
+    void _id; void _hash;
+    const tampered = { ...impossible, qualificationContentHash: canonicalSha256(material) };
+    expect(verifyQualificationHash(tampered as never)).toBe(true);
+    expect(evaluateDelegationReadiness({ subject, requirements: [r], qualifications: [tampered as never], dependencySnapshot: d, evaluationTime: "2026-08-19T12:00:00Z" }).state).toBe("INSUFFICIENT_SIGNAL");
+  });
+
+  it("keeps qualification and readiness hashes stable for equivalent instants", () => {
+    const r = requirement();
+    const s = signal(r, "x", H_SOURCE, undefined, "OBSERVED", "2026-08-19T13:00:00Z");
+    const d = boundDependency([r], [s]);
+    const q1 = qualify(r, [s], d, "2026-08-19T12:00:00Z");
+    const q2 = qualify(r, [s], d, "2026-08-19T12:00:00.000Z");
+    expect(q1.qualifiedAt).toBe(q2.qualifiedAt);
+    expect(q1.evidenceValidUntil).toBe(q2.evidenceValidUntil);
+    expect(q1.qualificationContentHash).toBe(q2.qualificationContentHash);
+    const a = evaluateDelegationReadiness({ subject, requirements: [r], qualifications: [q1], dependencySnapshot: d, evaluationTime: "2026-08-19T12:30:00Z" });
+    const b = evaluateDelegationReadiness({ subject, requirements: [r], qualifications: [q2], dependencySnapshot: d, evaluationTime: "2026-08-19T12:30:00.000Z" });
+    expect(a.validUntil).toBe("2026-08-19T13:00:00.000Z");
+    expect(a.readinessContentHash).toBe(b.readinessContentHash);
+    expect(evaluateReadinessValidity(a, d, "2026-08-19T12:30:00Z")).toBe("CURRENT");
+    expect(evaluateReadinessValidity(a, d, "2026-08-19T13:00:00.000Z")).toBe("EXPIRED");
+  });
+
+  it("forbids READY when the critical horizon is at the evaluation instant", () => {
+    const r = requirement();
+    const s = signal(r, "x", H_SOURCE, undefined, "OBSERVED", "2026-08-19T13:00:00Z");
+    const d = boundDependency([r], [s]);
+    const q = qualify(r, [s], d, "2026-08-19T12:00:00Z");
+    const impossible = { ...q, evidenceValidUntil: "2026-08-19T12:00:00Z" };
+    const { id: _id, qualificationContentHash: _hash, ...material } = impossible;
+    void _id; void _hash;
+    const tampered = { ...impossible, qualificationContentHash: canonicalSha256(material) };
+    const a = evaluateDelegationReadiness({ subject, requirements: [r], qualifications: [tampered as never], dependencySnapshot: d, evaluationTime: "2026-08-19T12:00:00Z" });
+    expect(a.state).toBe("INSUFFICIENT_SIGNAL");
+  });
+
+  it("preserves the positive T0/T1/T2 temporal chain", () => {
+    const r = requirement();
+    const s = signal(r, "x", H_SOURCE, undefined, "OBSERVED", "2026-08-19T13:00:00Z");
+    const d = boundDependency([r], [s]);
+    const q = qualify(r, [s], d, "2026-08-19T12:00:00Z");
+    const a = evaluateDelegationReadiness({ subject, requirements: [r], qualifications: [q], dependencySnapshot: d, evaluationTime: "2026-08-19T12:30:00Z" });
+    expect(a.state).toBe("READY");
+    expect(evaluateReadinessValidity(a, d, "2026-08-19T12:30:00.000Z")).toBe("CURRENT");
+    expect(isDelegable(a, "CURRENT")).toBe(true);
+    expect(evaluateReadinessValidity(a, d, "2026-08-19T13:00:00Z")).toBe("EXPIRED");
+    expect(isDelegable(a, "EXPIRED")).toBe(false);
   });
 });
