@@ -16,6 +16,12 @@ const TA = "20000000-0000-4000-8000-000000000001";
 const TB = "20000000-0000-4000-8000-000000000002";
 const TXA = "40000000-0000-4000-8000-000000000001";
 const TXB = "40000000-0000-4000-8000-000000000002";
+const PA = "50000000-0000-4000-8000-000000000001";
+const PB = "50000000-0000-4000-8000-000000000002";
+const AA = "60000000-0000-4000-8000-000000000001";
+const AB = "60000000-0000-4000-8000-000000000002";
+const VA = "70000000-0000-4000-8000-000000000001";
+const VB = "70000000-0000-4000-8000-000000000002";
 const BP = "90000000-0000-4000-8000-000000000001";
 const req = {
   multi: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
@@ -120,7 +126,12 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD 002-B R2 independent nati
     await admin.query("insert into auth.users(id) values ($1), ($2), ($3) on conflict do nothing", [A, B, C]);
     await admin.query("insert into public.tenants(id, kind, personal_owner_principal_id, status) values ($1, 'PERSONAL', $3, 'ACTIVE'), ($2, 'PERSONAL', $4, 'ACTIVE') on conflict do nothing", [TA, TB, A, B]);
     await admin.query("insert into public.tenant_memberships(id, tenant_id, principal_id, role, status) values ('30000000-0000-4000-8000-000000000001', $1, $3, 'OWNER', 'ACTIVE'), ('30000000-0000-4000-8000-000000000002', $2, $4, 'OWNER', 'ACTIVE') on conflict do nothing", [TA, TB, A, B]);
-    await admin.query("insert into public.outcome_transactions(id, owner_tenant_id, raw_request) values ($1, $3, 'A'), ($2, $4, 'B') on conflict do nothing", [TXA, TXB, TA, TB]);
+    await admin.query("insert into public.projects(id, owner_tenant_id, name) values ($1, $3, 'A'), ($2, $4, 'B') on conflict do nothing", [PA, PB, TA, TB]);
+    await admin.query("insert into public.assets(id, owner_tenant_id, project_id, name) values ($1, $3, $5, 'A'), ($2, $4, $6, 'B') on conflict do nothing", [AA, AB, TA, TB, PA, PB]);
+    await admin.query("insert into public.asset_versions(id, owner_tenant_id, asset_id, version_number, state) values ($1, $3, $5, 1, '{}'::jsonb), ($2, $4, $6, 1, '{}'::jsonb) on conflict do nothing", [VA, VB, TA, TB, AA, AB]);
+    await admin.query("update public.assets set current_version_id = $1 where id = $2", [VA, AA]);
+    await admin.query("update public.assets set current_version_id = $1 where id = $2", [VB, AB]);
+    await admin.query("insert into public.outcome_transactions(id, owner_tenant_id, project_id, asset_id, base_version_id, raw_request) values ($1, $3, $5, $7, $9, 'A'), ($2, $4, $6, $8, $10, 'B') on conflict do nothing", [TXA, TXB, TA, TB, PA, PB, AA, AB, VA, VB]);
     service = new Client({ connectionString: databaseUrl });
     await service.connect();
     await service.query("set role service_role");
