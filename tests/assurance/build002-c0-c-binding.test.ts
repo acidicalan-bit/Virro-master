@@ -128,6 +128,24 @@ describe("BUILD002-C0-C transaction requirement binding contract", () => {
     expect(rpc).toHaveBeenCalledTimes(1);
   });
 
+  it("rejects an unpersisted catalog before invoking the binding RPC", async () => {
+    const binding = publishOutcomeTransactionRequirementBinding(definition, "2026-08-19T12:00:00.000Z");
+    const boundary = fakeRepositoryBoundary(rowFromBinding(binding));
+    boundary.catalogMock.getRequirementProfile.mockResolvedValue(null);
+    const repository = new SupabaseTransactionRequirementBindingRepository(boundary.client, definition.ownerTenantId, boundary.catalog, boundary.transactions);
+    await expect(repository.publish(binding)).rejects.toThrow("BUILD002_BINDING_CATALOG_MISMATCH");
+    expect(boundary.rpc).not.toHaveBeenCalled();
+  });
+
+  it("rejects a stale tenant binding hash before any transaction or RPC lookup", async () => {
+    const binding = publishOutcomeTransactionRequirementBinding(definition, "2026-08-19T12:00:00.000Z");
+    const boundary = fakeRepositoryBoundary(rowFromBinding(binding));
+    const repository = new SupabaseTransactionRequirementBindingRepository(boundary.client, definition.ownerTenantId, boundary.catalog, boundary.transactions);
+    await expect(repository.publish({ ...binding, ownerTenantId: "10000000-0000-4000-8000-000000000002" })).rejects.toThrow("TRUST_TENANT_SCOPE_MISMATCH");
+    expect(boundary.rpc).not.toHaveBeenCalled();
+    expect(boundary.transactionsMock.findById).not.toHaveBeenCalled();
+  });
+
   it("does not introduce later-phase orchestration", () => {
     const docs = readFileSync(resolve(process.cwd(), "docs/builds/build-002/002-C0-C/00_TRANSACTION_REQUIREMENT_BINDING.md"), "utf8");
     expect(docs).toContain("no HTTP route");
@@ -171,7 +189,14 @@ function fakeRepositoryBoundary(row: Record<string, unknown>) {
       policy: null,
     }),
     getBlueprint: vi.fn().mockResolvedValue({ id: row.blueprint_id, version: row.blueprint_version, hash: row.blueprint_hash, status: "PUBLISHED" }),
-  } as never;
-  const transactions = { findById: vi.fn().mockResolvedValue({ id: row.outcome_transaction_id, ownerTenantId: row.owner_tenant_id }) } as never;
-  return { client, catalog, transactions, rpc };
+  };
+  const transactions = { findById: vi.fn().mockResolvedValue({ id: row.outcome_transaction_id, ownerTenantId: row.owner_tenant_id }) };
+  return {
+    client,
+    catalog: catalog as never,
+    transactions: transactions as never,
+    catalogMock: catalog,
+    transactionsMock: transactions,
+    rpc,
+  };
 }
