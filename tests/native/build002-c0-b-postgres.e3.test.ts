@@ -1,6 +1,6 @@
 // @vitest-environment node
 
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { randomUUID } from "node:crypto";
 import { resolve } from "node:path";
 
@@ -24,11 +24,19 @@ import {
 
 const enabled = process.env.BUILD002_NATIVE_PG_C0_B === "true";
 const databaseUrl = process.env.BUILD002_NATIVE_PG_URL;
-const migrationPath = resolve(process.cwd(), "supabase/migrations/20260819140000_build_002_c0_requirement_catalog.sql");
+let activeDatabaseUrl = databaseUrl;
+const migrationsDir = resolve(process.cwd(), "supabase/migrations");
+const c0MigrationName = "20260819140000_build_002_c0_requirement_catalog.sql";
 const PUBLISHED_AT = "2026-08-19T12:00:00.000Z";
 type Uuid = OutcomeBlueprint["id"];
 
 type QueryClient = Client;
+
+function databaseConnectionString(url: string, database: string): string {
+  const parsed = new URL(url);
+  parsed.pathname = `/${database}`;
+  return parsed.toString();
+}
 
 function makeBlueprint(id: Uuid = randomUUID() as Uuid, version = 1, previousVersionHash: string | null = null): OutcomeBlueprint {
   return publishOutcomeBlueprint(createPrecisionEditBlueprintDefinition({ id, version, previousVersionHash }), PUBLISHED_AT);
@@ -61,11 +69,14 @@ function blueprintPayload(blueprint: OutcomeBlueprint): Record<string, unknown> 
 }
 
 function profilePayload(profile: OutcomeRequirementProfile): Record<string, unknown> {
-  return { ...profile };
+  const { hash, status, publishedAt, ...definition } = profile;
+  void hash;
+  void status;
+  return { ...profile, definition, publishedAt };
 }
 
-async function serviceClient(): Promise<QueryClient> {
-  const client = new Client({ connectionString: databaseUrl });
+async function serviceClient(connectionString = activeDatabaseUrl!): Promise<QueryClient> {
+  const client = new Client({ connectionString });
   await client.connect();
   await client.query("set role service_role");
   return client;
@@ -78,11 +89,23 @@ async function expectRejected(client: QueryClient, text: string, values: unknown
 describe.runIf(enabled && Boolean(databaseUrl))("BUILD 002-C0-B native PostgreSQL E3", () => {
   let admin: QueryClient;
   let service: QueryClient;
+  let rootAdmin: QueryClient;
+  let isolatedDatabase: string;
+  let migrationNames: string[] = [];
   let blueprint: OutcomeBlueprint;
   let profile: OutcomeRequirementProfile;
 
   beforeAll(async () => {
-    admin = new Client({ connectionString: databaseUrl });
+    isolatedDatabase = `virro_e3_c0_b_${process.pid}_${Date.now()}`;
+    rootAdmin = new Client({ connectionString: databaseConnectionString(databaseUrl!, "postgres") });
+    await rootAdmin.connect();
+    await rootAdmin.query(`drop database if exists "${isolatedDatabase}" with (force)`);
+    await rootAdmin.query(`create database "${isolatedDatabase}"`);
+    await rootAdmin.end();
+    rootAdmin = undefined as never;
+    const isolatedUrl = databaseConnectionString(databaseUrl!, isolatedDatabase);
+    activeDatabaseUrl = isolatedUrl;
+    admin = new Client({ connectionString: isolatedUrl });
     await admin.connect();
     await admin.query(`
       create extension if not exists pgcrypto;
@@ -90,8 +113,17 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD 002-C0-B native PostgreSQ
       do $$ begin create role authenticated nologin; exception when duplicate_object then null; end $$;
       do $$ begin create role service_role nologin bypassrls; exception when duplicate_object then null; end $$;
     `);
-    await admin.query(readFileSync(migrationPath, "utf8"));
-    service = await serviceClient();
+    migrationNames = readdirSync(migrationsDir).filter((item) => item.endsWith(".sql")).sort();
+    for (const name of migrationNames) {
+      await admin.query(readFileSync(resolve(migrationsDir, name), "utf8"));
+    }
+    console.info("C0_B_MIGRATION_CHAIN", JSON.stringify({
+      count: migrationNames.length,
+      first: migrationNames[0],
+      last: migrationNames.at(-1),
+      c0Occurrences: migrationNames.filter((name) => name === c0MigrationName).length,
+    }));
+    service = await serviceClient(isolatedUrl);
     blueprint = makeBlueprint();
     profile = makeProfile(blueprint);
   }, 60_000);
@@ -99,11 +131,21 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD 002-C0-B native PostgreSQ
   afterAll(async () => {
     await service?.end();
     await admin?.end();
+    if (databaseUrl && isolatedDatabase) {
+      rootAdmin = new Client({ connectionString: databaseConnectionString(databaseUrl, "postgres") });
+      await rootAdmin.connect();
+      await rootAdmin.query(`drop database if exists "${isolatedDatabase}" with (force)`);
+      await rootAdmin.end();
+    }
   });
 
   it("records the native PostgreSQL version and publishes a valid round-trip pair", async () => {
     const version = await admin.query<{ version: string }>("select version() as version");
     expect(version.rows[0].version).toMatch(/PostgreSQL 17/i);
+    expect(migrationNames.length).toBeGreaterThan(0);
+    expect(migrationNames[0]).toBe("20260809110000_intent_lab_build_001.sql");
+    expect(migrationNames.at(-1)).toBe(c0MigrationName);
+    expect(migrationNames.filter((name) => name === c0MigrationName)).toHaveLength(1);
     await service.query("select public.build002_publish_outcome_blueprint($1::jsonb)", [JSON.stringify(blueprintPayload(blueprint))]);
     await service.query("select public.build002_publish_outcome_requirement_profile($1::jsonb)", [JSON.stringify(profilePayload(profile))]);
     const blueprintRow = await service.query("select * from public.outcome_blueprints where id = $1 and version = $2", [blueprint.id, blueprint.version]);
@@ -116,10 +158,71 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD 002-C0-B native PostgreSQ
     expect(roundTripProfile.requirements).toEqual(profile.requirements);
   });
 
+  it("rejects Blueprint root and definition address mismatches through the production RPC", async () => {
+    const other = makeBlueprint();
+    const payload = blueprintPayload(blueprint);
+    await expectRejected(service, "select public.build002_publish_outcome_blueprint($1::jsonb)", [JSON.stringify({
+      ...payload,
+      definition: { ...(payload.definition as Record<string, unknown>), id: other.id },
+    })]);
+    await expectRejected(service, "select public.build002_publish_outcome_blueprint($1::jsonb)", [JSON.stringify({
+      ...payload,
+      definition: { ...(payload.definition as Record<string, unknown>), version: 2 },
+    })]);
+    await expectRejected(service, "select public.build002_publish_outcome_blueprint($1::jsonb)", [JSON.stringify({
+      ...payload,
+      previousVersionHash: "a".repeat(64),
+      definition: { ...(payload.definition as Record<string, unknown>), previousVersionHash: "b".repeat(64) },
+    })]);
+  });
+
+  it("rejects Profile relational Blueprint fields that disagree with its definition", async () => {
+    const payload = profilePayload(profile);
+    const definition = payload.definition as Record<string, unknown>;
+    const blueprintDefinition = definition.blueprint as Record<string, unknown>;
+    await expectRejected(service, "select public.build002_publish_outcome_requirement_profile($1::jsonb)", [JSON.stringify({
+      ...payload,
+      definition: { ...definition, blueprint: { ...blueprintDefinition, id: randomUUID() } },
+    })]);
+    await expectRejected(service, "select public.build002_publish_outcome_requirement_profile($1::jsonb)", [JSON.stringify({
+      ...payload,
+      definition: { ...definition, blueprint: { ...blueprintDefinition, version: 2 } },
+    })]);
+    await expectRejected(service, "select public.build002_publish_outcome_requirement_profile($1::jsonb)", [JSON.stringify({
+      ...payload,
+      definition: { ...definition, blueprint: { ...blueprintDefinition, hash: "a".repeat(64) } },
+    })]);
+  });
+
+  it("rejects non-null policy through both RPC and privileged table constraints", async () => {
+    const payload = profilePayload(profile);
+    const definition = payload.definition as Record<string, unknown>;
+    await expectRejected(service, "select public.build002_publish_outcome_requirement_profile($1::jsonb)", [JSON.stringify({
+      ...payload,
+      policy: { id: "policy", hash: "a".repeat(64) },
+      definition: { ...definition, policy: { id: "policy", hash: "a".repeat(64) } },
+    })]);
+    await expectRejected(admin, `insert into public.outcome_requirement_profiles(
+      id, version, hash, status, published_at, definition,
+      blueprint_id, blueprint_version, blueprint_hash, policy_id, policy_hash
+    ) values ($1, 1, $2, 'PUBLISHED', now(), $3::jsonb, $4, $5, $6, 'policy', $7)`, [
+      randomUUID(), "b".repeat(64), JSON.stringify(definition), blueprint.id, blueprint.version, blueprint.hash, "a".repeat(64),
+    ]);
+  });
+
+  it("rejects a privileged Blueprint insert whose relational address disagrees with definition", async () => {
+    const payload = blueprintPayload(blueprint);
+    await expectRejected(admin, `insert into public.outcome_blueprints(
+      id, version, hash, status, published_at, definition
+    ) values ($1, 1, $2, 'PUBLISHED', now(), $3::jsonb)`, [
+      randomUUID(), "c".repeat(64), JSON.stringify(payload.definition),
+    ]);
+  });
+
   it("denies direct catalog writes and permits only the service RPC boundary", async () => {
     await expectRejected(service, `insert into public.outcome_blueprints(id, version, hash, status, published_at, definition) values ($1, 99, $2, 'PUBLISHED', now(), '{}'::jsonb)`, [randomUUID(), "a".repeat(64)]);
-    const anon = new Client({ connectionString: databaseUrl });
-    const authenticated = new Client({ connectionString: databaseUrl });
+    const anon = new Client({ connectionString: activeDatabaseUrl });
+    const authenticated = new Client({ connectionString: activeDatabaseUrl });
     await anon.connect();
     await authenticated.connect();
     try {

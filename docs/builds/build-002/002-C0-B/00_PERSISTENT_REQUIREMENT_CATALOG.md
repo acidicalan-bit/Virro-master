@@ -34,6 +34,14 @@ ACL, RPC boundaries, exact binding, lineage, immutability, JSON/timestamp
 round-trip, and multi-session concurrency. PGlite is used only for structural
 or existing regression tests, never as concurrency evidence.
 
+R1 adds table-owned address checks linking each relational id, version, and
+previous hash to its JSON definition, plus an explicit NULL-only policy check.
+The server repository rejects read and publication address drift before
+semantic hash qualification. R1 E3 creates a disposable PostgreSQL 17
+database, applies the complete migration chain lexically exactly once, and
+runs raw RPC and privileged table-constraint mismatch controls without
+reusing the BUILD002-B database.
+
 C0-B does not add TransactionRequirementBinding, a runtime resolver, HTTP API,
 readiness evaluation API, Signal ingestion, executor behavior, TaskSpec
 changes, OutcomeBlueprint semantic changes, or BUILD002-A/B changes. C0-C is

@@ -19,6 +19,17 @@ describe("BUILD002-C0-B persistent requirement catalog contract", () => {
     expect(sql).toContain("unique (id, version, hash)");
     expect(sql).toContain("foreign key (blueprint_id, blueprint_version, blueprint_hash)");
     expect(sql).toContain("references public.outcome_blueprints(id, version, hash)");
+    expect(sql).toContain("outcome_blueprints_definition_id_match");
+    expect(sql).toContain("outcome_blueprints_definition_version_match");
+    expect(sql).toContain("outcome_blueprints_definition_previous_hash_match");
+    expect(sql).toContain("outcome_requirement_profiles_definition_id_match");
+    expect(sql).toContain("outcome_requirement_profiles_definition_version_match");
+    expect(sql).toContain("outcome_requirement_profiles_definition_previous_hash_match");
+    expect(sql).toContain("outcome_requirement_profiles_definition_blueprint_id_match");
+    expect(sql).toContain("outcome_requirement_profiles_definition_blueprint_version_match");
+    expect(sql).toContain("outcome_requirement_profiles_definition_blueprint_hash_match");
+    expect(sql).toContain("outcome_requirement_profiles_policy_null");
+    expect(sql).toContain("outcome_requirement_profiles_definition_policy_null");
   });
 
   it("uses server-owned RPCs and denies direct catalog writes", () => {
@@ -52,6 +63,8 @@ describe("BUILD002-C0-B persistent requirement catalog contract", () => {
     expect(repositorySource).toContain("verifyOutcomeRequirementProfileBlueprintBinding");
     expect(repositorySource).toContain('from("outcome_blueprints")');
     expect(repositorySource).toContain('from("outcome_requirement_profiles")');
+    expect(repositorySource).toContain("BUILD002_BLUEPRINT_PERSISTED_ADDRESS_MISMATCH");
+    expect(repositorySource).toContain("BUILD002_PROFILE_PERSISTED_ADDRESS_MISMATCH");
   });
 
   it("rejects stale domain hashes before any RPC", async () => {
@@ -88,5 +101,76 @@ describe("BUILD002-C0-B persistent requirement catalog contract", () => {
     }, "2026-08-19T12:00:00.000Z", blueprint);
     await expect(repository.publishRequirementProfile(profile)).rejects.toThrow("PERSISTED_BLUEPRINT_MISMATCH");
     expect(rpcCalls).toBe(0);
+  });
+
+  it("fails closed when a persisted Blueprint definition has a different lookup address", async () => {
+    const blueprint = publishOutcomeBlueprint(createPrecisionEditBlueprintDefinition(), "2026-08-19T12:00:00.000Z");
+    const other = publishOutcomeBlueprint(createPrecisionEditBlueprintDefinition({ id: "50000000-0000-4000-8000-000000000099" }), "2026-08-19T12:00:00.000Z");
+    const { hash, status, publishedAt, ...definition } = other;
+    const client = {
+      from: () => ({
+        select: () => ({
+          eq: () => ({
+            eq: () => ({ maybeSingle: async () => ({ data: { definition, hash, status, published_at: publishedAt }, error: null }) }),
+          }),
+        }),
+      }),
+    } as never;
+    const repository = new SupabaseRequirementCatalogRepository(client);
+    await expect(repository.getBlueprint(blueprint.id, blueprint.version)).rejects.toThrow("ADDRESS_MISMATCH");
+  });
+
+  it("rejects a persisted Blueprint definition with a different version", async () => {
+    const blueprint = publishOutcomeBlueprint(createPrecisionEditBlueprintDefinition(), "2026-08-19T12:00:00.000Z");
+    const other = publishOutcomeBlueprint(createPrecisionEditBlueprintDefinition({ id: blueprint.id, version: 2, previousVersionHash: blueprint.hash }), "2026-08-19T12:00:00.000Z");
+    const { hash, status, publishedAt, ...definition } = other;
+    const client = {
+      from: () => ({
+        select: () => ({
+          eq: () => ({
+            eq: () => ({ maybeSingle: async () => ({ data: { definition, hash, status, published_at: publishedAt }, error: null }) }),
+          }),
+        }),
+      }),
+    } as never;
+    const repository = new SupabaseRequirementCatalogRepository(client);
+    await expect(repository.getBlueprint(blueprint.id, blueprint.version)).rejects.toThrow("ADDRESS_MISMATCH");
+  });
+
+  it("rejects a persisted Profile definition with a different profile address", async () => {
+    const blueprint = publishOutcomeBlueprint(createPrecisionEditBlueprintDefinition(), "2026-08-19T12:00:00.000Z");
+    const profile = publishOutcomeRequirementProfile({
+      schemaVersion: "outcome-requirement-profile-v0.1",
+      id: "80000000-0000-4000-8000-000000000101",
+      version: 1,
+      previousVersionHash: null,
+      blueprint: { id: blueprint.id, version: blueprint.version, hash: blueprint.hash },
+      policy: null,
+      requirements: [{
+        requirementId: "catalog.minimum",
+        semanticType: "text",
+        critical: true,
+        acceptedProvenance: ["OBSERVED"],
+        qualificationRule: { version: "1", cardinality: "SINGLE_VALUED", humanReviewRequired: false },
+        dependencySelectors: [],
+      }],
+    }, "2026-08-19T12:00:00.000Z", blueprint);
+    const { hash: profileHash, status: profileStatus, publishedAt: profilePublishedAt, ...profileDefinition } = profile;
+    void profileHash;
+    void profileStatus;
+    void profilePublishedAt;
+    const other = publishOutcomeRequirementProfile({ ...profileDefinition, id: "80000000-0000-4000-8000-000000000102" }, "2026-08-19T12:00:00.000Z", blueprint);
+    const { hash, status, publishedAt, ...definition } = other;
+    const client = {
+      from: () => ({
+        select: () => ({
+          eq: () => ({
+            eq: () => ({ maybeSingle: async () => ({ data: { definition, hash, status, published_at: publishedAt }, error: null }) }),
+          }),
+        }),
+      }),
+    } as never;
+    const repository = new SupabaseRequirementCatalogRepository(client);
+    await expect(repository.getRequirementProfile(profile.id, profile.version)).rejects.toThrow("ADDRESS_MISMATCH");
   });
 });

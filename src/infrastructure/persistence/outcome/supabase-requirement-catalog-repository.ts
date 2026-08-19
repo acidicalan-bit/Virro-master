@@ -30,7 +30,9 @@ export class SupabaseRequirementCatalogRepository implements RequirementCatalogR
     });
     if (error || !data) throw new Error("BUILD002_BLUEPRINT_PERSISTENCE_FAILED");
     const persisted = await this.getBlueprint(parsed.id, parsed.version);
-    if (!persisted || persisted.hash !== parsed.hash) throw new Error("BUILD002_BLUEPRINT_PERSISTENCE_FAILED");
+    if (!persisted || persisted.id !== parsed.id || persisted.version !== parsed.version || persisted.hash !== parsed.hash) {
+      throw new Error("BUILD002_BLUEPRINT_PERSISTENCE_FAILED");
+    }
     return persisted;
   }
 
@@ -44,6 +46,9 @@ export class SupabaseRequirementCatalogRepository implements RequirementCatalogR
     if (error) throw new Error("BUILD002_BLUEPRINT_READ_FAILED");
     if (!data) return null;
     const blueprint = blueprintFromRow(data as Row);
+    if (blueprint.id !== id || blueprint.version !== version) {
+      throw new Error("BUILD002_BLUEPRINT_PERSISTED_ADDRESS_MISMATCH");
+    }
     if (blueprint.status !== "PUBLISHED" || !verifyOutcomeBlueprintHash(blueprint)) {
       throw new Error("BUILD002_BLUEPRINT_PERSISTED_INVALID");
     }
@@ -64,7 +69,9 @@ export class SupabaseRequirementCatalogRepository implements RequirementCatalogR
     });
     if (error || !data) throw new Error("BUILD002_PROFILE_PERSISTENCE_FAILED");
     const persisted = await this.getRequirementProfile(parsed.id, parsed.version);
-    if (!persisted || persisted.hash !== parsed.hash) throw new Error("BUILD002_PROFILE_PERSISTENCE_FAILED");
+    if (!persisted || persisted.id !== parsed.id || persisted.version !== parsed.version || persisted.hash !== parsed.hash) {
+      throw new Error("BUILD002_PROFILE_PERSISTENCE_FAILED");
+    }
     return persisted;
   }
 
@@ -78,6 +85,9 @@ export class SupabaseRequirementCatalogRepository implements RequirementCatalogR
     if (error) throw new Error("BUILD002_PROFILE_READ_FAILED");
     if (!data) return null;
     const profile = profileFromRow(data as Row);
+    if (profile.id !== id || profile.version !== version) {
+      throw new Error("BUILD002_PROFILE_PERSISTED_ADDRESS_MISMATCH");
+    }
     if (profile.status !== "PUBLISHED" || profile.policy !== null || !verifyOutcomeRequirementProfileHash(profile)) {
       throw new Error("BUILD002_PROFILE_PERSISTED_INVALID");
     }
@@ -101,7 +111,10 @@ function blueprintRpcPayload(blueprint: OutcomeBlueprint): Row {
 }
 
 function profileRpcPayload(profile: OutcomeRequirementProfile): Row {
-  return { ...profile };
+  const { hash, status, publishedAt, ...definition } = profile;
+  void hash;
+  void status;
+  return { ...profile, definition, publishedAt };
 }
 
 function blueprintFromRow(row: Row): OutcomeBlueprint {

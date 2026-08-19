@@ -12,7 +12,13 @@ create table if not exists public.outcome_blueprints (
   definition jsonb not null check (jsonb_typeof(definition) = 'object'),
   created_at timestamptz not null default now(),
   primary key (id, version),
-  unique (id, version, hash)
+  unique (id, version, hash),
+  constraint outcome_blueprints_definition_id_match
+    check ((definition->>'id')::uuid = id),
+  constraint outcome_blueprints_definition_version_match
+    check ((definition->>'version')::integer = version),
+  constraint outcome_blueprints_definition_previous_hash_match
+    check (previous_version_hash is not distinct from nullif(definition->>'previousVersionHash', ''))
 );
 
 create table if not exists public.outcome_requirement_profiles (
@@ -31,6 +37,22 @@ create table if not exists public.outcome_requirement_profiles (
   created_at timestamptz not null default now(),
   primary key (id, version),
   unique (id, version, hash),
+  constraint outcome_requirement_profiles_definition_id_match
+    check ((definition->>'id')::uuid = id),
+  constraint outcome_requirement_profiles_definition_version_match
+    check ((definition->>'version')::integer = version),
+  constraint outcome_requirement_profiles_definition_previous_hash_match
+    check (previous_version_hash is not distinct from nullif(definition->>'previousVersionHash', '')),
+  constraint outcome_requirement_profiles_definition_blueprint_id_match
+    check ((definition->'blueprint'->>'id')::uuid = blueprint_id),
+  constraint outcome_requirement_profiles_definition_blueprint_version_match
+    check ((definition->'blueprint'->>'version')::integer = blueprint_version),
+  constraint outcome_requirement_profiles_definition_blueprint_hash_match
+    check (definition->'blueprint'->>'hash' = blueprint_hash),
+  constraint outcome_requirement_profiles_policy_null
+    check (policy_id is null and policy_hash is null),
+  constraint outcome_requirement_profiles_definition_policy_null
+    check (definition ? 'policy' and definition->'policy' = 'null'::jsonb),
   foreign key (blueprint_id, blueprint_version, blueprint_hash)
     references public.outcome_blueprints(id, version, hash)
     on delete restrict
@@ -75,6 +97,15 @@ begin
   if v_status <> 'PUBLISHED' or v_definition is null or jsonb_typeof(v_definition) <> 'object' then
     raise exception 'BUILD002_BLUEPRINT_NOT_PUBLISHED';
   end if;
+  if v_id is distinct from (v_definition->>'id')::uuid then
+    raise exception 'BUILD002_BLUEPRINT_DEFINITION_ID_MISMATCH';
+  end if;
+  if v_version is distinct from (v_definition->>'version')::integer then
+    raise exception 'BUILD002_BLUEPRINT_DEFINITION_VERSION_MISMATCH';
+  end if;
+  if v_previous_hash is distinct from nullif(v_definition->>'previousVersionHash', '') then
+    raise exception 'BUILD002_BLUEPRINT_DEFINITION_PREVIOUS_HASH_MISMATCH';
+  end if;
   if v_version = 1 and v_previous_hash is not null then
     raise exception 'BUILD002_BLUEPRINT_V1_PREVIOUS_MUST_BE_NULL';
   end if;
@@ -114,10 +145,24 @@ declare
   v_policy_hash text := nullif(p_profile->'policy'->>'hash', '');
   v_status text := p_profile->>'status';
   v_published_at timestamptz := (p_profile->>'publishedAt')::timestamptz;
-  v_definition jsonb := p_profile - 'hash' - 'status' - 'publishedAt';
+  v_definition jsonb := coalesce(p_profile->'definition', p_profile - 'hash' - 'status' - 'publishedAt');
 begin
   if v_status <> 'PUBLISHED' then
     raise exception 'BUILD002_PROFILE_NOT_PUBLISHED';
+  end if;
+  if v_id is distinct from (v_definition->>'id')::uuid then
+    raise exception 'BUILD002_PROFILE_DEFINITION_ID_MISMATCH';
+  end if;
+  if v_version is distinct from (v_definition->>'version')::integer then
+    raise exception 'BUILD002_PROFILE_DEFINITION_VERSION_MISMATCH';
+  end if;
+  if v_previous_hash is distinct from nullif(v_definition->>'previousVersionHash', '') then
+    raise exception 'BUILD002_PROFILE_DEFINITION_PREVIOUS_HASH_MISMATCH';
+  end if;
+  if v_blueprint_id is distinct from (v_definition->'blueprint'->>'id')::uuid
+    or v_blueprint_version is distinct from (v_definition->'blueprint'->>'version')::integer
+    or v_blueprint_hash is distinct from v_definition->'blueprint'->>'hash' then
+    raise exception 'BUILD002_PROFILE_DEFINITION_BLUEPRINT_MISMATCH';
   end if;
   if v_policy_id is not null or v_policy_hash is not null or jsonb_typeof(p_profile->'policy') <> 'null' then
     raise exception 'BUILD002_PROFILE_POLICY_MUST_BE_NULL';
@@ -142,9 +187,6 @@ begin
       and previous.status = 'PUBLISHED'
   ) then
     raise exception 'BUILD002_PROFILE_INVALID_VERSION_CHAIN';
-  end if;
-  if (p_profile->'blueprint') <> (v_definition->'blueprint') then
-    raise exception 'BUILD002_PROFILE_BLUEPRINT_DEFINITION_MISMATCH';
   end if;
   insert into public.outcome_requirement_profiles(
     id, version, hash, previous_version_hash,
