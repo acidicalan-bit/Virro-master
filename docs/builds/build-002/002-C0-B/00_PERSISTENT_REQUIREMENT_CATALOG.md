@@ -48,6 +48,19 @@ relational address under NULL-safe table checks. An absent required key is not
 equivalent to a matching key; no missing id, version, previous hash,
 Blueprint identity, or policy key can satisfy the catalog constraints.
 
+R3 closes the remaining table-owned lineage gap. Declarative version-shape
+checks require version 1 to have a NULL predecessor and later versions to
+declare one. Table-specific `BEFORE INSERT` triggers then require the exact
+published predecessor `(id, version - 1, hash)` for every later Blueprint and
+Profile, so ordinary privileged direct inserts cannot create a fork or gap;
+rejected statements leave no catalog row. The existing RPC checks remain in
+place as defense in depth, and native PostgreSQL tests exercise malformed
+version shapes, missing predecessors, wrong predecessors, gaps, valid
+version chains, and concurrent publication. SQL still does not calculate
+semantic hashes; the TypeScript domain remains the semantic authority. A
+database owner who deliberately disables triggers or changes the schema is
+outside this ordinary privileged-write boundary.
+
 C0-B does not add TransactionRequirementBinding, a runtime resolver, HTTP API,
 readiness evaluation API, Signal ingestion, executor behavior, TaskSpec
 changes, OutcomeBlueprint semantic changes, or BUILD002-A/B changes. C0-C is

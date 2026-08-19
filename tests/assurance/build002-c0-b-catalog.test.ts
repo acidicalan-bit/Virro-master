@@ -30,6 +30,8 @@ describe("BUILD002-C0-B persistent requirement catalog contract", () => {
     expect(sql).toContain("outcome_requirement_profiles_definition_blueprint_hash_match");
     expect(sql).toContain("outcome_requirement_profiles_policy_null");
     expect(sql).toContain("outcome_requirement_profiles_definition_policy_null");
+    expect(sql).toContain("outcome_blueprints_previous_hash_shape");
+    expect(sql).toContain("outcome_requirement_profiles_previous_hash_shape");
     expect(sql).toContain("coalesce(definition ? 'id'");
     expect(sql).toContain("coalesce(definition ? 'version'");
     expect(sql).toContain("coalesce(definition ? 'previousVersionHash'");
@@ -58,6 +60,12 @@ describe("BUILD002-C0-B persistent requirement catalog contract", () => {
     expect(sql).toContain("BUILD002_PROFILE_DEFINITION_BLUEPRINT_REQUIRED");
     expect(sql).toContain("BUILD002_PROFILE_DEFINITION_BLUEPRINT_FIELDS_REQUIRED");
     expect(sql).toContain("BUILD002_PROFILE_DEFINITION_POLICY_REQUIRED");
+    expect(sql).toContain("build002_enforce_outcome_blueprint_lineage");
+    expect(sql).toContain("build002_enforce_outcome_requirement_profile_lineage");
+    expect(sql).toContain("before insert on public.outcome_blueprints");
+    expect(sql).toContain("before insert on public.outcome_requirement_profiles");
+    expect(sql).toContain("outcome_blueprints_lineage");
+    expect(sql).toContain("outcome_requirement_profiles_lineage");
     expect(sql).toContain("before update or delete on public.outcome_blueprints");
     expect(sql).toContain("before update or delete on public.outcome_requirement_profiles");
     expect(sql).toContain("BUILD002_CATALOG_IMMUTABLE_%");

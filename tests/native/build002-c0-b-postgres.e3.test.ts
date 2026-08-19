@@ -329,6 +329,153 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD 002-C0-B native PostgreSQ
     }
   });
 
+  it("enforces table-owned contiguous Blueprint lineage for privileged inserts", async () => {
+    const id = randomUUID() as Uuid;
+    const insertBlueprint = async (candidate: OutcomeBlueprint): Promise<void> => {
+      await admin.query(`insert into public.outcome_blueprints(
+        id, version, hash, previous_version_hash, status, published_at, definition
+      ) values ($1, $2, $3, $4, 'PUBLISHED', $5, $6::jsonb)`, [
+        candidate.id,
+        candidate.version,
+        candidate.hash,
+        candidate.previousVersionHash,
+        PUBLISHED_AT,
+        JSON.stringify(blueprintPayload(candidate).definition),
+      ]);
+    };
+
+    const v1WithPrevious = makeBlueprint(id, 1, "a".repeat(64));
+    await expectRejected(admin, `insert into public.outcome_blueprints(
+      id, version, hash, previous_version_hash, status, published_at, definition
+    ) values ($1, $2, $3, $4, 'PUBLISHED', now(), $5::jsonb)`, [
+      id, 1, v1WithPrevious.hash, v1WithPrevious.previousVersionHash, JSON.stringify(blueprintPayload(v1WithPrevious).definition),
+    ]);
+    await expectAbsent(admin, "public.outcome_blueprints", id, 1);
+
+    const v2WithoutV1 = makeBlueprint(id, 2, "b".repeat(64));
+    await expectRejected(admin, `insert into public.outcome_blueprints(
+      id, version, hash, previous_version_hash, status, published_at, definition
+    ) values ($1, $2, $3, $4, 'PUBLISHED', now(), $5::jsonb)`, [
+      id, 2, v2WithoutV1.hash, v2WithoutV1.previousVersionHash, JSON.stringify(blueprintPayload(v2WithoutV1).definition),
+    ]);
+    await expectAbsent(admin, "public.outcome_blueprints", id, 2);
+
+    const v1 = makeBlueprint(id, 1, null);
+    await insertBlueprint(v1);
+
+    const v2WrongPrevious = makeBlueprint(id, 2, "c".repeat(64));
+    await expectRejected(admin, `insert into public.outcome_blueprints(
+      id, version, hash, previous_version_hash, status, published_at, definition
+    ) values ($1, $2, $3, $4, 'PUBLISHED', now(), $5::jsonb)`, [
+      id, 2, v2WrongPrevious.hash, v2WrongPrevious.previousVersionHash, JSON.stringify(blueprintPayload(v2WrongPrevious).definition),
+    ]);
+    await expectAbsent(admin, "public.outcome_blueprints", id, 2);
+
+    const v3Gap = makeBlueprint(id, 3, v1.hash);
+    await expectRejected(admin, `insert into public.outcome_blueprints(
+      id, version, hash, previous_version_hash, status, published_at, definition
+    ) values ($1, $2, $3, $4, 'PUBLISHED', now(), $5::jsonb)`, [
+      id, 3, v3Gap.hash, v3Gap.previousVersionHash, JSON.stringify(blueprintPayload(v3Gap).definition),
+    ]);
+    await expectAbsent(admin, "public.outcome_blueprints", id, 3);
+
+    const v2 = makeBlueprint(id, 2, v1.hash);
+    await insertBlueprint(v2);
+    const v3 = makeBlueprint(id, 3, v2.hash);
+    await insertBlueprint(v3);
+    for (const version of [1, 2, 3]) {
+      await expect(admin.query("select 1 from public.outcome_blueprints where id = $1 and version = $2", [id, version])).resolves.toMatchObject({ rowCount: 1 });
+    }
+  });
+
+  it("enforces table-owned contiguous Profile lineage for privileged inserts", async () => {
+    const blueprintId = randomUUID() as Uuid;
+    const lineageBlueprint = makeBlueprint(blueprintId);
+    await admin.query(`insert into public.outcome_blueprints(
+      id, version, hash, previous_version_hash, status, published_at, definition
+    ) values ($1, $2, $3, $4, 'PUBLISHED', $5, $6::jsonb)`, [
+      lineageBlueprint.id,
+      lineageBlueprint.version,
+      lineageBlueprint.hash,
+      lineageBlueprint.previousVersionHash,
+      PUBLISHED_AT,
+      JSON.stringify(blueprintPayload(lineageBlueprint).definition),
+    ]);
+
+    const id = randomUUID() as Uuid;
+    const insertProfile = async (candidate: OutcomeRequirementProfile): Promise<void> => {
+      await admin.query(`insert into public.outcome_requirement_profiles(
+        id, version, hash, previous_version_hash,
+        blueprint_id, blueprint_version, blueprint_hash,
+        policy_id, policy_hash, status, published_at, definition
+      ) values ($1, $2, $3, $4, $5, $6, $7, null, null, 'PUBLISHED', $8, $9::jsonb)`, [
+        candidate.id,
+        candidate.version,
+        candidate.hash,
+        candidate.previousVersionHash,
+        candidate.blueprint.id,
+        candidate.blueprint.version,
+        candidate.blueprint.hash,
+        PUBLISHED_AT,
+        JSON.stringify(profilePayload(candidate).definition),
+      ]);
+    };
+
+    const v1WithPrevious = makeProfile(lineageBlueprint, id, 1, "d".repeat(64));
+    await expectRejected(admin, `insert into public.outcome_requirement_profiles(
+      id, version, hash, previous_version_hash,
+      blueprint_id, blueprint_version, blueprint_hash,
+      policy_id, policy_hash, status, published_at, definition
+    ) values ($1, $2, $3, $4, $5, $6, $7, null, null, 'PUBLISHED', now(), $8::jsonb)`, [
+      id, 1, v1WithPrevious.hash, v1WithPrevious.previousVersionHash,
+      lineageBlueprint.id, lineageBlueprint.version, lineageBlueprint.hash, JSON.stringify(profilePayload(v1WithPrevious).definition),
+    ]);
+    await expectAbsent(admin, "public.outcome_requirement_profiles", id, 1);
+
+    const v2WithoutV1 = makeProfile(lineageBlueprint, id, 2, "e".repeat(64));
+    await expectRejected(admin, `insert into public.outcome_requirement_profiles(
+      id, version, hash, previous_version_hash,
+      blueprint_id, blueprint_version, blueprint_hash,
+      policy_id, policy_hash, status, published_at, definition
+    ) values ($1, $2, $3, $4, $5, $6, $7, null, null, 'PUBLISHED', now(), $8::jsonb)`, [
+      id, 2, v2WithoutV1.hash, v2WithoutV1.previousVersionHash,
+      lineageBlueprint.id, lineageBlueprint.version, lineageBlueprint.hash, JSON.stringify(profilePayload(v2WithoutV1).definition),
+    ]);
+    await expectAbsent(admin, "public.outcome_requirement_profiles", id, 2);
+
+    const v1 = makeProfile(lineageBlueprint, id, 1, null);
+    await insertProfile(v1);
+    const v2WrongPrevious = makeProfile(lineageBlueprint, id, 2, "f".repeat(64));
+    await expectRejected(admin, `insert into public.outcome_requirement_profiles(
+      id, version, hash, previous_version_hash,
+      blueprint_id, blueprint_version, blueprint_hash,
+      policy_id, policy_hash, status, published_at, definition
+    ) values ($1, $2, $3, $4, $5, $6, $7, null, null, 'PUBLISHED', now(), $8::jsonb)`, [
+      id, 2, v2WrongPrevious.hash, v2WrongPrevious.previousVersionHash,
+      lineageBlueprint.id, lineageBlueprint.version, lineageBlueprint.hash, JSON.stringify(profilePayload(v2WrongPrevious).definition),
+    ]);
+    await expectAbsent(admin, "public.outcome_requirement_profiles", id, 2);
+
+    const v3Gap = makeProfile(lineageBlueprint, id, 3, v1.hash);
+    await expectRejected(admin, `insert into public.outcome_requirement_profiles(
+      id, version, hash, previous_version_hash,
+      blueprint_id, blueprint_version, blueprint_hash,
+      policy_id, policy_hash, status, published_at, definition
+    ) values ($1, $2, $3, $4, $5, $6, $7, null, null, 'PUBLISHED', now(), $8::jsonb)`, [
+      id, 3, v3Gap.hash, v3Gap.previousVersionHash,
+      lineageBlueprint.id, lineageBlueprint.version, lineageBlueprint.hash, JSON.stringify(profilePayload(v3Gap).definition),
+    ]);
+    await expectAbsent(admin, "public.outcome_requirement_profiles", id, 3);
+
+    const v2 = makeProfile(lineageBlueprint, id, 2, v1.hash);
+    await insertProfile(v2);
+    const v3 = makeProfile(lineageBlueprint, id, 3, v2.hash);
+    await insertProfile(v3);
+    for (const version of [1, 2, 3]) {
+      await expect(admin.query("select 1 from public.outcome_requirement_profiles where id = $1 and version = $2", [id, version])).resolves.toMatchObject({ rowCount: 1 });
+    }
+  });
+
   it("denies direct catalog writes and permits only the service RPC boundary", async () => {
     await expectRejected(service, `insert into public.outcome_blueprints(id, version, hash, status, published_at, definition) values ($1, 99, $2, 'PUBLISHED', now(), '{}'::jsonb)`, [randomUUID(), "a".repeat(64)]);
     const anon = new Client({ connectionString: activeDatabaseUrl });

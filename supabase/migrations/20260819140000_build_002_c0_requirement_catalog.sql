@@ -23,7 +23,10 @@ create table if not exists public.outcome_blueprints (
     check (coalesce(definition ? 'previousVersionHash'
       and (definition->'previousVersionHash' = 'null'::jsonb
         or jsonb_typeof(definition->'previousVersionHash') = 'string')
-      and previous_version_hash is not distinct from nullif(definition->>'previousVersionHash', ''), false))
+      and previous_version_hash is not distinct from nullif(definition->>'previousVersionHash', ''), false)),
+  constraint outcome_blueprints_previous_hash_shape
+    check ((version = 1 and previous_version_hash is null)
+      or (version > 1 and previous_version_hash is not null))
 );
 
 create table if not exists public.outcome_requirement_profiles (
@@ -71,6 +74,9 @@ create table if not exists public.outcome_requirement_profiles (
     check (policy_id is null and policy_hash is null),
   constraint outcome_requirement_profiles_definition_policy_null
     check (coalesce(definition ? 'policy' and definition->'policy' = 'null'::jsonb, false)),
+  constraint outcome_requirement_profiles_previous_hash_shape
+    check ((version = 1 and previous_version_hash is null)
+      or (version > 1 and previous_version_hash is not null)),
   foreign key (blueprint_id, blueprint_version, blueprint_hash)
     references public.outcome_blueprints(id, version, hash)
     on delete restrict
@@ -96,6 +102,66 @@ drop trigger if exists outcome_requirement_profiles_immutable on public.outcome_
 create trigger outcome_requirement_profiles_immutable
 before update or delete on public.outcome_requirement_profiles
 for each row execute function public.build002_catalog_immutable();
+
+create or replace function public.build002_enforce_outcome_blueprint_lineage()
+returns trigger
+language plpgsql
+security invoker
+set search_path = pg_catalog, public
+as $$
+begin
+  if new.version = 1 then
+    if new.previous_version_hash is not null then
+      raise exception 'BUILD002_BLUEPRINT_INVALID_VERSION_CHAIN';
+    end if;
+  elsif not exists (
+    select 1
+    from public.outcome_blueprints previous
+    where previous.id = new.id
+      and previous.version = new.version - 1
+      and previous.hash = new.previous_version_hash
+      and previous.status = 'PUBLISHED'
+  ) then
+    raise exception 'BUILD002_BLUEPRINT_INVALID_VERSION_CHAIN';
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists outcome_blueprints_lineage on public.outcome_blueprints;
+create trigger outcome_blueprints_lineage
+before insert on public.outcome_blueprints
+for each row execute function public.build002_enforce_outcome_blueprint_lineage();
+
+create or replace function public.build002_enforce_outcome_requirement_profile_lineage()
+returns trigger
+language plpgsql
+security invoker
+set search_path = pg_catalog, public
+as $$
+begin
+  if new.version = 1 then
+    if new.previous_version_hash is not null then
+      raise exception 'BUILD002_PROFILE_INVALID_VERSION_CHAIN';
+    end if;
+  elsif not exists (
+    select 1
+    from public.outcome_requirement_profiles previous
+    where previous.id = new.id
+      and previous.version = new.version - 1
+      and previous.hash = new.previous_version_hash
+      and previous.status = 'PUBLISHED'
+  ) then
+    raise exception 'BUILD002_PROFILE_INVALID_VERSION_CHAIN';
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists outcome_requirement_profiles_lineage on public.outcome_requirement_profiles;
+create trigger outcome_requirement_profiles_lineage
+before insert on public.outcome_requirement_profiles
+for each row execute function public.build002_enforce_outcome_requirement_profile_lineage();
 
 create or replace function public.build002_publish_outcome_blueprint(p_blueprint jsonb)
 returns uuid
