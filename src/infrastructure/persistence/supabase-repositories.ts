@@ -55,6 +55,7 @@ import {
   SupabasePreservationEvidenceRepository,
   SupabaseCandidatePreferenceRepository,
 } from "@/src/infrastructure/persistence/outcome/supabase-outcome-repositories";
+import { createTenantBuild002PersistenceRepository } from "@/src/infrastructure/persistence/outcome/supabase-build002-persistence-repository";
 import {
   fromBenchmarkCaseRow,
   fromIntentRunRow,
@@ -495,6 +496,7 @@ export function createTenantSupabaseRepositories(ownerTenantId: string): Reposit
     preservationRuns: new SupabasePreservationRunRepository(client, scope),
     preservationEvidence: new SupabasePreservationEvidenceRepository(client, scope),
     candidatePreferences: new SupabaseCandidatePreferenceRepository(client, scope),
+    build002Readiness: createTenantBuild002PersistenceRepository(client, scope),
     storageMode: "supabase",
   };
 }
