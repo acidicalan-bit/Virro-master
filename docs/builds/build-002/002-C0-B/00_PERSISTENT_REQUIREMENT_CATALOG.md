@@ -42,6 +42,12 @@ database, applies the complete migration chain lexically exactly once, and
 runs raw RPC and privileged table-constraint mismatch controls without
 reusing the BUILD002-B database.
 
+R2 closes SQL three-valued-logic incompleteness. Required semantic-definition
+fields must be present, have the expected JSON type, and match their
+relational address under NULL-safe table checks. An absent required key is not
+equivalent to a matching key; no missing id, version, previous hash,
+Blueprint identity, or policy key can satisfy the catalog constraints.
+
 C0-B does not add TransactionRequirementBinding, a runtime resolver, HTTP API,
 readiness evaluation API, Signal ingestion, executor behavior, TaskSpec
 changes, OutcomeBlueprint semantic changes, or BUILD002-A/B changes. C0-C is

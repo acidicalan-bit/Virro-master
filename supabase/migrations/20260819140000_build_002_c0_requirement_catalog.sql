@@ -14,11 +14,16 @@ create table if not exists public.outcome_blueprints (
   primary key (id, version),
   unique (id, version, hash),
   constraint outcome_blueprints_definition_id_match
-    check ((definition->>'id')::uuid = id),
+    check (coalesce(definition ? 'id' and jsonb_typeof(definition->'id') = 'string'
+      and lower(definition->>'id') = lower(id::text), false)),
   constraint outcome_blueprints_definition_version_match
-    check ((definition->>'version')::integer = version),
+    check (coalesce(definition ? 'version' and jsonb_typeof(definition->'version') = 'number'
+      and definition->>'version' = version::text, false)),
   constraint outcome_blueprints_definition_previous_hash_match
-    check (previous_version_hash is not distinct from nullif(definition->>'previousVersionHash', ''))
+    check (coalesce(definition ? 'previousVersionHash'
+      and (definition->'previousVersionHash' = 'null'::jsonb
+        or jsonb_typeof(definition->'previousVersionHash') = 'string')
+      and previous_version_hash is not distinct from nullif(definition->>'previousVersionHash', ''), false))
 );
 
 create table if not exists public.outcome_requirement_profiles (
@@ -38,21 +43,34 @@ create table if not exists public.outcome_requirement_profiles (
   primary key (id, version),
   unique (id, version, hash),
   constraint outcome_requirement_profiles_definition_id_match
-    check ((definition->>'id')::uuid = id),
+    check (coalesce(definition ? 'id' and jsonb_typeof(definition->'id') = 'string'
+      and lower(definition->>'id') = lower(id::text), false)),
   constraint outcome_requirement_profiles_definition_version_match
-    check ((definition->>'version')::integer = version),
+    check (coalesce(definition ? 'version' and jsonb_typeof(definition->'version') = 'number'
+      and definition->>'version' = version::text, false)),
   constraint outcome_requirement_profiles_definition_previous_hash_match
-    check (previous_version_hash is not distinct from nullif(definition->>'previousVersionHash', '')),
+    check (coalesce(definition ? 'previousVersionHash'
+      and (definition->'previousVersionHash' = 'null'::jsonb
+        or jsonb_typeof(definition->'previousVersionHash') = 'string')
+      and previous_version_hash is not distinct from nullif(definition->>'previousVersionHash', ''), false)),
+  constraint outcome_requirement_profiles_definition_blueprint_object
+    check (coalesce(definition ? 'blueprint' and jsonb_typeof(definition->'blueprint') = 'object', false)),
   constraint outcome_requirement_profiles_definition_blueprint_id_match
-    check ((definition->'blueprint'->>'id')::uuid = blueprint_id),
+    check (coalesce(definition->'blueprint' ? 'id'
+      and jsonb_typeof(definition->'blueprint'->'id') = 'string'
+      and lower(definition->'blueprint'->>'id') = lower(blueprint_id::text), false)),
   constraint outcome_requirement_profiles_definition_blueprint_version_match
-    check ((definition->'blueprint'->>'version')::integer = blueprint_version),
+    check (coalesce(definition->'blueprint' ? 'version'
+      and jsonb_typeof(definition->'blueprint'->'version') = 'number'
+      and definition->'blueprint'->>'version' = blueprint_version::text, false)),
   constraint outcome_requirement_profiles_definition_blueprint_hash_match
-    check (definition->'blueprint'->>'hash' = blueprint_hash),
+    check (coalesce(definition->'blueprint' ? 'hash'
+      and jsonb_typeof(definition->'blueprint'->'hash') = 'string'
+      and definition->'blueprint'->>'hash' = blueprint_hash, false)),
   constraint outcome_requirement_profiles_policy_null
     check (policy_id is null and policy_hash is null),
   constraint outcome_requirement_profiles_definition_policy_null
-    check (definition ? 'policy' and definition->'policy' = 'null'::jsonb),
+    check (coalesce(definition ? 'policy' and definition->'policy' = 'null'::jsonb, false)),
   foreign key (blueprint_id, blueprint_version, blueprint_hash)
     references public.outcome_blueprints(id, version, hash)
     on delete restrict
@@ -96,6 +114,17 @@ declare
 begin
   if v_status <> 'PUBLISHED' or v_definition is null or jsonb_typeof(v_definition) <> 'object' then
     raise exception 'BUILD002_BLUEPRINT_NOT_PUBLISHED';
+  end if;
+  if not (v_definition ? 'id') or jsonb_typeof(v_definition->'id') <> 'string' then
+    raise exception 'BUILD002_BLUEPRINT_DEFINITION_ID_REQUIRED';
+  end if;
+  if not (v_definition ? 'version') or jsonb_typeof(v_definition->'version') <> 'number' then
+    raise exception 'BUILD002_BLUEPRINT_DEFINITION_VERSION_REQUIRED';
+  end if;
+  if not (v_definition ? 'previousVersionHash')
+    or (jsonb_typeof(v_definition->'previousVersionHash') <> 'null'
+      and jsonb_typeof(v_definition->'previousVersionHash') <> 'string') then
+    raise exception 'BUILD002_BLUEPRINT_DEFINITION_PREVIOUS_HASH_REQUIRED';
   end if;
   if v_id is distinct from (v_definition->>'id')::uuid then
     raise exception 'BUILD002_BLUEPRINT_DEFINITION_ID_MISMATCH';
@@ -149,6 +178,31 @@ declare
 begin
   if v_status <> 'PUBLISHED' then
     raise exception 'BUILD002_PROFILE_NOT_PUBLISHED';
+  end if;
+  if not (v_definition ? 'id') or jsonb_typeof(v_definition->'id') <> 'string' then
+    raise exception 'BUILD002_PROFILE_DEFINITION_ID_REQUIRED';
+  end if;
+  if not (v_definition ? 'version') or jsonb_typeof(v_definition->'version') <> 'number' then
+    raise exception 'BUILD002_PROFILE_DEFINITION_VERSION_REQUIRED';
+  end if;
+  if not (v_definition ? 'previousVersionHash')
+    or (jsonb_typeof(v_definition->'previousVersionHash') <> 'null'
+      and jsonb_typeof(v_definition->'previousVersionHash') <> 'string') then
+    raise exception 'BUILD002_PROFILE_DEFINITION_PREVIOUS_HASH_REQUIRED';
+  end if;
+  if not (v_definition ? 'blueprint') or jsonb_typeof(v_definition->'blueprint') <> 'object' then
+    raise exception 'BUILD002_PROFILE_DEFINITION_BLUEPRINT_REQUIRED';
+  end if;
+  if not (v_definition->'blueprint' ? 'id')
+    or jsonb_typeof(v_definition->'blueprint'->'id') <> 'string'
+    or not (v_definition->'blueprint' ? 'version')
+    or jsonb_typeof(v_definition->'blueprint'->'version') <> 'number'
+    or not (v_definition->'blueprint' ? 'hash')
+    or jsonb_typeof(v_definition->'blueprint'->'hash') <> 'string' then
+    raise exception 'BUILD002_PROFILE_DEFINITION_BLUEPRINT_FIELDS_REQUIRED';
+  end if;
+  if not (v_definition ? 'policy') or v_definition->'policy' <> 'null'::jsonb then
+    raise exception 'BUILD002_PROFILE_DEFINITION_POLICY_REQUIRED';
   end if;
   if v_id is distinct from (v_definition->>'id')::uuid then
     raise exception 'BUILD002_PROFILE_DEFINITION_ID_MISMATCH';

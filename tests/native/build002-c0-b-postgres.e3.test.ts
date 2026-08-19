@@ -86,6 +86,11 @@ async function expectRejected(client: QueryClient, text: string, values: unknown
   await expect(client.query(text, values)).rejects.toThrow();
 }
 
+async function expectAbsent(client: QueryClient, table: string, id: string, version: number): Promise<void> {
+  const result = await client.query<{ count: number }>(`select count(*)::integer as count from ${table} where id = $1 and version = $2`, [id, version]);
+  expect(result.rows[0].count).toBe(0);
+}
+
 describe.runIf(enabled && Boolean(databaseUrl))("BUILD 002-C0-B native PostgreSQL E3", () => {
   let admin: QueryClient;
   let service: QueryClient;
@@ -203,6 +208,41 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD 002-C0-B native PostgreSQ
     })]);
   });
 
+  it("rejects RPC payloads with missing required definition keys", async () => {
+    const blueprintPayloadValue = blueprintPayload(blueprint);
+    const blueprintDefinition = blueprintPayloadValue.definition as Record<string, unknown>;
+    const withoutBlueprintId = { ...blueprintDefinition };
+    delete withoutBlueprintId.id;
+    const withoutBlueprintVersion = { ...blueprintDefinition };
+    delete withoutBlueprintVersion.version;
+    const withoutBlueprintPrevious = { ...blueprintDefinition };
+    delete withoutBlueprintPrevious.previousVersionHash;
+    for (const definition of [withoutBlueprintId, withoutBlueprintVersion, withoutBlueprintPrevious]) {
+      await expectRejected(service, "select public.build002_publish_outcome_blueprint($1::jsonb)", [JSON.stringify({ ...blueprintPayloadValue, definition })]);
+    }
+
+    const profilePayloadValue = profilePayload(profile);
+    const profileDefinition = profilePayloadValue.definition as Record<string, unknown>;
+    const withoutProfileId = { ...profileDefinition };
+    delete withoutProfileId.id;
+    const withoutProfileVersion = { ...profileDefinition };
+    delete withoutProfileVersion.version;
+    const withoutProfilePrevious = { ...profileDefinition };
+    delete withoutProfilePrevious.previousVersionHash;
+    const withoutProfileBlueprint = { ...profileDefinition };
+    delete withoutProfileBlueprint.blueprint;
+    const withoutProfileBlueprintId = { ...profileDefinition, blueprint: {} };
+    const withoutProfileBlueprintVersion = { ...profileDefinition, blueprint: { ...(profileDefinition.blueprint as Record<string, unknown>) } };
+    delete (withoutProfileBlueprintVersion.blueprint as Record<string, unknown>).version;
+    const withoutProfileBlueprintHash = { ...profileDefinition, blueprint: { ...(profileDefinition.blueprint as Record<string, unknown>) } };
+    delete (withoutProfileBlueprintHash.blueprint as Record<string, unknown>).hash;
+    const withoutProfilePolicy = { ...profileDefinition };
+    delete withoutProfilePolicy.policy;
+    for (const definition of [withoutProfileId, withoutProfileVersion, withoutProfilePrevious, withoutProfileBlueprint, withoutProfileBlueprintId, withoutProfileBlueprintVersion, withoutProfileBlueprintHash, withoutProfilePolicy]) {
+      await expectRejected(service, "select public.build002_publish_outcome_requirement_profile($1::jsonb)", [JSON.stringify({ ...profilePayloadValue, definition })]);
+    }
+  });
+
   it("rejects non-null policy through both RPC and privileged table constraints", async () => {
     const payload = profilePayload(profile);
     const definition = payload.definition as Record<string, unknown>;
@@ -226,6 +266,67 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD 002-C0-B native PostgreSQ
     ) values ($1, 1, $2, 'PUBLISHED', now(), $3::jsonb)`, [
       randomUUID(), "c".repeat(64), JSON.stringify(payload.definition),
     ]);
+  });
+
+  it("rejects every malformed privileged Blueprint definition and leaves no row", async () => {
+    const base = blueprintPayload(blueprint).definition as Record<string, unknown>;
+    const withoutId = { ...base };
+    delete withoutId.id;
+    const withoutVersion = { ...base };
+    delete withoutVersion.version;
+    const withoutPrevious = { ...base };
+    delete withoutPrevious.previousVersionHash;
+    const attacks = [
+      {},
+      withoutId,
+      withoutVersion,
+      withoutPrevious,
+      { ...base, id: null },
+      { ...base, version: null },
+    ];
+    for (const [index, definition] of attacks.entries()) {
+      const id = randomUUID();
+      const version = 1;
+      await expectRejected(admin, `insert into public.outcome_blueprints(
+        id, version, hash, status, published_at, definition
+      ) values ($1, $2, $3, 'PUBLISHED', now(), $4::jsonb)`, [id, version, `${index + 1}`.repeat(64).slice(0, 64), JSON.stringify(definition)]);
+      await expectAbsent(admin, "public.outcome_blueprints", id, version);
+    }
+  });
+
+  it("rejects every malformed privileged Profile definition and leaves no row", async () => {
+    const base = profilePayload(profile).definition as Record<string, unknown>;
+    const blueprintDefinition = base.blueprint as Record<string, unknown>;
+    const withoutId = { ...base };
+    delete withoutId.id;
+    const withoutVersion = { ...base };
+    delete withoutVersion.version;
+    const withoutPrevious = { ...base };
+    delete withoutPrevious.previousVersionHash;
+    const withoutBlueprint = { ...base };
+    delete withoutBlueprint.blueprint;
+    const incompleteBlueprint = { ...base, blueprint: {} };
+    const withoutBlueprintId = { ...base, blueprint: { ...blueprintDefinition } };
+    delete (withoutBlueprintId.blueprint as Record<string, unknown>).id;
+    const withoutBlueprintVersion = { ...base, blueprint: { ...blueprintDefinition } };
+    delete (withoutBlueprintVersion.blueprint as Record<string, unknown>).version;
+    const withoutBlueprintHash = { ...base, blueprint: { ...blueprintDefinition } };
+    delete (withoutBlueprintHash.blueprint as Record<string, unknown>).hash;
+    const withoutPolicy = { ...base };
+    delete withoutPolicy.policy;
+    const attacks = [withoutId, withoutVersion, withoutPrevious, withoutBlueprint, incompleteBlueprint, withoutBlueprintId, withoutBlueprintVersion, withoutBlueprintHash, withoutPolicy];
+    for (const [index, malformedDefinition] of attacks.entries()) {
+      const id = randomUUID();
+      const version = 1;
+      const definition = (malformedDefinition as Record<string, unknown>).id === undefined ? malformedDefinition : { ...malformedDefinition, id };
+      await expectRejected(admin, `insert into public.outcome_requirement_profiles(
+        id, version, hash, status, published_at, definition,
+        blueprint_id, blueprint_version, blueprint_hash, policy_id, policy_hash
+      ) values ($1, $2, $3, 'PUBLISHED', now(), $4::jsonb, $5, $6, $7, null, null)`, [
+        id, version, `${index + 1}`.repeat(64).slice(0, 64), JSON.stringify(definition), blueprint.id, blueprint.version, blueprint.hash,
+      ]);
+      await expectAbsent(admin, "public.outcome_requirement_profiles", id, version);
+    }
   });
 
   it("denies direct catalog writes and permits only the service RPC boundary", async () => {

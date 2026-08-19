@@ -30,6 +30,10 @@ describe("BUILD002-C0-B persistent requirement catalog contract", () => {
     expect(sql).toContain("outcome_requirement_profiles_definition_blueprint_hash_match");
     expect(sql).toContain("outcome_requirement_profiles_policy_null");
     expect(sql).toContain("outcome_requirement_profiles_definition_policy_null");
+    expect(sql).toContain("coalesce(definition ? 'id'");
+    expect(sql).toContain("coalesce(definition ? 'version'");
+    expect(sql).toContain("coalesce(definition ? 'previousVersionHash'");
+    expect(sql).toContain("outcome_requirement_profiles_definition_blueprint_object");
   });
 
   it("uses server-owned RPCs and denies direct catalog writes", () => {
@@ -48,6 +52,12 @@ describe("BUILD002-C0-B persistent requirement catalog contract", () => {
     expect(sql).toContain("BUILD002_BLUEPRINT_INVALID_VERSION_CHAIN");
     expect(sql).toContain("BUILD002_PROFILE_INVALID_VERSION_CHAIN");
     expect(sql).toContain("BUILD002_PROFILE_POLICY_MUST_BE_NULL");
+    expect(sql).toContain("BUILD002_BLUEPRINT_DEFINITION_ID_REQUIRED");
+    expect(sql).toContain("BUILD002_BLUEPRINT_DEFINITION_VERSION_REQUIRED");
+    expect(sql).toContain("BUILD002_BLUEPRINT_DEFINITION_PREVIOUS_HASH_REQUIRED");
+    expect(sql).toContain("BUILD002_PROFILE_DEFINITION_BLUEPRINT_REQUIRED");
+    expect(sql).toContain("BUILD002_PROFILE_DEFINITION_BLUEPRINT_FIELDS_REQUIRED");
+    expect(sql).toContain("BUILD002_PROFILE_DEFINITION_POLICY_REQUIRED");
     expect(sql).toContain("before update or delete on public.outcome_blueprints");
     expect(sql).toContain("before update or delete on public.outcome_requirement_profiles");
     expect(sql).toContain("BUILD002_CATALOG_IMMUTABLE_%");
