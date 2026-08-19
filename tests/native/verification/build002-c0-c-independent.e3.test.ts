@@ -5,7 +5,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { Client } from "pg";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 import { createPrecisionEditBlueprintDefinition } from "@/src/application/outcome/specification/precision-edit-blueprint";
 import { createOutcomeTransactionRequirementBinding } from "@/src/domain/outcome/specification/outcome-transaction-requirement-binding";
@@ -93,6 +93,7 @@ describe.runIf(enabled && Boolean(rootUrl))("BUILD002-C0-C independent native ve
   let profileB: Profile;
   let bindingA: ReturnType<typeof createOutcomeTransactionRequirementBinding>;
   let transactionA: string;
+  let sideEffectsBefore: Record<string, number>;
 
   async function addTransaction(id = randomUUID(), owner = TENANT_A): Promise<string> {
     await admin.query(
@@ -113,6 +114,20 @@ describe.runIf(enabled && Boolean(rootUrl))("BUILD002-C0-C independent native ve
       [transactionId],
     );
     return Number(result.rows[0].count);
+  }
+
+  async function sideEffectSnapshot(): Promise<Record<string, number>> {
+    const tables = [
+      "build002_signal_requirements", "build002_signals", "build002_dependency_snapshots",
+      "build002_signal_qualifications", "build002_delegation_readiness", "mutation_leases",
+      "execution_runs", "state_commits",
+    ];
+    const snapshot: Record<string, number> = {};
+    for (const table of tables) {
+      const result = await admin.query<{ count: string }>(`select count(*)::text as count from public.${table}`);
+      snapshot[table] = Number(result.rows[0].count);
+    }
+    return snapshot;
   }
 
   beforeAll(async () => {
@@ -167,6 +182,7 @@ describe.runIf(enabled && Boolean(rootUrl))("BUILD002-C0-C independent native ve
       requirementProfile: profileA,
       boundAt: "2026-08-19T12:00:00.000Z",
     });
+    sideEffectsBefore = await sideEffectSnapshot();
   }, 120_000);
 
   afterAll(async () => {
@@ -219,6 +235,8 @@ describe.runIf(enabled && Boolean(rootUrl))("BUILD002-C0-C independent native ve
     await serviceA.query("select public.build002_bind_outcome_transaction_requirements($1::jsonb)", [JSON.stringify(payload(bindingA))]);
     expect(await readBindingCount(transactionA)).toBe(1);
     await expectRejected(serviceA, "insert into public.outcome_transaction_requirement_bindings(owner_tenant_id,outcome_transaction_id,blueprint_id,blueprint_version,blueprint_hash,requirement_profile_id,requirement_profile_version,requirement_profile_hash,schema_version,binding_hash,bound_at) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)", [TENANT_A, randomUUID(), blueprintA.id, blueprintA.version, blueprintA.hash, profileA.id, profileA.version, profileA.hash, bindingA.schemaVersion, bindingA.bindingHash, bindingA.boundAt]);
+    await expectRejected(serviceA, "update public.outcome_transaction_requirement_bindings set binding_hash=$1 where owner_tenant_id=$2 and outcome_transaction_id=$3", ["f".repeat(64), TENANT_A, transactionA]);
+    await expectRejected(serviceA, "delete from public.outcome_transaction_requirement_bindings where owner_tenant_id=$1 and outcome_transaction_id=$2", [TENANT_A, transactionA]);
     await serviceA.query("set role anon");
     await expectRejected(serviceA, "select public.build002_bind_outcome_transaction_requirements($1::jsonb)", [JSON.stringify(payload(bindingA))]);
     await serviceA.query("reset role; set role service_role");
@@ -232,13 +250,16 @@ describe.runIf(enabled && Boolean(rootUrl))("BUILD002-C0-C independent native ve
     await expectRejected(serviceA, "select public.build002_bind_outcome_transaction_requirements($1::jsonb)", [JSON.stringify({ ...payload(bindingA), outcome_transaction_id: randomUUID() })]);
     await expectRejected(serviceA, "select public.build002_bind_outcome_transaction_requirements($1::jsonb)", [JSON.stringify({ ...payload(bindingA), blueprint_id: randomUUID() })]);
     await expectRejected(serviceA, "select public.build002_bind_outcome_transaction_requirements($1::jsonb)", [JSON.stringify({ ...payload(bindingA), blueprint_hash: "f".repeat(64) })]);
+    await expectRejected(serviceA, "select public.build002_bind_outcome_transaction_requirements($1::jsonb)", [JSON.stringify({ ...payload(bindingA), blueprint_version: blueprintA.version + 1 })]);
     await expectRejected(serviceA, "select public.build002_bind_outcome_transaction_requirements($1::jsonb)", [JSON.stringify({ ...payload(bindingA), requirement_profile_id: randomUUID() })]);
     await expectRejected(serviceA, "select public.build002_bind_outcome_transaction_requirements($1::jsonb)", [JSON.stringify({ ...payload(bindingA), requirement_profile_hash: "e".repeat(64) })]);
+    await expectRejected(serviceA, "select public.build002_bind_outcome_transaction_requirements($1::jsonb)", [JSON.stringify({ ...payload(bindingA), requirement_profile_version: profileA.version + 1 })]);
     await expectRejected(serviceA, "select public.build002_bind_outcome_transaction_requirements($1::jsonb)", [JSON.stringify({ ...payload(bindingA), blueprint_id: blueprintB.id, blueprint_version: blueprintB.version, blueprint_hash: blueprintB.hash })]);
     await expectRejected(serviceA, "select public.build002_bind_outcome_transaction_requirements($1::jsonb)", [JSON.stringify({ ...payload(bindingA), policy_id: "deferred" })]);
     await expectRejected(serviceA, "select public.build002_bind_outcome_transaction_requirements($1::jsonb)", [JSON.stringify({ ...payload(bindingA), policy_hash: "a".repeat(64) })]);
     const rebindProfile = createOutcomeTransactionRequirementBinding({ ownerTenantId: TENANT_A, outcomeTransactionId: transactionA, blueprint: blueprintB, requirementProfile: profileB, boundAt: bindingA.boundAt });
     await expectRejected(serviceA, "select public.build002_bind_outcome_transaction_requirements($1::jsonb)", [JSON.stringify(payload(rebindProfile))]);
+    await expectRejected(serviceA, "select public.build002_bind_outcome_transaction_requirements($1::jsonb)", [JSON.stringify({ ...payload(bindingA), requirement_profile_id: profileB.id, requirement_profile_version: profileB.version, requirement_profile_hash: profileB.hash })]);
     expect(await readBindingCount(transactionA)).toBe(1);
 
     const nullOwner = randomUUID();
@@ -267,6 +288,7 @@ describe.runIf(enabled && Boolean(rootUrl))("BUILD002-C0-C independent native ve
     await expectRejected(admin, "delete from public.outcome_transactions where id=$1", [transactionA]);
     const retained = await admin.query("select outcome_transaction_id from public.outcome_transaction_requirement_bindings where outcome_transaction_id=$1", [transactionA]);
     expect(retained.rowCount).toBe(1);
+    expect(await sideEffectSnapshot()).toEqual(sideEffectsBefore);
   });
 });
 
@@ -302,5 +324,23 @@ describe("BUILD002-C0-C independent repository transport verification", () => {
     await expect(get("2026-08-19T07:00:00-05:00")).resolves.toMatchObject({ boundAt: "2026-08-19T12:00:00.000Z", bindingHash: binding.bindingHash });
     await expect(get("not-a-timestamp")).rejects.toThrow();
     await expect(get("2026-08-19T12:00:00.123400Z")).rejects.toThrow();
+
+    const rpc = vi.fn().mockResolvedValue({ data: binding.outcomeTransactionId, error: null });
+    const query = { eq: vi.fn().mockReturnThis(), maybeSingle: vi.fn().mockResolvedValue({ data: row("2026-08-19T07:00:00-05:00"), error: null }) };
+    const client = { from: vi.fn().mockReturnValue({ select: vi.fn().mockReturnValue(query) }), rpc } as never;
+    const catalogFull = { getBlueprint: vi.fn().mockResolvedValue(blueprint), getRequirementProfile: vi.fn().mockResolvedValue(profile) };
+    const transactionsFull = { findById: vi.fn().mockResolvedValue({ id: binding.outcomeTransactionId, ownerTenantId: binding.ownerTenantId }) };
+    const repository = new SupabaseTransactionRequirementBindingRepository(client, binding.ownerTenantId, catalogFull as never, transactionsFull as never);
+    await expect(repository.publish(binding)).resolves.toMatchObject({ boundAt: "2026-08-19T12:00:00.000Z", bindingHash: binding.bindingHash });
+    expect(rpc).toHaveBeenCalledTimes(1);
+    expect(query.eq).toHaveBeenCalledWith("owner_tenant_id", binding.ownerTenantId);
+    expect(query.eq).toHaveBeenCalledWith("outcome_transaction_id", binding.outcomeTransactionId);
+
+    const rejectedRpc = vi.fn();
+    const rejectedClient = { from: vi.fn(), rpc: rejectedRpc } as never;
+    const unpersistedCatalog = { getBlueprint: vi.fn(), getRequirementProfile: vi.fn().mockResolvedValue(null) };
+    const rejectedRepository = new SupabaseTransactionRequirementBindingRepository(rejectedClient, binding.ownerTenantId, unpersistedCatalog as never, transactionsFull as never);
+    await expect(rejectedRepository.publish(binding)).rejects.toThrow("BUILD002_BINDING_CATALOG_MISMATCH");
+    expect(rejectedRpc).not.toHaveBeenCalled();
   });
 });
