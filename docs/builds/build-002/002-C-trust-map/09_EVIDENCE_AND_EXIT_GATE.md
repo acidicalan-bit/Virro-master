@@ -18,11 +18,11 @@ explicit caller/server fields, server-owned provenance, an exact requirement
 source, deterministic orchestration, an explicit whole-evaluation transaction
 decision, no execution authority, and a complete negative-control matrix.
 
-Current status is **BLOCKED** because the canonical server-backed
-OutcomeTransaction -> published Blueprint/version/policy -> compiled
-SignalRequirement source is not present or uniquely identifiable in the
-baseline. This is a C21 stop condition, not a reason to invent a registry or
-implement around it.
+The prior C5 blocker is resolved at architecture level by the immutable
+OutcomeRequirementProfile and TransactionRequirementBinding defined in the
+appended C5 documents. The current repository still has no implementation of
+those artifacts, so the result is `ARCHITECTURE_READY_PENDING_C0_IMPLEMENTATION`.
 
-No runtime or migration changes are authorized until that blocker is resolved
-in a subsequent architecture decision.
+This gate does not authorize HTTP/runtime work. C0 implementation remains
+blocked until the profile, Blueprint persistence, transaction binding,
+resolver, and native immutability/RLS evidence are independently verified.

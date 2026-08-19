@@ -28,7 +28,19 @@ No binding, missing Blueprint, missing version, retired Blueprint, policy
 mismatch, invalid hash, compiler unavailable, or compiler disagreement yields
 no authoritative readiness persistence and an explicit non-READY reason.
 
-## Gate status
+## C5 resolution
 
-`C5 = UNKNOWN/BLOCKED`. This is the current stop condition for BUILD002-C.
-No implementation may proceed until the source is resolved and documented.
+The gap is resolved architecturally by introducing a separate immutable
+`OutcomeRequirementProfile` bound to an exact published Blueprint version and
+hash. The Profile is the canonical source for readiness requirements; the
+Blueprint remains the product/capability contract. A transaction is bound to
+one exact Profile through an immutable server-created binding.
+
+This resolves the source hierarchy without pretending that the current
+in-memory registry or BUILD002-B rows are production authority. C0 must add the
+domain artifact and persistence described in documents 10-13 before HTTP
+evaluation is authorized.
+
+The original `C5 = UNKNOWN/BLOCKED` finding is preserved as historical context:
+the current baseline still has no implementation of this source. The result is
+now `C5_ARCHITECTURE = RESOLVED`, `C0 = PENDING`.
