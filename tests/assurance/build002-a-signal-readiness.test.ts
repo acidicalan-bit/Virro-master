@@ -411,3 +411,198 @@ describe("BUILD 002-A R3 canonical instants and temporal causality", () => {
     expect(isDelegable(a, "EXPIRED")).toBe(false);
   });
 });
+
+describe("BUILD 002-A R4 critical versus non-critical expiry", () => {
+  function evaluateMany(requirements: SignalRequirement[], qualifications: ReturnType<typeof qualify>[], dependencySnapshot: DependencySnapshot, evaluationTime: string, conditionCodes?: string[]) {
+    return evaluateDelegationReadiness({
+      subject,
+      requirements,
+      qualifications,
+      dependencySnapshot,
+      evaluator,
+      evaluationTime,
+      conditionCodes,
+      idFactory: () => "60000000-0000-4000-8000-000000000099",
+    });
+  }
+
+  it("does not let an expired optional qualification over-block a critical READY result", () => {
+    const critical = requirement("critical.intent");
+    const optional = requirement({ requirementId: "optional.history", critical: false });
+    const criticalSignal = signal(critical, "critical", H_SOURCE, "40000000-0000-4000-8000-000000000041", "OBSERVED", null);
+    const optionalSignal = signal(optional, "optional", H_SOURCE, "40000000-0000-4000-8000-000000000042", "OBSERVED", "2026-08-18T13:00:00Z");
+    const d = boundDependency([critical, optional], [criticalSignal, optionalSignal]);
+    const result = evaluateMany([critical, optional], [qualify(critical, [criticalSignal], d), qualify(optional, [optionalSignal], d)], d, "2026-08-18T14:00:00Z");
+    expect(result.state).toBe("READY");
+    expect(result.validUntil).toBeNull();
+    expect(evaluateReadinessValidity(result, d, "2026-08-18T14:00:00Z")).toBe("CURRENT");
+    expect(isDelegable(result, "CURRENT")).toBe(true);
+  });
+
+  it("keeps validUntil null when the only expiring evidence is optional", () => {
+    const critical = requirement("critical.no-horizon");
+    const optional = requirement({ requirementId: "optional.expired-only", critical: false });
+    const cs = signal(critical, "critical", H_SOURCE, "40000000-0000-4000-8000-000000000065");
+    const os = signal(optional, "optional", H_SOURCE, "40000000-0000-4000-8000-000000000066", "OBSERVED", "2026-08-18T13:00:00Z");
+    const d = boundDependency([critical, optional], [cs, os]);
+    const result = evaluateMany([critical, optional], [qualify(critical, [cs], d), qualify(optional, [os], d)], d, "2026-08-18T14:00:00Z");
+    expect(result.state).toBe("READY");
+    expect(result.validUntil).toBeNull();
+    expect(evaluateReadinessValidity(result, d, "2026-08-18T14:00:00Z")).toBe("CURRENT");
+  });
+
+  it("derives the horizon exclusively from critical qualifications", () => {
+    const critical = requirement("critical.horizon");
+    const optional = requirement({ requirementId: "optional.horizon", critical: false });
+    const criticalSignal = signal(critical, "critical", H_SOURCE, "40000000-0000-4000-8000-000000000043", "OBSERVED", "2026-08-18T15:00:00Z");
+    const optionalSignal = signal(optional, "optional", H_SOURCE, "40000000-0000-4000-8000-000000000044", "OBSERVED", "2026-08-18T13:00:00Z");
+    const d = boundDependency([critical, optional], [criticalSignal, optionalSignal]);
+    const result = evaluateMany([critical, optional], [qualify(critical, [criticalSignal], d), qualify(optional, [optionalSignal], d)], d, "2026-08-18T14:00:00Z");
+    expect(result.state).toBe("READY");
+    expect(result.validUntil).toBe("2026-08-18T15:00:00.000Z");
+    expect(evaluateReadinessValidity(result, d, "2026-08-18T14:00:00Z")).toBe("CURRENT");
+  });
+
+  it("expires readiness at the critical horizon equality boundary", () => {
+    const critical = requirement("critical.boundary");
+    const optional = requirement({ requirementId: "optional.boundary", critical: false });
+    const cs = signal(critical, "critical", H_SOURCE, "40000000-0000-4000-8000-000000000045", "OBSERVED", "2026-08-18T15:00:00Z");
+    const os = signal(optional, "optional", H_SOURCE, "40000000-0000-4000-8000-000000000046", "OBSERVED", "2026-08-18T13:00:00Z");
+    const d = boundDependency([critical, optional], [cs, os]);
+    const result = evaluateMany([critical, optional], [qualify(critical, [cs], d), qualify(optional, [os], d)], d, "2026-08-18T15:00:00Z");
+    expect(result.state).toBe("INSUFFICIENT_SIGNAL");
+    expect(result.blockingCodes).toContain("STALE_SOURCE");
+    expect(isDelegable(result, "EXPIRED")).toBe(false);
+  });
+
+  it("continues to block when critical evidence expires even if optional evidence is current", () => {
+    const critical = requirement("critical.expired");
+    const optional = requirement({ requirementId: "optional.current", critical: false });
+    const cs = signal(critical, "critical", H_SOURCE, "40000000-0000-4000-8000-000000000047", "OBSERVED", "2026-08-18T13:00:00Z");
+    const os = signal(optional, "optional", H_SOURCE, "40000000-0000-4000-8000-000000000048", "OBSERVED", "2026-08-18T18:00:00Z");
+    const d = boundDependency([critical, optional], [cs, os]);
+    const result = evaluateMany([critical, optional], [qualify(critical, [cs], d), qualify(optional, [os], d)], d, "2026-08-18T14:00:00Z");
+    expect(result.state).toBe("INSUFFICIENT_SIGNAL");
+    expect(result.blockingCodes).toContain("STALE_SOURCE");
+  });
+
+  it("fails closed when optional evidence is semantically INVALID", () => {
+    const critical = requirement("critical.valid");
+    const optional = requirement({ requirementId: "optional.invalid", critical: false });
+    const cs = signal(critical, "critical", H_SOURCE, "40000000-0000-4000-8000-000000000049");
+    const os = signal(optional, "optional", H_SOURCE, "40000000-0000-4000-8000-000000000050");
+    const d = boundDependency([critical, optional], [cs, os]);
+    const oq = qualify(optional, [{ ...os, contentHash: H_OTHER } as never], d);
+    const result = evaluateMany([critical, optional], [qualify(critical, [cs], d), oq], d, at);
+    expect(oq.outcome).toBe("INVALID");
+    expect(result.state).toBe("INSUFFICIENT_SIGNAL");
+    expect(result.blockingCodes).toContain("INVALID_QUALIFICATION");
+  });
+
+  it("fails closed when an optional qualification hash is tampered", () => {
+    const critical = requirement("critical.hash");
+    const optional = requirement({ requirementId: "optional.hash", critical: false });
+    const cs = signal(critical, "critical", H_SOURCE, "40000000-0000-4000-8000-000000000051");
+    const os = signal(optional, "optional", H_SOURCE, "40000000-0000-4000-8000-000000000052");
+    const d = boundDependency([critical, optional], [cs, os]);
+    const oq = qualify(optional, [os], d);
+    const result = evaluateMany([critical, optional], [qualify(critical, [cs], d), { ...oq, qualificationContentHash: H_OTHER } as never], d, at);
+    expect(result.state).toBe("INSUFFICIENT_SIGNAL");
+    expect(result.blockingCodes).toContain("INVALID_QUALIFICATION");
+  });
+
+  it("fails closed when an optional qualification is from the future", () => {
+    const critical = requirement("critical.future");
+    const optional = requirement({ requirementId: "optional.future", critical: false });
+    const cs = signal(critical, "critical", H_SOURCE, "40000000-0000-4000-8000-000000000053");
+    const os = signal(optional, "optional", H_SOURCE, "40000000-0000-4000-8000-000000000054");
+    const d = boundDependency([critical, optional], [cs, os]);
+    const result = evaluateMany([critical, optional], [qualify(critical, [cs], d), qualify(optional, [os], d, "2026-08-18T14:00:00Z")], d, "2026-08-18T13:00:00Z");
+    expect(result.state).toBe("INSUFFICIENT_SIGNAL");
+    expect(result.blockingCodes).toContain("QUALIFICATION_FROM_FUTURE");
+  });
+
+  it("fails closed for an optional temporally impossible qualification", () => {
+    const critical = requirement("critical.temporal");
+    const optional = requirement({ requirementId: "optional.temporal", critical: false });
+    const cs = signal(critical, "critical", H_SOURCE, "40000000-0000-4000-8000-000000000055");
+    const os = signal(optional, "optional", H_SOURCE, "40000000-0000-4000-8000-000000000056", "OBSERVED", "2026-08-18T13:00:00Z");
+    const d = boundDependency([critical, optional], [cs, os]);
+    const oq = qualify(optional, [os], d);
+    const impossible = { ...oq, evidenceValidUntil: oq.qualifiedAt };
+    const { id: _id, qualificationContentHash: _hash, ...material } = impossible;
+    void _id; void _hash;
+    const repairedHash = { ...impossible, qualificationContentHash: canonicalSha256(material) };
+    const result = evaluateMany([critical, optional], [qualify(critical, [cs], d), repairedHash as never], d, at);
+    expect(result.state).toBe("INSUFFICIENT_SIGNAL");
+    expect(result.blockingCodes).toContain("INVALID_QUALIFICATION");
+  });
+
+  it("preserves explicit conditions without inventing one for optional expiry", () => {
+    const critical = requirement("critical.condition");
+    const optional = requirement({ requirementId: "optional.condition", critical: false });
+    const cs = signal(critical, "critical", H_SOURCE, "40000000-0000-4000-8000-000000000057");
+    const os = signal(optional, "optional", H_SOURCE, "40000000-0000-4000-8000-000000000058", "OBSERVED", "2026-08-18T13:00:00Z");
+    const d = boundDependency([critical, optional], [cs, os]);
+    const result = evaluateMany([critical, optional], [qualify(critical, [cs], d), qualify(optional, [os], d)], d, "2026-08-18T14:00:00Z", ["REVIEW"]);
+    expect(result.state).toBe("READY_WITH_CONDITIONS");
+    expect(result.conditionCodes).toEqual(["REVIEW"]);
+    expect(result.blockingCodes).not.toContain("STALE_SOURCE");
+    expect(isDelegable(result, "CURRENT")).toBe(false);
+  });
+
+  it("keeps optional non-qualified history non-blocking while critical evidence qualifies", () => {
+    const critical = requirement("critical.history");
+    const optional = requirement({ requirementId: "optional.history-missing", critical: false });
+    const cs = signal(critical, "critical", H_SOURCE, "40000000-0000-4000-8000-000000000059");
+    const d = boundDependency([critical, optional], [cs]);
+    const result = evaluateMany([critical, optional], [qualify(critical, [cs], d), qualify(optional, [], d)], d, at);
+    expect(result.state).toBe("READY");
+    expect(result.validUntil).toBeNull();
+  });
+
+  it("is stable when requirements and qualifications are supplied in reverse order", () => {
+    const critical = requirement("critical.order");
+    const optional = requirement({ requirementId: "optional.order", critical: false });
+    const cs = signal(critical, "critical", H_SOURCE, "40000000-0000-4000-8000-000000000060");
+    const os = signal(optional, "optional", H_SOURCE, "40000000-0000-4000-8000-000000000061", "OBSERVED", "2026-08-18T13:00:00Z");
+    const d = boundDependency([critical, optional], [cs, os]);
+    const qCritical = qualify(critical, [cs], d);
+    const qOptional = qualify(optional, [os], d);
+    const forward = evaluateMany([critical, optional], [qCritical, qOptional], d, "2026-08-18T14:00:00Z");
+    const reverse = evaluateMany([optional, critical], [qOptional, qCritical], d, "2026-08-18T14:00:00Z");
+    expect(forward.state).toBe("READY");
+    expect(reverse.state).toBe("READY");
+    expect(forward.validUntil).toBe(reverse.validUntil);
+  });
+
+  it("keeps multiple expired optional horizons outside the critical horizon", () => {
+    const critical = requirement("critical.multiple");
+    const optionalA = requirement({ requirementId: "optional.early", critical: false });
+    const optionalB = requirement({ requirementId: "optional.late", critical: false });
+    const cs = signal(critical, "critical", H_SOURCE, "40000000-0000-4000-8000-000000000062", "OBSERVED", "2026-08-18T16:00:00Z");
+    const as = signal(optionalA, "a", H_SOURCE, "40000000-0000-4000-8000-000000000063", "OBSERVED", "2026-08-18T13:00:00Z");
+    const bs = signal(optionalB, "b", H_SOURCE, "40000000-0000-4000-8000-000000000064", "OBSERVED", "2026-08-18T14:00:00Z");
+    const requirements = [critical, optionalA, optionalB];
+    const d = boundDependency(requirements, [cs, as, bs]);
+    const result = evaluateMany(requirements, [qualify(critical, [cs], d), qualify(optionalA, [as], d), qualify(optionalB, [bs], d)], d, "2026-08-18T15:00:00Z");
+    expect(result.state).toBe("READY");
+    expect(result.validUntil).toBe("2026-08-18T16:00:00.000Z");
+  });
+
+  it("keeps the critical readiness horizon unchanged across an optional current-to-expired transition", () => {
+    const critical = requirement("critical.transition");
+    const optional = requirement({ requirementId: "optional.transition", critical: false });
+    const cs = signal(critical, "critical", H_SOURCE, "40000000-0000-4000-8000-000000000067", "OBSERVED", "2026-08-18T16:00:00Z");
+    const currentOptional = signal(optional, "optional", H_SOURCE, "40000000-0000-4000-8000-000000000068", "OBSERVED", "2026-08-18T15:00:00Z");
+    const expiredOptional = signal(optional, "optional", H_SOURCE, "40000000-0000-4000-8000-000000000069", "OBSERVED", "2026-08-18T13:00:00Z");
+    const dCurrent = boundDependency([critical, optional], [cs, currentOptional]);
+    const dExpired = boundDependency([critical, optional], [cs, expiredOptional]);
+    const current = evaluateMany([critical, optional], [qualify(critical, [cs], dCurrent), qualify(optional, [currentOptional], dCurrent)], dCurrent, "2026-08-18T12:00:00Z");
+    const expired = evaluateMany([critical, optional], [qualify(critical, [cs], dExpired), qualify(optional, [expiredOptional], dExpired)], dExpired, "2026-08-18T14:00:00Z");
+    expect(current.state).toBe("READY");
+    expect(expired.state).toBe("READY");
+    expect(current.validUntil).toBe("2026-08-18T16:00:00.000Z");
+    expect(expired.validUntil).toBe("2026-08-18T16:00:00.000Z");
+  });
+});

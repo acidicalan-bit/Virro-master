@@ -469,7 +469,8 @@ export function evaluateDelegationReadiness(input: EvaluateReadinessInput): Dele
   const requirementDependencyMismatch = requirements.some((requirement) => requirement.blueprintHash !== dependency.blueprintHash || requirement.policyHash !== dependency.policyHash);
   const invalidQualifications = qualifications.some((qualification) => {
     const requirement = requirements.find((candidate) => candidate.requirementId === qualification.requirementId);
-    return !verifyQualificationHash(qualification)
+    return qualification.outcome === "INVALID"
+      || !verifyQualificationHash(qualification)
       || !qualificationTemporalCoherent(qualification)
       || !requirement
       || qualification.requirementDefinitionHash !== requirement.requirementDefinitionHash
@@ -532,10 +533,10 @@ export function evaluateDelegationReadiness(input: EvaluateReadinessInput): Dele
     .map((qualification) => qualification.evidenceValidUntil)
     .filter((validUntil): validUntil is string => validUntil !== null);
   const validUntil = earliestInstant(criticalEvidenceHorizons);
-  const materiallyExpiredQualification = qualifications.some((qualification) => qualification.outcome === "QUALIFIED" && qualification.evidenceValidUntil !== null && instantBeforeOrEqual(qualification.evidenceValidUntil, evaluationTime));
+  const expiredCriticalQualification = qualifications.some((qualification) => qualification.outcome === "QUALIFIED" && requirements.find((requirement) => requirement.requirementId === qualification.requirementId)?.critical === true && qualification.evidenceValidUntil !== null && instantBeforeOrEqual(qualification.evidenceValidUntil, evaluationTime));
   const causallyInvalidQualification = qualifications.some((qualification) => qualification.outcome === "QUALIFIED" && !qualificationTemporalCoherent(qualification));
   const futureCriticalQualification = qualifications.some((qualification) => qualification.outcome === "QUALIFIED" && instantEpoch(qualification.qualifiedAt) > instantEpoch(evaluationTime) && requirements.find((requirement) => requirement.requirementId === qualification.requirementId)?.critical);
-  if ((materiallyExpiredQualification || causallyInvalidQualification || futureCriticalQualification) && (state === "READY" || state === "READY_WITH_CONDITIONS")) {
+  if ((expiredCriticalQualification || causallyInvalidQualification || futureCriticalQualification) && (state === "READY" || state === "READY_WITH_CONDITIONS")) {
     state = "INSUFFICIENT_SIGNAL";
     blockingCodes.push(causallyInvalidQualification ? "QUALIFICATION_TEMPORAL_INVALID" : futureCriticalQualification ? "QUALIFICATION_FROM_FUTURE" : "STALE_SOURCE");
   }
