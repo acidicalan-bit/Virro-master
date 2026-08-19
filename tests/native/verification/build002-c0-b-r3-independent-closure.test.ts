@@ -150,7 +150,7 @@ describe.runIf(enabled && Boolean(sourceUrl))("independent BUILD 002-C0-B R3 nat
     for (const name of ["outcome_blueprints_previous_hash_shape", "outcome_requirement_profiles_previous_hash_shape", "outcome_blueprints_definition_id_match", "outcome_requirement_profiles_definition_blueprint_hash_match"]) {
       expect(named.rows.find((row) => row.conname === name)?.convalidated).toBe(true);
     }
-    const fk = await admin.query<{ convalidated: boolean; conrelid: string; confrelid: string; definition: string }>(`select c.convalidated, c.conrelid::regclass::text as conrelid, c.confrelid::regclass::text as confrelid, pg_get_constraintdef(c.oid) as definition from pg_constraint c where c.conname = 'outcome_requirement_profiles_blueprint_id_blueprint_version_blueprint_hash_fkey'`);
+    const fk = await admin.query<{ convalidated: boolean; conrelid: string; confrelid: string; definition: string }>(`select c.convalidated, c.conrelid::regclass::text as conrelid, c.confrelid::regclass::text as confrelid, pg_get_constraintdef(c.oid) as definition from pg_constraint c where c.conrelid = 'public.outcome_requirement_profiles'::regclass and c.contype = 'f'`);
     expect(fk.rows).toHaveLength(1);
     expect(fk.rows[0].convalidated).toBe(true);
     expect(fk.rows[0].definition).toContain("(blueprint_id, blueprint_version, blueprint_hash)");
