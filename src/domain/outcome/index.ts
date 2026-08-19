@@ -13,3 +13,4 @@ export * from "./cost-record";
 export * from "./media/media-asset-version";
 export * from "./media/preservation";
 export * from "./specification";
+export * from "./signal-readiness";
