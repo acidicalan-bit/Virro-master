@@ -118,12 +118,10 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD 002-B R2 independent nati
     const migrations = readdirSync(migrationsDir).filter((name) => name.endsWith(".sql")).sort();
     expect(migrations.length).toBeGreaterThan(20);
     for (const name of migrations) await admin.query(readFileSync(resolve(migrationsDir, name), "utf8"));
-    await admin.query(`
-      insert into auth.users(id) values ($1), ($2), ($3) on conflict do nothing;
-      insert into public.tenants(id, kind, personal_owner_principal_id, status) values ($4, 'PERSONAL', $1, 'ACTIVE'), ($5, 'PERSONAL', $2, 'ACTIVE') on conflict do nothing;
-      insert into public.tenant_memberships(id, tenant_id, principal_id, role, status) values ('30000000-0000-4000-8000-000000000001', $4, $1, 'OWNER', 'ACTIVE'), ('30000000-0000-4000-8000-000000000002', $5, $2, 'OWNER', 'ACTIVE') on conflict do nothing;
-      insert into public.outcome_transactions(id, owner_tenant_id, raw_request) values ($6, $4, 'A'), ($7, $5, 'B') on conflict do nothing;
-    `, [A, B, C, TA, TB, TXA, TXB]);
+    await admin.query("insert into auth.users(id) values ($1), ($2), ($3) on conflict do nothing", [A, B, C]);
+    await admin.query("insert into public.tenants(id, kind, personal_owner_principal_id, status) values ($1, 'PERSONAL', $3, 'ACTIVE'), ($2, 'PERSONAL', $4, 'ACTIVE') on conflict do nothing", [TA, TB, A, B]);
+    await admin.query("insert into public.tenant_memberships(id, tenant_id, principal_id, role, status) values ('30000000-0000-4000-8000-000000000001', $1, $3, 'OWNER', 'ACTIVE'), ('30000000-0000-4000-8000-000000000002', $2, $4, 'OWNER', 'ACTIVE') on conflict do nothing", [TA, TB, A, B]);
+    await admin.query("insert into public.outcome_transactions(id, owner_tenant_id, raw_request) values ($1, $3, 'A'), ($2, $4, 'B') on conflict do nothing", [TXA, TXB, TA, TB]);
     service = new Client({ connectionString: databaseUrl });
     await service.connect();
     await service.query("set role service_role");
