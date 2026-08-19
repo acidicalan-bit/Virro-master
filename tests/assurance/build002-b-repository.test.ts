@@ -242,6 +242,10 @@ describe("BUILD 002-B production repository contract", () => {
     const readinessRead = await repository.findReadiness(scope, READINESS_ID);
     expect(readinessRead).not.toBeNull();
     expect(verifyReadinessHash(readinessRead!)).toBe(true);
+    db.tables.build002_delegation_readiness[0].created_at = "not-a-timestamp";
+    await expect(repository.findReadiness(scope, READINESS_ID)).rejects.toThrow("BUILD002_INVALID_DB_TIMESTAMP");
+    db.tables.build002_delegation_readiness[0].created_at = "2026-08-19T12:00:00.000001Z";
+    await expect(repository.findReadiness(scope, READINESS_ID)).rejects.toThrow("BUILD002_DB_TIMESTAMP_PRECISION_UNSUPPORTED");
     expect(db.rpcCalls.map((call) => call.name)).toEqual([
       "build002_insert_signal_requirement",
       "build002_insert_signal",

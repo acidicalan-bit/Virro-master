@@ -24,6 +24,8 @@ const VERSION_A = "70000000-0000-4000-8000-000000000001";
 const VERSION_B = "70000000-0000-4000-8000-000000000002";
 const SIGNAL_A = "80000000-0000-4000-8000-000000000001";
 const SIGNAL_B = "80000000-0000-4000-8000-000000000002";
+const SIGNAL_B2 = "80000000-0000-4000-8000-000000000003";
+const SIGNAL_B3 = "80000000-0000-4000-8000-000000000004";
 const DEPENDENCY_ID = "90000000-0000-4000-8000-000000000001";
 const QUALIFICATION_ID = "90000000-0000-4000-8000-000000000002";
 const READINESS_ID = "90000000-0000-4000-8000-000000000003";
@@ -34,9 +36,13 @@ const QUALIFICATION_HASH = "d".repeat(64);
 const READINESS_HASH = "e".repeat(64);
 const REQUIREMENT_B_HASH = "f".repeat(64);
 const SIGNAL_B_HASH = "1".repeat(64);
+const SIGNAL_B2_HASH = "5".repeat(64);
+const SIGNAL_B3_HASH = "6".repeat(64);
 const DEPENDENCY_B_HASH = "2".repeat(64);
 const QUALIFICATION_B_HASH = "3".repeat(64);
 const READINESS_B_HASH = "4".repeat(64);
+const DEPENDENCY_B_MULTI_HASH = "8".repeat(64);
+const QUALIFICATION_B_MULTI_HASH = "9".repeat(64);
 
 describe.runIf(enabled && Boolean(databaseUrl))("BUILD 002-B native PostgreSQL E3", () => {
   let admin: Client;
@@ -373,5 +379,59 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD 002-B native PostgreSQL E
       await first.end();
       await second.end();
     }
+  });
+
+  it("binds a three-signal qualification to the exact relational triples", async () => {
+    await service.query("set role service_role");
+    const signals = [
+      { signal_id: SIGNAL_B2, content_hash: SIGNAL_B2_HASH },
+      { signal_id: SIGNAL_B3, content_hash: SIGNAL_B3_HASH },
+    ];
+    for (const signal of signals) {
+      await service.query("select public.build002_insert_signal($1::jsonb)", [JSON.stringify({
+        signal_id: signal.signal_id, owner_tenant_id: TENANT_B, outcome_transaction_id: TX_B,
+        requirement_id: "signal.other", requirement_definition_hash: REQUIREMENT_B_HASH,
+        payload: { value: signal.signal_id }, source: { identity: "fixture", version: "1", hash: null },
+        provenance: "OBSERVED", captured_at: "2026-08-19T12:00:00.000Z", valid_until: null,
+        dependency_identity: "asset.version", dependency_hash: signal.content_hash,
+        schema_version: "build002-signal-v0.2", content_hash: signal.content_hash,
+      })]);
+    }
+    const dependency = {
+      owner_tenant_id: TENANT_B, outcome_transaction_id: TX_B,
+      requirement_definition_hashes: [REQUIREMENT_B_HASH],
+      signal_references: [
+        { requirementId: "signal.other", signalId: SIGNAL_B, contentHash: SIGNAL_B_HASH },
+        { requirementId: "signal.other", signalId: SIGNAL_B2, contentHash: SIGNAL_B2_HASH },
+        { requirementId: "signal.other", signalId: SIGNAL_B3, contentHash: SIGNAL_B3_HASH },
+      ],
+      dependency_bindings: [], blueprint_hash: null, policy_hash: null, task_spec_hash: null,
+      transaction_semantic_hash: null, source_asset_version_hash: null, context_lens_hash: null,
+      schema_version: "build002-dependency-snapshot-v0.2", dependency_snapshot_hash: DEPENDENCY_B_MULTI_HASH,
+    };
+    await service.query("select public.build002_insert_dependency_snapshot($1::jsonb)", [JSON.stringify(dependency)]);
+    const dependencyRow = await service.query<{ id: string }>("select id::text from public.build002_dependency_snapshots where dependency_snapshot_hash = $1", [DEPENDENCY_B_MULTI_HASH]);
+    const qualificationId = "90000000-0000-4000-8000-000000000007";
+    await service.query("select public.build002_insert_signal_qualification($1::jsonb, $2::uuid)", [JSON.stringify({
+      id: qualificationId, owner_tenant_id: TENANT_B, outcome_transaction_id: TX_B,
+      requirement_id: "signal.other", requirement_definition_hash: REQUIREMENT_B_HASH,
+      dependency_snapshot_hash: DEPENDENCY_B_MULTI_HASH,
+      signalIds: [SIGNAL_B, SIGNAL_B2, SIGNAL_B3],
+      signalContentHashes: [SIGNAL_B_HASH, SIGNAL_B2_HASH, SIGNAL_B3_HASH],
+      evaluator: { schemaVersion: "build002-qualification-evaluator-v0.1", version: "0.1.0", definitionHash: QUALIFICATION_B_MULTI_HASH },
+      outcome: "QUALIFIED", reason_code: "SIGNAL_QUALIFIED", evidence_valid_until: null,
+      qualified_at: "2026-08-19T12:00:00.000Z", schema_version: "build002-signal-qualification-v0.3",
+      qualification_content_hash: QUALIFICATION_B_MULTI_HASH,
+    }), dependencyRow.rows[0].id]);
+    const links = await admin.query<{ signal_id: string; signal_content_hash: string }>(
+      "select signal_id::text, signal_content_hash from public.build002_qualification_signals where qualification_id = $1 order by signal_id",
+      [qualificationId],
+    );
+    expect(links.rows).toEqual([
+      { signal_id: SIGNAL_B, signal_content_hash: SIGNAL_B_HASH },
+      { signal_id: SIGNAL_B2, signal_content_hash: SIGNAL_B2_HASH },
+      { signal_id: SIGNAL_B3, signal_content_hash: SIGNAL_B3_HASH },
+    ].sort((left, right) => left.signal_id.localeCompare(right.signal_id)));
+    await service.query("reset role");
   });
 });
