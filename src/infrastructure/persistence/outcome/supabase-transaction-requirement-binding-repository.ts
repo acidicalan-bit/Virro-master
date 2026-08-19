@@ -120,6 +120,17 @@ function bindingFromRow(row: Row): OutcomeTransactionRequirementBinding {
     requirementProfile: { id: String(row.requirement_profile_id), version: Number(row.requirement_profile_version), hash: String(row.requirement_profile_hash) },
     policy: { id: row.policy_id === null ? null : String(row.policy_id), hash: row.policy_hash === null ? null : String(row.policy_hash) },
     bindingHash: String(row.binding_hash),
-    boundAt: String(row.bound_at),
+    boundAt: normalizeDbInstant(row.bound_at),
   });
+}
+
+function normalizeDbInstant(value: unknown): string {
+  const candidate = value instanceof Date ? value.toISOString() : String(value);
+  const parsed = new Date(candidate);
+  if (!Number.isFinite(parsed.getTime())) throw new Error("BUILD002_INVALID_DB_TIMESTAMP");
+  const fraction = candidate.match(/\.(\d+)(?:Z|[+-]\d{2}:?\d{2})$/)?.[1];
+  if (fraction && fraction.length > 3 && /[^0]/.test(fraction.slice(3))) {
+    throw new Error("BUILD002_DB_TIMESTAMP_PRECISION_UNSUPPORTED");
+  }
+  return parsed.toISOString();
 }

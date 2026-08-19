@@ -74,7 +74,10 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD 002-C0-C native PostgreSQ
       create or replace function auth.uid() returns uuid language sql stable
       as $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
       create schema if not exists storage;
-      create table if not exists storage.buckets (id text primary key, name text not null unique, public boolean not null default false);
+      create table if not exists storage.buckets (
+        id text primary key, name text not null unique, public boolean not null default false,
+        file_size_limit bigint, allowed_mime_types text[]
+      );
     `);
     for (const name of readdirSync(migrationsDir).filter((item) => item.endsWith(".sql")).sort()) {
       await admin.query(readFileSync(resolve(migrationsDir, name), "utf8"));
@@ -113,6 +116,28 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD 002-C0-C native PostgreSQ
     expect(version.rows[0].version).toMatch(/PostgreSQL 17/i);
     const migrations = readdirSync(migrationsDir).filter((item) => item.endsWith(".sql"));
     expect(migrations.filter((name) => name.startsWith("20260819150000_build_002_c0_c_")).length).toBe(1);
+    expect(migrations).toHaveLength(29);
+    expect(migrations.sort()[0]).toBe("20260809110000_intent_lab_build_001.sql");
+    expect(migrations.sort().at(-1)).toBe("20260819150000_build_002_c0_c_transaction_requirement_binding.sql");
+
+    const key = await admin.query<{ indexdef: string }>("select indexdef from pg_indexes where schemaname='public' and indexname='outcome_transactions_owner_id_uq'");
+    expect(key.rows[0]?.indexdef).toMatch(/owner_tenant_id, id/);
+    const constraints = await admin.query<{ definition: string }>(`select pg_get_constraintdef(oid) as definition
+      from pg_constraint where conrelid = 'public.outcome_transaction_requirement_bindings'::regclass`);
+    const definitions = constraints.rows.map((row) => row.definition.toUpperCase());
+    expect(definitions.some((item) => item.includes("PRIMARY KEY (OWNER_TENANT_ID, OUTCOME_TRANSACTION_ID)"))).toBe(true);
+    expect(definitions.some((item) => item.includes("FOREIGN KEY (OWNER_TENANT_ID, OUTCOME_TRANSACTION_ID)") && item.includes("ON DELETE RESTRICT"))).toBe(true);
+    expect(definitions.some((item) => item.includes("FOREIGN KEY (BLUEPRINT_ID, BLUEPRINT_VERSION, BLUEPRINT_HASH)"))).toBe(true);
+    expect(definitions.some((item) => item.includes("FOREIGN KEY (REQUIREMENT_PROFILE_ID, REQUIREMENT_PROFILE_VERSION, REQUIREMENT_PROFILE_HASH)"))).toBe(true);
+    const table = await admin.query<{ relrowsecurity: boolean }>("select relrowsecurity from pg_class where oid='public.outcome_transaction_requirement_bindings'::regclass");
+    expect(table.rows[0].relrowsecurity).toBe(true);
+    const triggers = await admin.query<{ tgname: string; tgenabled: string }>(`select tgname, tgenabled from pg_trigger
+      where tgrelid='public.outcome_transaction_requirement_bindings'::regclass and not tgisinternal`);
+    expect(triggers.rows.filter((row) => row.tgenabled === "O").map((row) => row.tgname)).toEqual(expect.arrayContaining([
+      "outcome_transaction_requirement_bindings_tenant_guard",
+      "outcome_transaction_requirement_bindings_profile_guard",
+      "outcome_transaction_requirement_bindings_immutable",
+    ]));
   });
 
   it("allows exactly one RPC binding and denies direct service-role table writes", async () => {
@@ -126,6 +151,11 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD 002-C0-C native PostgreSQ
     await service.query("select public.build002_bind_outcome_transaction_requirements($1::jsonb)", [JSON.stringify(payload)]);
     const row = await service.query("select owner_tenant_id,outcome_transaction_id,binding_hash from public.outcome_transaction_requirement_bindings where owner_tenant_id=$1 and outcome_transaction_id=$2", [TENANT_A, TX_A]);
     expect(row.rowCount).toBe(1); expect(row.rows[0].binding_hash).toBe(binding.bindingHash);
+    await expectRejected(service, "delete from public.outcome_transactions where id=$1", [TX_A]);
+    await service.query("set role anon");
+    await expectRejected(service, "select public.build002_bind_outcome_transaction_requirements($1::jsonb)", [JSON.stringify(payload)]);
+    await service.query("reset role; set role service_role");
+    await expectRejected(service, "select public.build002_bind_outcome_transaction_requirements($1::jsonb)", [JSON.stringify({ ...payload, policy_id: "deferred", policy_hash: "a".repeat(64) })]);
   });
 
   it("rejects duplicates, cross-tenant transactions and Profile→Blueprint mismatches", async () => {

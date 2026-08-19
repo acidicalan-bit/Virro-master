@@ -59,6 +59,11 @@ jobs:
           BUILD002_NATIVE_PG_C0_B: "true"
           BUILD002_NATIVE_PG_URL: postgresql://postgres:postgres@localhost:5432/virro_e3_c0_b
         run: pnpm exec vitest run tests/native/build002-c0-b-postgres.e3.test.ts --reporter=verbose
+      - name: E3 native PostgreSQL 17 C0-C transaction binding boundary
+        env:
+          BUILD002_NATIVE_PG_C0_C: "true"
+          BUILD002_NATIVE_PG_URL: postgresql://postgres:postgres@localhost:5432/virro_e3_c0_c
+        run: pnpm exec vitest run tests/native/build002-c0-c-postgres.e3.test.ts --reporter=verbose
       - name: TypeScript and ESLint
         run: pnpm typecheck && pnpm lint
       - name: Complete deterministic regression

@@ -15,3 +15,7 @@ The composite primary key `(owner_tenant_id, outcome_transaction_id)` gives one 
 Only `build002_bind_outcome_transaction_requirements(jsonb)` can write the table. The table grants `SELECT` only to `service_role`; direct service-role insert/update/delete and anon/authenticated access are revoked. The server-only repository requires a non-empty trusted `ownerTenantId`, derives the transaction check through the existing tenant-scoped transaction repository, and revalidates the persisted C0-B catalog on both write and read. It exposes only `publish` and `get`; there is no rebind, update, delete, or list-all operation.
 
 This phase adds no HTTP route, readiness evaluation, signal ingestion, executor, mutation lease, or canonical state side effect. A changed authority requires a new outcome transaction.
+
+## R1 transport closure
+
+The domain keeps `boundAt` as a canonical UTC ISO instant. The server-only repository normalizes PostgreSQL/PostgREST `timestamptz` values, including explicit offsets, before domain parsing and rejects invalid or unsupported non-zero sub-millisecond precision. `bindingHash` continues to exclude `boundAt`. The native E3 harness creates a fresh disposable PostgreSQL 17 database, applies the complete migration chain once in lexical order, and is a required deterministic workflow step. C0-D remains unimplemented.
