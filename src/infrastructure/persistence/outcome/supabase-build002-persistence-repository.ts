@@ -1,6 +1,7 @@
 import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { canonicalSha256 } from "@/src/domain/outcome/specification/canonical";
 import type {
   DelegationReadiness,
   DependencySnapshot,
@@ -100,35 +101,11 @@ export class SupabaseBuild002PersistenceRepository implements Build002Persistenc
     this.assertScope(scope);
     this.assertDomainScope(scope, snapshot.ownerTenantId, snapshot.transactionId);
     if (!verifyDependencySnapshotHash(snapshot)) throw new Error("BUILD002_DEPENDENCY_HASH_INVALID");
-    const { data, error } = await this.client.from("build002_dependency_snapshots").insert({
-      owner_tenant_id: this.ownerTenantId,
-      outcome_transaction_id: scope.outcomeTransactionId,
-      requirement_definition_hashes: snapshot.requirementDefinitionHashes,
-      signal_references: snapshot.signalReferences,
-      dependency_bindings: snapshot.dependencyBindings,
-      blueprint_hash: snapshot.blueprintHash,
-      policy_hash: snapshot.policyHash,
-      task_spec_hash: snapshot.taskSpecHash,
-      transaction_semantic_hash: snapshot.transactionSemanticHash,
-      source_asset_version_hash: snapshot.sourceAssetVersionHash,
-      context_lens_hash: snapshot.contextLensHash,
-      schema_version: snapshot.schemaVersion,
-      dependency_snapshot_hash: snapshot.dependencySnapshotHash,
-    }).select("*").single();
+    const { data, error } = await this.client.rpc("build002_insert_dependency_snapshot", {
+      p_snapshot: dependencyRpcPayload(this.ownerTenantId, scope.outcomeTransactionId, snapshot),
+    });
     if (error || !data) throw new Error("BUILD002_DEPENDENCY_PERSISTENCE_FAILED");
-    const row = data as Row;
-    const id = String(row.id);
-    const requirementLinks = snapshot.requirementDefinitionHashes.map((hash) => ({ owner_tenant_id: this.ownerTenantId, outcome_transaction_id: scope.outcomeTransactionId, dependency_snapshot_id: id, requirement_definition_hash: hash }));
-    const signalLinks = snapshot.signalReferences.map((reference) => ({ owner_tenant_id: this.ownerTenantId, outcome_transaction_id: scope.outcomeTransactionId, dependency_snapshot_id: id, signal_id: reference.signalId, signal_content_hash: reference.contentHash, requirement_id: reference.requirementId }));
-    if (requirementLinks.length > 0) {
-      const { error: linkError } = await this.client.from("build002_dependency_requirements").insert(requirementLinks);
-      if (linkError) throw new Error("BUILD002_DEPENDENCY_REQUIREMENT_LINEAGE_FAILED");
-    }
-    if (signalLinks.length > 0) {
-      const { error: linkError } = await this.client.from("build002_dependency_signals").insert(signalLinks);
-      if (linkError) throw new Error("BUILD002_DEPENDENCY_SIGNAL_LINEAGE_FAILED");
-    }
-    return id;
+    return String(data);
   }
 
   async findDependencySnapshot(scope: Build002TenantSnapshotScope, dependencySnapshotHash: string): Promise<DependencySnapshot | null> {
@@ -142,31 +119,19 @@ export class SupabaseBuild002PersistenceRepository implements Build002Persistenc
     this.assertScope(scope);
     this.assertDomainScope(scope, qualification.ownerTenantId, qualification.transactionId);
     if (!verifyQualificationHash(qualification)) throw new Error("BUILD002_QUALIFICATION_HASH_INVALID");
-    const { data, error } = await this.client.from("build002_signal_qualifications").insert({
-      id: qualification.id,
-      owner_tenant_id: this.ownerTenantId,
-      outcome_transaction_id: scope.outcomeTransactionId,
-      requirement_id: qualification.requirementId,
-      requirement_definition_hash: requirementDefinitionHash,
-      dependency_snapshot_id: dependencySnapshotId,
-      dependency_snapshot_hash: qualification.dependencySnapshotHash,
-      signal_ids: qualification.signalIds,
-      signal_content_hashes: qualification.signalContentHashes,
-      evaluator: qualification.evaluator,
-      outcome: qualification.outcome,
-      reason_code: qualification.reasonCode,
-      evidence_valid_until: qualification.evidenceValidUntil,
-      qualified_at: qualification.qualifiedAt,
-      schema_version: qualification.schemaVersion,
-      qualification_content_hash: qualification.qualificationContentHash,
-    }).select("*").single();
-    if (error || !data) throw new Error("BUILD002_QUALIFICATION_PERSISTENCE_FAILED");
-    const links = qualification.signalIds.map((signalId, index) => ({ owner_tenant_id: this.ownerTenantId, outcome_transaction_id: scope.outcomeTransactionId, qualification_id: qualification.id, qualification_content_hash: qualification.qualificationContentHash, signal_id: signalId, signal_content_hash: qualification.signalContentHashes[index] ?? qualification.signalContentHashes[0] }));
-    if (links.length > 0) {
-      const { error: linkError } = await this.client.from("build002_qualification_signals").insert(links);
-      if (linkError) throw new Error("BUILD002_QUALIFICATION_SIGNAL_LINEAGE_FAILED");
+    if (requirementDefinitionHash !== qualification.requirementDefinitionHash) throw new Error("BUILD002_QUALIFICATION_REQUIREMENT_BINDING_MISMATCH");
+    const dependency = await this.findDependencySnapshot(scope, qualification.dependencySnapshotHash);
+    if (!dependency || dependency.dependencySnapshotHash !== qualification.dependencySnapshotHash) throw new Error("BUILD002_QUALIFICATION_DEPENDENCY_BINDING_MISMATCH");
+    const references = dependency.signalReferences.filter((reference) => reference.requirementId === qualification.requirementId);
+    if (!sameSet(references.map((reference) => reference.signalId), qualification.signalIds) || !sameSet(references.map((reference) => reference.contentHash), qualification.signalContentHashes)) {
+      throw new Error("BUILD002_QUALIFICATION_SIGNAL_SET_MISMATCH");
     }
-    return qualificationFromRow(data as Row);
+    const { data, error } = await this.client.rpc("build002_insert_signal_qualification", {
+      p_qualification: qualificationRpcPayload(this.ownerTenantId, scope.outcomeTransactionId, qualification),
+      p_dependency_snapshot_id: dependencySnapshotId,
+    });
+    if (error || !data) throw new Error("BUILD002_QUALIFICATION_PERSISTENCE_FAILED");
+    return qualification;
   }
 
   async findQualification(scope: Build002TenantSnapshotScope, qualificationId: string): Promise<SignalQualification | null> {
@@ -180,34 +145,25 @@ export class SupabaseBuild002PersistenceRepository implements Build002Persistenc
     this.assertScope(scope);
     this.assertDomainScope(scope, readiness.ownerTenantId, readiness.transactionId);
     if (!verifyReadinessHash(readiness)) throw new Error("BUILD002_READINESS_HASH_INVALID");
-    const { data, error } = await this.client.from("build002_delegation_readiness").insert({
-      id: readiness.id,
-      owner_tenant_id: this.ownerTenantId,
-      outcome_transaction_id: scope.outcomeTransactionId,
-      requirement_set_hash: readiness.requirementSetHash,
-      qualification_set_hash: readiness.qualificationSetHash,
-      dependency_snapshot_id: dependencySnapshotId,
-      dependency_snapshot_hash: readiness.dependencySnapshotHash,
-      task_spec_hash: readiness.taskSpecHash,
-      source_asset_version_hash: readiness.sourceAssetVersionHash,
-      blueprint_hash: readiness.blueprintHash,
-      policy_hash: readiness.policyHash,
-      evaluator: readiness.evaluator,
-      state: readiness.state,
-      blocking_codes: readiness.blockingCodes,
-      condition_codes: readiness.conditionCodes,
-      created_at: readiness.createdAt,
-      valid_until: readiness.validUntil,
-      schema_version: readiness.schemaVersion,
-      readiness_content_hash: readiness.readinessContentHash,
-    }).select("*").single();
-    if (error || !data) throw new Error("BUILD002_READINESS_PERSISTENCE_FAILED");
-    if (qualificationLinks.length > 0) {
-      const links = qualificationLinks.map((link) => ({ owner_tenant_id: this.ownerTenantId, outcome_transaction_id: scope.outcomeTransactionId, readiness_id: readiness.id, readiness_content_hash: readiness.readinessContentHash, qualification_id: link.qualificationId, qualification_content_hash: link.qualificationContentHash }));
-      const { error: linkError } = await this.client.from("build002_readiness_qualifications").insert(links);
-      if (linkError) throw new Error("BUILD002_READINESS_QUALIFICATION_LINEAGE_FAILED");
+    const qualifications: SignalQualification[] = [];
+    for (const link of qualificationLinks) {
+      const qualification = await this.findQualification(scope, link.qualificationId);
+      if (!qualification || qualification.qualificationContentHash !== link.qualificationContentHash || qualification.dependencySnapshotHash !== readiness.dependencySnapshotHash || !verifyQualificationHash(qualification)) {
+        throw new Error("BUILD002_READINESS_QUALIFICATION_BINDING_MISMATCH");
+      }
+      qualifications.push(qualification);
     }
-    return readinessFromRow(data as Row);
+    const qualificationSetHash = canonicalSha256(qualifications.map((qualification) => ({ id: qualification.requirementId, hash: qualification.qualificationContentHash })).sort((left, right) => left.id.localeCompare(right.id) || left.hash.localeCompare(right.hash)));
+    const requirementSetHash = canonicalSha256(qualifications.map((qualification) => ({ id: qualification.requirementId, hash: qualification.requirementDefinitionHash })).sort((left, right) => left.id.localeCompare(right.id)));
+    if (qualificationSetHash !== readiness.qualificationSetHash) throw new Error("BUILD002_READINESS_QUALIFICATION_SET_MISMATCH");
+    if (requirementSetHash !== readiness.requirementSetHash) throw new Error("BUILD002_READINESS_REQUIREMENT_SET_MISMATCH");
+    const { data, error } = await this.client.rpc("build002_insert_delegation_readiness", {
+      p_readiness: readinessRpcPayload(this.ownerTenantId, scope.outcomeTransactionId, readiness),
+      p_dependency_snapshot_id: dependencySnapshotId,
+      p_qualification_ids: qualificationLinks.map((link) => link.qualificationId),
+    });
+    if (error || !data) throw new Error("BUILD002_READINESS_PERSISTENCE_FAILED");
+    return readiness;
   }
 
   async findReadiness(scope: Build002TenantSnapshotScope, readinessId: string): Promise<DelegationReadiness | null> {
@@ -256,4 +212,69 @@ function qualificationFromRow(row: Row): SignalQualification {
 
 function readinessFromRow(row: Row): DelegationReadiness {
   return DelegationReadinessSchema.parse({ schemaVersion: String(row.schema_version), id: String(row.id), ownerTenantId: String(row.owner_tenant_id), transactionId: String(row.outcome_transaction_id), requirementSetHash: String(row.requirement_set_hash), qualificationSetHash: String(row.qualification_set_hash), dependencySnapshotHash: String(row.dependency_snapshot_hash), taskSpecHash: row.task_spec_hash === null ? null : String(row.task_spec_hash), sourceAssetVersionHash: row.source_asset_version_hash === null ? null : String(row.source_asset_version_hash), blueprintHash: row.blueprint_hash === null ? null : String(row.blueprint_hash), policyHash: row.policy_hash === null ? null : String(row.policy_hash), evaluator: row.evaluator, state: String(row.state), blockingCodes: row.blocking_codes, conditionCodes: row.condition_codes, createdAt: String(row.created_at), validUntil: row.valid_until === null ? null : String(row.valid_until), readinessContentHash: String(row.readiness_content_hash) });
+}
+
+function sameSet(left: string[], right: string[]): boolean {
+  return left.length === right.length && new Set(left).size === left.length && new Set(right).size === right.length && left.every((value) => right.includes(value));
+}
+
+function dependencyRpcPayload(ownerTenantId: string, transactionId: string, snapshot: DependencySnapshot): Row {
+  return {
+    owner_tenant_id: ownerTenantId,
+    outcome_transaction_id: transactionId,
+    requirement_definition_hashes: snapshot.requirementDefinitionHashes,
+    signal_references: snapshot.signalReferences.map((reference) => ({ requirementId: reference.requirementId, signalId: reference.signalId, contentHash: reference.contentHash })),
+    dependency_bindings: snapshot.dependencyBindings,
+    blueprint_hash: snapshot.blueprintHash,
+    policy_hash: snapshot.policyHash,
+    task_spec_hash: snapshot.taskSpecHash,
+    transaction_semantic_hash: snapshot.transactionSemanticHash,
+    source_asset_version_hash: snapshot.sourceAssetVersionHash,
+    context_lens_hash: snapshot.contextLensHash,
+    schema_version: snapshot.schemaVersion,
+    dependency_snapshot_hash: snapshot.dependencySnapshotHash,
+  };
+}
+
+function qualificationRpcPayload(ownerTenantId: string, transactionId: string, qualification: SignalQualification): Row {
+  return {
+    owner_tenant_id: ownerTenantId,
+    outcome_transaction_id: transactionId,
+    id: qualification.id,
+    requirement_id: qualification.requirementId,
+    requirement_definition_hash: qualification.requirementDefinitionHash,
+    dependency_snapshot_hash: qualification.dependencySnapshotHash,
+    signalIds: qualification.signalIds,
+    signalContentHashes: qualification.signalContentHashes,
+    evaluator: qualification.evaluator,
+    outcome: qualification.outcome,
+    reason_code: qualification.reasonCode,
+    evidence_valid_until: qualification.evidenceValidUntil,
+    qualified_at: qualification.qualifiedAt,
+    schema_version: qualification.schemaVersion,
+    qualification_content_hash: qualification.qualificationContentHash,
+  };
+}
+
+function readinessRpcPayload(ownerTenantId: string, transactionId: string, readiness: DelegationReadiness): Row {
+  return {
+    owner_tenant_id: ownerTenantId,
+    outcome_transaction_id: transactionId,
+    id: readiness.id,
+    requirement_set_hash: readiness.requirementSetHash,
+    qualification_set_hash: readiness.qualificationSetHash,
+    dependency_snapshot_hash: readiness.dependencySnapshotHash,
+    task_spec_hash: readiness.taskSpecHash,
+    source_asset_version_hash: readiness.sourceAssetVersionHash,
+    blueprint_hash: readiness.blueprintHash,
+    policy_hash: readiness.policyHash,
+    evaluator: readiness.evaluator,
+    state: readiness.state,
+    blocking_codes: readiness.blockingCodes,
+    condition_codes: readiness.conditionCodes,
+    created_at: readiness.createdAt,
+    valid_until: readiness.validUntil,
+    schema_version: readiness.schemaVersion,
+    readiness_content_hash: readiness.readinessContentHash,
+  };
 }

@@ -33,6 +33,14 @@ const SIGNAL_HASH = "b".repeat(64);
 const DEPENDENCY_HASH = "c".repeat(64);
 const QUALIFICATION_HASH = "d".repeat(64);
 const READINESS_HASH = "e".repeat(64);
+const WRONG_HASH = "1".repeat(64);
+const SECOND_QUALIFICATION_HASH = "e".repeat(64);
+const ATOMIC_DEPENDENCY_HASH = "9".repeat(64);
+const ATOMIC_INVALID_HASH = "8".repeat(64);
+const RPC_QUALIFICATION_ID = "90000000-0000-4000-8000-000000000098";
+const RPC_QUALIFICATION_HASH = "4".repeat(64);
+const RPC_READINESS_ID = "90000000-0000-4000-8000-000000000097";
+const RPC_READINESS_HASH = "5".repeat(64);
 
 describe("BUILD 002-B immutable readiness persistence and tenant RLS (PGlite support)", () => {
   let db: Db;
@@ -121,8 +129,8 @@ describe("BUILD 002-B immutable readiness persistence and tenant RLS (PGlite sup
         '{"schemaVersion":"build002-qualification-evaluator-v0.1","version":"0.1.0","definitionHash":"${QUALIFICATION_HASH}"}'::jsonb,
         'QUALIFIED', 'SIGNAL_QUALIFIED', null, now(), 'build002-signal-qualification-v0.3', '${QUALIFICATION_HASH}'
       from public.build002_dependency_snapshots where dependency_snapshot_hash = '${DEPENDENCY_HASH}';
-      insert into public.build002_qualification_signals(owner_tenant_id, outcome_transaction_id, qualification_id, qualification_content_hash, signal_id, signal_content_hash)
-      select '${TENANT_A}', '${TX_A}', id, '${QUALIFICATION_HASH}', '${SIGNAL_A}', '${SIGNAL_HASH}' from public.build002_signal_qualifications where qualification_content_hash = '${QUALIFICATION_HASH}';
+      insert into public.build002_qualification_signals(owner_tenant_id, outcome_transaction_id, qualification_id, qualification_content_hash, signal_id, signal_content_hash, requirement_id)
+      select '${TENANT_A}', '${TX_A}', id, '${QUALIFICATION_HASH}', '${SIGNAL_A}', '${SIGNAL_HASH}', 'signal.readiness' from public.build002_signal_qualifications where qualification_content_hash = '${QUALIFICATION_HASH}';
       insert into public.build002_delegation_readiness(
         owner_tenant_id, outcome_transaction_id, requirement_set_hash, qualification_set_hash,
         dependency_snapshot_id, dependency_snapshot_hash, task_spec_hash, source_asset_version_hash,
@@ -175,12 +183,89 @@ describe("BUILD 002-B immutable readiness persistence and tenant RLS (PGlite sup
 
   it("rejects cross-tenant and missing-parent lineage", async () => {
     await db.exec("set role service_role");
+    const dependency = await db.query<{ id: string }>("insert into public.build002_dependency_snapshots(owner_tenant_id, outcome_transaction_id, requirement_definition_hashes, signal_references, dependency_bindings, schema_version, dependency_snapshot_hash) values ($1, $2, $3::jsonb, '[]'::jsonb, '[]'::jsonb, 'build002-dependency-snapshot-v0.2', $4) returning id::text", [TENANT_A, TX_A, JSON.stringify([REQUIREMENT_HASH]), "f".repeat(64)]);
+    const qualification = await db.query<{ id: string }>("insert into public.build002_signal_qualifications(id, owner_tenant_id, outcome_transaction_id, requirement_id, requirement_definition_hash, dependency_snapshot_id, dependency_snapshot_hash, signal_ids, signal_content_hashes, evaluator, outcome, reason_code, qualified_at, schema_version, qualification_content_hash) values ('90000000-0000-4000-8000-000000000099', $1, $2, 'signal.readiness', $3, $4, $5, '[]'::jsonb, '[]'::jsonb, '{\"schemaVersion\":\"build002-qualification-evaluator-v0.1\",\"version\":\"0.1.0\",\"definitionHash\":\"${QUALIFICATION_HASH}\"}'::jsonb, 'MISSING', 'SIGNAL_MISSING', now(), 'build002-signal-qualification-v0.3', $6) returning id::text", [TENANT_A, TX_A, REQUIREMENT_HASH, dependency.rows[0].id, "f".repeat(64), SECOND_QUALIFICATION_HASH]);
+    await expectSqlError(db, `insert into public.build002_dependency_signals(owner_tenant_id, outcome_transaction_id, dependency_snapshot_id, signal_id, signal_content_hash, requirement_id) values ('${TENANT_A}', '${TX_A}', '${dependency.rows[0].id}', '${SIGNAL_A}', '${WRONG_HASH}', 'signal.readiness')`, "violates foreign key");
+    await expectSqlError(db, `insert into public.build002_qualification_signals(owner_tenant_id, outcome_transaction_id, qualification_id, qualification_content_hash, signal_id, signal_content_hash, requirement_id) values ('${TENANT_A}', '${TX_A}', '${qualification.rows[0].id}', '${SECOND_QUALIFICATION_HASH}', '${SIGNAL_A}', '${WRONG_HASH}', 'signal.readiness')`, "violates foreign key");
     await expectSqlError(db, `insert into public.build002_signals(signal_id, owner_tenant_id, outcome_transaction_id, requirement_id, requirement_definition_hash, payload, source, provenance, captured_at, dependency_identity, dependency_hash, schema_version, content_hash) values ('${SIGNAL_B}', '${TENANT_B}', '${TX_B}', 'signal.readiness', '${REQUIREMENT_HASH}', '{}'::jsonb, '{}'::jsonb, 'OBSERVED', now(), 'asset.version', '${SIGNAL_HASH}', 'build002-signal-v0.2', '${SIGNAL_HASH}')`, "violates foreign key");
     await expectSqlError(db, `insert into public.build002_dependency_requirements(owner_tenant_id, outcome_transaction_id, dependency_snapshot_id, requirement_definition_hash) values ('${TENANT_A}', '${TX_A}', '90000000-0000-4000-8000-000000000099', '${REQUIREMENT_HASH}')`, "violates foreign key");
     await db.exec("reset role");
   });
+
+  it("uses the atomic RPCs and rolls back a failed child lineage", async () => {
+    await db.exec("set role service_role");
+    const snapshot = {
+      owner_tenant_id: TENANT_A,
+      outcome_transaction_id: TX_A,
+      requirement_definition_hashes: [REQUIREMENT_HASH],
+      signal_references: [{ requirementId: "signal.readiness", signalId: SIGNAL_A, contentHash: SIGNAL_HASH }],
+      dependency_bindings: [],
+      blueprint_hash: null,
+      policy_hash: null,
+      task_spec_hash: null,
+      transaction_semantic_hash: null,
+      source_asset_version_hash: null,
+      context_lens_hash: null,
+      schema_version: "build002-dependency-snapshot-v0.2",
+      dependency_snapshot_hash: ATOMIC_DEPENDENCY_HASH,
+    };
+    const inserted = await db.query<{ id: string }>("select public.build002_insert_dependency_snapshot($1::jsonb) as id", [JSON.stringify(snapshot)]);
+    expect(inserted.rows[0].id).toBeTruthy();
+    const before = await db.query<{ count: number }>("select count(*)::integer as count from public.build002_dependency_snapshots");
+    const invalid = { ...snapshot, dependency_snapshot_hash: ATOMIC_INVALID_HASH, signal_references: [{ requirementId: "signal.readiness", signalId: SIGNAL_A, contentHash: "2".repeat(64) }] };
+    await expectSqlError(db, "select public.build002_insert_dependency_snapshot($1::jsonb)", "violates foreign key", JSON.stringify(invalid));
+    const after = await db.query<{ count: number }>("select count(*)::integer as count from public.build002_dependency_snapshots");
+    expect(after.rows[0].count).toBe(before.rows[0].count);
+    const baseDependency = await db.query<{ id: string }>("select id::text from public.build002_dependency_snapshots where dependency_snapshot_hash = $1", [DEPENDENCY_HASH]);
+    const qualification = {
+      owner_tenant_id: TENANT_A,
+      outcome_transaction_id: TX_A,
+      id: RPC_QUALIFICATION_ID,
+      requirement_id: "signal.readiness",
+      requirement_definition_hash: REQUIREMENT_HASH,
+      dependency_snapshot_hash: DEPENDENCY_HASH,
+      signalIds: [SIGNAL_A],
+      signalContentHashes: [SIGNAL_HASH],
+      evaluator: { schemaVersion: "build002-qualification-evaluator-v0.1", version: "0.1.0", definitionHash: RPC_QUALIFICATION_HASH },
+      outcome: "QUALIFIED",
+      reason_code: "SIGNAL_QUALIFIED",
+      evidence_valid_until: null,
+      qualified_at: "2026-08-18T12:00:00.000Z",
+      schema_version: "build002-signal-qualification-v0.3",
+      qualification_content_hash: RPC_QUALIFICATION_HASH,
+    };
+    const qInserted = await db.query<{ id: string }>("select public.build002_insert_signal_qualification($1::jsonb, $2::uuid) as id", [JSON.stringify(qualification), baseDependency.rows[0].id]);
+    expect(qInserted.rows[0].id).toBe(RPC_QUALIFICATION_ID);
+    const readiness = {
+      owner_tenant_id: TENANT_A,
+      outcome_transaction_id: TX_A,
+      id: RPC_READINESS_ID,
+      requirement_set_hash: REQUIREMENT_HASH,
+      qualification_set_hash: RPC_QUALIFICATION_HASH,
+      dependency_snapshot_hash: DEPENDENCY_HASH,
+      task_spec_hash: null,
+      source_asset_version_hash: null,
+      blueprint_hash: null,
+      policy_hash: null,
+      evaluator: { schemaVersion: "build002-qualification-evaluator-v0.1", version: "0.1.0", definitionHash: RPC_READINESS_HASH },
+      state: "READY",
+      blocking_codes: [],
+      condition_codes: [],
+      created_at: "2026-08-18T12:00:00.000Z",
+      valid_until: null,
+      schema_version: "build002-signal-readiness-v0.3",
+      readiness_content_hash: RPC_READINESS_HASH,
+    };
+    const rInserted = await db.query<{ id: string }>("select public.build002_insert_delegation_readiness($1::jsonb, $2::uuid, $3::jsonb) as id", [JSON.stringify(readiness), baseDependency.rows[0].id, JSON.stringify([RPC_QUALIFICATION_ID])]);
+    expect(rInserted.rows[0].id).toBe(RPC_READINESS_ID);
+    const readinessBefore = await db.query<{ count: number }>("select count(*)::integer as count from public.build002_delegation_readiness");
+    await expectSqlError(db, "select public.build002_insert_delegation_readiness($1::jsonb, $2::uuid, $3::jsonb)", "BUILD002_READINESS_QUALIFICATION_BINDING_MISMATCH", JSON.stringify({ ...readiness, id: "90000000-0000-4000-8000-000000000096", readiness_content_hash: "6".repeat(64) }), baseDependency.rows[0].id, JSON.stringify(["90000000-0000-4000-8000-000000000095"]));
+    const readinessAfter = await db.query<{ count: number }>("select count(*)::integer as count from public.build002_delegation_readiness");
+    expect(readinessAfter.rows[0].count).toBe(readinessBefore.rows[0].count);
+    await db.exec("reset role");
+  });
 });
 
-async function expectSqlError(db: Db, sql: string, message: string): Promise<void> {
-  await expect(db.exec(sql)).rejects.toThrow(message);
+async function expectSqlError(db: Db, sql: string, message: string, ...params: unknown[]): Promise<void> {
+  await expect(db.query(sql, params)).rejects.toThrow(message);
 }
