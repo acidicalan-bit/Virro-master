@@ -1,0 +1,42 @@
+name: BUILD 002-B R2 independent native closure
+
+on:
+  pull_request:
+    branches:
+      - build/build002-b-persistence-rls
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  native-closure:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: virro_verify
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d virro_verify"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Run independent native PostgreSQL closure verifier
+        env:
+          BUILD002_NATIVE_PG_VERIFY: "true"
+          BUILD002_NATIVE_PG_VERIFY_URL: postgresql://postgres:postgres@localhost:5432/virro_verify
+        run: pnpm exec vitest run tests/verification/build002-b-r2-independent-postgres.e3.test.ts --reporter=verbose --maxWorkers=1
