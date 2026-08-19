@@ -165,7 +165,8 @@ const DependencyInputSchema = z.object({
   ownerTenantId: UuidSchema,
   transactionId: UuidSchema,
   requirementDefinitionHashes: z.array(HashSchema),
-  signalReferences: z.array(z.object({ signalId: UuidSchema, contentHash: HashSchema }).strict()),
+  signalReferences: z.array(z.object({ requirementId: z.string().trim().min(1).max(120), signalId: UuidSchema, contentHash: HashSchema }).strict()),
+  dependencyBindings: z.array(z.object({ identity: z.string().trim().min(1).max(240), hash: HashSchema }).strict()),
   blueprintHash: HashSchema.nullable(),
   policyHash: HashSchema.nullable(),
   taskSpecHash: HashSchema.nullable(),
@@ -178,14 +179,32 @@ export const DependencySnapshotSchema = DependencyInputSchema.extend({ dependenc
 export type DependencySnapshot = z.infer<typeof DependencySnapshotSchema>;
 export type DependencySnapshotInput = z.infer<typeof DependencyInputSchema>;
 
-export function createDependencySnapshot(input: DependencySnapshotInput): DependencySnapshot {
-  const parsed = DependencyInputSchema.parse(input);
-  const normalized = {
+function normalizeDependencyInput(parsed: DependencySnapshotInput): DependencySnapshotInput {
+  const bindings = new Map<string, string>();
+  for (const binding of parsed.dependencyBindings) {
+    const previous = bindings.get(binding.identity);
+    if (previous && previous !== binding.hash) throw new Error(`Conflicting dependency binding: ${binding.identity}`);
+    bindings.set(binding.identity, binding.hash);
+  }
+  const references = new Map<string, typeof parsed.signalReferences[number]>();
+  const referencesBySignalId = new Map<string, typeof parsed.signalReferences[number]>();
+  for (const reference of parsed.signalReferences) {
+    const key = reference.signalId;
+    const previous = referencesBySignalId.get(key);
+    if (previous && (previous.contentHash !== reference.contentHash || previous.requirementId !== reference.requirementId)) throw new Error(`Conflicting signal reference: ${reference.signalId}`);
+    referencesBySignalId.set(key, reference);
+    references.set(`${reference.requirementId}:${reference.signalId}:${reference.contentHash}`, reference);
+  }
+  return {
     ...parsed,
     requirementDefinitionHashes: [...new Set(parsed.requirementDefinitionHashes)].sort(),
-    signalReferences: [...new Map(parsed.signalReferences.map((reference) => [`${reference.signalId}:${reference.contentHash}`, reference])).values()]
-      .sort((left, right) => left.signalId.localeCompare(right.signalId) || left.contentHash.localeCompare(right.contentHash)),
+    signalReferences: [...references.values()].sort((left, right) => left.requirementId.localeCompare(right.requirementId) || left.signalId.localeCompare(right.signalId) || left.contentHash.localeCompare(right.contentHash)),
+    dependencyBindings: [...bindings.entries()].map(([identity, hash]) => ({ identity, hash })).sort((left, right) => left.identity.localeCompare(right.identity)),
   };
+}
+
+export function createDependencySnapshot(input: DependencySnapshotInput): DependencySnapshot {
+  const normalized = normalizeDependencyInput(DependencyInputSchema.parse(input));
   const dependencySnapshotHash = canonicalSha256(normalized);
   return immutableCopy(DependencySnapshotSchema.parse({ ...normalized, dependencySnapshotHash }));
 }
@@ -194,12 +213,11 @@ export function verifyDependencySnapshotHash(snapshot: DependencySnapshot): bool
   const parsed = DependencySnapshotSchema.parse(snapshot);
   const { dependencySnapshotHash: _hash, ...material } = parsed;
   void _hash;
-  return canonicalSha256({
-    ...material,
-    requirementDefinitionHashes: [...new Set(material.requirementDefinitionHashes)].sort(),
-    signalReferences: [...new Map(material.signalReferences.map((reference) => [`${reference.signalId}:${reference.contentHash}`, reference])).values()]
-      .sort((left, right) => left.signalId.localeCompare(right.signalId) || left.contentHash.localeCompare(right.contentHash)),
-  }) === parsed.dependencySnapshotHash;
+  try {
+    return canonicalSha256(normalizeDependencyInput(material)) === parsed.dependencySnapshotHash;
+  } catch {
+    return false;
+  }
 }
 
 const EvaluatorInputSchema = z.object({
@@ -231,6 +249,7 @@ export type EvaluateQualificationInput = {
   signals: Signal[];
   currentDependencySnapshot: DependencySnapshot;
   evaluator?: z.infer<typeof EvaluatorInputSchema>;
+  evaluationTime?: string;
   qualifiedAt?: string;
   idFactory?: () => string;
 };
@@ -240,21 +259,32 @@ function qualificationReason(outcome: QualificationOutcome): string {
 }
 
 function signalValueKey(signal: Signal): string {
-  return canonicalSha256({ payload: signal.payload, source: signal.source, provenance: signal.provenance, validUntil: signal.validUntil });
+  return canonicalSha256(signal.payload);
 }
 
 export function evaluateSignalQualification(input: EvaluateQualificationInput): SignalQualification {
   const requirement = SignalRequirementSchema.parse(input.requirement);
   const signals = input.signals.map((signal) => SignalSchema.parse(signal));
   const currentDependencySnapshot = DependencySnapshotSchema.parse(input.currentDependencySnapshot);
+  const invalid = (reasonCode: string) => buildQualification({ requirement, signals, dependency: currentDependencySnapshot, outcome: "INVALID", reasonCode, evaluator: input.evaluator, qualifiedAt: input.qualifiedAt, idFactory: input.idFactory });
   if (!verifySignalRequirementHash(requirement) || !verifyDependencySnapshotHash(currentDependencySnapshot)) {
-    return buildQualification({ requirement, signals: [], dependency: currentDependencySnapshot, outcome: "INVALID", reasonCode: "INVALID_DEFINITION_OR_DEPENDENCY", evaluator: input.evaluator, qualifiedAt: input.qualifiedAt, idFactory: input.idFactory });
+    return invalid("INVALID_DEFINITION_OR_DEPENDENCY");
   }
-  const applicable = signals.filter((signal) => signal.requirementId === requirement.requirementId && signal.ownerTenantId === currentDependencySnapshot.ownerTenantId && signal.transactionId === currentDependencySnapshot.transactionId);
+  if (!currentDependencySnapshot.requirementDefinitionHashes.includes(requirement.requirementDefinitionHash)) return invalid("REQUIREMENT_NOT_BOUND");
+  const requiredBindings = requirement.dependencySelectors.filter((selector) => selector.required).map((selector) => selector.identity);
+  if (requiredBindings.some((identity) => !currentDependencySnapshot.dependencyBindings.some((binding) => binding.identity === identity))) return invalid("DEPENDENCY_BINDING_MISSING");
+  if (signals.some((signal) => signal.requirementId !== requirement.requirementId || signal.ownerTenantId !== currentDependencySnapshot.ownerTenantId || signal.transactionId !== currentDependencySnapshot.transactionId)) return invalid("SIGNAL_SUBJECT_MISMATCH");
+  const applicable = signals;
   if (applicable.length === 0) return buildQualification({ requirement, signals: [], dependency: currentDependencySnapshot, outcome: "MISSING", reasonCode: qualificationReason("MISSING"), evaluator: input.evaluator, qualifiedAt: input.qualifiedAt, idFactory: input.idFactory });
-  if (applicable.some((signal) => !verifySignalContentHash(signal))) return buildQualification({ requirement, signals: applicable, dependency: currentDependencySnapshot, outcome: "INVALID", reasonCode: "SIGNAL_CONTENT_HASH_INVALID", evaluator: input.evaluator, qualifiedAt: input.qualifiedAt, idFactory: input.idFactory });
-  const currentSourceDependencyHash = currentDependencySnapshot.sourceAssetVersionHash ?? currentDependencySnapshot.transactionSemanticHash ?? currentDependencySnapshot.dependencySnapshotHash;
-  if (applicable.some((signal) => signal.dependency.hash !== currentSourceDependencyHash)) return buildQualification({ requirement, signals: applicable, dependency: currentDependencySnapshot, outcome: "STALE_SOURCE", reasonCode: qualificationReason("STALE_SOURCE"), evaluator: input.evaluator, qualifiedAt: input.qualifiedAt, idFactory: input.idFactory });
+  if (applicable.some((signal) => !verifySignalContentHash(signal))) return invalid("SIGNAL_CONTENT_HASH_INVALID");
+  const expectedReferences = currentDependencySnapshot.signalReferences.filter((reference) => reference.requirementId === requirement.requirementId);
+  const expectedKeys = new Set(expectedReferences.map((reference) => `${reference.signalId}:${reference.contentHash}`));
+  const suppliedKeys = new Set(applicable.map((signal) => `${signal.signalId}:${signal.contentHash}`));
+  if (expectedKeys.size !== expectedReferences.length || suppliedKeys.size !== applicable.length || expectedKeys.size !== suppliedKeys.size || [...expectedKeys].some((key) => !suppliedKeys.has(key))) return invalid("SIGNAL_SET_NOT_BOUND");
+  const allowedDependencyIdentities = new Set(requirement.dependencySelectors.map((selector) => selector.identity));
+  if (applicable.some((signal) => !allowedDependencyIdentities.has(signal.dependency.identity) || !currentDependencySnapshot.dependencyBindings.some((binding) => binding.identity === signal.dependency.identity && binding.hash === signal.dependency.hash))) return buildQualification({ requirement, signals: applicable, dependency: currentDependencySnapshot, outcome: "STALE_SOURCE", reasonCode: "DEPENDENCY_IDENTITY_MISMATCH", evaluator: input.evaluator, qualifiedAt: input.qualifiedAt, idFactory: input.idFactory });
+  const evaluationTime = input.evaluationTime ?? new Date().toISOString();
+  if (applicable.some((signal) => signal.validUntil !== null && signal.validUntil <= evaluationTime)) return buildQualification({ requirement, signals: applicable, dependency: currentDependencySnapshot, outcome: "STALE_SOURCE", reasonCode: "SIGNAL_EXPIRED", evaluator: input.evaluator, qualifiedAt: input.qualifiedAt, idFactory: input.idFactory });
   if (applicable.some((signal) => !requirement.acceptedProvenance.includes(signal.provenance))) return buildQualification({ requirement, signals: applicable, dependency: currentDependencySnapshot, outcome: "INCOMPATIBLE_PROVENANCE", reasonCode: qualificationReason("INCOMPATIBLE_PROVENANCE"), evaluator: input.evaluator, qualifiedAt: input.qualifiedAt, idFactory: input.idFactory });
   if (applicable.some((signal) => signal.provenance === "UNKNOWN" || signal.payload === undefined || signal.payload === null)) return buildQualification({ requirement, signals: applicable, dependency: currentDependencySnapshot, outcome: "UNKNOWN", reasonCode: qualificationReason("UNKNOWN"), evaluator: input.evaluator, qualifiedAt: input.qualifiedAt, idFactory: input.idFactory });
   if (requirement.qualificationRule.humanReviewRequired) return buildQualification({ requirement, signals: applicable, dependency: currentDependencySnapshot, outcome: "REQUIRES_HUMAN_REVIEW", reasonCode: qualificationReason("REQUIRES_HUMAN_REVIEW"), evaluator: input.evaluator, qualifiedAt: input.qualifiedAt, idFactory: input.idFactory });
@@ -327,31 +357,61 @@ export function evaluateDelegationReadiness(input: EvaluateReadinessInput): Dele
   const ownerTenantId = input.subject?.ownerTenantId ?? dependency.ownerTenantId;
   const transactionId = input.subject?.transactionId ?? dependency.transactionId;
   const requirementSetHash = canonicalSha256(requirements.map((requirement) => ({ id: requirement.requirementId, hash: requirement.requirementDefinitionHash })).sort((left, right) => left.id.localeCompare(right.id)));
-  const qualificationSetHash = canonicalSha256(qualifications.map((qualification) => ({ id: qualification.requirementId, hash: qualification.qualificationContentHash })).sort((left, right) => left.id.localeCompare(right.id)));
+  const qualificationSetHash = canonicalSha256(qualifications.map((qualification) => ({ id: qualification.requirementId, hash: qualification.qualificationContentHash })).sort((left, right) => left.id.localeCompare(right.id) || left.hash.localeCompare(right.hash)));
   const blockingCodes: string[] = [];
   let state: ReadinessAssessmentState;
+  const requirementIds = requirements.map((requirement) => requirement.requirementId);
+  const qualificationIds = qualifications.map((qualification) => qualification.requirementId);
+  const duplicateRequirementIds = new Set(requirementIds).size !== requirementIds.length;
+  const duplicateQualificationIds = new Set(qualificationIds).size !== qualificationIds.length;
+  const requiredDefinitionHashes = [...new Set(requirements.map((requirement) => requirement.requirementDefinitionHash))].sort();
+  const snapshotDefinitionHashes = [...new Set(dependency.requirementDefinitionHashes)].sort();
+  const requirementSetMismatch = requiredDefinitionHashes.length !== snapshotDefinitionHashes.length || requiredDefinitionHashes.some((hash, index) => hash !== snapshotDefinitionHashes[index]);
+  const unknownSnapshotSignalRequirement = dependency.signalReferences.some((reference) => !requirementIds.includes(reference.requirementId));
+  const invalidDefinitions = requirements.some((requirement) => !verifySignalRequirementHash(requirement));
+  const invalidQualifications = qualifications.some((qualification) => {
+    const requirement = requirements.find((candidate) => candidate.requirementId === qualification.requirementId);
+    return !verifyQualificationHash(qualification)
+      || !requirement
+      || qualification.requirementDefinitionHash !== requirement.requirementDefinitionHash
+      || qualification.ownerTenantId !== ownerTenantId
+      || qualification.transactionId !== transactionId
+      || qualification.dependencySnapshotHash !== dependency.dependencySnapshotHash;
+  });
+  const qualificationSetMismatch = requirementIds.length !== qualificationIds.length
+    || new Set(requirementIds).size !== new Set(qualificationIds).size
+    || requirementIds.some((id) => !qualificationIds.includes(id));
+  const bindingMismatch = (input.taskSpecHash !== undefined && input.taskSpecHash !== dependency.taskSpecHash)
+    || (input.sourceAssetVersionHash !== undefined && input.sourceAssetVersionHash !== dependency.sourceAssetVersionHash)
+    || (input.blueprintHash !== undefined && input.blueprintHash !== dependency.blueprintHash)
+    || (input.policyHash !== undefined && input.policyHash !== dependency.policyHash);
+  const structuralInvalid = duplicateRequirementIds || duplicateQualificationIds || requirementSetMismatch || unknownSnapshotSignalRequirement || invalidDefinitions || invalidQualifications || qualificationSetMismatch || bindingMismatch;
   if (input.policyBlock) {
     state = "BLOCKED_BY_POLICY";
     blockingCodes.push(input.policyBlock);
   } else if (!input.subject || input.subject.ownerTenantId !== dependency.ownerTenantId || input.subject.transactionId !== dependency.transactionId) {
     state = "NEEDS_CONTEXT";
     blockingCodes.push("SUBJECT_CONTEXT_REQUIRED");
+  } else if (requirements.length === 0) {
+    state = "INSUFFICIENT_SIGNAL";
+    blockingCodes.push("REQUIREMENT_SET_EMPTY");
+  } else if (structuralInvalid) {
+    state = "INSUFFICIENT_SIGNAL";
+    if (duplicateRequirementIds) blockingCodes.push("DUPLICATE_REQUIREMENT_ID");
+    if (duplicateQualificationIds) blockingCodes.push("DUPLICATE_QUALIFICATION_ID");
+    if (requirementSetMismatch) blockingCodes.push("REQUIREMENT_SET_MISMATCH");
+    if (unknownSnapshotSignalRequirement) blockingCodes.push("UNKNOWN_SNAPSHOT_SIGNAL_REQUIREMENT");
+    if (invalidDefinitions) blockingCodes.push("INVALID_REQUIREMENT_DEFINITION");
+    if (invalidQualifications) blockingCodes.push("INVALID_QUALIFICATION");
+    if (qualificationSetMismatch) blockingCodes.push("QUALIFICATION_SET_MISMATCH");
+    if (bindingMismatch) blockingCodes.push("READINESS_BINDING_MISMATCH");
   } else {
     const byId = new Map(qualifications.map((qualification) => [qualification.requirementId, qualification]));
     const missing = requirements.filter((requirement) => !byId.has(requirement.requirementId));
     const critical = requirements.filter((requirement) => requirement.critical).map((requirement) => byId.get(requirement.requirementId));
-    const invalidDefinitions = requirements.some((requirement) => !verifySignalRequirementHash(requirement));
-    const invalidQualifications = qualifications.some((qualification) => {
-      const requirement = requirements.find((candidate) => candidate.requirementId === qualification.requirementId);
-      return !verifyQualificationHash(qualification) || !requirement || qualification.requirementDefinitionHash !== requirement.requirementDefinitionHash || qualification.ownerTenantId !== ownerTenantId || qualification.transactionId !== transactionId;
-    });
     const review = critical.find((qualification) => qualification?.outcome === "REQUIRES_HUMAN_REVIEW");
     const nonQualifiedCritical = critical.filter((qualification) => !qualification || qualification.outcome !== "QUALIFIED");
-    if (invalidDefinitions || invalidQualifications) {
-      state = "INSUFFICIENT_SIGNAL";
-      if (invalidDefinitions) blockingCodes.push("INVALID_REQUIREMENT_DEFINITION");
-      if (invalidQualifications) blockingCodes.push("INVALID_QUALIFICATION");
-    } else if (review) {
+    if (review) {
       state = "HUMAN_REVIEW_REQUIRED";
       blockingCodes.push("CRITICAL_REVIEW_REQUIRED");
     } else if (missing.length > 0 || nonQualifiedCritical.length > 0) {
@@ -365,7 +425,7 @@ export function evaluateDelegationReadiness(input: EvaluateReadinessInput): Dele
     }
   }
   const conditionCodes = [...new Set(input.conditionCodes ?? [])].sort();
-  const material = { schemaVersion: BUILD002_SIGNAL_READINESS_SCHEMA_VERSION, ownerTenantId, transactionId, requirementSetHash, qualificationSetHash, dependencySnapshotHash: dependency.dependencySnapshotHash, taskSpecHash: input.taskSpecHash ?? null, sourceAssetVersionHash: input.sourceAssetVersionHash ?? null, blueprintHash: input.blueprintHash ?? null, policyHash: input.policyHash ?? null, evaluator, state, blockingCodes: [...new Set(blockingCodes)].sort(), conditionCodes };
+  const material = { schemaVersion: BUILD002_SIGNAL_READINESS_SCHEMA_VERSION, ownerTenantId, transactionId, requirementSetHash, qualificationSetHash, dependencySnapshotHash: dependency.dependencySnapshotHash, taskSpecHash: dependency.taskSpecHash, sourceAssetVersionHash: dependency.sourceAssetVersionHash, blueprintHash: dependency.blueprintHash, policyHash: dependency.policyHash, evaluator, state, blockingCodes: [...new Set(blockingCodes)].sort(), conditionCodes };
   return immutableCopy(DelegationReadinessSchema.parse({ ...material, id: input.idFactory?.() ?? crypto.randomUUID(), createdAt: input.createdAt ?? new Date().toISOString(), validUntil: input.validUntil ?? null, readinessContentHash: canonicalSha256(material) }));
 }
 
