@@ -25,6 +25,7 @@ import type {
   CriterionEvidenceRecord,
   CreateCriterionEvidenceRecord,
 } from "@/src/domain/outcome/criterion-evidence";
+import type { OutcomeTransactionRequirementBindingRepository } from "@/src/application/ports/outcome/transaction-requirement-binding-repository";
 
 export type { CriterionEvidenceRecord, CreateCriterionEvidenceRecord } from "@/src/domain/outcome/criterion-evidence";
 import type {
@@ -584,6 +585,7 @@ export type RepositoryBundle = {
   preservationEvidence: PreservationEvidenceRepository;
   candidatePreferences: CandidatePreferenceRepository;
   build002Readiness?: Build002PersistenceRepository;
+  outcomeTransactionRequirementBindings?: OutcomeTransactionRequirementBindingRepository;
   storageMode: "supabase" | "memory";
 };
 
