@@ -33,6 +33,7 @@ Changed only development assurance persistence, the tenant-scoped repository bun
 - E2 production repository test: `tests/assurance/build002-b-repository.test.ts`, 3/3 PASS.
 - New dependency: test-only `pg` and `@types/pg`; no production import.
 - B1-B4 are addressed in code, but candidate status remains pending the protected CI native PostgreSQL result. E4, API, executor, execution binding, and BUILD002-C/D/E remain unproven and out of scope.
+- Protected CI run `32250314495` passed at head `6dbc458641eff48b428afe2e6db072b139d40ea1`: PostgreSQL 17 native E3, E0-E2, full deterministic regression, TypeScript, ESLint, and production build all PASS. E4 remains not run.
 
 ## Known boundaries
 

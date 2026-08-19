@@ -10,3 +10,11 @@ The test uses the declared `pg` dev dependency, applies every repository migrati
 
 Local Windows cannot execute this lane because no native PostgreSQL server, `psql`, `pg_isready`, or Docker is installed. Therefore local evidence remains `PGlite support`; native E3 becomes claimable only from the protected GitHub Actions run for the corrective head.
 
+Protected CI evidence:
+
+- Workflow run: `32250314495`
+- Corrective head: `6dbc458641eff48b428afe2e6db072b139d40ea1`
+- PostgreSQL service: `postgres:17`
+- Required context: `Required E0-E3 deterministic gates` PASS
+- Native E3 step: PASS
+- Full deterministic regression and production build: PASS
