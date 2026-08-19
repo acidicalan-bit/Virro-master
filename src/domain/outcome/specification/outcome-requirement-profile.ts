@@ -87,10 +87,13 @@ function definitionFromProfile(profile: OutcomeRequirementProfile): OutcomeRequi
 export function publishOutcomeRequirementProfile(
   input: OutcomeRequirementProfileDefinition,
   publishedAt: string,
-  blueprint?: OutcomeBlueprint,
+  blueprint: OutcomeBlueprint,
 ): OutcomeRequirementProfile {
   const definition = normalizeDefinition(input);
-  if (blueprint && !verifyOutcomeRequirementProfileBlueprintBinding({ ...definition, hash: canonicalSha256(definition), status: "PUBLISHED", publishedAt }, blueprint)) {
+  if (definition.policy !== null) {
+    throw new Error("OUTCOME_REQUIREMENT_PROFILE_POLICY_UNRESOLVED");
+  }
+  if (!verifyOutcomeRequirementProfileBlueprintBinding({ ...definition, hash: canonicalSha256(definition), status: "PUBLISHED", publishedAt }, blueprint)) {
     throw new Error("OUTCOME_REQUIREMENT_PROFILE_BLUEPRINT_MISMATCH");
   }
   return immutableCopy(OutcomeRequirementProfileSchema.parse({
@@ -128,12 +131,13 @@ export function verifyOutcomeRequirementProfileBlueprintBinding(profile: Outcome
 export function compileSignalRequirements(
   profile: OutcomeRequirementProfile,
   createdAt: string,
-  blueprint?: OutcomeBlueprint,
+  blueprint: OutcomeBlueprint,
 ): SignalRequirement[] {
   const parsed = OutcomeRequirementProfileSchema.parse(profile);
   if (parsed.status !== "PUBLISHED") throw new Error("OUTCOME_REQUIREMENT_PROFILE_NOT_PUBLISHED");
   if (!verifyOutcomeRequirementProfileHash(parsed)) throw new Error("OUTCOME_REQUIREMENT_PROFILE_HASH_INVALID");
-  if (blueprint && !verifyOutcomeRequirementProfileBlueprintBinding(parsed, blueprint)) throw new Error("OUTCOME_REQUIREMENT_PROFILE_BLUEPRINT_MISMATCH");
+  if (parsed.policy !== null) throw new Error("OUTCOME_REQUIREMENT_PROFILE_POLICY_UNRESOLVED");
+  if (!verifyOutcomeRequirementProfileBlueprintBinding(parsed, blueprint)) throw new Error("OUTCOME_REQUIREMENT_PROFILE_BLUEPRINT_MISMATCH");
   return parsed.requirements.map((requirement) => compileSignalRequirement({
     requirementId: requirement.requirementId,
     subjectKind: "OUTCOME_TRANSACTION",
@@ -154,7 +158,7 @@ export function compileSignalRequirements(
 export class InMemoryOutcomeRequirementProfileRegistry {
   private readonly versions = new Map<string, OutcomeRequirementProfile>();
 
-  publish(input: OutcomeRequirementProfileDefinition, publishedAt: string, blueprint?: OutcomeBlueprint): OutcomeRequirementProfile {
+  publish(input: OutcomeRequirementProfileDefinition, publishedAt: string, blueprint: OutcomeBlueprint): OutcomeRequirementProfile {
     const profile = publishOutcomeRequirementProfile(input, publishedAt, blueprint);
     const key = this.key(profile.id, profile.version);
     if (this.versions.has(key)) throw new Error("Published Requirement Profile versions are immutable.");

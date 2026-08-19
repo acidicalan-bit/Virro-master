@@ -13,6 +13,7 @@ import {
 } from "@/src/domain/outcome/specification/outcome-requirement-profile";
 import { publishOutcomeBlueprint, verifyOutcomeBlueprintHash, type OutcomeBlueprint } from "@/src/domain/outcome/specification/outcome-blueprint";
 import { verifySignalRequirementHash } from "@/src/domain/outcome/signal-readiness";
+import { canonicalSha256 } from "@/src/domain/outcome/specification/canonical";
 
 const PUBLISHED_AT = "2026-08-19T12:00:00.000Z";
 const CREATED_AT = "2026-08-19T12:01:00.000Z";
@@ -129,35 +130,71 @@ describe("BUILD002-C0-A OutcomeRequirementProfile", () => {
 
   it("keeps definition hashes independent of createdAt and compiler permutations", () => {
     const profile = published();
-    const first = compileSignalRequirements(profile, "2026-08-19T12:01:00.000Z");
-    const second = compileSignalRequirements(profile, "2026-08-20T12:01:00.000Z");
+    const current = blueprint();
+    const first = compileSignalRequirements(profile, "2026-08-19T12:01:00.000Z", current);
+    const second = compileSignalRequirements(profile, "2026-08-20T12:01:00.000Z", current);
     expect(first.map((item) => item.requirementDefinitionHash)).toEqual(second.map((item) => item.requirementDefinitionHash));
-    const reversed = publishOutcomeRequirementProfile(definition({ requirements: [...profile.requirements].reverse() }), PUBLISHED_AT, blueprint());
-    expect(compileSignalRequirements(reversed, CREATED_AT).map((item) => item.requirementDefinitionHash)).toEqual(first.map((item) => item.requirementDefinitionHash));
+    const reversed = publishOutcomeRequirementProfile(definition({ requirements: [...profile.requirements].reverse() }), PUBLISHED_AT, current);
+    expect(compileSignalRequirements(reversed, CREATED_AT, current).map((item) => item.requirementDefinitionHash)).toEqual(first.map((item) => item.requirementDefinitionHash));
   });
 
   it("fails closed for unpublished or hash-invalid profiles", () => {
     const profile = published();
-    expect(() => compileSignalRequirements({ ...profile, status: "RETIRED" }, CREATED_AT)).toThrow("NOT_PUBLISHED");
-    expect(() => compileSignalRequirements({ ...profile, hash: "e".repeat(64) }, CREATED_AT)).toThrow("HASH_INVALID");
-    expect(() => compileSignalRequirements({ ...profile, schemaVersion: "unsupported-v9" as never }, CREATED_AT)).toThrow();
+    expect(() => compileSignalRequirements({ ...profile, status: "RETIRED" }, CREATED_AT, blueprint())).toThrow("NOT_PUBLISHED");
+    expect(() => compileSignalRequirements({ ...profile, hash: "e".repeat(64) }, CREATED_AT, blueprint())).toThrow("HASH_INVALID");
+    expect(() => compileSignalRequirements({ ...profile, schemaVersion: "unsupported-v9" as never }, CREATED_AT, blueprint())).toThrow();
   });
 
   it("rejects invalid, retired, and mismatched Blueprint bindings", () => {
     const current = blueprint();
     const other = publishOutcomeBlueprint(createPrecisionEditBlueprintDefinition({ outcomeType: "OTHER_OUTCOME" }), PUBLISHED_AT);
+    const { hash: currentHash, status: currentStatus, publishedAt: currentPublishedAt, ...currentDefinition } = current;
+    void currentHash;
+    void currentStatus;
+    void currentPublishedAt;
+    const differentId = {
+      ...current,
+      id: "60000000-0000-4000-8000-000000000001",
+      hash: canonicalSha256({ ...currentDefinition, id: "60000000-0000-4000-8000-000000000001" }),
+    };
     expect(() => published({ blueprint: { id: other.id, version: other.version, hash: other.hash } }, current)).toThrow("BLUEPRINT_MISMATCH");
-    expect(verifyOutcomeRequirementProfileBlueprintBinding(published(), { ...current, hash: "0".repeat(64) })).toBe(false);
-    expect(verifyOutcomeRequirementProfileBlueprintBinding(published(), { ...current, status: "RETIRED" })).toBe(false);
+    expect(() => compileSignalRequirements(published(), CREATED_AT, differentId)).toThrow("BLUEPRINT_MISMATCH");
+    expect(() => compileSignalRequirements(published(), CREATED_AT, { ...current, version: current.version + 1 })).toThrow("BLUEPRINT_MISMATCH");
+    expect(() => compileSignalRequirements(published(), CREATED_AT, { ...current, hash: "0".repeat(64) })).toThrow("BLUEPRINT_MISMATCH");
+    expect(() => published({}, { ...current, status: "RETIRED" })).toThrow("BLUEPRINT_MISMATCH");
+    expect(() => compileSignalRequirements(published(), CREATED_AT, { ...current, status: "RETIRED" })).toThrow("BLUEPRINT_MISMATCH");
+    expect(() => published({}, { ...current, hash: "0".repeat(64) })).toThrow("BLUEPRINT_MISMATCH");
+    expect(() => compileSignalRequirements(published(), CREATED_AT, { ...current, hash: "0".repeat(64) })).toThrow("BLUEPRINT_MISMATCH");
     expect(verifyOutcomeBlueprintHash(current)).toBe(true);
   });
 
-  it("preserves nullable policy and rejects malformed profile input", () => {
-    const profile = published({ policy: { id: "policy-v1", hash: "a".repeat(64) } });
-    expect(profile.policy).toEqual({ id: "policy-v1", hash: "a".repeat(64) });
-    expect(compileSignalRequirements(profile, CREATED_AT).every((item) => item.policyId === "policy-v1" && item.policyHash === "a".repeat(64))).toBe(true);
+  it("requires null policy and rejects malformed profile input", () => {
+    const current = blueprint();
+    expect(published().policy).toBeNull();
+    expect(() => published({ policy: { id: "policy-v1", hash: "a".repeat(64) } }, current)).toThrow("POLICY_UNRESOLVED");
+    const base = published();
+    const { hash: _hash, status: _status, publishedAt: _publishedAt, ...baseDefinition } = base;
+    void _hash;
+    void _status;
+    void _publishedAt;
+    const validDefinition = { ...baseDefinition, policy: { id: "policy-v1", hash: "a".repeat(64) } };
+    const hashValidNonNullPolicyProfile = {
+      ...validDefinition,
+      hash: canonicalSha256(validDefinition),
+      status: "PUBLISHED" as const,
+      publishedAt: PUBLISHED_AT,
+    };
+    expect(() => compileSignalRequirements(hashValidNonNullPolicyProfile, CREATED_AT, current)).toThrow("POLICY_UNRESOLVED");
     expect(() => published({ requirements: [] })).toThrow();
-    expect(() => published({ blueprint: { id: "not-a-uuid" as never, version: 1, hash: "a".repeat(64) } })).toThrow();
+    expect(() => published({ blueprint: { id: "not-a-uuid" as never, version: 1, hash: "a".repeat(64) } }, current)).toThrow();
+  });
+
+  it("requires actual Blueprint authority at every public boundary", () => {
+    const input = definition({ blueprint: { id: "80000000-0000-4000-8000-000000000099", version: 99, hash: "a".repeat(64) } });
+    expect(() => Reflect.apply(publishOutcomeRequirementProfile, undefined, [input, PUBLISHED_AT])).toThrow();
+    const profile = published();
+    expect(verifyOutcomeRequirementProfileHash(profile)).toBe(true);
+    expect(() => Reflect.apply(compileSignalRequirements, undefined, [profile, CREATED_AT])).toThrow();
   });
 
   it("does not alter OutcomeBlueprint, BUILD002-A, TaskSpec or BUILD002-B files", () => {
@@ -165,5 +202,7 @@ describe("BUILD002-C0-A OutcomeRequirementProfile", () => {
     expect(profileSource).toContain("compileSignalRequirement");
     expect(profileSource).not.toContain("from \"@/src/domain/outcome/specification/task-spec\"");
     expect(profileSource).not.toContain("inputRequirements");
+    expect(profileSource).not.toContain("blueprint?:");
+    expect(profileSource).not.toContain("blueprint =");
   });
 });
