@@ -9,7 +9,7 @@ import {
   TRANSACTION_SEMANTIC_BINDING_VERSION,
   type OutcomeDependencySnapshotRepositories,
 } from "@/src/application/outcome/resolve-outcome-dependency-snapshot";
-import { compileSignalRequirement, createSignal, type Signal, type SignalRequirement } from "@/src/domain/outcome/signal-readiness";
+import { compileSignalRequirement, createSignal, verifyDependencySnapshotHash, type Signal, type SignalRequirement } from "@/src/domain/outcome/signal-readiness";
 import { canonicalSha256 } from "@/src/domain/outcome/specification/canonical";
 import type { AssetRecord, AssetVersionRecord, OutcomeTransactionRecord } from "@/src/application/ports/repositories";
 import type { ResolvedOutcomeRequirementAuthority } from "@/src/application/outcome/resolve-outcome-requirement-authority";
@@ -182,6 +182,7 @@ describe("BUILD002-C1-B server-derived dependency snapshot", () => {
     const left = await resolveWith([first, second], [[signal(first.requirementId, SIGNAL_A)], [signal(second.requirementId, SIGNAL_B)]]);
     const right = await resolveWith([second, first], [[signal(second.requirementId, SIGNAL_B)], [signal(first.requirementId, SIGNAL_A)]]);
     expect(left.result.dependencySnapshot.dependencySnapshotHash).toBe(right.result.dependencySnapshot.dependencySnapshotHash);
+    expect(verifyDependencySnapshotHash(left.result.dependencySnapshot)).toBe(true);
   });
 
   it("binds Blueprint from C0-D, policy/task/context as null, and omits unknown identities", async () => {
