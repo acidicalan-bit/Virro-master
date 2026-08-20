@@ -218,6 +218,12 @@ describe("BUILD002-C1-C server-owned readiness candidate", () => {
     expect(() => new OutcomeReadinessCandidateResolver({ now: () => EVALUATION_TIME }).resolve(duplicate, valid.universe, valid.dependency)).toThrowError(new OutcomeReadinessCandidateError("READINESS_CANDIDATE_UNIVERSE_MISMATCH"));
     const missing = { ...valid.dependency, dependencySnapshot: { ...valid.dependency.dependencySnapshot, requirementDefinitionHashes: [alpha.requirementDefinitionHash] } } as ResolvedOutcomeDependencySnapshot;
     expect(() => new OutcomeReadinessCandidateResolver({ now: () => EVALUATION_TIME }).resolve(valid.authority, valid.universe, missing)).toThrowError();
+    const extra = { ...valid.dependency, dependencySnapshot: { ...valid.dependency.dependencySnapshot, requirementDefinitionHashes: [...valid.dependency.dependencySnapshot.requirementDefinitionHashes, "1".repeat(64)] } } as ResolvedOutcomeDependencySnapshot;
+    expect(() => new OutcomeReadinessCandidateResolver({ now: () => EVALUATION_TIME }).resolve(valid.authority, valid.universe, extra)).toThrowError();
+    const wrong = { ...valid.dependency, dependencySnapshot: { ...valid.dependency.dependencySnapshot, requirementDefinitionHashes: [alpha.requirementDefinitionHash, "2".repeat(64)] } } as ResolvedOutcomeDependencySnapshot;
+    expect(() => new OutcomeReadinessCandidateResolver({ now: () => EVALUATION_TIME }).resolve(valid.authority, valid.universe, wrong)).toThrowError();
+    const sameIdDifferentHash = { ...valid.universe, requirements: [{ ...valid.universe.requirements[0], requirement: { ...valid.universe.requirements[0].requirement, requirementDefinitionHash: "3".repeat(64) } }, valid.universe.requirements[1]] } as unknown as ResolvedOutcomeSignalUniverse;
+    expect(() => new OutcomeReadinessCandidateResolver({ now: () => EVALUATION_TIME }).resolve(valid.authority, sameIdDifferentHash, valid.dependency)).toThrowError(new OutcomeReadinessCandidateError("READINESS_CANDIDATE_UNIVERSE_MISMATCH"));
   });
 
   it.each([
