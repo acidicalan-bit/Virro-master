@@ -9,6 +9,7 @@ export const BUILD002_QUALIFICATION_SCHEMA_VERSION = "build002-signal-qualificat
 // R3 keeps dependency snapshots stable while canonicalizing all temporal decisions.
 export const BUILD002_DEPENDENCY_SCHEMA_VERSION = "build002-dependency-snapshot-v0.2" as const;
 export const BUILD002_EVALUATOR_SCHEMA_VERSION = "build002-qualification-evaluator-v0.1" as const;
+export const BUILD002_DEFAULT_EVALUATOR_VERSION = "0.2.0" as const;
 
 const HashSchema = z.string().regex(SHA256_PATTERN);
 const UuidSchema = z.uuid();
@@ -178,7 +179,11 @@ export type Signal = z.infer<typeof SignalSchema>;
 export type SignalInput = z.infer<typeof SignalInputSchema>;
 
 function normalizeSignalTemporal(signal: Signal): Signal {
-  return { ...signal, validUntil: signal.validUntil === null ? null : parseInstant(signal.validUntil) };
+  return {
+    ...signal,
+    capturedAt: parseInstant(signal.capturedAt),
+    validUntil: signal.validUntil === null ? null : parseInstant(signal.validUntil),
+  };
 }
 
 export const BUILD002_DEPENDENCY_IDENTITIES = {
@@ -192,7 +197,11 @@ export const BUILD002_DEPENDENCY_IDENTITIES = {
 export type Build002DependencyIdentity = typeof BUILD002_DEPENDENCY_IDENTITIES[keyof typeof BUILD002_DEPENDENCY_IDENTITIES];
 
 export function createSignal(input: SignalInput): Signal {
-  const parsed = SignalInputSchema.parse({ ...input, validUntil: input.validUntil === null ? null : parseInstant(input.validUntil) });
+  const parsed = SignalInputSchema.parse({
+    ...input,
+    capturedAt: parseInstant(input.capturedAt),
+    validUntil: input.validUntil === null ? null : parseInstant(input.validUntil),
+  });
   const signalId = parsed.signalId ?? crypto.randomUUID();
   const { signalId: _signalId, capturedAt: _capturedAt, ...semantic } = parsed;
   void _signalId;
@@ -379,9 +388,11 @@ export function evaluateSignalQualification(input: EvaluateQualificationInput): 
   const expectedKeys = new Set(expectedReferences.map((reference) => `${reference.signalId}:${reference.contentHash}`));
   const suppliedKeys = new Set(applicable.map((signal) => `${signal.signalId}:${signal.contentHash}`));
   if (expectedKeys.size !== expectedReferences.length || suppliedKeys.size !== applicable.length || expectedKeys.size !== suppliedKeys.size || [...expectedKeys].some((key) => !suppliedKeys.has(key))) return invalid("SIGNAL_SET_NOT_BOUND");
+  if (applicable.some((signal) => signal.validUntil !== null && !instantBefore(signal.capturedAt, signal.validUntil))) return invalid("SIGNAL_TEMPORAL_INVALID");
+  if (applicable.some((signal) => instantEpoch(signal.capturedAt) > instantEpoch(evaluationTime))) return invalid("SIGNAL_FROM_FUTURE");
+  if (applicable.some((signal) => signal.validUntil !== null && instantBeforeOrEqual(signal.validUntil, evaluationTime))) return buildQualification({ requirement, signals: applicable, dependency: currentDependencySnapshot, outcome: "STALE_SOURCE", reasonCode: "SIGNAL_EXPIRED", evaluator: input.evaluator, evaluationTime, idFactory: input.idFactory });
   const allowedDependencyIdentities = new Set(requirement.dependencySelectors.map((selector) => selector.identity));
   if (applicable.some((signal) => !allowedDependencyIdentities.has(signal.dependency.identity) || !currentDependencySnapshot.dependencyBindings.some((binding) => binding.identity === signal.dependency.identity && binding.hash === signal.dependency.hash))) return buildQualification({ requirement, signals: applicable, dependency: currentDependencySnapshot, outcome: "STALE_SOURCE", reasonCode: "DEPENDENCY_IDENTITY_MISMATCH", evaluator: input.evaluator, evaluationTime, idFactory: input.idFactory });
-  if (applicable.some((signal) => signal.validUntil !== null && instantBeforeOrEqual(signal.validUntil, evaluationTime))) return buildQualification({ requirement, signals: applicable, dependency: currentDependencySnapshot, outcome: "STALE_SOURCE", reasonCode: "SIGNAL_EXPIRED", evaluator: input.evaluator, evaluationTime, idFactory: input.idFactory });
   if (applicable.some((signal) => !requirement.acceptedProvenance.includes(signal.provenance))) return buildQualification({ requirement, signals: applicable, dependency: currentDependencySnapshot, outcome: "INCOMPATIBLE_PROVENANCE", reasonCode: qualificationReason("INCOMPATIBLE_PROVENANCE"), evaluator: input.evaluator, evaluationTime, idFactory: input.idFactory });
   if (applicable.some((signal) => signal.provenance === "UNKNOWN" || signal.payload === undefined || signal.payload === null)) return buildQualification({ requirement, signals: applicable, dependency: currentDependencySnapshot, outcome: "UNKNOWN", reasonCode: qualificationReason("UNKNOWN"), evaluator: input.evaluator, evaluationTime, idFactory: input.idFactory });
   if (requirement.qualificationRule.humanReviewRequired) return buildQualification({ requirement, signals: applicable, dependency: currentDependencySnapshot, outcome: "REQUIRES_HUMAN_REVIEW", reasonCode: qualificationReason("REQUIRES_HUMAN_REVIEW"), evaluator: input.evaluator, evaluationTime, idFactory: input.idFactory });
@@ -391,7 +402,7 @@ export function evaluateSignalQualification(input: EvaluateQualificationInput): 
 }
 
 function buildQualification(input: { requirement: SignalRequirement; signals: Signal[]; dependency: DependencySnapshot; outcome: QualificationOutcome; reasonCode: string; evaluator?: z.infer<typeof EvaluatorInputSchema>; evaluationTime: string; idFactory?: () => string }): SignalQualification {
-  const evaluator = EvaluatorInputSchema.parse(input.evaluator ?? { schemaVersion: BUILD002_EVALUATOR_SCHEMA_VERSION, version: "0.1.0", definitionHash: canonicalSha256({ schemaVersion: BUILD002_EVALUATOR_SCHEMA_VERSION, version: "0.1.0" }) });
+  const evaluator = EvaluatorInputSchema.parse(input.evaluator ?? { schemaVersion: BUILD002_EVALUATOR_SCHEMA_VERSION, version: BUILD002_DEFAULT_EVALUATOR_VERSION, definitionHash: canonicalSha256({ schemaVersion: BUILD002_EVALUATOR_SCHEMA_VERSION, version: BUILD002_DEFAULT_EVALUATOR_VERSION }) });
   const signalIds = [...new Set(input.signals.map((signal) => signal.signalId))].sort();
   const signalContentHashes = [...new Set(input.signals.map((signal) => signal.contentHash))].sort();
   const evidenceValidUntil = earliestInstant(input.signals.map((signal) => signal.validUntil));
@@ -450,7 +461,7 @@ export function evaluateDelegationReadiness(input: EvaluateReadinessInput): Dele
   const evaluationTime = parseInstant(input.evaluationTime ?? new Date().toISOString());
   const requirements = input.requirements.map((requirement) => SignalRequirementSchema.parse(requirement)).sort((left, right) => left.requirementId.localeCompare(right.requirementId));
   const qualifications = input.qualifications.map((qualification) => normalizeQualificationTemporal(SignalQualificationSchema.parse(qualification))).sort((left, right) => left.requirementId.localeCompare(right.requirementId));
-  const evaluator = EvaluatorInputSchema.parse(input.evaluator ?? { schemaVersion: BUILD002_EVALUATOR_SCHEMA_VERSION, version: "0.1.0", definitionHash: canonicalSha256({ schemaVersion: BUILD002_EVALUATOR_SCHEMA_VERSION, version: "0.1.0" }) });
+  const evaluator = EvaluatorInputSchema.parse(input.evaluator ?? { schemaVersion: BUILD002_EVALUATOR_SCHEMA_VERSION, version: BUILD002_DEFAULT_EVALUATOR_VERSION, definitionHash: canonicalSha256({ schemaVersion: BUILD002_EVALUATOR_SCHEMA_VERSION, version: BUILD002_DEFAULT_EVALUATOR_VERSION }) });
   const ownerTenantId = input.subject?.ownerTenantId ?? dependency.ownerTenantId;
   const transactionId = input.subject?.transactionId ?? dependency.transactionId;
   const requirementSetHash = canonicalSha256(requirements.map((requirement) => ({ id: requirement.requirementId, hash: requirement.requirementDefinitionHash })).sort((left, right) => left.id.localeCompare(right.id)));

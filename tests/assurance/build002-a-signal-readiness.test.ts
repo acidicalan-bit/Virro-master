@@ -6,6 +6,7 @@ import {
   BUILD002_EVALUATOR_SCHEMA_VERSION,
   BUILD002_REQUIREMENT_DEFINITION_SCHEMA_VERSION,
   BUILD002_DEPENDENCY_IDENTITIES,
+  BUILD002_DEFAULT_EVALUATOR_VERSION,
   compileSignalRequirement,
   createDependencySnapshot,
   createSignal,
@@ -15,6 +16,7 @@ import {
   isDelegable,
   parseInstant,
   verifyQualificationHash,
+  verifySignalContentHash,
   verifyReadinessHash,
   type DependencySnapshot,
   type Signal,
@@ -70,6 +72,22 @@ function signal(req: SignalRequirement, payload: unknown, dependencyHash = H_SOU
     capturedAt: at,
     validUntil,
     dependency: { identity: "asset.version", hash: dependencyHash },
+    schemaVersion: BUILD002_SIGNAL_SCHEMA_VERSION,
+  });
+}
+
+function signalAt(req: SignalRequirement, payload: unknown, capturedAt: string, validUntil: string | null = null, id = "40000000-0000-4000-8000-000000000004"): Signal {
+  return createSignal({
+    signalId: id,
+    ownerTenantId: tenantId,
+    transactionId,
+    requirementId: req.requirementId,
+    payload,
+    source: { identity: "capture.camera", version: "1", hash: H_SOURCE },
+    provenance: "OBSERVED",
+    capturedAt,
+    validUntil,
+    dependency: { identity: "asset.version", hash: H_SOURCE },
     schemaVersion: BUILD002_SIGNAL_SCHEMA_VERSION,
   });
 }
@@ -178,7 +196,7 @@ describe("BUILD 002-A R1 exact binding regressions", () => {
   it("does not contradict equal values from different accepted provenance", () => { const r = requirement("same.value", { acceptedProvenance: ["OBSERVED", "CUSTOMER_STATED"] }); const observed = signal(r, "A", H_SOURCE, "40000000-0000-4000-8000-000000000004", "OBSERVED"); const { contentHash: _hash, ...input } = observed; void _hash; const stated = createSignal({ ...input, signalId: "40000000-0000-4000-8000-000000000014", provenance: "CUSTOMER_STATED" }); expect(qualify(r, [observed, stated], boundDependency([r], [observed, stated])).outcome).toBe("QUALIFIED"); });
   it("does not contradict equal values from different sources", () => { const r = requirement("same.source"); const first = signal(r, "A", H_SOURCE, "40000000-0000-4000-8000-000000000004"); const { contentHash: _hash, ...input } = first; void _hash; const second = createSignal({ ...input, signalId: "40000000-0000-4000-8000-000000000014", source: { identity: "other", version: "2", hash: H_OTHER } }); expect(qualify(r, [first, second], boundDependency([r], [first, second])).outcome).toBe("QUALIFIED"); });
   it("contradicts distinct semantic values", () => { const r = requirement(); const first = signal(r, "A", H_SOURCE, "40000000-0000-4000-8000-000000000004"); const second = signal(r, "B", H_SOURCE, "40000000-0000-4000-8000-000000000014"); expect(qualify(r, [first, second], boundDependency([r], [first, second])).outcome).toBe("CONTRADICTORY"); });
-  it("does not qualify an expired signal", () => { const r = requirement(); const expired = signal(r, "A", H_SOURCE, "40000000-0000-4000-8000-000000000004"); const { contentHash: _hash, ...input } = expired; void _hash; const rebuilt = createSignal({ ...input, validUntil: "2026-08-18T11:00:00.000Z" }); expect(evaluateSignalQualification({ requirement: r, signals: [rebuilt], currentDependencySnapshot: boundDependency([r], [rebuilt]), evaluationTime: at }).outcome).toBe("STALE_SOURCE"); });
+  it("does not qualify an expired signal", () => { const r = requirement(); const expired = signalAt(r, "A", "2026-08-18T10:00:00.000Z", "2026-08-18T11:00:00.000Z"); expect(evaluateSignalQualification({ requirement: r, signals: [expired], currentDependencySnapshot: boundDependency([r], [expired]), evaluationTime: at }).outcome).toBe("STALE_SOURCE"); });
   it("rejects a dependency identity mismatch", () => { const r = requirement(); const s = signal(r, "x"); const { contentHash: _hash, ...input } = s; void _hash; const wrong = createSignal({ ...input, dependency: { identity: "wrong.identity", hash: H_SOURCE } }); expect(qualify(r, [wrong], boundDependency([r], [wrong])).outcome).toBe("STALE_SOURCE"); });
   it("rejects wrong identity even when an unrelated hash coincides", () => { const r = requirement(); const s = signal(r, "x"); const { contentHash: _hash, ...input } = s; void _hash; const wrong = createSignal({ ...input, dependency: { identity: "policy", hash: H_SOURCE } }); expect(() => boundDependency([r], [wrong], { dependencyBindings: [{ identity: BUILD002_DEPENDENCY_IDENTITIES.SOURCE_ASSET_VERSION, hash: H_SOURCE }, { identity: BUILD002_DEPENDENCY_IDENTITIES.POLICY, hash: H_SOURCE }, { identity: BUILD002_DEPENDENCY_IDENTITIES.BLUEPRINT, hash: H_BLUEPRINT }] })).toThrow(); });
   it("rejects contradictory top-level readiness bindings", () => { const r = requirement(); const s = signal(r, "x"); const d = boundDependency([r], [s]); const q = qualify(r, [s], d); expect(evaluateDelegationReadiness({ subject, requirements: [r], qualifications: [q], dependencySnapshot: d, blueprintHash: H_OTHER }).state).not.toBe("READY"); });
@@ -604,5 +622,116 @@ describe("BUILD 002-A R4 critical versus non-critical expiry", () => {
     expect(expired.state).toBe("READY");
     expect(current.validUntil).toBe("2026-08-18T16:00:00.000Z");
     expect(expired.validUntil).toBe("2026-08-18T16:00:00.000Z");
+  });
+});
+
+describe("BUILD 002-A R4 signal temporal causality", () => {
+  it("qualifies a captured signal before evaluation with no validity horizon", () => {
+    const r = requirement("temporal.before");
+    const s = signalAt(r, "value", "2026-08-18T11:59:59Z");
+    const q = qualify(r, [s], boundDependency([r], [s]), at);
+    expect(q.outcome).toBe("QUALIFIED");
+  });
+
+  it("allows a signal captured exactly at evaluation time", () => {
+    const r = requirement("temporal.equal");
+    const s = signalAt(r, "value", at);
+    const q = qualify(r, [s], boundDependency([r], [s]), at);
+    expect(q.outcome).toBe("QUALIFIED");
+  });
+
+  it("rejects a fully valid signal captured in the future", () => {
+    const r = requirement("temporal.future");
+    const s = signalAt(r, "value", after);
+    const q = qualify(r, [s], boundDependency([r], [s]), at);
+    expect(q.outcome).toBe("INVALID");
+    expect(q.reasonCode).toBe("SIGNAL_FROM_FUTURE");
+  });
+
+  it("keeps the future-signal rejection independent from content-hash validity", () => {
+    const r = requirement("temporal.future-hash");
+    const s = signalAt(r, "value", after);
+    expect(verifySignalContentHash(s)).toBe(true);
+    const q = qualify(r, [s], boundDependency([r], [s]), at);
+    expect(q.outcome).toBe("INVALID");
+    expect(q.reasonCode).toBe("SIGNAL_FROM_FUTURE");
+  });
+
+  it("qualifies a signal while evaluation remains inside its coherent interval", () => {
+    const r = requirement("temporal.interval");
+    const s = signalAt(r, "value", "2026-08-18T11:00:00Z", "2026-08-18T13:00:00Z");
+    const q = qualify(r, [s], boundDependency([r], [s]), at);
+    expect(q.outcome).toBe("QUALIFIED");
+  });
+
+  it("keeps coherent but expired evidence as STALE_SOURCE", () => {
+    const r = requirement("temporal.expired");
+    const s = signalAt(r, "value", "2026-08-18T11:00:00Z", "2026-08-18T12:00:00Z");
+    const q = qualify(r, [s], boundDependency([r], [s]), after);
+    expect(q.outcome).toBe("STALE_SOURCE");
+    expect(q.reasonCode).toBe("SIGNAL_EXPIRED");
+  });
+
+  it.each([
+    [at, "SIGNAL_TEMPORAL_INVALID"],
+    [after, "SIGNAL_TEMPORAL_INVALID"],
+  ] as const)("rejects a non-positive signal validity window (%s)", (capturedAt, reasonCode) => {
+    const r = requirement(`temporal.window-${capturedAt === at ? "equal" : "reverse"}`);
+    const s = signalAt(r, "value", capturedAt, at);
+    const q = qualify(r, [s], boundDependency([r], [s]), at);
+    expect(q.outcome).toBe("INVALID");
+    expect(q.reasonCode).toBe(reasonCode);
+  });
+
+  it("makes a future critical signal structurally insufficient and non-delegable", () => {
+    const r = requirement("temporal.critical-future");
+    const s = signalAt(r, "value", after);
+    const d = boundDependency([r], [s]);
+    const q = qualify(r, [s], d, at);
+    const readiness = evaluateDelegationReadiness({ subject, requirements: [r], qualifications: [q], dependencySnapshot: d, evaluationTime: at, evaluator, idFactory: () => "60000000-0000-4000-8000-000000000201" });
+    expect(q.reasonCode).toBe("SIGNAL_FROM_FUTURE");
+    expect(readiness.state).toBe("INSUFFICIENT_SIGNAL");
+    expect(isDelegable(readiness, "CURRENT")).toBe(false);
+  });
+
+  it("does not ignore a future optional member beside a qualified critical member", () => {
+    const critical = requirement("temporal.critical");
+    const optional = requirement({ requirementId: "temporal.optional", critical: false });
+    const criticalSignal = signalAt(critical, "critical", "2026-08-18T11:00:00Z", null, "40000000-0000-4000-8000-000000000201");
+    const optionalSignal = signalAt(optional, "optional", after, null, "40000000-0000-4000-8000-000000000202");
+    const d = boundDependency([critical, optional], [criticalSignal, optionalSignal]);
+    const criticalQ = qualify(critical, [criticalSignal], d, at);
+    const optionalQ = qualify(optional, [optionalSignal], d, at);
+    const readiness = evaluateDelegationReadiness({ subject, requirements: [critical, optional], qualifications: [criticalQ, optionalQ], dependencySnapshot: d, evaluationTime: at, evaluator, idFactory: () => "60000000-0000-4000-8000-000000000202" });
+    expect(criticalQ.outcome).toBe("QUALIFIED");
+    expect(optionalQ.outcome).toBe("INVALID");
+    expect(readiness.state).not.toBe("READY");
+  });
+
+  it("applies temporal failure precedence independent of signal array order", () => {
+    const r = requirement("temporal.precedence");
+    const invalidWindow = signalAt(r, "invalid", after, at, "40000000-0000-4000-8000-000000000203");
+    const future = signalAt(r, "future", after, null, "40000000-0000-4000-8000-000000000204");
+    const d = boundDependency([r], [invalidWindow, future]);
+    const forward = qualify(r, [invalidWindow, future], d, at);
+    const reverse = qualify(r, [future, invalidWindow], d, at);
+    expect(forward.reasonCode).toBe("SIGNAL_TEMPORAL_INVALID");
+    expect(reverse.reasonCode).toBe("SIGNAL_TEMPORAL_INVALID");
+  });
+
+  it("preserves content-hash independence from capture time", () => {
+    const r = requirement("temporal.hash-independence");
+    const early = signalAt(r, "same", "2026-08-18T11:00:00Z", null, "40000000-0000-4000-8000-000000000205");
+    const later = signalAt(r, "same", "2026-08-18T11:30:00Z", null, "40000000-0000-4000-8000-000000000206");
+    expect(early.contentHash).toBe(later.contentHash);
+  });
+
+  it("versions the default evaluator for the temporal semantics change", () => {
+    const r = requirement("temporal.evaluator");
+    const s = signalAt(r, "value", "2026-08-18T11:00:00Z");
+    const d = boundDependency([r], [s]);
+    const q = evaluateSignalQualification({ requirement: r, signals: [s], currentDependencySnapshot: d, evaluationTime: at, idFactory: () => "50000000-0000-4000-8000-000000000207" });
+    expect(q.evaluator.version).toBe(BUILD002_DEFAULT_EVALUATOR_VERSION);
+    expect(q.evaluator.definitionHash).toBe(canonicalSha256({ schemaVersion: BUILD002_EVALUATOR_SCHEMA_VERSION, version: BUILD002_DEFAULT_EVALUATOR_VERSION }));
   });
 });
