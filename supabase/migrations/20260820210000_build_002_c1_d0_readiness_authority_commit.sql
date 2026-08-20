@@ -2,6 +2,13 @@
 -- readiness graph. Domain hashes remain TypeScript-owned; PostgreSQL owns
 -- scope, current-state locks, relational exactness, and atomic visibility.
 
+create table if not exists public.build002_readiness_authority_capability (
+  token text primary key default gen_random_uuid()::text
+);
+insert into public.build002_readiness_authority_capability default values
+on conflict do nothing;
+revoke all on table public.build002_readiness_authority_capability from public, anon, authenticated, service_role;
+
 create table if not exists public.build002_readiness_authority_commits (
   id uuid primary key default gen_random_uuid(),
   owner_tenant_id uuid not null,
@@ -26,11 +33,11 @@ create table if not exists public.build002_readiness_authority_commits (
 );
 
 create or replace function public.build002_readiness_authority_commit_immutable()
-returns trigger language plpgsql security invoker
+returns trigger language plpgsql security definer
 set search_path = pg_catalog, public
 as $$
 begin
-  if tg_op = 'INSERT' and current_user = 'service_role' then
+  if tg_op = 'INSERT' and current_setting('build002.authority_commit', true) is distinct from (select token from public.build002_readiness_authority_capability limit 1) then
     raise exception 'BUILD002_READINESS_AUTHORITY_COMMIT_INSERT_RESTRICTED' using errcode = '42501';
   end if;
   if tg_op <> 'INSERT' then
@@ -360,6 +367,7 @@ begin
     end if;
     return jsonb_build_object('authority_commit_id', v_existing.id, 'dependency_snapshot_id', v_existing.dependency_snapshot_id, 'readiness_id', v_existing.readiness_id, 'committed_at', v_existing.committed_at);
   end if;
+  perform set_config('build002.authority_commit', (select token from public.build002_readiness_authority_capability limit 1), true);
   insert into public.build002_readiness_authority_commits(owner_tenant_id, outcome_transaction_id, principal_id, dependency_snapshot_id, dependency_snapshot_hash, readiness_id, readiness_content_hash, evaluation_time, schema_version)
   values (v_tenant, v_transaction, v_principal, v_snapshot_id, v_snapshot->>'dependencySnapshotHash', v_readiness_id, v_readiness->>'readinessContentHash', (v_readiness->>'createdAt')::timestamptz, 'build002-readiness-authority-commit-v0.1')
   returning id, committed_at into v_authority_id, v_commit_time;
