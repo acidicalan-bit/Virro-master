@@ -1,0 +1,66 @@
+name: BUILD 002-C0-D independent verification
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  independent:
+    name: Independent C0-D authority closure
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: virro_e3
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d virro_e3"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+        with:
+          version: 11.19.0
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Independent C0-D verifier
+        run: pnpm exec vitest run tests/verification/build002-c0-d-independent.test.ts --reporter=verbose
+      - name: Assurance manifest
+        run: pnpm assurance:check
+      - name: SQL regression
+        run: pnpm test:sql
+      - name: Native PostgreSQL BUILD002-B
+        env:
+          BUILD002_NATIVE_PG_E3: "true"
+          BUILD002_NATIVE_PG_URL: postgresql://postgres:postgres@localhost:5432/virro_e3
+        run: pnpm exec vitest run tests/native/build002-b-postgres.e3.test.ts --reporter=verbose
+      - name: Native PostgreSQL C0-C
+        env:
+          BUILD002_NATIVE_PG_C0_C: "true"
+          BUILD002_NATIVE_PG_URL: postgresql://postgres:postgres@localhost:5432/virro_e3_c0_c
+        run: pnpm exec vitest run tests/native/build002-c0-c-postgres.e3.test.ts --reporter=verbose
+      - name: Assurance regression
+        run: pnpm test:assurance
+      - name: Model regression
+        run: pnpm test:model
+      - name: Application regression
+        run: pnpm test:application
+      - name: Full Vitest regression
+        run: pnpm test
+      - name: TypeScript
+        run: pnpm typecheck
+      - name: ESLint
+        run: pnpm lint
+      - name: Production build
+        run: pnpm build
