@@ -63,25 +63,18 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD002-C1-A native PostgreSQL
     for (const name of readdirSync(migrationsDir).filter((item) => item.endsWith(".sql")).sort()) {
       await admin.query(readFileSync(resolve(migrationsDir, name), "utf8"));
     }
-    await admin.query(`
-      insert into public.tenants(id, kind, status) values
-        ($1, 'ORGANIZATION', 'ACTIVE'), ($2, 'ORGANIZATION', 'ACTIVE');
-      insert into public.projects(id, name, owner_tenant_id) values
-        ($3, 'C1-A A', $1), ($4, 'C1-A B', $2);
-      insert into public.assets(id, project_id, name, owner_tenant_id) values
-        ($5, $3, 'C1-A A', $1), ($6, $4, 'C1-A B', $2);
-      insert into public.asset_versions(id, asset_id, version_number, state, owner_tenant_id) values
-        ($7, $5, 1, '{}'::jsonb, $1), ($8, $6, 1, '{}'::jsonb, $2);
-      insert into public.outcome_transactions(id, owner_tenant_id, project_id, asset_id, base_version_id, raw_request)
-        values ($9, $1, $3, $5, $7, 'C1-A A'), ($10, $2, $4, $6, $8, 'C1-A B');
-      insert into public.build002_signal_requirements(
+    await admin.query("insert into public.tenants(id, kind, status) values ($1, 'ORGANIZATION', 'ACTIVE'), ($2, 'ORGANIZATION', 'ACTIVE')", [TENANT_A, TENANT_B]);
+    await admin.query("insert into public.projects(id, name, owner_tenant_id) values ($1, 'C1-A A', $2), ($3, 'C1-A B', $4)", [PROJECT_A, TENANT_A, PROJECT_B, TENANT_B]);
+    await admin.query("insert into public.assets(id, project_id, name, owner_tenant_id) values ($1, $2, 'C1-A A', $3), ($4, $5, 'C1-A B', $6)", [ASSET_A, PROJECT_A, TENANT_A, ASSET_B, PROJECT_B, TENANT_B]);
+    await admin.query("insert into public.asset_versions(id, asset_id, version_number, state, owner_tenant_id) values ($1, $2, 1, '{}'::jsonb, $3), ($4, $5, 1, '{}'::jsonb, $6)", [VERSION_A, ASSET_A, TENANT_A, VERSION_B, ASSET_B, TENANT_B]);
+    await admin.query("insert into public.outcome_transactions(id, owner_tenant_id, project_id, asset_id, base_version_id, raw_request) values ($1, $2, $3, $4, $5, 'C1-A A'), ($6, $7, $8, $9, $10, 'C1-A B')", [TX_A, TENANT_A, PROJECT_A, ASSET_A, VERSION_A, TX_B, TENANT_B, PROJECT_B, ASSET_B, VERSION_B]);
+    await admin.query(`insert into public.build002_signal_requirements(
         owner_tenant_id, outcome_transaction_id, requirement_id, semantic_type, critical,
         accepted_provenance, qualification_rule, dependency_selectors, blueprint_id,
         blueprint_version, blueprint_hash, schema_version, requirement_definition_hash, created_at
       ) values
-        ($1, $9, 'signal.a', 'TEXT', true, '["OBSERVED"]', '{"version":"1","cardinality":"SINGLE_VALUED","humanReviewRequired":false}', '[]', 'f1000000-0000-4000-8000-000000000001', 1, $11, 'build002-signal-requirement-v0.1', $11, now()),
-        ($2, $10, 'signal.a', 'TEXT', true, '["OBSERVED"]', '{"version":"1","cardinality":"SINGLE_VALUED","humanReviewRequired":false}', '[]', 'f1000000-0000-4000-8000-000000000002', 1, $12, 'build002-signal-requirement-v0.1', $12, now());
-    `, [TENANT_A, TENANT_B, PROJECT_A, PROJECT_B, ASSET_A, ASSET_B, VERSION_A, VERSION_B, TX_A, TX_B, REQUIREMENT_A, REQUIREMENT_B]);
+        ($1, $2, 'signal.a', 'TEXT', true, '["OBSERVED"]', '{"version":"1","cardinality":"SINGLE_VALUED","humanReviewRequired":false}', '[]', 'f1000000-0000-4000-8000-000000000001', 1, $3, 'build002-signal-requirement-v0.1', $3, now()),
+        ($4, $5, 'signal.a', 'TEXT', true, '["OBSERVED"]', '{"version":"1","cardinality":"SINGLE_VALUED","humanReviewRequired":false}', '[]', 'f1000000-0000-4000-8000-000000000002', 1, $6, 'build002-signal-requirement-v0.1', $6, now())`, [TENANT_A, TX_A, REQUIREMENT_A, TENANT_B, TX_B, REQUIREMENT_B]);
     service = new Client({ connectionString: isolatedUrl });
     await service.connect();
     await service.query("set role service_role");
