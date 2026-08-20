@@ -107,6 +107,7 @@ declare
   v_qual_id uuid;
   v_qualification_count integer;
   v_state text;
+  v_error_detail text;
 begin
   if session_user <> 'service_role' and current_user <> 'service_role' then
     raise exception 'READINESS_AUTHORITY_COMMIT_FAILED';
@@ -375,7 +376,8 @@ begin
 exception
   when others then
     if sqlstate = 'P0001' or sqlstate = '42501' or sqlstate = '55000' then raise; end if;
-    raise exception 'READINESS_AUTHORITY_COMMIT_FAILED';
+    get stacked diagnostics v_error_detail = pg_exception_detail;
+    raise exception 'D0_DEBUG % % %', sqlstate, sqlerrm, coalesce(v_error_detail, '');
 end;
 $$;
 
