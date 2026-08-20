@@ -393,6 +393,33 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD 002-C0-E native composed 
       clock: { now: () => "2026-08-20T12:00:00.000Z" },
     });
     await expectAuthorityFailure(tamperedBlueprint.resolve({ authority: authorityA, outcomeTransactionId: TX_A }));
+
+    const missingBlueprint = new OutcomeRequirementAuthorityResolver({
+      transactions: new NativeTransactionRepository(client, TENANT_A),
+      bindings: new NativeBindingRepository(client, TENANT_A),
+      catalog: { ...catalog, getBlueprint: async () => null, getRequirementProfile: catalog.getRequirementProfile.bind(catalog), publishBlueprint: catalog.publishBlueprint.bind(catalog), publishRequirementProfile: catalog.publishRequirementProfile.bind(catalog) },
+      clock: { now: () => "2026-08-20T12:00:00.000Z" },
+    });
+    await expectAuthorityFailure(missingBlueprint.resolve({ authority: authorityA, outcomeTransactionId: TX_A }));
+
+    const missingProfile = new OutcomeRequirementAuthorityResolver({
+      transactions: new NativeTransactionRepository(client, TENANT_A),
+      bindings: new NativeBindingRepository(client, TENANT_A),
+      catalog: { ...catalog, getBlueprint: catalog.getBlueprint.bind(catalog), getRequirementProfile: async () => null, publishBlueprint: catalog.publishBlueprint.bind(catalog), publishRequirementProfile: catalog.publishRequirementProfile.bind(catalog) },
+      clock: { now: () => "2026-08-20T12:00:00.000Z" },
+    });
+    await expectAuthorityFailure(missingProfile.resolve({ authority: authorityA, outcomeTransactionId: TX_A }));
+
+    const mismatchedProfile = { ...profile, blueprint: { ...profile.blueprint, version: profile.blueprint.version + 1 } };
+    const profileMismatch = new OutcomeRequirementAuthorityResolver({
+      transactions: new NativeTransactionRepository(client, TENANT_A),
+      bindings: new NativeBindingRepository(client, TENANT_A),
+      catalog: { ...catalog, getBlueprint: catalog.getBlueprint.bind(catalog), getRequirementProfile: async () => mismatchedProfile, publishBlueprint: catalog.publishBlueprint.bind(catalog), publishRequirementProfile: catalog.publishRequirementProfile.bind(catalog) },
+      clock: { now: () => "2026-08-20T12:00:00.000Z" },
+    });
+    await expectAuthorityFailure(profileMismatch.resolve({ authority: authorityA, outcomeTransactionId: TX_A }));
+
+    await expect(client.query("select public.build002_bind_outcome_transaction_requirements($1::jsonb)", [JSON.stringify({ schema_version: binding.schemaVersion, owner_tenant_id: TENANT_B, outcome_transaction_id: TX_A, blueprint_id: binding.blueprint.id, blueprint_version: binding.blueprint.version, blueprint_hash: binding.blueprint.hash, requirement_profile_id: binding.requirementProfile.id, requirement_profile_version: binding.requirementProfile.version, requirement_profile_hash: binding.requirementProfile.hash, policy_id: null, policy_hash: null, binding_hash: binding.bindingHash, bound_at: binding.boundAt })])).rejects.toThrow();
     await expectAuthorityFailure(base.resolver.resolve({ authority: authorityA, outcomeTransactionId: TX_NO_BINDING }));
     await client.end();
   });
