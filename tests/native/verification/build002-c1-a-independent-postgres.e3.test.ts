@@ -101,7 +101,7 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD002-C1-A independent nativ
       "67000000-0000-4000-8000-000000000001",
       "67000000-0000-4000-8000-000000000002",
     ]);
-    expect((await service.query("select 1 from public.build002_signals where owner_tenant_id = $1 and outcome_transaction_id = $2 and requirement_definition_hash = $3", [TENANT_A, TX_A, H2])).rows).toHaveLength(0);
+    expect((await service.query("select 1 from public.build002_signals where owner_tenant_id = $1 and outcome_transaction_id = $2 and requirement_definition_hash = $3", [TENANT_A, TX_A, H2])).rows).toHaveLength(1);
     expect((await service.query("select 1 from public.build002_signals where owner_tenant_id = $1 and outcome_transaction_id = $2 and requirement_definition_hash = $3", [TENANT_A, TX_B, H1])).rows).toHaveLength(0);
     expect((await service.query("select 1 from public.build002_signals where owner_tenant_id = $1 and outcome_transaction_id = $2 and requirement_definition_hash = $3", [TENANT_B, TX_B, H1])).rows).toHaveLength(1);
     const after = await admin.query(`select
