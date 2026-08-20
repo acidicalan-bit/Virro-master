@@ -59,6 +59,11 @@ jobs:
           BUILD002_NATIVE_PG_C0_C: "true"
           BUILD002_NATIVE_PG_URL: postgresql://postgres:postgres@localhost:5432/virro_e3_c0_c
         run: pnpm exec vitest run tests/native/build002-c0-c-postgres.e3.test.ts --reporter=verbose
+      - name: E3 native PostgreSQL 17 C0-E composed authority chain
+        env:
+          BUILD002_NATIVE_PG_C0_E: "true"
+          BUILD002_NATIVE_PG_URL: postgresql://postgres:postgres@localhost:5432/virro_e3_c0_e
+        run: pnpm exec vitest run tests/native/build002-c0-e-authority-chain.e3.test.ts --reporter=verbose
       - name: TypeScript and ESLint
         run: pnpm typecheck && pnpm lint
       - name: Complete deterministic regression
