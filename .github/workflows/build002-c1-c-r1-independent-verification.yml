@@ -1,0 +1,45 @@
+name: BUILD 002-C1-C R1 independent verification
+
+on:
+  pull_request:
+    branches:
+      - build/build002-c1-c-readiness-candidate
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  independent-c1-c-r1:
+    name: Independent C1-C R1 verification
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: virro_verify
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d virro_verify"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+        with:
+          version: 11.19.0
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Independent application composition
+        run: pnpm exec vitest run tests/verification/build002-c1-c-r1-independent.test.ts --reporter=verbose
+      - name: Independent native PostgreSQL 17 composition and zero-write proof
+        env:
+          BUILD002_NATIVE_PG_C1_C_R1: "true"
+          BUILD002_NATIVE_PG_C1_R1_URL: postgresql://postgres:postgres@localhost:5432/virro_verify
+        run: pnpm exec vitest run tests/native/verification/build002-c1-c-r1-independent-postgres.e3.test.ts --reporter=verbose
