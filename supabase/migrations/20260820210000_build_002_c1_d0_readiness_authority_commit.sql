@@ -305,7 +305,7 @@ begin
          or v_existing.evaluator is distinct from v_qual->'evaluator'
          or v_existing.outcome is distinct from v_qual->>'outcome'
          or v_existing.reason_code is distinct from v_qual->>'reasonCode' then
-        raise exception 'READINESS_AUTHORITY_GRAPH_INVALID';
+        raise exception 'D0_DEBUG_QUAL % % % % % % %', v_existing.requirement_definition_hash, v_qual->>'requirementDefinitionHash', v_existing.requirement_id, v_qual->>'requirementId', v_existing.dependency_snapshot_id, v_snapshot_id, v_existing.qualification_content_hash;
       end if;
     else
       insert into public.build002_signal_qualifications(id, owner_tenant_id, outcome_transaction_id, requirement_id, requirement_definition_hash, dependency_snapshot_id, dependency_snapshot_hash, signal_ids, signal_content_hashes, evaluator, outcome, reason_code, evidence_valid_until, qualified_at, schema_version, qualification_content_hash)
