@@ -109,6 +109,15 @@ function runCandidate(requirements: SignalRequirement[], signals: Signal[][], ti
   return new OutcomeReadinessCandidateResolver({ now: () => time }).resolve(...Object.values(fixture(requirements, signals)) as [ResolvedOutcomeRequirementAuthority, ResolvedOutcomeSignalUniverse, ResolvedOutcomeDependencySnapshot]);
 }
 
+function oppositeHashPair(): [SignalRequirement, SignalRequirement] {
+  const beta = requirement("beta");
+  for (let index = 0; index < 200; index += 1) {
+    const alpha = requirement("alpha", { semanticType: `TEXT-ALPHA-${index}` });
+    if (alpha.requirementDefinitionHash > beta.requirementDefinitionHash) return [alpha, beta];
+  }
+  throw new Error("Unable to construct opposite requirement/hash ordering");
+}
+
 describe("BUILD002-C1-C server-owned readiness candidate", () => {
   it("produces one qualification per authoritative requirement and a READY candidate", () => {
     const first = requirement("signal.a");
@@ -125,6 +134,90 @@ describe("BUILD002-C1-C server-owned readiness candidate", () => {
     expect(result.qualifications.every(verifyQualificationHash)).toBe(true);
     expect(verifyReadinessHash(result.readiness)).toBe(true);
     expect(verifyDependencySnapshotHash(result.dependencySnapshot)).toBe(true);
+  });
+
+  it("R1 counterexample: requirement id order is independent from hash order", () => {
+    const [alpha, beta] = oppositeHashPair();
+    expect("alpha" < "beta").toBe(true);
+    expect(alpha.requirementDefinitionHash > beta.requirementDefinitionHash).toBe(true);
+    const result = runCandidate([alpha, beta], [
+      [signal(alpha.requirementId, "40000000-0000-4000-8000-000000000014")],
+      [signal(beta.requirementId, "40000000-0000-4000-8000-000000000015")],
+    ]);
+    expect(result.readiness.state).toBe("READY");
+  });
+
+  it("keeps three-requirement semantic hashes stable under independent permutations", () => {
+    const [alpha, beta] = oppositeHashPair();
+    const gamma = requirement("gamma", { semanticType: "TEXT-GAMMA" });
+    const requirements = [alpha, beta, gamma];
+    const signals = requirements.map((item, index) => [signal(item.requirementId, `40000000-0000-4000-8000-0000000000${16 + index}`)]);
+    const base = fixture(requirements, signals);
+    const permuted = {
+      authority: { ...base.authority, signalRequirements: [gamma, alpha, beta] } as unknown as ResolvedOutcomeRequirementAuthority,
+      universe: {
+        ...base.universe,
+        requirements: [
+          { ...base.universe.requirements[1], signals: [...base.universe.requirements[1].signals].reverse() },
+          { ...base.universe.requirements[2], signals: [...base.universe.requirements[2].signals].reverse() },
+          { ...base.universe.requirements[0], signals: [...base.universe.requirements[0].signals].reverse() },
+        ],
+      },
+      dependency: base.dependency,
+    } as const;
+    const left = new OutcomeReadinessCandidateResolver({ now: () => EVALUATION_TIME }).resolve(base.authority, base.universe, base.dependency);
+    const right = new OutcomeReadinessCandidateResolver({ now: () => EVALUATION_TIME }).resolve(permuted.authority, permuted.universe, permuted.dependency);
+    expect(left.readiness.state).toBe("READY");
+    expect(right.readiness.state).toBe("READY");
+    for (const requirementValue of requirements) {
+      expect(left.qualifications.find((item) => item.requirementId === requirementValue.requirementId)?.qualificationContentHash)
+        .toBe(right.qualifications.find((item) => item.requirementId === requirementValue.requirementId)?.qualificationContentHash);
+    }
+    expect(left.readiness.readinessContentHash).toBe(right.readiness.readinessContentHash);
+  });
+
+  it.each([
+    ["task.spec", [{ identity: "task.spec", required: true }]],
+    ["context.lens", [{ identity: "context.lens", required: true }]],
+    ["unknown.current", [{ identity: "unknown.current", required: true }]],
+  ])("fails closed when required dependency authority is unavailable: %s", (_identity, selector) => {
+    const req = requirement(`signal.${String(_identity).replace(".", "-")}`, { dependencySelectors: [
+      { identity: "asset.version", required: true },
+      { identity: "blueprint", required: true },
+      { identity: "transaction.semantic", required: true },
+      ...selector,
+    ] });
+    const result = runCandidate([req], [[signal(req.requirementId, "40000000-0000-4000-8000-000000000019")]]);
+    expect(result.qualifications[0].outcome).toBe("INVALID");
+    expect(result.qualifications[0].reasonCode).toBe("DEPENDENCY_BINDING_MISSING");
+    expect(result.readiness.state).toBe("INSUFFICIENT_SIGNAL");
+  });
+
+  it("does not accept caller condition, policy, historical evaluator, time, or READY material", () => {
+    const req = requirement("signal.authority");
+    const result = runCandidate([req], [[signal(req.requirementId, "40000000-0000-4000-8000-000000000020")]]);
+    expect(result.readiness.conditionCodes).toEqual([]);
+    expect(result.readiness.state).toBe("READY");
+    expect(result.evaluator.version).toBe("0.2.0");
+    const server = readFileSync(pathResolve(process.cwd(), "src/server/outcome-readiness-candidate-resolver.ts"), "utf8");
+    expect(server).not.toMatch(/request\.json|searchParams|evaluationTime|conditionCodes|policyBlock/);
+    const service = readFileSync(pathResolve(process.cwd(), "src/application/outcome/resolve-outcome-readiness-candidate.ts"), "utf8");
+    expect(service).toContain("currentDefaultEvaluator()");
+    expect(service).toContain("conditionCodes: []");
+    expect(service).toContain("policyBlock: null");
+    expect(service).not.toMatch(/findReadiness|listReadiness|insertReadiness|isDelegable|evaluateReadinessValidity/);
+  });
+
+  it("rejects duplicate authoritative hashes and true snapshot mismatches", () => {
+    const [alpha, beta] = oppositeHashPair();
+    const valid = fixture([alpha, beta], [
+      [signal(alpha.requirementId, "40000000-0000-4000-8000-000000000021")],
+      [signal(beta.requirementId, "40000000-0000-4000-8000-000000000022")],
+    ]);
+    const duplicate = { ...valid.authority, signalRequirements: [alpha, { ...beta, requirementDefinitionHash: alpha.requirementDefinitionHash }] } as ResolvedOutcomeRequirementAuthority;
+    expect(() => new OutcomeReadinessCandidateResolver({ now: () => EVALUATION_TIME }).resolve(duplicate, valid.universe, valid.dependency)).toThrowError(new OutcomeReadinessCandidateError("READINESS_CANDIDATE_UNIVERSE_MISMATCH"));
+    const missing = { ...valid.dependency, dependencySnapshot: { ...valid.dependency.dependencySnapshot, requirementDefinitionHashes: [alpha.requirementDefinitionHash] } } as ResolvedOutcomeDependencySnapshot;
+    expect(() => new OutcomeReadinessCandidateResolver({ now: () => EVALUATION_TIME }).resolve(valid.authority, valid.universe, missing)).toThrowError();
   });
 
   it.each([

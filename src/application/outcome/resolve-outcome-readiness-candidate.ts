@@ -152,12 +152,14 @@ export class OutcomeReadinessCandidateResolver {
     }
     const requirements = [...authority.signalRequirements].sort((a, b) => a.requirementId.localeCompare(b.requirementId));
     const entries = [...universe.requirements].sort((a, b) => a.requirement.requirementId.localeCompare(b.requirement.requirementId));
-    const hashes = [...resolvedDependency.dependencySnapshot.requirementDefinitionHashes].sort();
+    const authorityHashes = requirements.map((requirement) => requirement.requirementDefinitionHash).sort();
+    const snapshotHashes = [...resolvedDependency.dependencySnapshot.requirementDefinitionHashes].sort();
     if (requirements.length !== entries.length
       || new Set(requirements.map((r) => r.requirementId)).size !== requirements.length
+      || new Set(authorityHashes).size !== authorityHashes.length
       || requirements.some((r, i) => entries[i]?.requirement.requirementId !== r.requirementId || entries[i]?.requirement.requirementDefinitionHash !== r.requirementDefinitionHash)
-      || hashes.length !== requirements.length
-      || hashes.some((hash, i) => hash !== requirements[i]?.requirementDefinitionHash)) {
+      || snapshotHashes.length !== authorityHashes.length
+      || snapshotHashes.some((hash, i) => hash !== authorityHashes[i])) {
       throw new OutcomeReadinessCandidateError("READINESS_CANDIDATE_UNIVERSE_MISMATCH");
     }
     const expected = new Set(resolvedDependency.dependencySnapshot.signalReferences.map((ref) => `${ref.requirementId}:${ref.signalId}:${ref.contentHash}`));
