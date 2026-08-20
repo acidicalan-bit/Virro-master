@@ -1,0 +1,73 @@
+name: BUILD002-C1-B independent dependency-authority verification
+
+on:
+  pull_request:
+    branches:
+      - build/build002-c1-b-dependency-snapshot
+  push:
+    branches:
+      - verify/build002-c1-b-independent
+
+permissions:
+  contents: read
+
+jobs:
+  independent:
+    name: Independent C1-B verifier
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: virro_c1_b_independent
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d virro_c1_b_independent"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+        with:
+          version: 11.19.0
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Independent assurance tests
+        run: pnpm exec vitest run tests/verification/build002-c1-b-independent.test.ts --reporter=verbose
+      - name: Independent native PostgreSQL 17 tests
+        env:
+          BUILD002_NATIVE_PG_C1_B_INDEPENDENT: "true"
+          BUILD002_NATIVE_PG_C1_B_INDEPENDENT_URL: postgresql://postgres:postgres@localhost:5432/virro_c1_b_independent
+        run: pnpm exec vitest run tests/native/verification/build002-c1-b-independent-postgres.e3.test.ts --reporter=verbose
+      - name: Authored C1-B assurance regression
+        run: pnpm exec vitest run tests/assurance/build002-c1-b-dependency-snapshot.test.ts --reporter=verbose
+      - name: Authored C1-B native regression
+        env:
+          BUILD002_NATIVE_PG_C1_B: "true"
+          BUILD002_NATIVE_PG_C1_B_URL: postgresql://postgres:postgres@localhost:5432/virro_c1_b_independent
+        run: pnpm exec vitest run tests/native/build002-c1-b-postgres.e3.test.ts --reporter=verbose
+      - name: C1-A, Build002-A/B and C0 regressions
+        run: >-
+          pnpm exec vitest run
+          tests/assurance/build002-c1-a-signal-universe.test.ts
+          tests/assurance/build002-a-signal-readiness.test.ts
+          tests/assurance/build002-b-repository.test.ts
+          tests/assurance/build002-c0-a-requirement-profile.test.ts
+          tests/assurance/build002-c0-b-catalog.test.ts
+          tests/assurance/build002-c0-c-binding.test.ts
+          tests/assurance/build002-c0-d-authority-resolver.test.ts
+          --reporter=verbose
+      - name: BUILD001 SQL, assurance, model and application regressions
+        run: pnpm run test:sql && pnpm run test:assurance && pnpm run test:model && pnpm run test:application
+      - name: Full Vitest
+        run: pnpm test
+      - name: TypeScript and ESLint
+        run: pnpm typecheck && pnpm lint
+      - name: Assurance check and production build
+        run: pnpm assurance:check && pnpm build
