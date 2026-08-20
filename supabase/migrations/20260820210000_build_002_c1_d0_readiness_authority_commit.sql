@@ -30,19 +30,24 @@ returns trigger language plpgsql security invoker
 set search_path = pg_catalog, public
 as $$
 begin
-  raise exception 'BUILD002_READINESS_AUTHORITY_COMMIT_IMMUTABLE_%', tg_op using errcode = '55000';
+  if tg_op = 'INSERT' and current_setting('build002.authority_commit', true) is distinct from '1' then
+    raise exception 'BUILD002_READINESS_AUTHORITY_COMMIT_INSERT_RESTRICTED' using errcode = '42501';
+  end if;
+  if tg_op <> 'INSERT' then
+    raise exception 'BUILD002_READINESS_AUTHORITY_COMMIT_IMMUTABLE_%', tg_op using errcode = '55000';
+  end if;
 end;
 $$;
 
 drop trigger if exists build002_readiness_authority_commit_immutable
   on public.build002_readiness_authority_commits;
 create trigger build002_readiness_authority_commit_immutable
-before update or delete on public.build002_readiness_authority_commits
+before insert or update or delete on public.build002_readiness_authority_commits
 for each row execute function public.build002_readiness_authority_commit_immutable();
 
 alter table public.build002_readiness_authority_commits enable row level security;
 revoke all on table public.build002_readiness_authority_commits from public, anon, authenticated, service_role;
-grant select on table public.build002_readiness_authority_commits to service_role;
+grant select, insert on table public.build002_readiness_authority_commits to service_role;
 create policy build002_readiness_authority_commits_authenticated_select
 on public.build002_readiness_authority_commits for select to authenticated
 using (
@@ -127,12 +132,14 @@ begin
   if not found or v_tx.status is distinct from 'PREPARED' then
     raise exception 'READINESS_AUTHORITY_TRANSACTION_NOT_PREPARED';
   end if;
-  if (p_commit->'transaction'->>'ownerTenantId')::uuid is distinct from v_tx.owner_tenant_id then raise exception 'D0_DEBUG_OWNER'; end if;
-  if (p_commit->'transaction'->>'transactionId')::uuid is distinct from v_tx.id then raise exception 'D0_DEBUG_TRANSACTION'; end if;
-  if (p_commit->'transaction'->>'projectId')::uuid is distinct from v_tx.project_id then raise exception 'D0_DEBUG_PROJECT'; end if;
-  if (p_commit->'transaction'->>'assetId')::uuid is distinct from v_tx.asset_id then raise exception 'D0_DEBUG_ASSET'; end if;
-  if (p_commit->'transaction'->>'baseVersionId')::uuid is distinct from v_tx.base_version_id then raise exception 'D0_DEBUG_VERSION'; end if;
-  if p_commit->'transaction'->>'rawRequest' is distinct from v_tx.raw_request then raise exception 'D0_DEBUG_REQUEST'; end if;
+  if (p_commit->'transaction'->>'ownerTenantId')::uuid is distinct from v_tx.owner_tenant_id
+     or (p_commit->'transaction'->>'transactionId')::uuid is distinct from v_tx.id
+     or (p_commit->'transaction'->>'projectId')::uuid is distinct from v_tx.project_id
+     or (p_commit->'transaction'->>'assetId')::uuid is distinct from v_tx.asset_id
+     or (p_commit->'transaction'->>'baseVersionId')::uuid is distinct from v_tx.base_version_id
+     or p_commit->'transaction'->>'rawRequest' is distinct from v_tx.raw_request then
+    raise exception 'READINESS_AUTHORITY_SOURCE_CHANGED';
+  end if;
 
   select * into v_asset from public.assets where id = v_tx.asset_id for update;
   if not found or v_asset.owner_tenant_id is distinct from v_tenant
@@ -353,13 +360,15 @@ begin
     end if;
     return jsonb_build_object('authority_commit_id', v_existing.id, 'dependency_snapshot_id', v_existing.dependency_snapshot_id, 'readiness_id', v_existing.readiness_id, 'committed_at', v_existing.committed_at);
   end if;
+  perform set_config('build002.authority_commit', '1', true);
   insert into public.build002_readiness_authority_commits(owner_tenant_id, outcome_transaction_id, principal_id, dependency_snapshot_id, dependency_snapshot_hash, readiness_id, readiness_content_hash, evaluation_time, schema_version)
   values (v_tenant, v_transaction, v_principal, v_snapshot_id, v_snapshot->>'dependencySnapshotHash', v_readiness_id, v_readiness->>'readinessContentHash', (v_readiness->>'createdAt')::timestamptz, 'build002-readiness-authority-commit-v0.1')
   returning id, committed_at into v_authority_id, v_commit_time;
   return jsonb_build_object('authority_commit_id', v_authority_id, 'dependency_snapshot_id', v_snapshot_id, 'readiness_id', v_readiness_id, 'committed_at', v_commit_time);
 exception
   when others then
-    raise;
+    if sqlstate = 'P0001' or sqlstate = '42501' or sqlstate = '55000' then raise; end if;
+    raise exception 'READINESS_AUTHORITY_COMMIT_FAILED';
 end;
 $$;
 

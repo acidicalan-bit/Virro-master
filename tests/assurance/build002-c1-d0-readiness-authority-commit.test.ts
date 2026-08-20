@@ -23,9 +23,9 @@ describe("BUILD002-C1-D0 atomic readiness authority boundary", () => {
 
   it("allows only the atomic service-role RPC to mint authority", () => {
     expect(migration).toMatch(/revoke all on table public\.build002_readiness_authority_commits from public, anon, authenticated, service_role/);
-    expect(migration).toMatch(/grant select on table public\.build002_readiness_authority_commits to service_role/);
+    expect(migration).toMatch(/grant select, insert on table public\.build002_readiness_authority_commits to service_role/);
     expect(migration).toMatch(/grant execute on function public\.build002_commit_readiness_authority\(uuid, jsonb\) to service_role/);
-    expect(migration).toContain("before update or delete");
+    expect(migration).toContain("before insert or update or delete");
   });
 
   it("locks every current-state boundary before the marker", () => {
