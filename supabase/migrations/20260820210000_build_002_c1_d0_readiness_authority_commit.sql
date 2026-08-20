@@ -207,10 +207,10 @@ begin
      or v_snapshot->>'blueprintHash' is distinct from v_binding.blueprint_hash then
     raise exception 'READINESS_AUTHORITY_GRAPH_INVALID';
   end if;
-  select jsonb_agg(value order by value) into v_hashes
+  select jsonb_agg(x.value order by x.value) into v_hashes
   from jsonb_array_elements(p_commit->'requirements') r, lateral (select r.value->>'requirementDefinitionHash' as value) x;
   if v_hashes is null or v_hashes is distinct from (
-    select jsonb_agg(value order by value)
+    select jsonb_agg(x.value order by x.value)
     from jsonb_array_elements_text(v_snapshot->'requirementDefinitionHashes') x(value)
   ) then
     raise exception 'READINESS_AUTHORITY_GRAPH_INVALID';
