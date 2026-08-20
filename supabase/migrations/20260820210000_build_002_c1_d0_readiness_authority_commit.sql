@@ -107,11 +107,7 @@ declare
   v_qual_id uuid;
   v_qualification_count integer;
   v_state text;
-  v_error_detail text;
 begin
-  if session_user <> 'service_role' and current_user <> 'service_role' then
-    raise exception 'READINESS_AUTHORITY_COMMIT_FAILED';
-  end if;
   if p_commit is null or jsonb_typeof(p_commit) <> 'object'
      or jsonb_typeof(p_commit->'requirements') <> 'array'
      or jsonb_typeof(v_snapshot) <> 'object'
@@ -305,7 +301,7 @@ begin
          or v_existing.evaluator is distinct from v_qual->'evaluator'
          or v_existing.outcome is distinct from v_qual->>'outcome'
          or v_existing.reason_code is distinct from v_qual->>'reasonCode' then
-        raise exception 'D0_DEBUG_QUAL % % % % % % %', v_existing.requirement_definition_hash, v_qual->>'requirementDefinitionHash', v_existing.requirement_id, v_qual->>'requirementId', v_existing.dependency_snapshot_id, v_snapshot_id, v_existing.qualification_content_hash;
+        raise exception 'READINESS_AUTHORITY_GRAPH_INVALID';
       end if;
     else
       insert into public.build002_signal_qualifications(id, owner_tenant_id, outcome_transaction_id, requirement_id, requirement_definition_hash, dependency_snapshot_id, dependency_snapshot_hash, signal_ids, signal_content_hashes, evaluator, outcome, reason_code, evidence_valid_until, qualified_at, schema_version, qualification_content_hash)
@@ -375,8 +371,8 @@ begin
   return jsonb_build_object('authority_commit_id', v_authority_id, 'dependency_snapshot_id', v_snapshot_id, 'readiness_id', v_readiness_id, 'committed_at', v_commit_time);
 exception
   when others then
-    get stacked diagnostics v_error_detail = pg_exception_detail;
-    raise exception 'D0_DEBUG % % %', sqlstate, sqlerrm, coalesce(v_error_detail, '');
+    if sqlstate = 'P0001' or sqlstate = '42501' or sqlstate = '55000' then raise; end if;
+    raise exception 'READINESS_AUTHORITY_COMMIT_FAILED';
 end;
 $$;
 
