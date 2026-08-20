@@ -43,6 +43,7 @@ begin
   if tg_op <> 'INSERT' then
     raise exception 'BUILD002_READINESS_AUTHORITY_COMMIT_IMMUTABLE_%', tg_op using errcode = '55000';
   end if;
+  return new;
 end;
 $$;
 
@@ -107,7 +108,6 @@ declare
   v_qual_id uuid;
   v_qualification_count integer;
   v_state text;
-  v_error_detail text;
 begin
   if p_commit is null or jsonb_typeof(p_commit) <> 'object'
      or jsonb_typeof(p_commit->'requirements') <> 'array'
@@ -372,8 +372,8 @@ begin
   return jsonb_build_object('authority_commit_id', v_authority_id, 'dependency_snapshot_id', v_snapshot_id, 'readiness_id', v_readiness_id, 'committed_at', v_commit_time);
 exception
   when others then
-    get stacked diagnostics v_error_detail = pg_exception_detail;
-    raise exception 'D0_DEBUG % % %', sqlstate, sqlerrm, coalesce(v_error_detail, '');
+    if sqlstate = 'P0001' or sqlstate = '42501' or sqlstate = '55000' then raise; end if;
+    raise exception 'READINESS_AUTHORITY_COMMIT_FAILED';
 end;
 $$;
 
