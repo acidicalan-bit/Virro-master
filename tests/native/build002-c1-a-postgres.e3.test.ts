@@ -78,7 +78,7 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD002-C1-A native PostgreSQL
     service = new Client({ connectionString: isolatedUrl });
     await service.connect();
     await service.query("set role service_role");
-    await service.query(`
+    await admin.query(`
       insert into public.build002_signals(
         signal_id, owner_tenant_id, outcome_transaction_id, requirement_id, requirement_definition_hash,
         payload, source, provenance, captured_at, dependency_identity, dependency_hash, schema_version, content_hash
