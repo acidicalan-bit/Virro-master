@@ -58,6 +58,7 @@ function databaseConnectionString(url: string, database: string): string {
   parsed.pathname = `/${database}`;
   return parsed.toString();
 }
+
 function dbInstant(value: unknown): string {
   return value instanceof Date ? value.toISOString() : new Date(String(value)).toISOString();
 }
@@ -89,6 +90,7 @@ function transactionFromRow(row: Row): OutcomeTransactionRecord {
     abortReason: row.abort_reason ? String(row.abort_reason) : null,
   };
 }
+
 function blueprintFromRow(row: Row): OutcomeBlueprint {
   return OutcomeBlueprintSchema.parse({
     ...(row.definition as Row),
