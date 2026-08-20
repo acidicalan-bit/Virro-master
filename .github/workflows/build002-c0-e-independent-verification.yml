@@ -1,0 +1,68 @@
+name: BUILD 002-C0-E independent verification
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  independent:
+    name: Independent C0-E composed authority verification
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: virro_c0_e_independent
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d virro_c0_e_independent"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+        with:
+          version: 11.19.0
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Independent C0-E native verifier
+        env:
+          BUILD002_NATIVE_PG_C0_E_INDEPENDENT: "true"
+          BUILD002_NATIVE_PG_URL: postgresql://postgres:postgres@localhost:5432/virro_c0_e_independent
+        run: pnpm exec vitest run tests/native/verification/build002-c0-e-independent.e3.test.ts --reporter=verbose
+      - name: Authored C0-E native regression
+        env:
+          BUILD002_NATIVE_PG_C0_E: "true"
+          BUILD002_NATIVE_PG_URL: postgresql://postgres:postgres@localhost:5432/virro_c0_e_authored
+        run: pnpm exec vitest run tests/native/build002-c0-e-authority-chain.e3.test.ts --reporter=verbose
+      - name: Assurance and frozen domain regressions
+        run: pnpm assurance:check && pnpm test:assurance && pnpm test:model && pnpm test:application
+      - name: SQL regression
+        run: pnpm test:sql
+      - name: Native PostgreSQL BUILD002-B
+        env:
+          BUILD002_NATIVE_PG_E3: "true"
+          BUILD002_NATIVE_PG_URL: postgresql://postgres:postgres@localhost:5432/virro_c0_e_b
+        run: pnpm exec vitest run tests/native/build002-b-postgres.e3.test.ts --reporter=verbose
+      - name: Native PostgreSQL C0-C
+        env:
+          BUILD002_NATIVE_PG_C0_C: "true"
+          BUILD002_NATIVE_PG_URL: postgresql://postgres:postgres@localhost:5432/virro_c0_e_c
+        run: pnpm exec vitest run tests/native/build002-c0-c-postgres.e3.test.ts --reporter=verbose
+      - name: Full Vitest regression
+        run: pnpm test
+      - name: TypeScript
+        run: pnpm typecheck
+      - name: ESLint
+        run: pnpm lint
+      - name: Production build
+        run: pnpm build
