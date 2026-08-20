@@ -29,21 +29,30 @@ writes and cross-tenant isolation, then verifies stale source-head rejection.
 
 ## Results
 
-Results are recorded after the exact pull-request workflow completes.
+The exact product `pull_request` run `32387849190` passed on product SHA
+`73169586cd89c75bba973bdf3ab6e8bae82c0a7d`; required job
+`96486600372` passed. The independent verifier `pull_request` run
+`32389068358` passed on verifier SHA `3446daa597593eda73fa75ca4d38e3879f3cd1e9`;
+job `96490540073` passed on `ubuntu-latest` with PostgreSQL `17.11`.
 
 | Gate | Result |
 | --- | --- |
-| Product required `pull_request` run | PENDING |
-| Independent assurance | PENDING |
-| Independent native PostgreSQL 17 | PENDING |
-| Authored C1-B and native regression | PENDING |
-| C1-A / Build002-A/B / C0 regression | PENDING |
-| BUILD001 regression | PENDING |
-| Full Vitest / TypeScript / ESLint / assurance / build | PENDING |
+| Product required `pull_request` run | PASS |
+| Independent assurance | 11/11 PASS |
+| Independent native PostgreSQL 17 | 2/2 PASS |
+| Authored C1-B assurance | 15/15 PASS |
+| Authored C1-B native | 1/1 PASS |
+| C1-A / Build002-A/B / C0 regression | PASS |
+| BUILD001 SQL, assurance, model and application | PASS |
+| Full Vitest | 62 files passed, 12 skipped; 720 tests passed, 51 skipped |
+| TypeScript | PASS |
+| ESLint | PASS, one pre-existing unused `SIGNAL_B` warning |
+| Assurance check | PASS |
+| Production build | PASS |
+
+No provider calls or credentials were used. The native database was
+disposable and was dropped by the test teardown.
 
 ## Decision
 
-`BUILD002_C1_B_INDEPENDENT_VERIFICATION_BLOCKED`
-
-This placeholder is replaced only by the verifier after the exact workflow,
-PR state, product ancestry, and clean worktree have been independently checked.
+`BUILD002_C1_B_INDEPENDENTLY_VERIFIED`
