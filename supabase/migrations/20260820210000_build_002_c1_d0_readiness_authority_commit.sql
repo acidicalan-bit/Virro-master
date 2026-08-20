@@ -133,13 +133,20 @@ begin
      or (p_commit->'transaction'->>'assetId')::uuid is distinct from v_tx.asset_id
      or (p_commit->'transaction'->>'baseVersionId')::uuid is distinct from v_tx.base_version_id
      or p_commit->'transaction'->>'rawRequest' is distinct from v_tx.raw_request then
-    raise exception 'READINESS_AUTHORITY_SOURCE_CHANGED:%:%:%:%:%:%',
+    raise notice 'D0 source mismatch payload=(%,%,%,%,%,%) db=(%,%,%,%,%,%)',
       p_commit->'transaction'->>'ownerTenantId',
       p_commit->'transaction'->>'transactionId',
       p_commit->'transaction'->>'projectId',
       p_commit->'transaction'->>'assetId',
       p_commit->'transaction'->>'baseVersionId',
-      p_commit->'transaction'->>'rawRequest';
+      p_commit->'transaction'->>'rawRequest',
+      v_tx.owner_tenant_id,
+      v_tx.id,
+      v_tx.project_id,
+      v_tx.asset_id,
+      v_tx.base_version_id,
+      v_tx.raw_request;
+    raise exception 'READINESS_AUTHORITY_SOURCE_CHANGED';
   end if;
 
   select * into v_asset from public.assets where id = v_tx.asset_id for update;
