@@ -296,7 +296,7 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD 002-C0-E native composed 
     const migrations = readdirSync(migrationsDir).filter((item) => item.endsWith(".sql")).sort();
     expect(migrations).toHaveLength(30);
     expect(migrations[0]).toBe("20260809110000_intent_lab_build_001.sql");
-    expect(migrations.at(-1)).toBe("20260819150000_build_002_c0_c_transaction_requirement_binding.sql");
+    expect(migrations.at(-1)).toBe("20260820210000_build_002_c1_d0_readiness_authority_commit.sql");
     const persisted = await admin.query("select id::text, owner_tenant_id::text, raw_request from public.outcome_transactions where id in ($1,$2) order by id", [TX_A, TX_B]);
     expect(persisted.rows).toHaveLength(2);
     expect(persisted.rows.map((row) => row.id)).toEqual([TX_A, TX_B]);
