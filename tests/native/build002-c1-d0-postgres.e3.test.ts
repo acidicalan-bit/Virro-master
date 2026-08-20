@@ -189,6 +189,8 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD002-C1-D0 native PostgreSQ
   });
 
   it("commits READY exactly once, keeps PREPARED, and replays idempotently", async () => {
+    const debugTransaction = await admin.query("select owner_tenant_id::text, id::text, project_id::text, asset_id::text, base_version_id::text, raw_request from public.outcome_transactions where id = $1", [TRANSACTION]);
+    console.log("D0 transaction debug", debugTransaction.rows[0], (value.payload.transaction as Record<string, unknown>));
     const first = await service.query("select public.build002_commit_readiness_authority($1::uuid, $2::jsonb) as result", [ACTOR, JSON.stringify(value.payload)]);
     const second = await service.query("select public.build002_commit_readiness_authority($1::uuid, $2::jsonb) as result", [ACTOR, JSON.stringify(value.payload)]);
     expect(first.rows[0].result.authority_commit_id).toBe(second.rows[0].result.authority_commit_id);
