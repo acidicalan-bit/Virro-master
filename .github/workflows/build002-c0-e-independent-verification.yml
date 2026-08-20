@@ -51,7 +51,7 @@ jobs:
       - name: Native PostgreSQL BUILD002-B
         env:
           BUILD002_NATIVE_PG_E3: "true"
-          BUILD002_NATIVE_PG_URL: postgresql://postgres:postgres@localhost:5432/virro_c0_e_b
+          BUILD002_NATIVE_PG_URL: postgresql://postgres:postgres@localhost:5432/virro_c0_e_independent
         run: pnpm exec vitest run tests/native/build002-b-postgres.e3.test.ts --reporter=verbose
       - name: Native PostgreSQL C0-C
         env:
