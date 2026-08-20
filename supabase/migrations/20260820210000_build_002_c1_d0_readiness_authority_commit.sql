@@ -30,7 +30,7 @@ returns trigger language plpgsql security invoker
 set search_path = pg_catalog, public
 as $$
 begin
-  if tg_op = 'INSERT' and current_user is distinct from pg_catalog.pg_get_userbyid((select relowner from pg_catalog.pg_class where oid = 'public.build002_readiness_authority_commits'::regclass)) then
+  if tg_op = 'INSERT' and current_user = 'service_role' then
     raise exception 'BUILD002_READINESS_AUTHORITY_COMMIT_INSERT_RESTRICTED' using errcode = '42501';
   end if;
   if tg_op <> 'INSERT' then
