@@ -217,8 +217,8 @@ begin
   end if;
   select jsonb_agg(jsonb_build_object('requirementId', r.value->>'requirementId', 'signalId', r.value->>'signalId', 'contentHash', r.value->>'contentHash') order by r.value->>'requirementId', r.value->>'signalId', r.value->>'contentHash') into v_refs
   from jsonb_array_elements(v_snapshot->'signalReferences') r;
-  if jsonb_array_length(v_hashes) <> (select count(*) from jsonb_array_elements_text(v_hashes))
-     or jsonb_array_length(v_hashes) <> (select count(distinct value) from jsonb_array_elements_text(v_hashes)) then
+  if jsonb_array_length(v_hashes) <> (select count(*) from jsonb_array_elements_text(v_hashes) as hash_values(value))
+     or jsonb_array_length(v_hashes) <> (select count(distinct hash_values.value) from jsonb_array_elements_text(v_hashes) as hash_values(value)) then
     raise exception 'READINESS_AUTHORITY_GRAPH_INVALID';
   end if;
   select jsonb_agg(jsonb_build_object('requirementId', requirement_id, 'signalId', signal_id::text, 'contentHash', content_hash) order by requirement_id, signal_id, content_hash)
@@ -229,7 +229,7 @@ begin
     raise exception 'READINESS_AUTHORITY_SIGNAL_UNIVERSE_CHANGED';
   end if;
 
-  for v_req in select value from jsonb_array_elements(p_commit->'requirements') loop
+  for v_req in select requirement.value from jsonb_array_elements(p_commit->'requirements') as requirement(value) loop
     v_req_hash := v_req->>'requirementDefinitionHash';
     if v_req->>'policyId' is not null or v_req->>'policyHash' is not null then
       raise exception 'READINESS_AUTHORITY_GRAPH_INVALID';
@@ -275,12 +275,12 @@ begin
     insert into public.build002_dependency_snapshots(owner_tenant_id, outcome_transaction_id, requirement_definition_hashes, signal_references, dependency_bindings, blueprint_hash, policy_hash, task_spec_hash, transaction_semantic_hash, source_asset_version_hash, context_lens_hash, schema_version, dependency_snapshot_hash)
     values (v_tenant, v_transaction, v_snapshot->'requirementDefinitionHashes', v_snapshot->'signalReferences', v_snapshot->'dependencyBindings', nullif(v_snapshot->>'blueprintHash',''), nullif(v_snapshot->>'policyHash',''), nullif(v_snapshot->>'taskSpecHash',''), nullif(v_snapshot->>'transactionSemanticHash',''), nullif(v_snapshot->>'sourceAssetVersionHash',''), nullif(v_snapshot->>'contextLensHash',''), v_snapshot->>'schemaVersion', v_snapshot->>'dependencySnapshotHash') returning id into v_snapshot_id;
     insert into public.build002_dependency_requirements(owner_tenant_id, outcome_transaction_id, dependency_snapshot_id, requirement_definition_hash)
-    select v_tenant, v_transaction, v_snapshot_id, value from jsonb_array_elements_text(v_snapshot->'requirementDefinitionHashes');
+    select v_tenant, v_transaction, v_snapshot_id, hashes.value from jsonb_array_elements_text(v_snapshot->'requirementDefinitionHashes') as hashes(value);
     insert into public.build002_dependency_signals(owner_tenant_id, outcome_transaction_id, dependency_snapshot_id, signal_id, signal_content_hash, requirement_id)
-    select v_tenant, v_transaction, v_snapshot_id, (value->>'signalId')::uuid, value->>'contentHash', value->>'requirementId' from jsonb_array_elements(v_snapshot->'signalReferences');
+    select v_tenant, v_transaction, v_snapshot_id, (signal_ref.value->>'signalId')::uuid, signal_ref.value->>'contentHash', signal_ref.value->>'requirementId' from jsonb_array_elements(v_snapshot->'signalReferences') as signal_ref(value);
   end if;
 
-  for v_qual in select value from jsonb_array_elements(p_commit->'qualifications') loop
+  for v_qual in select qualification.value from jsonb_array_elements(p_commit->'qualifications') as qualification(value) loop
     if v_qual->>'ownerTenantId' is distinct from v_tenant::text
        or v_qual->>'transactionId' is distinct from v_transaction::text
        or v_qual->>'dependencySnapshotHash' is distinct from v_snapshot->>'dependencySnapshotHash'
