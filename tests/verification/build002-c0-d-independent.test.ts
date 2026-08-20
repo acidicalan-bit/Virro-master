@@ -58,8 +58,8 @@ describe("BUILD002-C0-D independent verifier", () => {
     ["revoked membership", [membership("a0000000-0000-4000-8000-000000000001", TENANT_A, "REVOKED")], "TENANT_MEMBERSHIP_REQUIRED"],
     ["suspended tenant", [membership("a0000000-0000-4000-8000-000000000001", TENANT_A)], "TENANT_MEMBERSHIP_INACTIVE", "SUSPENDED"],
     ["multiple active memberships", [membership("a0000000-0000-4000-8000-000000000001", TENANT_A), membership("a0000000-0000-4000-8000-000000000002", TENANT_B)], "TENANT_NOT_SELECTED"],
-  ])("real TenantAuthorityService fails closed for %s", async (_label, memberships, expected, tenantStatus?: TenantRecord["status"]) => {
-    const repository = fakeMembershipRepository(memberships, tenantStatus);
+  ])("real TenantAuthorityService fails closed for %s", async (_label, memberships, expected, tenantStatus?: string) => {
+    const repository = fakeMembershipRepository(memberships, (tenantStatus ?? "ACTIVE") as TenantRecord["status"]);
     await expect(new TenantAuthorityService(repository).resolveAuthority({ principal: { principalId: PRINCIPAL_ID, authenticatedAt: "2026-08-19T12:00:00.000Z" } }))
       .rejects.toMatchObject({ code: expected });
   });
