@@ -359,8 +359,7 @@ begin
   return jsonb_build_object('authority_commit_id', v_authority_id, 'dependency_snapshot_id', v_snapshot_id, 'readiness_id', v_readiness_id, 'committed_at', v_commit_time);
 exception
   when others then
-    if sqlstate = 'P0001' then raise; end if;
-    raise exception 'READINESS_AUTHORITY_COMMIT_FAILED';
+    raise;
 end;
 $$;
 
