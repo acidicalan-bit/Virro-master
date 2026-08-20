@@ -73,6 +73,40 @@ export class SupabaseBuild002PersistenceRepository implements Build002Persistenc
     return data ? signalFromRow(data as Row) : null;
   }
 
+  async listSignalsForRequirement(scope: Build002TenantSnapshotScope, requirementDefinitionHash: string): Promise<Signal[]> {
+    this.assertScope(scope);
+    if (!/^[a-f0-9]{64}$/.test(requirementDefinitionHash)) throw new Error("BUILD002_SIGNAL_UNIVERSE_INVALID");
+    const { data, error } = await this.client
+      .from("build002_signals")
+      .select("*")
+      .eq("owner_tenant_id", this.ownerTenantId)
+      .eq("outcome_transaction_id", scope.outcomeTransactionId)
+      .eq("requirement_definition_hash", requirementDefinitionHash)
+      .order("captured_at", { ascending: true })
+      .order("signal_id", { ascending: true });
+    if (error || !data) throw new Error("BUILD002_SIGNAL_UNIVERSE_READ_FAILED");
+
+    try {
+      const signals = data.map((row) => {
+        if (String((row as Row).requirement_definition_hash) !== requirementDefinitionHash) {
+          throw new Error("BUILD002_SIGNAL_UNIVERSE_INVALID");
+        }
+        const signal = signalFromRow(row as Row);
+        if (!verifySignalContentHash(signal)) throw new Error("BUILD002_SIGNAL_UNIVERSE_INVALID");
+        return signal;
+      });
+      const signalIds = new Set<string>();
+      for (const signal of signals) {
+        if (signalIds.has(signal.signalId)) throw new Error("BUILD002_SIGNAL_UNIVERSE_INVALID");
+        signalIds.add(signal.signalId);
+      }
+      return signals;
+    } catch (error) {
+      if (error instanceof Error && error.message === "BUILD002_SIGNAL_UNIVERSE_INVALID") throw error;
+      throw new Error("BUILD002_SIGNAL_UNIVERSE_INVALID");
+    }
+  }
+
   async insertDependencySnapshot(scope: Build002TenantSnapshotScope, snapshot: DependencySnapshot): Promise<string> {
     this.assertScope(scope);
     this.assertDomainScope(scope, snapshot.ownerTenantId, snapshot.transactionId);

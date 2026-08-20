@@ -60,6 +60,7 @@ import { createSupabaseTransactionRequirementBindingRepository } from "@/src/inf
 import { createSupabaseRequirementCatalogRepository } from "@/src/infrastructure/persistence/outcome/supabase-requirement-catalog-repository";
 import type { RequirementCatalogRepository } from "@/src/application/ports/outcome/requirement-catalog-repository";
 import type { OutcomeTransactionRequirementBindingRepository } from "@/src/application/ports/outcome/transaction-requirement-binding-repository";
+import type { Build002PersistenceRepository } from "@/src/application/ports/outcome/build002-persistence-repository";
 import {
   fromBenchmarkCaseRow,
   fromIntentRunRow,
@@ -519,6 +520,18 @@ export function createTenantOutcomeRequirementAuthorityRepositories(ownerTenantI
     outcomeTransactions: new SupabaseOutcomeTransactionRepository(client, scope),
     outcomeTransactionRequirementBindings: createSupabaseTransactionRequirementBindingRepository(client, scope),
     requirementCatalog: createSupabaseRequirementCatalogRepository(client),
+  };
+}
+
+export type TenantBuild002EvaluationRepositories = Readonly<{
+  build002Readiness: Pick<Build002PersistenceRepository, "listSignalsForRequirement">;
+}>;
+
+export function createTenantBuild002EvaluationRepositories(ownerTenantId: string): TenantBuild002EvaluationRepositories {
+  const scope = requireTenantScope(ownerTenantId);
+  const client = createPrivilegedClient();
+  return {
+    build002Readiness: createTenantBuild002PersistenceRepository(client, scope),
   };
 }
 

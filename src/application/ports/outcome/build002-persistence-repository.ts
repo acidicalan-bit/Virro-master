@@ -21,6 +21,7 @@ export interface Build002PersistenceRepository {
   findRequirementSnapshot(scope: Build002TenantSnapshotScope, requirementDefinitionHash: string): Promise<SignalRequirement | null>;
   insertSignal(scope: Build002TenantSnapshotScope, requirementDefinitionHash: string, signal: Signal): Promise<Signal>;
   findSignal(scope: Build002TenantSnapshotScope, signalId: string): Promise<Signal | null>;
+  listSignalsForRequirement(scope: Build002TenantSnapshotScope, requirementDefinitionHash: string): Promise<Signal[]>;
   insertDependencySnapshot(scope: Build002TenantSnapshotScope, snapshot: DependencySnapshot): Promise<string>;
   findDependencySnapshot(scope: Build002TenantSnapshotScope, dependencySnapshotHash: string): Promise<DependencySnapshot | null>;
   insertQualification(scope: Build002TenantSnapshotScope, requirementDefinitionHash: string, dependencySnapshotId: string, qualification: SignalQualification): Promise<SignalQualification>;
