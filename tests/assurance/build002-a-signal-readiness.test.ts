@@ -18,6 +18,11 @@ import {
   verifyQualificationHash,
   verifySignalContentHash,
   verifyReadinessHash,
+  verifyEvaluatorIdentity,
+  sameEvaluatorIdentity,
+  type DelegationReadiness,
+  type EvaluatorIdentity,
+  type SignalQualification,
   type DependencySnapshot,
   type Signal,
   type SignalRequirement,
@@ -33,8 +38,8 @@ const transactionId = "20000000-0000-4000-8000-000000000002";
 const subject = { kind: "OUTCOME_TRANSACTION" as const, ownerTenantId: tenantId, transactionId };
 const evaluator = {
   schemaVersion: BUILD002_EVALUATOR_SCHEMA_VERSION,
-  version: "1.0.0",
-  definitionHash: "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+  version: BUILD002_DEFAULT_EVALUATOR_VERSION,
+  definitionHash: canonicalSha256({ schemaVersion: BUILD002_EVALUATOR_SCHEMA_VERSION, version: BUILD002_DEFAULT_EVALUATOR_VERSION }),
 };
 const at = "2026-08-18T12:00:00.000Z";
 const after = "2026-08-18T13:00:00.000Z";
@@ -132,6 +137,35 @@ function boundDependency(requirements: SignalRequirement[], signals: Signal[] = 
   const { dependencySnapshotHash: _hash, ...input } = base;
   void _hash;
   return createDependencySnapshot({ ...input, requirementDefinitionHashes: requirements.map((requirement) => requirement.requirementDefinitionHash), ...overrides } as never);
+}
+
+const legacyEvaluator: EvaluatorIdentity = {
+  schemaVersion: BUILD002_EVALUATOR_SCHEMA_VERSION,
+  version: "0.1.0",
+  definitionHash: canonicalSha256({ schemaVersion: BUILD002_EVALUATOR_SCHEMA_VERSION, version: "0.1.0" }),
+};
+
+const badEvaluator: EvaluatorIdentity = {
+  schemaVersion: BUILD002_EVALUATOR_SCHEMA_VERSION,
+  version: BUILD002_DEFAULT_EVALUATOR_VERSION,
+  definitionHash: H_OTHER,
+};
+
+function withQualificationEvaluator(qualification: SignalQualification, nextEvaluator: EvaluatorIdentity): SignalQualification {
+  const material = { ...qualification, evaluator: nextEvaluator };
+  const { id: _id, qualificationContentHash: _hash, ...hashMaterial } = material;
+  void _id;
+  void _hash;
+  return { ...material, qualificationContentHash: canonicalSha256(hashMaterial) };
+}
+
+function withReadinessEvaluator(readiness: DelegationReadiness, nextEvaluator: EvaluatorIdentity): DelegationReadiness {
+  const material = { ...readiness, evaluator: nextEvaluator };
+  const { id: _id, createdAt: _createdAt, readinessContentHash: _hash, ...hashMaterial } = material;
+  void _id;
+  void _createdAt;
+  void _hash;
+  return { ...material, readinessContentHash: canonicalSha256(hashMaterial) };
 }
 
 describe("BUILD 002-A E1 signal qualification and readiness matrix", () => {
@@ -733,5 +767,122 @@ describe("BUILD 002-A R4 signal temporal causality", () => {
     const q = evaluateSignalQualification({ requirement: r, signals: [s], currentDependencySnapshot: d, evaluationTime: at, idFactory: () => "50000000-0000-4000-8000-000000000207" });
     expect(q.evaluator.version).toBe(BUILD002_DEFAULT_EVALUATOR_VERSION);
     expect(q.evaluator.definitionHash).toBe(canonicalSha256({ schemaVersion: BUILD002_EVALUATOR_SCHEMA_VERSION, version: BUILD002_DEFAULT_EVALUATOR_VERSION }));
+  });
+});
+
+describe("BUILD 002-A R4-1 evaluator semantic revocation", () => {
+  it("verifies the current evaluator identity canonically", () => {
+    const current = { schemaVersion: BUILD002_EVALUATOR_SCHEMA_VERSION, version: BUILD002_DEFAULT_EVALUATOR_VERSION, definitionHash: canonicalSha256({ schemaVersion: BUILD002_EVALUATOR_SCHEMA_VERSION, version: BUILD002_DEFAULT_EVALUATOR_VERSION }) };
+    expect(verifyEvaluatorIdentity(current)).toBe(true);
+    expect(sameEvaluatorIdentity(current, evaluator)).toBe(true);
+  });
+
+  it("fails closed for a valid-shape evaluator with the wrong definition hash", () => {
+    const r = requirement("r4-1.bad-evaluator");
+    const s = signal(r, "value");
+    const q = evaluateSignalQualification({ requirement: r, signals: [s], currentDependencySnapshot: boundDependency([r], [s]), evaluator: badEvaluator, evaluationTime: at });
+    expect(q.outcome).toBe("INVALID");
+    expect(q.reasonCode).toBe("INVALID_EVALUATOR_IDENTITY");
+  });
+
+  it("preserves historical qualification hash validity while revoking current compatibility", () => {
+    const r = requirement("r4-1.legacy-qualification");
+    const s = signal(r, "value");
+    const d = boundDependency([r], [s]);
+    const legacy = withQualificationEvaluator(qualify(r, [s], d), legacyEvaluator);
+    expect(verifyQualificationHash(legacy)).toBe(true);
+    const readiness = evaluateDelegationReadiness({ subject, requirements: [r], qualifications: [legacy], dependencySnapshot: d, evaluationTime: at });
+    expect(readiness.state).toBe("INSUFFICIENT_SIGNAL");
+    expect(readiness.blockingCodes).toContain("QUALIFICATION_EVALUATOR_MISMATCH");
+  });
+
+  it("does not permit a legacy qualification to produce READY_WITH_CONDITIONS", () => {
+    const r = requirement("r4-1.legacy-conditions");
+    const s = signal(r, "value");
+    const d = boundDependency([r], [s]);
+    const legacy = withQualificationEvaluator(qualify(r, [s], d), legacyEvaluator);
+    const readiness = evaluateDelegationReadiness({ subject, requirements: [r], qualifications: [legacy], dependencySnapshot: d, conditionCodes: ["REVIEW"], evaluationTime: at });
+    expect(readiness.state).toBe("INSUFFICIENT_SIGNAL");
+    expect(readiness.state).not.toBe("READY_WITH_CONDITIONS");
+  });
+
+  it("keeps a current 0.2.0 qualification on the READY path", () => {
+    const r = requirement("r4-1.current-qualification");
+    const s = signal(r, "value");
+    const d = boundDependency([r], [s]);
+    const q = qualify(r, [s], d);
+    const readiness = evaluateDelegationReadiness({ subject, requirements: [r], qualifications: [q], dependencySnapshot: d, evaluationTime: at });
+    expect(readiness.state).toBe("READY");
+  });
+
+  it("does not ignore a legacy optional qualification", () => {
+    const critical = requirement("r4-1.critical");
+    const optional = requirement({ requirementId: "r4-1.optional", critical: false });
+    const criticalSignal = signal(critical, "critical", H_SOURCE, "40000000-0000-4000-8000-000000000101");
+    const optionalSignal = signal(optional, "optional", H_SOURCE, "40000000-0000-4000-8000-000000000102");
+    const d = boundDependency([critical, optional], [criticalSignal, optionalSignal]);
+    const criticalQ = qualify(critical, [criticalSignal], d);
+    const optionalQ = withQualificationEvaluator(qualify(optional, [optionalSignal], d), legacyEvaluator);
+    const readiness = evaluateDelegationReadiness({ subject, requirements: [critical, optional], qualifications: [criticalQ, optionalQ], dependencySnapshot: d, evaluationTime: at });
+    expect(readiness.state).toBe("INSUFFICIENT_SIGNAL");
+    expect(readiness.blockingCodes).toContain("QUALIFICATION_EVALUATOR_MISMATCH");
+  });
+
+  it("rejects mixed evaluator sets deterministically in either order", () => {
+    const first = requirement("r4-1.mix-a");
+    const second = requirement("r4-1.mix-b");
+    const firstSignal = signal(first, "a", H_SOURCE, "40000000-0000-4000-8000-000000000103");
+    const secondSignal = signal(second, "b", H_SOURCE, "40000000-0000-4000-8000-000000000104");
+    const d = boundDependency([first, second], [firstSignal, secondSignal]);
+    const current = qualify(first, [firstSignal], d);
+    const legacy = withQualificationEvaluator(qualify(second, [secondSignal], d), legacyEvaluator);
+    const forward = evaluateDelegationReadiness({ subject, requirements: [first, second], qualifications: [current, legacy], dependencySnapshot: d, evaluationTime: at, idFactory: () => "60000000-0000-4000-8000-000000000103" });
+    const reverse = evaluateDelegationReadiness({ subject, requirements: [second, first], qualifications: [legacy, current], dependencySnapshot: d, evaluationTime: at, idFactory: () => "60000000-0000-4000-8000-000000000103" });
+    expect(forward.state).toBe("INSUFFICIENT_SIGNAL");
+    expect(reverse.state).toBe("INSUFFICIENT_SIGNAL");
+    expect(forward.blockingCodes).toEqual(reverse.blockingCodes);
+  });
+
+  it("marks a legacy READY artifact stale under current default semantics", () => {
+    const r = requirement("r4-1.legacy-readiness");
+    const s = signal(r, "value");
+    const d = boundDependency([r], [s]);
+    const q = qualify(r, [s], d);
+    const currentReadiness = evaluateDelegationReadiness({ subject, requirements: [r], qualifications: [q], dependencySnapshot: d, evaluationTime: at });
+    const legacyReadiness = withReadinessEvaluator(currentReadiness, legacyEvaluator);
+    expect(verifyReadinessHash(legacyReadiness)).toBe(true);
+    expect(evaluateReadinessValidity(legacyReadiness, d, at)).toBe("STALE");
+    expect(evaluateReadinessValidity(legacyReadiness, d, at, legacyEvaluator)).toBe("CURRENT");
+    expect(isDelegable(legacyReadiness, "STALE")).toBe(false);
+  });
+
+  it("keeps current readiness CURRENT and delegable", () => {
+    const r = requirement("r4-1.current-readiness");
+    const s = signal(r, "value");
+    const d = boundDependency([r], [s]);
+    const q = qualify(r, [s], d);
+    const readiness = evaluateDelegationReadiness({ subject, requirements: [r], qualifications: [q], dependencySnapshot: d, evaluationTime: at });
+    expect(evaluateReadinessValidity(readiness, d, at)).toBe("CURRENT");
+    expect(isDelegable(readiness, "CURRENT")).toBe(true);
+  });
+
+  it("marks a readiness carrying a bad evaluator hash stale", () => {
+    const r = requirement("r4-1.bad-readiness");
+    const s = signal(r, "value");
+    const d = boundDependency([r], [s]);
+    const q = qualify(r, [s], d);
+    const readiness = withReadinessEvaluator(evaluateDelegationReadiness({ subject, requirements: [r], qualifications: [q], dependencySnapshot: d, evaluationTime: at }), badEvaluator);
+    expect(verifyReadinessHash(readiness)).toBe(true);
+    expect(evaluateReadinessValidity(readiness, d, at)).toBe("STALE");
+    expect(isDelegable(readiness, "STALE")).toBe(false);
+  });
+
+  it("retains the R4 future-signal temporal boundary", () => {
+    const r = requirement("r4-1.temporal-control");
+    const s = signalAt(r, "future", after);
+    const q = evaluateSignalQualification({ requirement: r, signals: [s], currentDependencySnapshot: boundDependency([r], [s]), evaluationTime: at });
+    expect(verifySignalContentHash(s)).toBe(true);
+    expect(q.outcome).toBe("INVALID");
+    expect(q.reasonCode).toBe("SIGNAL_FROM_FUTURE");
   });
 });
