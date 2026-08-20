@@ -127,27 +127,12 @@ begin
   if not found or v_tx.status is distinct from 'PREPARED' then
     raise exception 'READINESS_AUTHORITY_TRANSACTION_NOT_PREPARED';
   end if;
-  if (p_commit->'transaction'->>'ownerTenantId')::uuid is distinct from v_tx.owner_tenant_id
-     or (p_commit->'transaction'->>'transactionId')::uuid is distinct from v_tx.id
-     or (p_commit->'transaction'->>'projectId')::uuid is distinct from v_tx.project_id
-     or (p_commit->'transaction'->>'assetId')::uuid is distinct from v_tx.asset_id
-     or (p_commit->'transaction'->>'baseVersionId')::uuid is distinct from v_tx.base_version_id
-     or p_commit->'transaction'->>'rawRequest' is distinct from v_tx.raw_request then
-    raise notice 'D0 source mismatch payload=(%,%,%,%,%,%) db=(%,%,%,%,%,%)',
-      p_commit->'transaction'->>'ownerTenantId',
-      p_commit->'transaction'->>'transactionId',
-      p_commit->'transaction'->>'projectId',
-      p_commit->'transaction'->>'assetId',
-      p_commit->'transaction'->>'baseVersionId',
-      p_commit->'transaction'->>'rawRequest',
-      v_tx.owner_tenant_id,
-      v_tx.id,
-      v_tx.project_id,
-      v_tx.asset_id,
-      v_tx.base_version_id,
-      v_tx.raw_request;
-    raise exception 'READINESS_AUTHORITY_SOURCE_CHANGED';
-  end if;
+  if (p_commit->'transaction'->>'ownerTenantId')::uuid is distinct from v_tx.owner_tenant_id then raise exception 'D0_DEBUG_OWNER'; end if;
+  if (p_commit->'transaction'->>'transactionId')::uuid is distinct from v_tx.id then raise exception 'D0_DEBUG_TRANSACTION'; end if;
+  if (p_commit->'transaction'->>'projectId')::uuid is distinct from v_tx.project_id then raise exception 'D0_DEBUG_PROJECT'; end if;
+  if (p_commit->'transaction'->>'assetId')::uuid is distinct from v_tx.asset_id then raise exception 'D0_DEBUG_ASSET'; end if;
+  if (p_commit->'transaction'->>'baseVersionId')::uuid is distinct from v_tx.base_version_id then raise exception 'D0_DEBUG_VERSION'; end if;
+  if p_commit->'transaction'->>'rawRequest' is distinct from v_tx.raw_request then raise exception 'D0_DEBUG_REQUEST'; end if;
 
   select * into v_asset from public.assets where id = v_tx.asset_id for update;
   if not found or v_asset.owner_tenant_id is distinct from v_tenant
