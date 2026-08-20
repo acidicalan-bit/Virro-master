@@ -28,3 +28,16 @@ The expected revocation contract remains:
 No runtime source, migration, RPC, HTTP route, readiness evaluation, signal
 ingestion, execution, provider call, MutationLease, or StateCommit behavior is
 added by the verifier.
+
+## Completed run
+
+The independent workflow completed successfully on verifier commit
+`74b219ad90b25cea5e10602b521c095c5ee9b5fe` (PostgreSQL 17.11). The independent
+suite passed 6/6 tests; the authored C0-E regression passed 7/7; native
+BUILD002-B passed 7/7; native C0-C passed 4/4; SQL passed 15/15; assurance
+passed 271/271; model passed 32/32; application passed 9/9; and the full
+Vitest regression passed 59 files / 657 tests, with 10 files / 53 tests
+skipped. TypeScript, ESLint, assurance checks, and the production build all
+passed. The verifier branch changes remain limited to this report, its
+independent test, and its dedicated workflow; the product candidate remains
+unchanged and unmerged.
