@@ -2,6 +2,7 @@
 
 import { readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
+import { createHash } from "node:crypto";
 import { Client } from "pg";
 import { describe, expect, it, beforeAll, afterAll } from "vitest";
 import {
@@ -120,6 +121,10 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD002-C1-D0 R1-1 independent
     await client.query("select public.build002_insert_signal_requirement($1::jsonb)", [JSON.stringify({ id: rowId, owner_tenant_id: TENANT, outcome_transaction_id: TX, requirement_id: requirement.requirementId, semantic_type: requirement.semanticType, critical: requirement.critical, accepted_provenance: requirement.acceptedProvenance, qualification_rule: requirement.qualificationRule, dependency_selectors: requirement.dependencySelectors, blueprint_id: BLUEPRINT, blueprint_version: 1, blueprint_hash: hashes.blueprint, policy_id: null, policy_hash: null, schema_version: requirement.definitionSchemaVersion, requirement_definition_hash: requirement.requirementDefinitionHash, created_at: requirement.createdAt })]);
   }
 
+  async function insertSignal(client: Client, signal: Signal, requirement: SignalRequirement) {
+    await client.query("select public.build002_insert_signal($1::jsonb)", [JSON.stringify({ signal_id: signal.signalId, owner_tenant_id: TENANT, outcome_transaction_id: TX, requirement_id: signal.requirementId, requirement_definition_hash: requirement.requirementDefinitionHash, payload: signal.payload, source: signal.source, provenance: signal.provenance, captured_at: signal.capturedAt, valid_until: signal.validUntil, dependency_identity: signal.dependency.identity, dependency_hash: signal.dependency.hash, schema_version: signal.schemaVersion, content_hash: signal.contentHash })]);
+  }
+
   beforeAll(async () => {
     database = `virro_c1d0_v_${process.pid}_${Date.now()}`;
     const root = new Client({ connectionString: dbUrl(databaseUrl!, "postgres") });
@@ -132,7 +137,19 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD002-C1-D0 R1-1 independent
     await admin.connect(); await service.connect();
     await admin.query("create extension if not exists pgcrypto; do $$ begin create role anon nologin; exception when duplicate_object then null; end $$; do $$ begin create role authenticated nologin; exception when duplicate_object then null; end $$; do $$ begin create role service_role nologin bypassrls; exception when duplicate_object then null; end $$; create schema if not exists auth; create table if not exists auth.users (id uuid primary key); create or replace function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$; create schema if not exists storage; create table if not exists storage.buckets (id text primary key, name text not null unique, public boolean not null default false, file_size_limit bigint, allowed_mime_types text[]);");
     const migrationNames = readdirSync(migrationsDir).filter((name) => name.endsWith(".sql")).sort();
-    for (const name of migrationNames) await admin.query(readFileSync(resolve(migrationsDir, name), "utf8"));
+    const migrationFilenameSetHash = createHash("sha256").update(`${migrationNames.join("\n")}\n`).digest("hex");
+    await admin.query("create temporary table verifier_migrations(name text primary key, ordinal integer not null)");
+    for (const [ordinal, name] of migrationNames.entries()) {
+      await admin.query("insert into verifier_migrations(name, ordinal) values ($1, $2)", [name, ordinal]);
+      await admin.query(readFileSync(resolve(migrationsDir, name), "utf8"));
+    }
+    const migrationEvidence = await admin.query("select count(*)::int as applied, count(distinct name)::int as unique_names, bool_and(ordinal = row_number) as lexical from (select name, ordinal, row_number() over (order by name) - 1 as row_number from verifier_migrations) ordered");
+    expect(migrationNames.length).toBe(migrationEvidence.rows[0].applied);
+    expect(migrationEvidence.rows[0].unique_names).toBe(migrationNames.length);
+    expect(migrationEvidence.rows[0].lexical).toBe(true);
+    console.info(`MIGRATION_COUNT_FOUND=${migrationNames.length} MIGRATION_COUNT_APPLIED=${migrationEvidence.rows[0].applied} MIGRATION_FILENAME_SET_HASH=${migrationFilenameSetHash}`);
+    const version = await admin.query("show server_version_num");
+    expect(String(version.rows[0].server_version_num).startsWith("17")).toBe(true);
     value = graph();
     await admin.query("insert into auth.users(id) values ($1)", [ACTOR]);
     await admin.query("insert into public.tenants(id, kind, status) values ($1, 'ORGANIZATION', 'ACTIVE')", [TENANT]);
@@ -180,6 +197,31 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD002-C1-D0 R1-1 independent
     const staleEval = structuredClone(value.payload) as Record<string, unknown> & { readiness: { evaluator: Record<string, unknown> } };
     staleEval.readiness.evaluator = { ...staleEval.readiness.evaluator, version: "0.1.0", definitionHash: "9".repeat(64) };
     await expect(call(staleEval)).rejects.toThrow();
+  });
+
+  it("rejects each internally hash-valid C0 semantic-field mutation", async () => {
+    const variants: Array<[string, Partial<SignalRequirement>]> = [
+      ["semanticType", { semanticType: "NUMBER" }],
+      ["critical", { critical: false }],
+      ["acceptedProvenance", { acceptedProvenance: ["SYSTEM_DERIVED"] }],
+      ["qualificationRule", { qualificationRule: { version: "2", cardinality: "SINGLE_VALUED", humanReviewRequired: false } }],
+      ["dependencySelectors", { dependencySelectors: [{ identity: "blueprint", required: true }] }],
+    ];
+    for (const [index, [name, change]] of variants.entries()) {
+      void name;
+      const input = { requirementId: value.requirement.requirementId, subjectKind: value.requirement.subjectKind, semanticType: change.semanticType ?? value.requirement.semanticType, critical: change.critical ?? value.requirement.critical, acceptedProvenance: change.acceptedProvenance ?? value.requirement.acceptedProvenance, qualificationRule: change.qualificationRule ?? value.requirement.qualificationRule, dependencySelectors: change.dependencySelectors ?? value.requirement.dependencySelectors, blueprintId: BLUEPRINT, blueprintVersion: 1, blueprintHash: hashes.blueprint, policyId: null, policyHash: null, definitionSchemaVersion: value.requirement.definitionSchemaVersion };
+      const requirement = compileSignalRequirement(input, value.requirement.createdAt);
+      const { contentHash: _hash, signalId: _id, ...signalInput } = value.signal;
+      void _hash; void _id;
+      const signal = createSignal({ ...signalInput, signalId: `a9300000-0000-4000-8000-0000000000${index + 10}`, requirementId: requirement.requirementId });
+      const snapshot = createDependencySnapshot({ schemaVersion: value.snapshot.schemaVersion, ownerTenantId: TENANT, transactionId: TX, requirementDefinitionHashes: [requirement.requirementDefinitionHash], signalReferences: [{ requirementId: requirement.requirementId, signalId: signal.signalId, contentHash: signal.contentHash }], dependencyBindings: value.snapshot.dependencyBindings, blueprintHash: hashes.blueprint, policyHash: null, taskSpecHash: null, transactionSemanticHash: hashes.tx, sourceAssetVersionHash: hashes.asset, contextLensHash: null });
+      const qualification = evaluateSignalQualification({ requirement, signals: [signal], currentDependencySnapshot: snapshot, evaluator: currentDefaultEvaluator(), evaluationTime: requirement.createdAt, idFactory: () => `a9400000-0000-4000-8000-0000000000${index + 10}` });
+      const readiness = evaluateDelegationReadiness({ subject: { kind: "OUTCOME_TRANSACTION", ownerTenantId: TENANT, transactionId: TX }, requirements: [requirement], qualifications: [qualification], dependencySnapshot: snapshot, evaluator: currentDefaultEvaluator(), evaluationTime: requirement.createdAt, idFactory: () => `a9500000-0000-4000-8000-0000000000${index + 10}` });
+      await insertRequirement(service, `a9200000-0000-4000-8000-0000000000${index + 10}`, requirement);
+      await insertSignal(service, signal, requirement);
+      const payload = { ...value.payload, requirements: [requirement], dependency_snapshot: snapshot, qualifications: [{ ...qualification, signalReferences: [{ signalId: signal.signalId, contentHash: signal.contentHash }] }], readiness };
+      await expect(call(payload)).rejects.toThrow(/C0_CHANGED|GRAPH_INVALID|COMMIT_FAILED/);
+    }
   });
 
   it("ignores a historical noncanonical signal but rejects a canonical extra signal", async () => {
