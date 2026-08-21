@@ -79,7 +79,7 @@ function graph(): Graph {
     transactionId: TX,
     requirementDefinitionHashes: [requirement.requirementDefinitionHash],
     signalReferences: [{ requirementId: requirement.requirementId, signalId: SIG, contentHash: signal.contentHash }],
-    dependencyBindings: [{ identity: "asset.version", hash: hashes.asset }, { identity: "blueprint", hash: hashes.blueprint }],
+    dependencyBindings: [{ identity: "asset.version", hash: hashes.asset }, { identity: "blueprint", hash: hashes.blueprint }, { identity: "transaction.semantic", hash: hashes.tx }],
     blueprintHash: hashes.blueprint,
     policyHash: null,
     taskSpecHash: null,
