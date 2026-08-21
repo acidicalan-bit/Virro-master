@@ -38,6 +38,7 @@ const READY = "a9500000-0000-4000-8000-000000000001";
 const hashes = { blueprint: "1".repeat(64), profile: "2".repeat(64), binding: "3".repeat(64), asset: "4".repeat(64), tx: "5".repeat(64) };
 
 type Graph = { requirement: SignalRequirement; signal: Signal; snapshot: DependencySnapshot; qualification: SignalQualification; readiness: DelegationReadiness; payload: Record<string, unknown> };
+type RaceIds = { project: string; asset: string; version: string; tx: string; blueprint: string; profile: string; requirementRow: string; signal: string; requirementId: string; qualification: string; readiness: string; versionB?: string };
 
 function dbUrl(url: string, database: string): string {
   const parsed = new URL(url);
@@ -105,6 +106,19 @@ function graph(): Graph {
     readiness,
     schema_version: "build002-readiness-authority-commit-v0.1",
   };
+  return { requirement, signal, snapshot, qualification, readiness, payload };
+}
+
+function raceGraph(ids: RaceIds, hashSeed: string): Graph {
+  const now = new Date(Date.now() - 60_000).toISOString();
+  const h = { blueprint: hashSeed.repeat(64), asset: (hashSeed === "a" ? "b" : "a").repeat(64), tx: "c".repeat(64) };
+  const requirement = compileSignalRequirement({ requirementId: ids.requirementId, subjectKind: "OUTCOME_TRANSACTION", semanticType: "TEXT", critical: true, acceptedProvenance: ["OBSERVED"], qualificationRule: { version: "1", cardinality: "SINGLE_VALUED", humanReviewRequired: false }, dependencySelectors: [{ identity: "asset.version", required: true }, { identity: "blueprint", required: true }], blueprintId: ids.blueprint, blueprintVersion: 1, blueprintHash: h.blueprint, policyId: null, policyHash: null, definitionSchemaVersion: "build002-signal-requirement-v0.1" }, now);
+  const signal = createSignal({ signalId: ids.signal, ownerTenantId: TENANT, transactionId: ids.tx, requirementId: requirement.requirementId, payload: { verifier: "v3b" }, source: { identity: "independent-v3b", version: "1", hash: "d".repeat(64) }, provenance: "OBSERVED", capturedAt: new Date(Date.parse(now) - 30_000).toISOString(), validUntil: new Date(Date.parse(now) + 3_600_000).toISOString(), dependency: { identity: "asset.version", hash: h.asset }, schemaVersion: "build002-signal-v0.2" });
+  const snapshot = createDependencySnapshot({ schemaVersion: "build002-dependency-snapshot-v0.2", ownerTenantId: TENANT, transactionId: ids.tx, requirementDefinitionHashes: [requirement.requirementDefinitionHash], signalReferences: [{ requirementId: requirement.requirementId, signalId: signal.signalId, contentHash: signal.contentHash }], dependencyBindings: [{ identity: "asset.version", hash: h.asset }, { identity: "blueprint", hash: h.blueprint }, { identity: "transaction.semantic", hash: h.tx }], blueprintHash: h.blueprint, policyHash: null, taskSpecHash: null, transactionSemanticHash: h.tx, sourceAssetVersionHash: h.asset, contextLensHash: null });
+  const evaluator = currentDefaultEvaluator();
+  const qualification = evaluateSignalQualification({ requirement, signals: [signal], currentDependencySnapshot: snapshot, evaluator, evaluationTime: now, idFactory: () => ids.qualification });
+  const readiness = evaluateDelegationReadiness({ subject: { kind: "OUTCOME_TRANSACTION", ownerTenantId: TENANT, transactionId: ids.tx }, requirements: [requirement], qualifications: [qualification], dependencySnapshot: snapshot, evaluator, evaluationTime: now, idFactory: () => ids.readiness });
+  const payload: Record<string, unknown> = { owner_tenant_id: TENANT, outcome_transaction_id: ids.tx, transaction: { ownerTenantId: TENANT, transactionId: ids.tx, projectId: ids.project, assetId: ids.asset, baseVersionId: ids.version, rawRequest: "v3b" }, asset: { id: ids.asset, ownerTenantId: TENANT, projectId: ids.project, currentVersionId: ids.version }, sourceVersion: { id: ids.version, ownerTenantId: TENANT, assetId: ids.asset, versionNumber: 1, parentVersionId: null, state: {} }, binding: { bindingHash: "e".repeat(64), blueprintId: ids.blueprint, blueprintVersion: 1, blueprintHash: h.blueprint, requirementProfileId: ids.profile, requirementProfileVersion: 1, requirementProfileHash: "f".repeat(64) }, requirements: [requirement], dependency_snapshot: snapshot, qualifications: [{ ...qualification, signalReferences: [{ signalId: signal.signalId, contentHash: signal.contentHash }] }], readiness, schema_version: "build002-readiness-authority-commit-v0.1" };
   return { requirement, signal, snapshot, qualification, readiness, payload };
 }
 
@@ -181,6 +195,59 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD002-C1-D0 R1-1 independent
 
   async function insertSignal(client: Client, signal: Signal, requirement: SignalRequirement, transactionId = TX) {
     await client.query("select public.build002_insert_signal($1::jsonb)", [JSON.stringify({ signal_id: signal.signalId, owner_tenant_id: TENANT, outcome_transaction_id: transactionId, requirement_id: signal.requirementId, requirement_definition_hash: requirement.requirementDefinitionHash, payload: signal.payload, source: signal.source, provenance: signal.provenance, captured_at: signal.capturedAt, valid_until: signal.validUntil, dependency_identity: signal.dependency.identity, dependency_hash: signal.dependency.hash, schema_version: signal.schemaVersion, content_hash: signal.contentHash })]);
+  }
+
+  async function persistRaceFixture(ids: RaceIds, hashSeed: string, includeSecondVersion = false): Promise<Graph> {
+    const fixture = raceGraph(ids, hashSeed);
+    await admin.query("insert into public.projects(id,name,owner_tenant_id) values ($1,$2,$3)", [ids.project, `v3b-${ids.tx}`, TENANT]);
+    await admin.query("insert into public.assets(id,project_id,name,owner_tenant_id,current_version_id) values ($1,$2,$3,$4,null)", [ids.asset, ids.project, `v3b-${ids.asset}`, TENANT]);
+    await admin.query("insert into public.asset_versions(id,asset_id,version_number,state,owner_tenant_id) values ($1,$2,1,'{}',$3)", [ids.version, ids.asset, TENANT]);
+    if (includeSecondVersion && ids.versionB) await admin.query("insert into public.asset_versions(id,asset_id,version_number,state,owner_tenant_id) values ($1,$2,2,'{}',$3)", [ids.versionB, ids.asset, TENANT]);
+    await admin.query("update public.assets set current_version_id=$1 where id=$2", [ids.version, ids.asset]);
+    await admin.query("insert into public.outcome_transactions(id,owner_tenant_id,project_id,asset_id,base_version_id,raw_request,status) values ($1,$2,$3,$4,$5,'v3b','PREPARED')", [ids.tx, TENANT, ids.project, ids.asset, ids.version]);
+    const blueprintHash = hashSeed.repeat(64);
+    await admin.query("insert into public.outcome_blueprints(id,version,hash,previous_version_hash,status,published_at,definition) values ($1,1,$2,null,'PUBLISHED',now(),$3::jsonb)", [ids.blueprint, blueprintHash, JSON.stringify({ id: ids.blueprint, version: 1, hash: blueprintHash, previousVersionHash: null })]);
+    const profileHash = "f".repeat(64);
+    await admin.query("insert into public.outcome_requirement_profiles(id,version,hash,previous_version_hash,blueprint_id,blueprint_version,blueprint_hash,policy_id,policy_hash,status,published_at,definition) values ($1,1,$2,null,$3,1,$4,null,null,'PUBLISHED',now(),$5::jsonb)", [ids.profile, profileHash, ids.blueprint, blueprintHash, JSON.stringify({ schemaVersion: "outcome-requirement-profile-v0.1", id: ids.profile, version: 1, previousVersionHash: null, blueprint: { id: ids.blueprint, version: 1, hash: blueprintHash }, policy: null, requirements: [{ requirementId: fixture.requirement.requirementId, semanticType: fixture.requirement.semanticType, critical: fixture.requirement.critical, acceptedProvenance: fixture.requirement.acceptedProvenance, qualificationRule: fixture.requirement.qualificationRule, dependencySelectors: fixture.requirement.dependencySelectors }] })]);
+    await admin.query("insert into public.outcome_transaction_requirement_bindings(owner_tenant_id,outcome_transaction_id,blueprint_id,blueprint_version,blueprint_hash,requirement_profile_id,requirement_profile_version,requirement_profile_hash,policy_id,policy_hash,schema_version,binding_hash,bound_at) values ($1,$2,$3,1,$4,$5,1,$6,null,null,'outcome-transaction-requirement-binding-v0.1',$7,now())", [TENANT, ids.tx, ids.blueprint, blueprintHash, ids.profile, profileHash, "e".repeat(64)]);
+    await insertRequirement(service, ids.requirementRow, fixture.requirement, ids.tx, ids.blueprint, blueprintHash);
+    await insertSignal(service, fixture.signal, fixture.requirement, ids.tx);
+    return fixture;
+  }
+
+  async function openRaceClient(label: string): Promise<{ client: Client; pid: number }> {
+    const client = new Client({ connectionString: dbUrl(databaseUrl!, database) });
+    await client.connect();
+    await client.query("select set_config('application_name',$1,false)", [label]);
+    const pid = Number((await client.query("select pg_backend_pid() as pid")).rows[0].pid);
+    return { client, pid };
+  }
+
+  async function configureRaceClient(client: Client, role?: string): Promise<void> {
+    if (role) await client.query(`set role ${role}`);
+    await client.query("set statement_timeout='20000'");
+    await client.query("set lock_timeout='15000'");
+  }
+
+  async function waitUntilBlocked(observer: Client, blockedPid: number, expectedBlockerPid: number): Promise<Record<string, unknown>> {
+    const deadline = Date.now() + 10_000;
+    while (Date.now() < deadline) {
+      const result = await observer.query("select wait_event_type, wait_event, pg_blocking_pids($1)::int[] as blockers from pg_stat_activity where pid=$1", [blockedPid]);
+      const row = result.rows[0] as { wait_event_type?: string; wait_event?: string; blockers?: number[] } | undefined;
+      if (row?.blockers?.includes(expectedBlockerPid)) return row as Record<string, unknown>;
+      await new Promise((resolvePromise) => setTimeout(resolvePromise, 25));
+    }
+    throw new Error(`V3B_BLOCKING_NOT_OBSERVED:${blockedPid}:${expectedBlockerPid}`);
+  }
+
+  async function lockEvidence(observer: Client, pids: number[]): Promise<unknown[]> {
+    const result = await observer.query("select pid, locktype, mode, granted, relation::regclass::text as relation, transactionid::text as transactionid from pg_locks where pid = any($1::int[]) and (relation is not null or transactionid is not null) order by pid, locktype, mode", [pids]);
+    return result.rows;
+  }
+
+  async function markerCountFor(transactionId: string): Promise<number> {
+    const result = await admin.query("select count(*)::int as count from public.build002_readiness_authority_commits where owner_tenant_id=$1 and outcome_transaction_id=$2", [TENANT, transactionId]);
+    return result.rows[0].count as number;
   }
 
   beforeAll(async () => {
@@ -443,6 +510,198 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD002-C1-D0 R1-1 independent
     expect(historicalAfter).toEqual(historicalBefore);
     console.info("V3A_ATOMIC_ROLLBACK_NEW_ROW_DELTA=0");
     console.info("V3A_HISTORICAL_ROWS_SURVIVE=PASS");
+  });
+
+  it("serializes Signal universe changes in both directions", async () => {
+    const changeIds: RaceIds = { project: "c9000000-0000-4000-8000-000000000201", asset: "d9000000-0000-4000-8000-000000000201", version: "e9000000-0000-4000-8000-000000000201", tx: "f9000000-0000-4000-8000-000000000201", blueprint: "a9100000-0000-4000-8000-000000000201", profile: "a9100000-0000-4000-8000-000000000202", requirementRow: "a9200000-0000-4000-8000-000000000201", signal: "a9300000-0000-4000-8000-000000000201", requirementId: "signal.verifier.v3b.signal.change", qualification: "a9400000-0000-4000-8000-000000000201", readiness: "a9500000-0000-4000-8000-000000000201" };
+    const changeFixture = await persistRaceFixture(changeIds, "a");
+    const changeB = await openRaceClient("v3b-signal-change-first-b");
+    const changeA = await openRaceClient("v3b-signal-change-first-a");
+    const changeO = await openRaceClient("v3b-signal-change-first-o");
+    const changeC = await openRaceClient("v3b-signal-change-first-c");
+    try {
+      await configureRaceClient(changeB.client, "service_role");
+      await configureRaceClient(changeA.client, "service_role");
+      const { contentHash: _changeHash, signalId: _changeSignalId, ...changeSignalInput } = changeFixture.signal;
+      void _changeHash; void _changeSignalId;
+      const signalB = createSignal({ ...changeSignalInput, signalId: "a9300000-0000-4000-8000-000000000202", payload: { verifier: "v3b-signal-s2" } });
+      await changeB.client.query("begin");
+      await insertSignal(changeB.client, signalB, changeFixture.requirement, changeIds.tx);
+      await changeB.client.query("commit");
+      await expect(changeB.client.query("select signal_id from public.build002_signals where signal_id=$1", [signalB.signalId])).resolves.toBeDefined();
+      const before = await markerCountFor(changeIds.tx);
+      await expect(changeA.client.query("select public.build002_commit_readiness_authority($1::uuid,$2::jsonb)", [ACTOR, JSON.stringify(changeFixture.payload)])).rejects.toThrow(/SIGNAL_UNIVERSE_CHANGED|COMMIT_FAILED/);
+      expect(await markerCountFor(changeIds.tx)).toBe(before);
+      console.info("V3B_SIGNAL_CHANGE_FIRST=PASS rejection=READINESS_AUTHORITY_SIGNAL_UNIVERSE_CHANGED marker_delta=0");
+    } finally {
+      await changeB.client.end(); await changeA.client.end(); await changeO.client.end(); await changeC.client.end();
+    }
+
+    const lockIds: RaceIds = { project: "c9000000-0000-4000-8000-000000000211", asset: "d9000000-0000-4000-8000-000000000211", version: "e9000000-0000-4000-8000-000000000211", tx: "f9000000-0000-4000-8000-000000000211", blueprint: "a9100000-0000-4000-8000-000000000211", profile: "a9100000-0000-4000-8000-000000000212", requirementRow: "a9200000-0000-4000-8000-000000000211", signal: "a9300000-0000-4000-8000-000000000211", requirementId: "signal.verifier.v3b.signal.lock", qualification: "a9400000-0000-4000-8000-000000000211", readiness: "a9500000-0000-4000-8000-000000000211" };
+    const lockFixture = await persistRaceFixture(lockIds, "b");
+    const a = await openRaceClient("v3b-signal-d0-a");
+    const b = await openRaceClient("v3b-signal-d0-b");
+    const c = await openRaceClient("v3b-signal-d0-c");
+    const o = await openRaceClient("v3b-signal-d0-o");
+    let aPromise: Promise<unknown> | undefined;
+    let bPromise: Promise<unknown> | undefined;
+    try {
+      await configureRaceClient(a.client, "service_role");
+      await configureRaceClient(b.client, "service_role");
+      await configureRaceClient(c.client);
+      await configureRaceClient(o.client);
+      const { contentHash: _lockHash, signalId: _lockSignalId, ...lockSignalInput } = lockFixture.signal;
+      void _lockHash; void _lockSignalId;
+      const signalB = createSignal({ ...lockSignalInput, signalId: "a9300000-0000-4000-8000-000000000212", payload: { verifier: "v3b-signal-parked-s2" } });
+      await c.client.query("begin");
+      await c.client.query("select id from public.assets where id=$1 for update", [lockIds.asset]);
+      await a.client.query("begin");
+      aPromise = a.client.query("select public.build002_commit_readiness_authority($1::uuid,$2::jsonb) as result", [ACTOR, JSON.stringify(lockFixture.payload)]);
+      const aBlocked = await waitUntilBlocked(o.client, a.pid, c.pid);
+      await b.client.query("begin");
+      bPromise = insertSignal(b.client, signalB, lockFixture.requirement, lockIds.tx);
+      const bBlocked = await waitUntilBlocked(o.client, b.pid, a.pid);
+      const locks = await lockEvidence(o.client, [a.pid, b.pid, c.pid]);
+      console.info(`V3B_SIGNAL_D0_FIRST A_PID=${a.pid} B_PID=${b.pid} C_PID=${c.pid} A_BLOCKED_BY=${c.pid} B_BLOCKED_BY=${a.pid} A_WAIT_EVENT_TYPE=${String(aBlocked.wait_event_type)} A_WAIT_EVENT=${String(aBlocked.wait_event)} B_WAIT_EVENT_TYPE=${String(bBlocked.wait_event_type)} B_WAIT_EVENT=${String(bBlocked.wait_event)} LOCKS=${JSON.stringify(locks)}`);
+      await c.client.query("commit");
+      await aPromise;
+      await a.client.query("commit");
+      await bPromise;
+      await b.client.query("commit");
+      const marker = await markerCountFor(lockIds.tx);
+      const inserted = await admin.query("select count(*)::int as count from public.build002_signals where signal_id=$1", [signalB.signalId]);
+      expect(marker).toBe(1);
+      expect(inserted.rows[0].count).toBe(1);
+      const status = await admin.query("select status from public.outcome_transactions where id=$1", [lockIds.tx]);
+      expect(status.rows[0].status).toBe("PREPARED");
+      console.info("V3B_SIGNAL_D0_FIRST=PASS SIGNAL_LOCK_CHAIN=B->A->C POST_COMMIT_SIGNAL_CHANGE_MAKES_CURRENTNESS_REVALIDATION_REQUIRED=YES");
+    } finally {
+      if (aPromise) await a.client.query("rollback").catch(() => undefined);
+      if (bPromise) await b.client.query("rollback").catch(() => undefined);
+      await a.client.end(); await b.client.end(); await c.client.end(); await o.client.end();
+    }
+  });
+
+  it("serializes Membership revocation in both directions", async () => {
+    const firstIds: RaceIds = { project: "c9000000-0000-4000-8000-000000000221", asset: "d9000000-0000-4000-8000-000000000221", version: "e9000000-0000-4000-8000-000000000221", tx: "f9000000-0000-4000-8000-000000000221", blueprint: "a9100000-0000-4000-8000-000000000221", profile: "a9100000-0000-4000-8000-000000000222", requirementRow: "a9200000-0000-4000-8000-000000000221", signal: "a9300000-0000-4000-8000-000000000221", requirementId: "signal.verifier.v3b.membership.first", qualification: "a9400000-0000-4000-8000-000000000221", readiness: "a9500000-0000-4000-8000-000000000221" };
+    const firstFixture = await persistRaceFixture(firstIds, "c");
+    const revokeFirst = await openRaceClient("v3b-membership-change-first-b");
+    const attemptAfterRevoke = await openRaceClient("v3b-membership-change-first-a");
+    try {
+      await configureRaceClient(attemptAfterRevoke.client, "service_role");
+      await configureRaceClient(revokeFirst.client);
+      await revokeFirst.client.query("begin");
+      await revokeFirst.client.query("update public.tenant_memberships set status='REVOKED' where tenant_id=$1 and principal_id=$2", [TENANT, ACTOR]);
+      await revokeFirst.client.query("commit");
+      const before = await markerCountFor(firstIds.tx);
+      await expect(attemptAfterRevoke.client.query("select public.build002_commit_readiness_authority($1::uuid,$2::jsonb)", [ACTOR, JSON.stringify(firstFixture.payload)])).rejects.toThrow(/MEMBERSHIP_INVALID|COMMIT_FAILED/);
+      expect(await markerCountFor(firstIds.tx)).toBe(before);
+      console.info("V3B_MEMBERSHIP_REVOCATION_FIRST=PASS rejection=READINESS_AUTHORITY_MEMBERSHIP_INVALID marker_delta=0");
+    } finally {
+      await admin.query("update public.tenant_memberships set status='ACTIVE' where tenant_id=$1 and principal_id=$2", [TENANT, ACTOR]);
+      await revokeFirst.client.end(); await attemptAfterRevoke.client.end();
+    }
+
+    const lockIds: RaceIds = { project: "c9000000-0000-4000-8000-000000000231", asset: "d9000000-0000-4000-8000-000000000231", version: "e9000000-0000-4000-8000-000000000231", tx: "f9000000-0000-4000-8000-000000000231", blueprint: "a9100000-0000-4000-8000-000000000231", profile: "a9100000-0000-4000-8000-000000000232", requirementRow: "a9200000-0000-4000-8000-000000000231", signal: "a9300000-0000-4000-8000-000000000231", requirementId: "signal.verifier.v3b.membership.lock", qualification: "a9400000-0000-4000-8000-000000000231", readiness: "a9500000-0000-4000-8000-000000000231" };
+    const lockFixture = await persistRaceFixture(lockIds, "d");
+    const a = await openRaceClient("v3b-membership-d0-a");
+    const b = await openRaceClient("v3b-membership-d0-b");
+    const c = await openRaceClient("v3b-membership-d0-c");
+    const o = await openRaceClient("v3b-membership-d0-o");
+    let aPromise: Promise<unknown> | undefined;
+    let bPromise: Promise<unknown> | undefined;
+    try {
+      await configureRaceClient(a.client, "service_role");
+      await configureRaceClient(b.client);
+      await configureRaceClient(c.client);
+      await configureRaceClient(o.client);
+      await c.client.query("begin");
+      await c.client.query("select id from public.outcome_transactions where owner_tenant_id=$1 and id=$2 for update", [TENANT, lockIds.tx]);
+      await a.client.query("begin");
+      aPromise = a.client.query("select public.build002_commit_readiness_authority($1::uuid,$2::jsonb) as result", [ACTOR, JSON.stringify(lockFixture.payload)]);
+      const aBlocked = await waitUntilBlocked(o.client, a.pid, c.pid);
+      await b.client.query("begin");
+      bPromise = b.client.query("update public.tenant_memberships set status='REVOKED' where tenant_id=$1 and principal_id=$2", [TENANT, ACTOR]);
+      const bBlocked = await waitUntilBlocked(o.client, b.pid, a.pid);
+      const locks = await lockEvidence(o.client, [a.pid, b.pid, c.pid]);
+      console.info(`V3B_MEMBERSHIP_D0_FIRST A_PID=${a.pid} B_PID=${b.pid} C_PID=${c.pid} A_BLOCKED_BY=${c.pid} B_BLOCKED_BY=${a.pid} A_WAIT_EVENT_TYPE=${String(aBlocked.wait_event_type)} A_WAIT_EVENT=${String(aBlocked.wait_event)} B_WAIT_EVENT_TYPE=${String(bBlocked.wait_event_type)} B_WAIT_EVENT=${String(bBlocked.wait_event)} LOCKS=${JSON.stringify(locks)}`);
+      await c.client.query("commit");
+      await aPromise;
+      await a.client.query("commit");
+      await bPromise;
+      await b.client.query("commit");
+      expect(await markerCountFor(lockIds.tx)).toBe(1);
+      const status = await admin.query("select status from public.outcome_transactions where id=$1", [lockIds.tx]);
+      const membership = await admin.query("select status from public.tenant_memberships where tenant_id=$1 and principal_id=$2", [TENANT, ACTOR]);
+      expect(status.rows[0].status).toBe("PREPARED");
+      expect(membership.rows[0].status).toBe("REVOKED");
+      console.info("V3B_MEMBERSHIP_D0_FIRST=PASS MEMBERSHIP_LOCK_CHAIN=B->A->C");
+    } finally {
+      await admin.query("update public.tenant_memberships set status='ACTIVE' where tenant_id=$1 and principal_id=$2", [TENANT, ACTOR]);
+      if (aPromise) await a.client.query("rollback").catch(() => undefined);
+      if (bPromise) await b.client.query("rollback").catch(() => undefined);
+      await a.client.end(); await b.client.end(); await c.client.end(); await o.client.end();
+    }
+  });
+
+  it("serializes Asset head changes in both directions", async () => {
+    const firstIds: RaceIds = { project: "c9000000-0000-4000-0000-000000000241", asset: "d9000000-0000-4000-0000-000000000241", version: "e9000000-0000-4000-0000-000000000241", versionB: "e9000000-0000-4000-0000-000000000242", tx: "f9000000-0000-4000-0000-000000000241", blueprint: "a9100000-0000-4000-0000-000000000241", profile: "a9100000-0000-4000-0000-000000000242", requirementRow: "a9200000-0000-4000-0000-000000000241", signal: "a9300000-0000-4000-0000-000000000241", requirementId: "signal.verifier.v3b.asset.first", qualification: "a9400000-0000-4000-0000-000000000241", readiness: "a9500000-0000-4000-0000-000000000241" };
+    const firstFixture = await persistRaceFixture(firstIds, "e", true);
+    const headFirst = await openRaceClient("v3b-asset-change-first-b");
+    const attemptOld = await openRaceClient("v3b-asset-change-first-a");
+    try {
+      await configureRaceClient(headFirst.client);
+      await configureRaceClient(attemptOld.client, "service_role");
+      await headFirst.client.query("begin");
+      await headFirst.client.query("update public.assets set current_version_id=$1 where id=$2", [firstIds.versionB, firstIds.asset]);
+      await headFirst.client.query("commit");
+      const before = await markerCountFor(firstIds.tx);
+      await expect(attemptOld.client.query("select public.build002_commit_readiness_authority($1::uuid,$2::jsonb)", [ACTOR, JSON.stringify(firstFixture.payload)])).rejects.toThrow(/SOURCE_ASSET_HEAD_CHANGED|SOURCE_CHANGED|COMMIT_FAILED/);
+      expect(await markerCountFor(firstIds.tx)).toBe(before);
+      console.info("V3B_ASSET_HEAD_CHANGE_FIRST=PASS rejection=SOURCE_ASSET_HEAD_CHANGED marker_delta=0");
+    } finally {
+      await headFirst.client.end(); await attemptOld.client.end();
+    }
+
+    const lockIds: RaceIds = { project: "c9000000-0000-4000-0000-000000000251", asset: "d9000000-0000-4000-0000-000000000251", version: "e9000000-0000-4000-0000-000000000251", versionB: "e9000000-0000-4000-0000-000000000252", tx: "f9000000-0000-4000-0000-000000000251", blueprint: "a9100000-0000-4000-0000-000000000251", profile: "a9100000-0000-4000-0000-000000000252", requirementRow: "a9200000-0000-4000-0000-000000000251", signal: "a9300000-0000-4000-0000-000000000251", requirementId: "signal.verifier.v3b.asset.lock", qualification: "a9400000-0000-4000-0000-000000000251", readiness: "a9500000-0000-4000-0000-000000000251" };
+    const lockFixture = await persistRaceFixture(lockIds, "f", true);
+    const a = await openRaceClient("v3b-asset-d0-a");
+    const b = await openRaceClient("v3b-asset-d0-b");
+    const c = await openRaceClient("v3b-asset-d0-c");
+    const o = await openRaceClient("v3b-asset-d0-o");
+    let aPromise: Promise<unknown> | undefined;
+    let bPromise: Promise<unknown> | undefined;
+    try {
+      await configureRaceClient(a.client, "service_role");
+      await configureRaceClient(b.client);
+      await configureRaceClient(c.client);
+      await configureRaceClient(o.client);
+      await c.client.query("begin");
+      await c.client.query("select id from public.asset_versions where id=$1 for update", [lockIds.version]);
+      await a.client.query("begin");
+      aPromise = a.client.query("select public.build002_commit_readiness_authority($1::uuid,$2::jsonb) as result", [ACTOR, JSON.stringify(lockFixture.payload)]);
+      const aBlocked = await waitUntilBlocked(o.client, a.pid, c.pid);
+      await b.client.query("begin");
+      bPromise = b.client.query("update public.assets set current_version_id=$1 where id=$2", [lockIds.versionB, lockIds.asset]);
+      const bBlocked = await waitUntilBlocked(o.client, b.pid, a.pid);
+      const locks = await lockEvidence(o.client, [a.pid, b.pid, c.pid]);
+      console.info(`V3B_ASSET_D0_FIRST A_PID=${a.pid} B_PID=${b.pid} C_PID=${c.pid} A_BLOCKED_BY=${c.pid} B_BLOCKED_BY=${a.pid} A_WAIT_EVENT_TYPE=${String(aBlocked.wait_event_type)} A_WAIT_EVENT=${String(aBlocked.wait_event)} B_WAIT_EVENT_TYPE=${String(bBlocked.wait_event_type)} B_WAIT_EVENT=${String(bBlocked.wait_event)} LOCKS=${JSON.stringify(locks)}`);
+      await c.client.query("commit");
+      await aPromise;
+      await a.client.query("commit");
+      await bPromise;
+      await b.client.query("commit");
+      expect(await markerCountFor(lockIds.tx)).toBe(1);
+      const status = await admin.query("select status from public.outcome_transactions where id=$1", [lockIds.tx]);
+      const head = await admin.query("select current_version_id::text as current_version_id from public.assets where id=$1", [lockIds.asset]);
+      expect(status.rows[0].status).toBe("PREPARED");
+      expect(head.rows[0].current_version_id).toBe(lockIds.versionB);
+      console.info("V3B_ASSET_D0_FIRST=PASS ASSET_LOCK_CHAIN=B->A->C");
+    } finally {
+      if (aPromise) await a.client.query("rollback").catch(() => undefined);
+      if (bPromise) await b.client.query("rollback").catch(() => undefined);
+      await a.client.end(); await b.client.end(); await c.client.end(); await o.client.end();
+    }
   });
 
   it("ignores a historical noncanonical signal but rejects a canonical extra signal", async () => {
