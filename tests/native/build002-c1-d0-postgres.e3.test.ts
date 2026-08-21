@@ -208,6 +208,17 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD002-C1-D0 native PostgreSQ
     }
   });
 
+  it("rejects a marker when its persisted readiness graph is incomplete", async () => {
+    await admin.query("begin");
+    try {
+      await admin.query("delete from public.build002_readiness_qualifications where owner_tenant_id = $1 and outcome_transaction_id = $2 and readiness_id = $3", [TENANT, TRANSACTION, READINESS]);
+      await admin.query("select set_config('build002.authority_commit', 'build002-c1-d0-r1', true)");
+      await expect(admin.query("insert into public.build002_readiness_authority_commits(id, owner_tenant_id, outcome_transaction_id, principal_id, dependency_snapshot_id, dependency_snapshot_hash, readiness_id, readiness_content_hash, evaluation_time, schema_version) values ($1,$2,$3,$4,$5,$6,$7,$8,now(),'build002-readiness-authority-commit-v0.1')", ["a7000000-0000-4000-8000-000000000001", TENANT, TRANSACTION, ACTOR, "a6000000-0000-4000-8000-000000000001", value.snapshot.dependencySnapshotHash, READINESS, value.readiness.readinessContentHash])).rejects.toThrow(/READINESS_AUTHORITY_GRAPH_INVALID/);
+    } finally {
+      await admin.query("rollback");
+    }
+  });
+
   it("rejects stale signal graphs, revoked membership, suspended tenant, stale head, expiry, and legacy evaluator", async () => {
     const { contentHash: _extraHash, ...extraInput } = value.signal;
     void _extraHash;
