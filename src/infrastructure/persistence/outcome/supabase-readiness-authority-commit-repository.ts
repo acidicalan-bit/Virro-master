@@ -9,12 +9,14 @@ import type {
 } from "@/src/application/ports/outcome/readiness-authority-commit-repository";
 import {
   currentDefaultEvaluator,
+  evaluateDelegationReadiness,
   evaluateReadinessValidity,
   sameEvaluatorIdentity,
   verifyDependencySnapshotHash,
   verifyQualificationHash,
   verifyReadinessHash,
   verifySignalRequirementHash,
+  type SignalRequirement,
 } from "@/src/domain/outcome/signal-readiness";
 
 type Row = Record<string, unknown>;
@@ -98,11 +100,72 @@ export class SupabaseReadinessAuthorityCommitRepository implements ReadinessAuth
     if (input.readiness.state === "READY_WITH_CONDITIONS" || input.readiness.state === "BLOCKED_BY_POLICY") {
       throw new Error("READINESS_AUTHORITY_GRAPH_INVALID");
     }
+    const requirementIds = new Set<string>();
+    const requirementHashesSeen = new Set<string>();
+    const requirementById = new Map<string, SignalRequirement>();
+    for (const requirement of input.requirements) {
+      if (requirementIds.has(requirement.requirementId) || requirementHashesSeen.has(requirement.requirementDefinitionHash)) {
+        throw new Error("READINESS_AUTHORITY_GRAPH_INVALID");
+      }
+      requirementIds.add(requirement.requirementId);
+      requirementHashesSeen.add(requirement.requirementDefinitionHash);
+      requirementById.set(requirement.requirementId, requirement);
+    }
     const requirementHashes = input.requirements.map((requirement) => requirement.requirementDefinitionHash).sort();
     const snapshotHashes = [...input.dependencySnapshot.requirementDefinitionHashes].sort();
     if (requirementHashes.length !== snapshotHashes.length
       || requirementHashes.some((hash, index) => hash !== snapshotHashes[index])
       || new Set(requirementHashes).size !== requirementHashes.length) {
+      throw new Error("READINESS_AUTHORITY_GRAPH_INVALID");
+    }
+    const expectedPairs = input.dependencySnapshot.signalReferences
+      .map((reference) => ({ signalId: reference.signalId, contentHash: reference.contentHash }))
+      .sort((left, right) => left.signalId.localeCompare(right.signalId) || left.contentHash.localeCompare(right.contentHash));
+    const seenQualificationRequirements = new Set<string>();
+    for (const qualification of input.qualifications) {
+      const requirement = requirementById.get(qualification.requirementId);
+      if (!requirement
+        || seenQualificationRequirements.has(qualification.requirementId)
+        || qualification.requirementDefinitionHash !== requirement.requirementDefinitionHash
+        || qualification.ownerTenantId !== input.ownerTenantId
+        || qualification.transactionId !== input.outcomeTransactionId
+        || qualification.dependencySnapshotHash !== input.dependencySnapshot.dependencySnapshotHash
+        || !sameEvaluatorIdentity(qualification.evaluator, evaluator)
+        || qualification.qualifiedAt !== input.readiness.createdAt) {
+        throw new Error("READINESS_AUTHORITY_GRAPH_INVALID");
+      }
+      seenQualificationRequirements.add(qualification.requirementId);
+      const qualificationPairs = qualification.signalIds.map((signalId, index) => ({ signalId, contentHash: qualification.signalContentHashes[index] }))
+        .sort((left, right) => left.signalId.localeCompare(right.signalId) || left.contentHash.localeCompare(right.contentHash));
+      const expectedRequirementPairs = input.dependencySnapshot.signalReferences
+        .filter((reference) => reference.requirementId === qualification.requirementId)
+        .map((reference) => ({ signalId: reference.signalId, contentHash: reference.contentHash }))
+        .sort((left, right) => left.signalId.localeCompare(right.signalId) || left.contentHash.localeCompare(right.contentHash));
+      if (JSON.stringify(qualificationPairs) !== JSON.stringify(expectedRequirementPairs)) {
+        throw new Error("READINESS_AUTHORITY_GRAPH_INVALID");
+      }
+    }
+    if (seenQualificationRequirements.size !== input.requirements.length) {
+      throw new Error("READINESS_AUTHORITY_GRAPH_INVALID");
+    }
+    const qualificationPairs = input.qualifications.flatMap((qualification) => qualification.signalIds.map((signalId, index) => ({
+      requirementId: qualification.requirementId,
+      signalId,
+      contentHash: qualification.signalContentHashes[index],
+    }))).sort((left, right) => left.requirementId.localeCompare(right.requirementId)
+      || left.signalId.localeCompare(right.signalId)
+      || left.contentHash.localeCompare(right.contentHash));
+    const snapshotPairs = input.dependencySnapshot.signalReferences.map((reference) => ({
+      requirementId: reference.requirementId,
+      signalId: reference.signalId,
+      contentHash: reference.contentHash,
+    })).sort((left, right) => left.requirementId.localeCompare(right.requirementId)
+      || left.signalId.localeCompare(right.signalId)
+      || left.contentHash.localeCompare(right.contentHash));
+    if (JSON.stringify(qualificationPairs) !== JSON.stringify(snapshotPairs)
+      || JSON.stringify(expectedPairs) !== JSON.stringify(input.dependencySnapshot.signalReferences
+        .map((reference) => ({ signalId: reference.signalId, contentHash: reference.contentHash }))
+        .sort((left, right) => left.signalId.localeCompare(right.signalId) || left.contentHash.localeCompare(right.contentHash)))) {
       throw new Error("READINESS_AUTHORITY_GRAPH_INVALID");
     }
     if (input.readiness.ownerTenantId !== input.ownerTenantId
@@ -120,6 +183,24 @@ export class SupabaseReadinessAuthorityCommitRepository implements ReadinessAuth
       evaluator,
     );
     if (validity !== "CURRENT") throw new Error("READINESS_AUTHORITY_EXPIRED_BEFORE_COMMIT");
+    const expectedReadiness = evaluateDelegationReadiness({
+      subject: { kind: "OUTCOME_TRANSACTION", ownerTenantId: input.ownerTenantId, transactionId: input.outcomeTransactionId },
+      requirements: [...input.requirements],
+      qualifications: [...input.qualifications],
+      dependencySnapshot: input.dependencySnapshot,
+      evaluator,
+      evaluationTime: input.readiness.createdAt,
+      policyBlock: null,
+      idFactory: () => input.readiness.id,
+    });
+    const readinessFields = [
+      "state", "requirementSetHash", "qualificationSetHash", "dependencySnapshotHash", "taskSpecHash",
+      "sourceAssetVersionHash", "blueprintHash", "policyHash", "evaluator", "blockingCodes", "conditionCodes",
+      "createdAt", "validUntil", "readinessContentHash",
+    ] as const;
+    if (readinessFields.some((field) => JSON.stringify(expectedReadiness[field]) !== JSON.stringify(input.readiness[field]))) {
+      throw new Error("READINESS_AUTHORITY_GRAPH_INVALID");
+    }
   }
 
   private async readExact(table: string, key: string): Promise<Row | null> {
