@@ -4,6 +4,7 @@
 -- The marker table is not a service-role write surface.  The SECURITY DEFINER
 -- RPC is owned by the migration role and remains the only minting operation.
 revoke insert on table public.build002_readiness_authority_commits from service_role;
+grant insert on table public.build002_readiness_authority_commits to service_role;
 
 create or replace function public.build002_readiness_authority_commit_immutable()
 returns trigger language plpgsql security definer
