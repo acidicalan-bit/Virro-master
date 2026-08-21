@@ -216,6 +216,72 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD002-C1-D0 native PostgreSQ
     expect(status.rows[0].status).toBe("PREPARED");
   });
 
+  it("accepts a canonical zero-signal requirement as a non-ready marker", async () => {
+    const zeroProject = "c0000000-0000-4000-8000-000000000002";
+    const zeroAsset = "d0000000-0000-4000-8000-000000000002";
+    const zeroVersion = "e0000000-0000-4000-8000-000000000002";
+    const zeroTransaction = "f0000000-0000-4000-8000-000000000002";
+    const zeroBlueprint = "a1000000-0000-4000-8000-000000000003";
+    const zeroProfile = "a1000000-0000-4000-8000-000000000004";
+    const zeroRequirement = compileSignalRequirement({
+      requirementId: "signal.d0.zero",
+      subjectKind: "OUTCOME_TRANSACTION",
+      semanticType: "TEXT",
+      critical: true,
+      acceptedProvenance: ["OBSERVED"],
+      qualificationRule: { version: "1", cardinality: "SINGLE_VALUED", humanReviewRequired: false },
+      dependencySelectors: [{ identity: "asset.version", required: true }],
+      blueprintId: zeroBlueprint,
+      blueprintVersion: 1,
+      blueprintHash: "a2".repeat(32),
+      policyId: null,
+      policyHash: null,
+      definitionSchemaVersion: "build002-signal-requirement-v0.1",
+    }, new Date(Date.now() - 30_000).toISOString());
+    const zeroSnapshot = createDependencySnapshot({
+      schemaVersion: "build002-dependency-snapshot-v0.2",
+      ownerTenantId: TENANT,
+      transactionId: zeroTransaction,
+      requirementDefinitionHashes: [zeroRequirement.requirementDefinitionHash],
+      signalReferences: [],
+      dependencyBindings: [{ identity: "asset.version", hash: "b2".repeat(32) }],
+      blueprintHash: "a2".repeat(32),
+      policyHash: null,
+      taskSpecHash: null,
+      transactionSemanticHash: "c2".repeat(32),
+      sourceAssetVersionHash: "b2".repeat(32),
+      contextLensHash: null,
+    });
+    const zeroEvaluator = currentDefaultEvaluator();
+    const zeroQualification = evaluateSignalQualification({ requirement: zeroRequirement, signals: [], currentDependencySnapshot: zeroSnapshot, evaluator: zeroEvaluator, evaluationTime: zeroRequirement.createdAt, idFactory: () => "a3000000-0000-4000-8000-000000000002" });
+    const zeroReadiness = evaluateDelegationReadiness({ subject: { kind: "OUTCOME_TRANSACTION", ownerTenantId: TENANT, transactionId: zeroTransaction }, requirements: [zeroRequirement], qualifications: [zeroQualification], dependencySnapshot: zeroSnapshot, evaluator: zeroEvaluator, evaluationTime: zeroRequirement.createdAt, idFactory: () => "a4000000-0000-4000-8000-000000000004" });
+    await admin.query("insert into public.projects(id, name, owner_tenant_id) values ($1, 'D0 zero project', $2)", [zeroProject, TENANT]);
+    await admin.query("insert into public.assets(id, project_id, name, owner_tenant_id) values ($1, $2, 'D0 zero asset', $3)", [zeroAsset, zeroProject, TENANT]);
+    await admin.query("insert into public.asset_versions(id, asset_id, version_number, state, owner_tenant_id) values ($1, $2, 1, '{\"width\":100}'::jsonb, $3)", [zeroVersion, zeroAsset, TENANT]);
+    await admin.query("update public.assets set current_version_id = $1 where id = $2", [zeroVersion, zeroAsset]);
+    await admin.query("insert into public.outcome_transactions(id, owner_tenant_id, project_id, asset_id, base_version_id, raw_request, status) values ($1, $2, $3, $4, $5, 'd0 zero', 'PREPARED')", [zeroTransaction, TENANT, zeroProject, zeroAsset, zeroVersion]);
+    await admin.query("insert into public.outcome_blueprints(id, version, hash, previous_version_hash, status, published_at, definition) values ($1, 1, $2, null, 'PUBLISHED', now(), $3::jsonb)", [zeroBlueprint, "a2".repeat(32), JSON.stringify({ id: zeroBlueprint, version: 1, previousVersionHash: null })]);
+    await admin.query("insert into public.outcome_requirement_profiles(id, version, hash, previous_version_hash, blueprint_id, blueprint_version, blueprint_hash, policy_id, policy_hash, status, published_at, definition) values ($1, 1, $2, null, $3, 1, $4, null, null, 'PUBLISHED', now(), $5::jsonb)", [zeroProfile, "d2".repeat(32), zeroBlueprint, "a2".repeat(32), JSON.stringify({ schemaVersion: "outcome-requirement-profile-v0.1", id: zeroProfile, version: 1, previousVersionHash: null, blueprint: { id: zeroBlueprint, version: 1, hash: "a2".repeat(32) }, policy: null, requirements: [{ requirementId: zeroRequirement.requirementId, semanticType: zeroRequirement.semanticType, critical: zeroRequirement.critical, acceptedProvenance: zeroRequirement.acceptedProvenance, qualificationRule: zeroRequirement.qualificationRule, dependencySelectors: zeroRequirement.dependencySelectors }] })]);
+    await admin.query("insert into public.outcome_transaction_requirement_bindings(owner_tenant_id, outcome_transaction_id, blueprint_id, blueprint_version, blueprint_hash, requirement_profile_id, requirement_profile_version, requirement_profile_hash, policy_id, policy_hash, schema_version, binding_hash, bound_at) values ($1, $2, $3, 1, $4, $5, 1, $6, null, null, 'outcome-transaction-requirement-binding-v0.1', $7, now())", [TENANT, zeroTransaction, zeroBlueprint, "a2".repeat(32), zeroProfile, "d2".repeat(32), "e2".repeat(32)]);
+    const zeroPayload = {
+      owner_tenant_id: TENANT,
+      outcome_transaction_id: zeroTransaction,
+      transaction: { ownerTenantId: TENANT, transactionId: zeroTransaction, projectId: zeroProject, assetId: zeroAsset, baseVersionId: zeroVersion, rawRequest: "d0 zero" },
+      asset: { id: zeroAsset, ownerTenantId: TENANT, projectId: zeroProject, currentVersionId: zeroVersion },
+      sourceVersion: { id: zeroVersion, ownerTenantId: TENANT, assetId: zeroAsset, versionNumber: 1, parentVersionId: null, state: { width: 100 } },
+      binding: { bindingHash: "e2".repeat(32), blueprintId: zeroBlueprint, blueprintVersion: 1, blueprintHash: "a2".repeat(32), requirementProfileId: zeroProfile, requirementProfileVersion: 1, requirementProfileHash: "d2".repeat(32) },
+      requirements: [zeroRequirement],
+      dependency_snapshot: zeroSnapshot,
+      qualifications: [{ ...zeroQualification, signalReferences: [] }],
+      readiness: zeroReadiness,
+    };
+    const result = await service.query("select public.build002_commit_readiness_authority($1::uuid, $2::jsonb) as result", [ACTOR, JSON.stringify(zeroPayload)]);
+    expect(result.rows[0].result.authority_commit_id).toBeTruthy();
+    expect(zeroReadiness.state).toBe("INSUFFICIENT_SIGNAL");
+    const status = await admin.query("select status from public.outcome_transactions where id = $1", [zeroTransaction]);
+    expect(status.rows[0].status).toBe("PREPARED");
+  });
+
   it("denies direct marker inserts for service, authenticated, and anon", async () => {
     await service.query("begin");
     try {
