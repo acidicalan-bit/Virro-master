@@ -23,7 +23,19 @@ describe("BUILD002-C1-D0 R1 authority marker isolation and graph coherence", () 
       "build002_qualification_signals",
       "q.dependency_snapshot_id is distinct from v_snapshot.id",
       "READINESS_AUTHORITY_SIGNAL_UNIVERSE_CHANGED",
+      "v_profile_requirements",
+      "v_persisted_requirement_hashes",
+      "q.signal_content_hashes",
+      "q.qualified_at is distinct from v_readiness.created_at",
     ]) expect(migration).toContain(phrase);
+  });
+
+  it("binds the canonical universe and authenticated marker reads without adding a migration", () => {
+    expect(migration).toContain("grant select on table public.build002_readiness_authority_commits to authenticated");
+    expect(migration).toContain("pg_get_functiondef('public.build002_commit_readiness_authority(uuid, jsonb)'::regprocedure)");
+    expect(migration).toContain("requirement_definition_hash in (");
+    expect(migration).toContain("v_snapshot->'requirementDefinitionHashes'");
+    expect(migration).not.toMatch(/20260820212/);
   });
 
   it("does not add a second minting RPC or an operational path", () => {

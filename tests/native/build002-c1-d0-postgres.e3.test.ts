@@ -197,6 +197,13 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD002-C1-D0 native PostgreSQ
   });
 
   it("denies direct marker inserts for service, authenticated, and anon", async () => {
+    await service.query("begin");
+    try {
+      await service.query("select public.build002_commit_readiness_authority($1::uuid, $2::jsonb)", [ACTOR, JSON.stringify(value.payload)]);
+      await expect(service.query("insert into public.build002_readiness_authority_commits default values")).rejects.toThrow(/permission denied|violates/);
+    } finally {
+      await service.query("rollback");
+    }
     await expect(service.query("insert into public.build002_readiness_authority_commits(owner_tenant_id, outcome_transaction_id, principal_id, dependency_snapshot_id, dependency_snapshot_hash, readiness_id, readiness_content_hash, evaluation_time, schema_version) values ($1,$2,$3,$4,$5,$6,$7,now(),'build002-readiness-authority-commit-v0.1')", [TENANT, TRANSACTION, ACTOR, "a6000000-0000-4000-8000-000000000001", value.snapshot.dependencySnapshotHash, READINESS, value.readiness.readinessContentHash])).rejects.toThrow();
     for (const role of ["authenticated", "anon"]) {
       const client = new Client({ connectionString: connection(databaseUrl!, isolatedDatabase) });
@@ -205,6 +212,38 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD002-C1-D0 native PostgreSQ
         await client.query(`set role ${role}`);
         await expect(client.query("insert into public.build002_readiness_authority_commits default values")).rejects.toThrow(/permission denied|violates/);
       } finally { await client.end(); }
+    }
+  });
+
+  it("keeps marker reads tenant-scoped for authenticated members", async () => {
+    const client = new Client({ connectionString: connection(databaseUrl!, isolatedDatabase) });
+    await client.connect();
+    try {
+      await admin.query("insert into public.tenants(id, kind, status) values ($1, 'ORGANIZATION', 'ACTIVE')", ["b0000000-0000-4000-8000-000000000002"]);
+      await admin.query("insert into public.tenant_memberships(id, tenant_id, principal_id, role, status) values ($1, $2, $3, 'MEMBER', 'ACTIVE')", ["b1000000-0000-4000-8000-000000000002", "b0000000-0000-4000-8000-000000000002", ACTOR]);
+      await client.query("set role authenticated; set request.jwt.claim.sub = $1", [ACTOR]);
+      const own = await client.query("select count(*)::int as count from public.build002_readiness_authority_commits");
+      expect(own.rows[0].count).toBe(1);
+      await admin.query("update public.tenant_memberships set status = 'REVOKED' where tenant_id = $1 and principal_id = $2", [TENANT, ACTOR]);
+      const revoked = await client.query("select count(*)::int as count from public.build002_readiness_authority_commits");
+      expect(revoked.rows[0].count).toBe(0);
+      await admin.query("update public.tenant_memberships set status = 'ACTIVE' where tenant_id = $1 and principal_id = $2", [TENANT, ACTOR]);
+      await admin.query("update public.tenants set status = 'SUSPENDED' where id = $1", [TENANT]);
+      const inactive = await client.query("select count(*)::int as count from public.build002_readiness_authority_commits");
+      expect(inactive.rows[0].count).toBe(0);
+      await admin.query("update public.tenants set status = 'ACTIVE' where id = $1", [TENANT]);
+      const anon = new Client({ connectionString: connection(databaseUrl!, isolatedDatabase) });
+      await anon.connect();
+      try {
+        await anon.query("set role anon");
+        await expect(anon.query("select * from public.build002_readiness_authority_commits")).rejects.toThrow(/permission denied/);
+      } finally {
+        await anon.end();
+      }
+    } finally {
+      await admin.query("update public.tenants set status = 'ACTIVE' where id = $1", [TENANT]);
+      await admin.query("update public.tenant_memberships set status = 'ACTIVE' where tenant_id = $1 and principal_id = $2", [TENANT, ACTOR]);
+      await client.end();
     }
   });
 
@@ -262,6 +301,29 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD002-C1-D0 native PostgreSQ
     } finally {
       await locker.query("rollback");
       await locker.end(); await inserter.end();
+    }
+  });
+
+  it("serializes membership and asset-head authority boundaries", async () => {
+    const membershipLocker = new Client({ connectionString: connection(databaseUrl!, isolatedDatabase) });
+    const membershipAttempt = new Client({ connectionString: connection(databaseUrl!, isolatedDatabase) });
+    const assetLocker = new Client({ connectionString: connection(databaseUrl!, isolatedDatabase) });
+    const assetAttempt = new Client({ connectionString: connection(databaseUrl!, isolatedDatabase) });
+    await membershipLocker.connect(); await membershipAttempt.connect(); await assetLocker.connect(); await assetAttempt.connect();
+    try {
+      await membershipLocker.query("begin");
+      await membershipLocker.query("select tenant_id from public.tenant_memberships where tenant_id = $1 and principal_id = $2 for update", [TENANT, ACTOR]);
+      await membershipAttempt.query("set role service_role; set statement_timeout = '300ms'");
+      await expect(membershipAttempt.query("select public.build002_commit_readiness_authority($1::uuid, $2::jsonb)", [ACTOR, JSON.stringify(value.payload)])).rejects.toThrow();
+      await membershipLocker.query("rollback");
+
+      await assetLocker.query("begin");
+      await assetLocker.query("select id from public.assets where id = $1 for update", [ASSET]);
+      await assetAttempt.query("set role service_role; set statement_timeout = '300ms'");
+      await expect(assetAttempt.query("select public.build002_commit_readiness_authority($1::uuid, $2::jsonb)", [ACTOR, JSON.stringify(value.payload)])).rejects.toThrow();
+      await assetLocker.query("rollback");
+    } finally {
+      await membershipLocker.end(); await membershipAttempt.end(); await assetLocker.end(); await assetAttempt.end();
     }
   });
 
