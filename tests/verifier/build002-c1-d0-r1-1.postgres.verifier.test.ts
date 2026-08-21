@@ -225,6 +225,15 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD002-C1-D0 R1-1 independent
     }
   });
 
+  it("rejects a READY graph expired at the DB authority boundary", async () => {
+    const expired = structuredClone(value.payload) as Record<string, unknown> & { readiness: Record<string, unknown> };
+    const expiredReadiness = { ...expired.readiness, validUntil: new Date(Date.now() - 1_000).toISOString() } as Record<string, unknown>;
+    const { id, readinessContentHash: _hash, createdAt, ...material } = expiredReadiness;
+    void id; void _hash; void createdAt;
+    expired.readiness = { ...material, id: value.readiness.id, createdAt: value.readiness.createdAt, readinessContentHash: canonicalSha256(material) };
+    await expect(call(expired)).rejects.toThrow(/EXPIRED_BEFORE_COMMIT|GRAPH_INVALID|COMMIT_FAILED/);
+  });
+
   it("ignores a historical noncanonical signal but rejects a canonical extra signal", async () => {
     const old = compileSignalRequirement({ requirementId: "signal.verifier.old", subjectKind: value.requirement.subjectKind, semanticType: value.requirement.semanticType, critical: value.requirement.critical, acceptedProvenance: value.requirement.acceptedProvenance, qualificationRule: value.requirement.qualificationRule, dependencySelectors: value.requirement.dependencySelectors, blueprintId: BLUEPRINT, blueprintVersion: 1, blueprintHash: hashes.blueprint, policyId: null, policyHash: null, definitionSchemaVersion: value.requirement.definitionSchemaVersion }, value.requirement.createdAt);
     await insertRequirement(service, "a9200000-0000-4000-8000-000000000002", old);
@@ -297,15 +306,6 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD002-C1-D0 R1-1 independent
     expect(status.rows[0].status).toBe("PREPARED");
     const signals = await admin.query("select count(*)::int as count from public.build002_signals where outcome_transaction_id=$1", [ids.tx]);
     expect(signals.rows[0].count).toBe(0);
-  });
-
-  it("rejects a READY graph expired at the DB authority boundary", async () => {
-    const expired = structuredClone(value.payload) as Record<string, unknown> & { readiness: Record<string, unknown> };
-    const expiredReadiness = { ...expired.readiness, validUntil: new Date(Date.now() - 1_000).toISOString() } as Record<string, unknown>;
-    const { id, readinessContentHash: _hash, createdAt, ...material } = expiredReadiness;
-    void id; void _hash; void createdAt;
-    expired.readiness = { ...material, id: value.readiness.id, createdAt: value.readiness.createdAt, readinessContentHash: canonicalSha256(material) };
-    await expect(call(expired)).rejects.toThrow(/EXPIRED_BEFORE_COMMIT|GRAPH_INVALID|COMMIT_FAILED/);
   });
 
   it("keeps the transaction PREPARED and leaves execution/state-commit tables untouched", async () => {
