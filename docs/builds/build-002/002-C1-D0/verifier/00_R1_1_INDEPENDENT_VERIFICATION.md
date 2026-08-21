@@ -8,26 +8,31 @@ This verifier branch is based directly on product SHA `0a8145abae1792d6de4c691b2
 
 The application verifier independently constructs requirement, signal, dependency, qualification, and readiness objects. It exercises a valid graph and these caller-controlled compositions: readiness A with qualification B, wrong signal content hash, duplicate requirement ID, duplicate requirement hash, missing qualification, extra qualification, and stale evaluator identity. Invalid compositions are rejected before the RPC; the valid graph reaches exactly one RPC call.
 
-The PostgreSQL verifier creates a fresh PostgreSQL 17 database, applies all 29 repository migrations once in lexical order, inspects the deployed RPC definition, and attacks direct marker insertion, alternate C0 requirements, qualification/signal pair binding, historical noncanonical signals, canonical extra signals, and execution/state-commit consequences. Run `32477566942` is the producer evidence for these checks; all required workflow steps passed.
+The PostgreSQL verifier creates a fresh PostgreSQL 17 database, discovers and applies all 31 repository migrations once in lexical order, inspects the deployed RPC definition, and attacks direct marker insertion, every required C0 semantic field, a canonical two-requirement graph and swap, qualification/signal pair binding, historical noncanonical signals, canonical extra signals, real-role RLS visibility, zero-signal non-ready authority, expiry, and execution/state-commit consequences. Run `32480989662` is the producer evidence; all required workflow steps passed. The dynamically produced migration filename-set hash is `4dd4232bd4b1d89a269d7609a4b7e7a17283b306728c1a7e63339f2c06bd856b`.
 
 ## Result Classification
 
 | Boundary | Classification | Evidence |
 | --- | --- | --- |
 | Application graph binding | PASS | 8/8 independent Vitest tests; invalid graphs make zero RPC calls. |
-| Fresh PostgreSQL migration/RPC proof | PASS | PostgreSQL 17, 29 migrations applied once in lexical order; final deployed RPC contains canonical requirement-hash signal scoping. |
+| Fresh PostgreSQL migration/RPC proof | PASS | PostgreSQL 17, 31 migrations applied once in lexical order; final deployed RPC contains canonical requirement-hash signal scoping. |
 | Same-transaction direct marker forge | PASS | Service-role RPC in an open transaction followed by direct marker INSERT was denied by privilege. |
 | C0 alternate requirement and relational pair attacks | PASS | Direct RPC rejected alternate C0 requirements and qualification/signal content-pair disagreement. |
+| C0 semantic field matrix | PASS | Independently hash-valid semanticType, critical, acceptedProvenance, qualificationRule, and dependencySelectors mutations were each rejected. |
+| Canonical two-requirement graph and swap | PASS | R1/R2 positive committed; a hash-valid qualification misbinding was rejected by exact binding. |
 | Historical/noncanonical and canonical-extra signal attacks | PASS | Historical noncanonical signal was ignored; an extra canonical signal invalidated the stale candidate. |
+| Real-role marker RLS | PASS | Active own member saw markers; foreign principal, revoked membership, and suspended tenant saw zero rows; anon was denied. |
+| Zero-signal non-ready authority | PASS | Legitimate `INSUFFICIENT_SIGNAL` authority committed with zero Signals and `PREPARED` transaction. |
+| Expired READY boundary | PASS | Expired readiness was rejected before authority marker creation. |
 | Execution/state-commit consequences | PASS | Transaction remained `PREPARED`; mutation lease, execution run, verification run, and state-commit deltas remained zero. |
 | Two-connection signal, membership, and asset races | NOT_PROVEN | Must be established with explicit lock synchronization in PostgreSQL 17. |
-| Authenticated/foreign/revoked/inactive/anon marker reads | NOT_PROVEN | Requires actual PostgreSQL roles and RLS, not policy text inspection. |
-| Atomic rollback, expiry, zero-signal, and non-ready authority | NOT_PROVEN | Native execution required. |
+| Revoked-tenant marker read and nonexpired READY control | NOT_PROVEN | These two variants remain outside the independent fixture. |
+| Atomic rollback and relational link corruption | NOT_PROVEN | Native execution required. |
 | Product immutability | PASS | Product merge-base remains the exact candidate SHA and no product path is changed. |
 
 ## Verdict Rule
 
-The verifier must not report `PASS` for attacks that were not executed. The PostgreSQL 17 producer job succeeded, but the following mandatory controls remain unimplemented in this independent suite: two-direction Signal, membership, and Asset-head lock races; authenticated/foreign/revoked/inactive/anon RLS reads; qualification-link/readiness-link corruption; atomic rollback after graph staging; expiry boundary; non-ready and zero-signal authority; and the full multi-requirement swap. Therefore the strict final status is:
+The verifier must not report `PASS` for attacks that were not executed. The PostgreSQL 17 producer job succeeded, but the following mandatory controls remain unimplemented in this independent suite: two-direction Signal, membership, and Asset-head lock races, qualification-link/readiness-link corruption, and atomic rollback after graph staging. Revoked-tenant RLS and a separate nonexpired READY control also remain unproven. Therefore the strict final status is:
 
 `BUILD002_C1_D0_R1_1_VERIFICATION_BLOCKED`
 
