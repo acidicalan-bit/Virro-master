@@ -8,7 +8,7 @@ This verifier branch is based directly on product SHA `0a8145abae1792d6de4c691b2
 
 The application verifier independently constructs requirement, signal, dependency, qualification, and readiness objects. It exercises a valid graph and these caller-controlled compositions: readiness A with qualification B, wrong signal content hash, duplicate requirement ID, duplicate requirement hash, missing qualification, extra qualification, and stale evaluator identity. Invalid compositions are rejected before the RPC; the valid graph reaches exactly one RPC call.
 
-The PostgreSQL verifier creates a fresh PostgreSQL 17 database, discovers and applies all 31 repository migrations once in lexical order, inspects the deployed RPC definition, and attacks direct marker insertion, every required C0 semantic field, a canonical two-requirement graph and swap, qualification/signal pair binding, historical noncanonical signals, canonical extra signals, real-role RLS visibility, zero-signal non-ready authority, expiry, and execution/state-commit consequences. Final producer run `32481245608` passed all required workflow steps. The dynamically produced migration filename-set hash is `4dd4232bd4b1d89a269d7609a4b7e7a17283b306728c1a7e63339f2c06bd856b`.
+The PostgreSQL verifier creates a fresh PostgreSQL 17 database, discovers and applies all 31 repository migrations once in lexical order, inspects the deployed RPC definition, and attacks direct marker insertion, every required C0 semantic field, a canonical two-requirement graph and swap, qualification/signal pair binding, historical noncanonical signals, canonical extra signals, real-role RLS visibility including a `REVOKED` tenant, zero-signal non-ready authority, a separate nonexpired READY control, expiry, and execution/state-commit consequences. The final producer run is resolved from the final verifier commit by CI metadata (`FINAL_RUN_RESOLVED_EXTERNALLY=YES`). The dynamically produced migration filename-set hash is `4dd4232bd4b1d89a269d7609a4b7e7a17283b306728c1a7e63339f2c06bd856b`.
 
 ## Result Classification
 
@@ -26,13 +26,14 @@ The PostgreSQL verifier creates a fresh PostgreSQL 17 database, discovers and ap
 | Expired READY boundary | PASS | Expired readiness was rejected before authority marker creation. |
 | Execution/state-commit consequences | PASS | Transaction remained `PREPARED`; mutation lease, execution run, verification run, and state-commit deltas remained zero. |
 | Two-connection signal, membership, and asset races | NOT_PROVEN | Must be established with explicit lock synchronization in PostgreSQL 17. |
-| Revoked-tenant marker read and nonexpired READY control | NOT_PROVEN | These two variants remain outside the independent fixture. |
+| Revoked-tenant marker read | PASS | Authenticated member saw zero marker rows while tenant status was `REVOKED`; fixture restored to `ACTIVE`. |
+| Separate nonexpired READY control | PASS | A readiness valid beyond the database clock produced a marker while the transaction stayed `PREPARED` and execution/state-commit writes stayed zero. |
 | Atomic rollback and relational link corruption | NOT_PROVEN | Native execution required. |
 | Product immutability | PASS | Product merge-base remains the exact candidate SHA and no product path is changed. |
 
 ## Verdict Rule
 
-The verifier must not report `PASS` for attacks that were not executed. The PostgreSQL 17 producer job succeeded, but the following mandatory controls remain unimplemented in this independent suite: two-direction Signal, membership, and Asset-head lock races, qualification-link/readiness-link corruption, and atomic rollback after graph staging. Revoked-tenant RLS and a separate nonexpired READY control also remain unproven. Therefore the strict final status is:
+The verifier must not report `PASS` for attacks that were not executed. The PostgreSQL 17 producer job succeeded, but the following mandatory controls remain unimplemented in this independent suite: two-direction Signal, membership, and Asset-head lock races, qualification-link/readiness-link corruption, and atomic rollback after graph staging. Therefore the strict final status is:
 
 `BUILD002_C1_D0_R1_1_VERIFICATION_BLOCKED`
 

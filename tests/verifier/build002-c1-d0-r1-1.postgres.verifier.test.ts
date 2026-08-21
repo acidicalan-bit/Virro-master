@@ -234,6 +234,15 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD002-C1-D0 R1-1 independent
     await expect(call(expired)).rejects.toThrow(/EXPIRED_BEFORE_COMMIT|GRAPH_INVALID|COMMIT_FAILED/);
   });
 
+  it("keeps a separate nonexpired READY control authoritative without consequences", async () => {
+    const result = await call(value.payload);
+    expect(result.rows[0].result.authority_commit_id).toBeTruthy();
+    const status = await admin.query("select status from public.outcome_transactions where id=$1", [TX]);
+    expect(status.rows[0].status).toBe("PREPARED");
+    const writes = await admin.query("select (select count(*) from public.mutation_leases) as leases, (select count(*) from public.execution_runs) as runs, (select count(*) from public.state_commits) as commits");
+    expect(Object.values(writes.rows[0]).every((entry) => String(entry) === "0")).toBe(true);
+  });
+
   it("ignores a historical noncanonical signal but rejects a canonical extra signal", async () => {
     const old = compileSignalRequirement({ requirementId: "signal.verifier.old", subjectKind: value.requirement.subjectKind, semanticType: value.requirement.semanticType, critical: value.requirement.critical, acceptedProvenance: value.requirement.acceptedProvenance, qualificationRule: value.requirement.qualificationRule, dependencySelectors: value.requirement.dependencySelectors, blueprintId: BLUEPRINT, blueprintVersion: 1, blueprintHash: hashes.blueprint, policyId: null, policyHash: null, definitionSchemaVersion: value.requirement.definitionSchemaVersion }, value.requirement.createdAt);
     await insertRequirement(service, "a9200000-0000-4000-8000-000000000002", old);
@@ -264,6 +273,10 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD002-C1-D0 R1-1 independent
       await admin.query("update public.tenants set status='SUSPENDED' where id=$1", [TENANT]);
       const suspended = await own.query("select count(*)::int as count from public.build002_readiness_authority_commits");
       expect(suspended.rows[0].count).toBe(0);
+      await admin.query("update public.tenants set status='ACTIVE' where id=$1", [TENANT]);
+      await admin.query("update public.tenants set status='REVOKED' where id=$1", [TENANT]);
+      const revokedTenant = await own.query("select count(*)::int as count from public.build002_readiness_authority_commits");
+      expect(revokedTenant.rows[0].count).toBe(0);
       await admin.query("update public.tenants set status='ACTIVE' where id=$1", [TENANT]);
       const foreign = new Client({ connectionString: dbUrl(databaseUrl!, database) });
       await foreign.connect();
