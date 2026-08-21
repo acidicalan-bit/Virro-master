@@ -1,0 +1,75 @@
+name: BUILD 002-C1-D1 R1 independent verifier
+
+on:
+  push:
+    branches:
+      - verify/build002-c1-d1-r1
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  PRODUCT_SHA: 03f3d7382037a1e409b848d01921214dfffa2b2a
+  PRODUCT_TREE: 5e58464f7d2da0ef3a10373e570cd2b846efaf93
+
+jobs:
+  verifier:
+    name: Independent D1 composition and regression gates
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: virro_e3_c1_d0
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d virro_e3_c1_d0"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+        with:
+          version: 11.19.0
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Verify frozen product identity and verifier-only diff
+        run: |
+          test "$(git show -s --format=%H "$PRODUCT_SHA")" = "$PRODUCT_SHA"
+          test "$(git show "$PRODUCT_SHA^{tree}")" = "$PRODUCT_TREE"
+          forbidden=$(git diff --name-only "$PRODUCT_SHA"..HEAD | grep -Ev '^(\.github/workflows/build002-c1-d1-r1-verifier\.yml|tests/verifier/build002-c1-d1-r1/|docs/builds/build-002/002-C1-D1/verifier/)' || true)
+          test -z "$forbidden"
+      - name: Independent D1 adversarial verifier
+        id: independent
+        continue-on-error: true
+        run: pnpm exec vitest run tests/verifier/build002-c1-d1-r1/d1-independent-adversarial.test.ts --reporter=verbose
+      - name: Authored D1 regression
+        run: pnpm exec vitest run tests/assurance/build002-c1-d1-readiness-authority-orchestration.test.ts --reporter=verbose
+      - name: D0 native PostgreSQL 17 regression
+        env:
+          BUILD002_NATIVE_PG_C1_D0: "true"
+          BUILD002_NATIVE_PG_C1_D0_URL: postgresql://postgres:postgres@localhost:5432/virro_e3_c1_d0
+        run: pnpm exec vitest run tests/native/build002-c1-d0-postgres.e3.test.ts --reporter=verbose
+      - name: Assurance manifest
+        run: pnpm assurance:check
+      - name: TypeScript
+        run: pnpm typecheck
+      - name: ESLint
+        run: pnpm lint
+      - name: Full regression
+        run: pnpm test
+      - name: Production build
+        run: pnpm build
+      - name: Enforce independent verifier result
+        if: always()
+        run: test "${{ steps.independent.outcome }}" = success
