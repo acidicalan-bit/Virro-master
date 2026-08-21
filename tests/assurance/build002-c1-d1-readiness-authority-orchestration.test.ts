@@ -18,6 +18,18 @@ import type { ResolvedOutcomeReadinessCandidate } from "@/src/application/outcom
 import type { AuthorityContext } from "@/src/domain/auth/authority";
 import type { ReadinessAuthorityCommitInput } from "@/src/application/ports/outcome/readiness-authority-commit-repository";
 import { canonicalSha256 } from "@/src/domain/outcome/specification/canonical";
+import {
+  BUILD002_DEPENDENCY_IDENTITIES,
+  BUILD002_DEPENDENCY_SCHEMA_VERSION,
+  compileSignalRequirement,
+  createDependencySnapshot,
+  currentDefaultEvaluator,
+  evaluateDelegationReadiness,
+  evaluateSignalQualification,
+  verifyQualificationHash,
+  verifyReadinessHash,
+  type SignalRequirement,
+} from "@/src/domain/outcome/signal-readiness";
 import type { AssetRecord, AssetVersionRecord, OutcomeTransactionRecord } from "@/src/application/ports/repositories";
 import {
   SOURCE_ASSET_VERSION_BINDING_VERSION,
@@ -34,6 +46,7 @@ const VERSION = "70000000-0000-4000-8000-000000000001";
 const BLUEPRINT = "80000000-0000-4000-8000-000000000001";
 const PROFILE = "90000000-0000-4000-8000-000000000001";
 const HASH = "a".repeat(64);
+const ASSESSMENT_TIME = "2026-08-21T10:01:00.000Z";
 
 const authorityContext: AuthorityContext = Object.freeze({
   principalId: PRINCIPAL,
@@ -166,9 +179,14 @@ describe("BUILD002-C1-D1 server-owned readiness authority orchestration", () => 
     const fixture = orchestratorFixture();
     const result = await new OutcomeReadinessAuthorityOrchestrator(fixture.dependencies).run({ authority: authorityContext, outcomeTransactionId: TRANSACTION });
     expect(fixture.calls).toEqual(["C0-D", "C1-A", "C1-B", "C1-C", "MATERIAL", "D0"]);
+    expect(result.authorityCommit.authorityCommitId).toBe(fixture.record.authorityCommitId);
+    expect(result.readiness.state).toBe("READY");
+    expect(result.authorityCommit.readinessContentHash).toBe(result.readiness.readinessContentHash);
     expect(result.authorityScope).toBe("COMMIT_TIME_SERIALIZED");
     expect(result.postCommitCurrentness).toBe("REVALIDATION_REQUIRED_FOR_CONSEQUENCE");
     expect(Object.isFrozen(result)).toBe(true);
+    expect(Object.isFrozen(result.authorityCommit)).toBe(true);
+    expect(Object.isFrozen(result.readiness)).toBe(true);
   });
 
   it("derives the D0 input from trusted phases, ignoring tenant, signal, readiness, evaluator and time injection", async () => {
@@ -181,13 +199,68 @@ describe("BUILD002-C1-D1 server-owned readiness authority orchestration", () => 
       outcomeTransactionId: TRANSACTION,
       tenantId: "attacker",
       signalIds: ["attacker"],
-      readiness: { state: "READY" },
+      readiness: { state: "INSUFFICIENT_SIGNAL" },
       evaluator: { id: "attacker" },
       evaluationTime: "1900-01-01T00:00:00.000Z",
     } as never);
     expect(received?.ownerTenantId).toBe(TENANT);
     expect(received?.outcomeTransactionId).toBe(TRANSACTION);
     expect(received?.transaction.rawRequest).toBe("preserve source");
+  });
+
+  it("commits a valid non-ready assessment through D0", async () => {
+    const assessment = validNonReadyAssessment();
+    let d0Calls = 0;
+    const fixture = orchestratorFixture({
+      requirementAuthority: { resolve: async () => assessment.authority },
+      signalUniverse: { resolve: async () => assessment.universe },
+      dependencySnapshot: { resolve: async () => assessment.dependency },
+      readinessCandidate: { resolve: () => assessment.candidate },
+      commit: { commit: async (input) => { d0Calls += 1; return fixtureRecord({ dependencySnapshotHash: input.dependencySnapshot.dependencySnapshotHash, readinessContentHash: input.readiness.readinessContentHash }); }, findById: async () => null, findByReadinessId: async () => null },
+    });
+    const result = await new OutcomeReadinessAuthorityOrchestrator(fixture.dependencies).run({
+      authority: authorityContext,
+      outcomeTransactionId: TRANSACTION,
+      readiness: { state: "READY" },
+      signals: ["attacker"],
+    } as never);
+    expect(result.readiness.state).toBe("INSUFFICIENT_SIGNAL");
+    expect(result.authorityCommit.readinessContentHash).toBe(result.readiness.readinessContentHash);
+    expect(d0Calls).toBe(1);
+  });
+
+  it("commits a zero-signal canonical assessment with valid production hashes", async () => {
+    const assessment = validNonReadyAssessment();
+    const fixture = orchestratorFixture({
+      requirementAuthority: { resolve: async () => assessment.authority },
+      signalUniverse: { resolve: async () => assessment.universe },
+      dependencySnapshot: { resolve: async () => assessment.dependency },
+      readinessCandidate: { resolve: () => assessment.candidate },
+      commit: { commit: async (input) => fixtureRecord({ dependencySnapshotHash: input.dependencySnapshot.dependencySnapshotHash, readinessContentHash: input.readiness.readinessContentHash }), findById: async () => null, findByReadinessId: async () => null },
+    });
+    const result = await new OutcomeReadinessAuthorityOrchestrator(fixture.dependencies).run({ authority: authorityContext, outcomeTransactionId: TRANSACTION });
+    expect(assessment.universe.requirements[0].signals).toEqual([]);
+    expect(result.readiness.state).toBe("INSUFFICIENT_SIGNAL");
+    expect(result.readiness.readinessContentHash).toMatch(/^[a-f0-9]{64}$/);
+  });
+
+  it("does not allow a caller fake READY to upgrade a canonical non-ready assessment", async () => {
+    const assessment = validNonReadyAssessment();
+    const fixture = orchestratorFixture({
+      requirementAuthority: { resolve: async () => assessment.authority },
+      signalUniverse: { resolve: async () => assessment.universe },
+      dependencySnapshot: { resolve: async () => assessment.dependency },
+      readinessCandidate: { resolve: () => assessment.candidate },
+      commit: { commit: async (input) => fixtureRecord({ dependencySnapshotHash: input.dependencySnapshot.dependencySnapshotHash, readinessContentHash: input.readiness.readinessContentHash }), findById: async () => null, findByReadinessId: async () => null },
+    });
+    const result = await new OutcomeReadinessAuthorityOrchestrator(fixture.dependencies).run({ authority: authorityContext, outcomeTransactionId: TRANSACTION, readiness: { state: "READY" } } as never);
+    expect(result.readiness.state).toBe("INSUFFICIENT_SIGNAL");
+  });
+
+  it("does not allow a caller fake INSUFFICIENT_SIGNAL to downgrade canonical READY", async () => {
+    const fixture = orchestratorFixture();
+    const result = await new OutcomeReadinessAuthorityOrchestrator(fixture.dependencies).run({ authority: authorityContext, outcomeTransactionId: TRANSACTION, readiness: { state: "INSUFFICIENT_SIGNAL" } } as never);
+    expect(result.readiness.state).toBe("READY");
   });
 
   it("captures the provenance operations so later caller rebinding cannot replace them", async () => {
@@ -201,20 +274,12 @@ describe("BUILD002-C1-D1 server-owned readiness authority orchestration", () => 
     await expect(orchestrator.run({ authority: authorityContext, outcomeTransactionId: TRANSACTION })).resolves.toMatchObject({ authorityScope: "COMMIT_TIME_SERIALIZED" });
   });
 
-  it("rejects a non-ready C1-C candidate before the atomic commit", async () => {
-    const fixture = orchestratorFixture({
-      readinessCandidate: { resolve: () => { fixture.calls.push("C1-C"); return { ...candidate(), readiness: { ...candidate().readiness, state: "INSUFFICIENT_SIGNAL" } } as unknown as ResolvedOutcomeReadinessCandidate; } },
-    });
-    await expect(new OutcomeReadinessAuthorityOrchestrator(fixture.dependencies).run({ authority: authorityContext, outcomeTransactionId: TRANSACTION }))
-      .rejects.toEqual(new OutcomeReadinessAuthorityOrchestrationError("READINESS_PHASE_FAILED"));
-    expect(fixture.calls).toEqual(["C0-D", "C1-A", "C1-B", "C1-C"]);
-  });
-
   it.each([
     ["signal", "READINESS_AUTHORITY_SIGNAL_UNIVERSE_CHANGED"],
     ["membership", "READINESS_AUTHORITY_MEMBERSHIP_INVALID"],
     ["asset", "SOURCE_ASSET_HEAD_CHANGED"],
     ["expiry", "READINESS_AUTHORITY_EXPIRED_BEFORE_COMMIT"],
+    ["readback", "READINESS_AUTHORITY_READBACK_FAILED"],
   ])("maps D0 %s rejection without retry or consequence", async (_label, reason) => {
     let attempts = 0;
     const fixture = orchestratorFixture({
@@ -238,6 +303,16 @@ describe("BUILD002-C1-D1 server-owned readiness authority orchestration", () => 
       await expect(new OutcomeReadinessAuthorityOrchestrator(failing).run({ authority: authorityContext, outcomeTransactionId: TRANSACTION }))
         .rejects.toEqual(new OutcomeReadinessAuthorityOrchestrationError(phase));
     }
+  });
+
+  it("rejects a contradictory D0 commit record without retry", async () => {
+    let attempts = 0;
+    const fixture = orchestratorFixture({
+      commit: { commit: async () => { attempts += 1; return fixtureRecord({ readinessContentHash: "f".repeat(64) }); }, findById: async () => null, findByReadinessId: async () => null },
+    });
+    await expect(new OutcomeReadinessAuthorityOrchestrator(fixture.dependencies).run({ authority: authorityContext, outcomeTransactionId: TRANSACTION }))
+      .rejects.toEqual(new OutcomeReadinessAuthorityOrchestrationError("COMMIT_REJECTED"));
+    expect(attempts).toBe(1);
   });
 
   it("keeps the public result immutable and exposes no authority capability", () => {
@@ -280,7 +355,11 @@ describe("BUILD002-C1-D1 server-owned readiness authority orchestration", () => 
   });
 });
 
-function fixtureRecord() {
+function fixtureRecord(overrides: Partial<ReturnType<typeof fixtureRecordBase>> = {}) {
+  return { ...fixtureRecordBase(), ...overrides };
+}
+
+function fixtureRecordBase() {
   return {
     authorityCommitId: "b0000000-0000-4000-8000-000000000001",
     ownerTenantId: TENANT,
@@ -294,4 +373,83 @@ function fixtureRecord() {
     committedAt: "2026-08-21T10:01:01.000Z",
     schemaVersion: "build002-readiness-authority-commit-v0.1" as const,
   };
+}
+
+function validNonReadyAssessment() {
+  const requirement: SignalRequirement = compileSignalRequirement({
+    requirementId: "signal.zero",
+    subjectKind: "OUTCOME_TRANSACTION",
+    semanticType: "TEXT",
+    critical: true,
+    acceptedProvenance: ["OBSERVED"],
+    qualificationRule: { version: "1", cardinality: "SINGLE_VALUED", humanReviewRequired: false },
+    dependencySelectors: [
+      { identity: BUILD002_DEPENDENCY_IDENTITIES.SOURCE_ASSET_VERSION, required: true },
+      { identity: BUILD002_DEPENDENCY_IDENTITIES.BLUEPRINT, required: true },
+      { identity: BUILD002_DEPENDENCY_IDENTITIES.TRANSACTION_SEMANTIC, required: true },
+    ],
+    blueprintId: BLUEPRINT,
+    blueprintVersion: 1,
+    blueprintHash: HASH,
+    policyId: null,
+    policyHash: null,
+    definitionSchemaVersion: "build002-signal-requirement-v0.1",
+  }, ASSESSMENT_TIME);
+  const snapshot = createDependencySnapshot({
+    schemaVersion: BUILD002_DEPENDENCY_SCHEMA_VERSION,
+    ownerTenantId: TENANT,
+    transactionId: TRANSACTION,
+    requirementDefinitionHashes: [requirement.requirementDefinitionHash],
+    signalReferences: [],
+    dependencyBindings: [
+      { identity: BUILD002_DEPENDENCY_IDENTITIES.BLUEPRINT, hash: HASH },
+      { identity: BUILD002_DEPENDENCY_IDENTITIES.SOURCE_ASSET_VERSION, hash: HASH },
+      { identity: BUILD002_DEPENDENCY_IDENTITIES.TRANSACTION_SEMANTIC, hash: HASH },
+    ],
+    blueprintHash: HASH,
+    policyHash: null,
+    taskSpecHash: null,
+    transactionSemanticHash: HASH,
+    sourceAssetVersionHash: HASH,
+    contextLensHash: null,
+  });
+  const evaluator = currentDefaultEvaluator();
+  const qualification = evaluateSignalQualification({
+    requirement,
+    signals: [],
+    currentDependencySnapshot: snapshot,
+    evaluator,
+    evaluationTime: ASSESSMENT_TIME,
+  });
+  const readiness = evaluateDelegationReadiness({
+    subject: { kind: "OUTCOME_TRANSACTION", ownerTenantId: TENANT, transactionId: TRANSACTION },
+    requirements: [requirement],
+    qualifications: [qualification],
+    dependencySnapshot: snapshot,
+    taskSpecHash: null,
+    sourceAssetVersionHash: HASH,
+    blueprintHash: HASH,
+    policyHash: null,
+    policyBlock: null,
+    conditionCodes: [],
+    evaluator,
+    evaluationTime: ASSESSMENT_TIME,
+  });
+  if (readiness.state !== "INSUFFICIENT_SIGNAL" || !verifyQualificationHash(qualification) || !verifyReadinessHash(readiness)) {
+    throw new Error("invalid non-ready fixture");
+  }
+  const resolvedAuthority = { ...authority(), signalRequirements: [requirement] } as ResolvedOutcomeRequirementAuthority;
+  const resolvedDependency = { ownerTenantId: TENANT, outcomeTransactionId: TRANSACTION, dependencySnapshot: snapshot } as ResolvedOutcomeDependencySnapshot;
+  const resolvedUniverse = { ownerTenantId: TENANT, outcomeTransactionId: TRANSACTION, requirements: [{ requirement, signals: [] }] } as ResolvedOutcomeSignalUniverse;
+  const resolvedCandidate = {
+    ownerTenantId: TENANT,
+    outcomeTransactionId: TRANSACTION,
+    evaluationTime: ASSESSMENT_TIME,
+    evaluator,
+    dependencySnapshot: snapshot,
+    qualifications: [qualification],
+    readiness,
+    consistency: "NON_ATOMIC_CANDIDATE_EVALUATION",
+  } as ResolvedOutcomeReadinessCandidate;
+  return { authority: resolvedAuthority, dependency: resolvedDependency, universe: resolvedUniverse, candidate: resolvedCandidate };
 }

@@ -35,11 +35,17 @@ mirror.
 
 ## Result Boundary
 
-The result is a deeply immutable metadata snapshot containing only marker and
-digest metadata. It states `COMMIT_TIME_SERIALIZED` and explicitly records
-`REVALIDATION_REQUIRED_FOR_CONSEQUENCE`. A later signal, membership, asset-head,
-or expiry change is not silently promoted to permanent currentness; future
-delegability remains outside C1-D1.
+The result is a deeply immutable snapshot containing the D0
+`authorityCommit` record and the exact C1-C `readiness` assessment. D1 commits
+readiness assessments, not only `READY` assessments: a valid
+`INSUFFICIENT_SIGNAL` assessment may be historical authoritative evidence.
+Authority of an assessment does not mean that the assessment is `READY`.
+
+The result states `COMMIT_TIME_SERIALIZED` and explicitly records
+`REVALIDATION_REQUIRED_FOR_CONSEQUENCE`. Even `READY` does not establish
+current delegability or execution permission. A later signal, membership,
+asset-head, or expiry change is not silently promoted to permanent currentness;
+future consequence revalidation remains outside C1-D1.
 
 ## Exclusions
 

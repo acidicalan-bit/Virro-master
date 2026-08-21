@@ -39,13 +39,8 @@ export type OutcomeReadinessAuthorityOrchestrationInput = Readonly<{
 }>;
 
 export type OutcomeReadinessAuthorityOrchestrationResult = Readonly<{
-  authorityCommitId: string;
-  ownerTenantId: string;
-  outcomeTransactionId: string;
-  principalId: string;
-  dependencySnapshotHash: string;
-  readinessContentHash: string;
-  committedAt: string;
+  authorityCommit: ReadinessAuthorityCommitRecord;
+  readiness: ResolvedOutcomeReadinessCandidate["readiness"];
   authorityScope: "COMMIT_TIME_SERIALIZED";
   postCommitCurrentness: "REVALIDATION_REQUIRED_FOR_CONSEQUENCE";
 }>;
@@ -109,8 +104,7 @@ export class OutcomeReadinessAuthorityOrchestrator {
       || candidate.outcomeTransactionId !== resolvedAuthority.outcomeTransactionId
       || candidate.dependencySnapshot.dependencySnapshotHash !== dependency.dependencySnapshot.dependencySnapshotHash
       || candidate.readiness.ownerTenantId !== resolvedAuthority.ownerTenantId
-      || candidate.readiness.transactionId !== resolvedAuthority.outcomeTransactionId
-      || candidate.readiness.state !== "READY") {
+      || candidate.readiness.transactionId !== resolvedAuthority.outcomeTransactionId) {
       throw new OutcomeReadinessAuthorityOrchestrationError("READINESS_PHASE_FAILED");
     }
     const material = await this.phase("MATERIAL_PHASE_FAILED", () => this.operations.material({ authority: resolvedAuthority, dependency }));
@@ -134,14 +128,17 @@ export class OutcomeReadinessAuthorityOrchestrator {
       throw new OutcomeReadinessAuthorityOrchestrationError("COMMIT_REJECTED");
     }
 
+    if (record.ownerTenantId !== resolvedAuthority.ownerTenantId
+      || record.outcomeTransactionId !== resolvedAuthority.outcomeTransactionId
+      || record.principalId !== authority.principalId
+      || record.dependencySnapshotHash !== candidate.dependencySnapshot.dependencySnapshotHash
+      || record.readinessContentHash !== candidate.readiness.readinessContentHash) {
+      throw new OutcomeReadinessAuthorityOrchestrationError("COMMIT_REJECTED");
+    }
+
     return immutableCopy({
-      authorityCommitId: record.authorityCommitId,
-      ownerTenantId: record.ownerTenantId,
-      outcomeTransactionId: record.outcomeTransactionId,
-      principalId: record.principalId,
-      dependencySnapshotHash: record.dependencySnapshotHash,
-      readinessContentHash: record.readinessContentHash,
-      committedAt: record.committedAt,
+      authorityCommit: record,
+      readiness: candidate.readiness,
       authorityScope: "COMMIT_TIME_SERIALIZED" as const,
       postCommitCurrentness: "REVALIDATION_REQUIRED_FOR_CONSEQUENCE" as const,
     });
