@@ -5,6 +5,7 @@ import { resolve } from "node:path";
 
 import { Client } from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { canonicalSha256 } from "@/src/domain/outcome/specification/canonical";
 import {
   compileSignalRequirement,
   createDependencySnapshot,
@@ -194,6 +195,25 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD002-C1-D0 native PostgreSQ
     expect(first.rows[0].result.authority_commit_id).toBe(second.rows[0].result.authority_commit_id);
     const counts = await admin.query("select (select count(*) from public.build002_readiness_authority_commits) as markers, (select count(*) from public.build002_dependency_snapshots where owner_tenant_id = $1) as dependencies, (select count(*) from public.build002_signal_qualifications where owner_tenant_id = $1) as qualifications, (select count(*) from public.build002_delegation_readiness where owner_tenant_id = $1) as readiness, (select status from public.outcome_transactions where id = $2) as status", [TENANT, TRANSACTION]);
     expect(counts.rows[0]).toMatchObject({ markers: "1", dependencies: "1", qualifications: "1", readiness: "1", status: "PREPARED" });
+  });
+
+  it("accepts a non-ready authority marker without transitioning execution state", async () => {
+    const nonready = structuredClone(value.payload) as Record<string, unknown>;
+    const readiness = {
+      ...(nonready.readiness as Record<string, unknown>),
+      id: "a4000000-0000-4000-8000-000000000003",
+      state: "INSUFFICIENT_SIGNAL",
+      blockingCodes: ["SIGNAL_MISSING"],
+      validUntil: null,
+    } as Record<string, unknown>;
+    const { id: _id, readinessContentHash: _hash, createdAt: _createdAt, ...readinessMaterial } = readiness;
+    void _id; void _hash; void _createdAt;
+    readiness.readinessContentHash = canonicalSha256(readinessMaterial);
+    nonready.readiness = readiness;
+    const result = await service.query("select public.build002_commit_readiness_authority($1::uuid, $2::jsonb) as result", [ACTOR, JSON.stringify(nonready)]);
+    expect(result.rows[0].result.authority_commit_id).toBeTruthy();
+    const status = await admin.query("select status from public.outcome_transactions where id = $1", [TRANSACTION]);
+    expect(status.rows[0].status).toBe("PREPARED");
   });
 
   it("denies direct marker inserts for service, authenticated, and anon", async () => {
