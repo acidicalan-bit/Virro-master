@@ -11,7 +11,7 @@ set search_path = pg_catalog, public
 as $$
 begin
   if tg_op = 'INSERT'
-     and current_setting('build002.authority_commit', true) not in ('build002-c1-d0-r1', (select token from public.build002_readiness_authority_capability limit 1)) then
+     and current_setting('build002.authority_commit', true) is distinct from (select token from public.build002_readiness_authority_capability limit 1) then
     raise exception 'BUILD002_READINESS_AUTHORITY_COMMIT_INSERT_RESTRICTED' using errcode = '42501';
   end if;
   if tg_op <> 'INSERT' then
