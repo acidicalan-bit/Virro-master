@@ -278,8 +278,10 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD002-C1-D0 native PostgreSQ
       policyHash: value.requirement.policyHash,
       definitionSchemaVersion: value.requirement.definitionSchemaVersion,
     }, value.requirement.createdAt);
+    const { contentHash: _historicalHash, ...historicalInput } = value.signal;
+    void _historicalHash;
     const historicalSignal = createSignal({
-      ...value.signal,
+      ...historicalInput,
       signalId: "a2000000-0000-4000-8000-000000000004",
       requirementId: historicalRequirement.requirementId,
       payload: { value: "historical" },
