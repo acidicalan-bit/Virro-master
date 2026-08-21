@@ -93,9 +93,9 @@ function graph(): Graph {
   const payload: Record<string, unknown> = {
     owner_tenant_id: TENANT,
     outcome_transaction_id: TX,
-    transaction: { ownerTenantId: TENANT, transactionId: TX, projectId: PROJECT, assetId: ASSET, baseVersionId: VERSION, rawRequest: "independent native verifier" },
+    transaction: { ownerTenantId: TENANT, transactionId: TX, projectId: PROJECT, assetId: ASSET, baseVersionId: VERSION, rawRequest: "verifier" },
     asset: { id: ASSET, ownerTenantId: TENANT, projectId: PROJECT, currentVersionId: VERSION },
-    sourceVersion: { id: VERSION, ownerTenantId: TENANT, assetId: ASSET, versionNumber: 1, parentVersionId: null, state: { verifier: true } },
+    sourceVersion: { id: VERSION, ownerTenantId: TENANT, assetId: ASSET, versionNumber: 1, parentVersionId: null, state: {} },
     binding: { bindingHash: hashes.binding, blueprintId: BLUEPRINT, blueprintVersion: 1, blueprintHash: hashes.blueprint, requirementProfileId: PROFILE, requirementProfileVersion: 1, requirementProfileHash: hashes.profile },
     requirements: [requirement],
     dependency_snapshot: snapshot,
