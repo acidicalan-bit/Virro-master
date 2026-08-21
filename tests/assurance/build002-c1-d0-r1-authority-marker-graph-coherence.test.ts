@@ -7,7 +7,7 @@ const migration = readFileSync(resolve(process.cwd(), "supabase/migrations/20260
 describe("BUILD002-C1-D0 R1 authority marker isolation and graph coherence", () => {
   it("removes direct marker minting from service_role and keeps the marker append-only", () => {
     expect(migration).toMatch(/revoke insert on table public\.build002_readiness_authority_commits from service_role/);
-    expect(migration).toContain("build002-c1-d0-r1");
+    expect(migration).toContain("build002_readiness_authority_marker_graph_coherent");
     expect(migration).toContain("before insert on public.build002_readiness_authority_commits");
     expect(migration).toContain("if tg_op <> 'INSERT'");
   });
