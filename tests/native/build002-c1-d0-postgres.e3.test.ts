@@ -221,7 +221,8 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD002-C1-D0 native PostgreSQ
     try {
       await admin.query("insert into public.tenants(id, kind, status) values ($1, 'ORGANIZATION', 'ACTIVE')", ["b0000000-0000-4000-8000-000000000002"]);
       await admin.query("insert into public.tenant_memberships(id, tenant_id, principal_id, role, status) values ($1, $2, $3, 'MEMBER', 'ACTIVE')", ["b1000000-0000-4000-8000-000000000002", "b0000000-0000-4000-8000-000000000002", ACTOR]);
-      await client.query("set role authenticated; select set_config('request.jwt.claim.sub', $1, false)", [ACTOR]);
+      await client.query("set role authenticated");
+      await client.query("select set_config('request.jwt.claim.sub', $1, false)", [ACTOR]);
       const own = await client.query("select count(*)::int as count from public.build002_readiness_authority_commits");
       expect(own.rows[0].count).toBe(1);
       await admin.query("update public.tenant_memberships set status = 'REVOKED' where tenant_id = $1 and principal_id = $2", [TENANT, ACTOR]);
