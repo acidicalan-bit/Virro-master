@@ -133,7 +133,7 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD002-C1-C native PostgreSQL
 
   it("applies all migrations once, emits READY in memory, and writes nothing", async () => {
     expect((await admin.query("select version() as version")).rows[0].version).toMatch(/PostgreSQL 17/i);
-    expect(readdirSync(migrationsDir).filter((item) => item.endsWith(".sql"))).toHaveLength(29);
+    expect(readdirSync(migrationsDir).filter((item) => item.endsWith(".sql"))).toHaveLength(31);
     const before = await admin.query(`select
       (select count(*) from public.build002_signals) as signals,
       (select count(*) from public.build002_dependency_snapshots) as dependencies,

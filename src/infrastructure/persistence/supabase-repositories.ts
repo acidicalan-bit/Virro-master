@@ -57,6 +57,7 @@ import {
 } from "@/src/infrastructure/persistence/outcome/supabase-outcome-repositories";
 import { createTenantBuild002PersistenceRepository } from "@/src/infrastructure/persistence/outcome/supabase-build002-persistence-repository";
 import { createSupabaseTransactionRequirementBindingRepository } from "@/src/infrastructure/persistence/outcome/supabase-transaction-requirement-binding-repository";
+import { createSupabaseReadinessAuthorityCommitRepository } from "@/src/infrastructure/persistence/outcome/supabase-readiness-authority-commit-repository";
 import { createSupabaseRequirementCatalogRepository } from "@/src/infrastructure/persistence/outcome/supabase-requirement-catalog-repository";
 import type { RequirementCatalogRepository } from "@/src/application/ports/outcome/requirement-catalog-repository";
 import type { OutcomeTransactionRequirementBindingRepository } from "@/src/application/ports/outcome/transaction-requirement-binding-repository";
@@ -547,6 +548,11 @@ export function createTenantBuild002DependencyRepositories(ownerTenantId: string
     assetVersions: new SupabaseAssetVersionRepository(client, scope),
     signalUniverse: createTenantBuild002PersistenceRepository(client, scope),
   };
+}
+
+export function createTenantReadinessAuthorityCommitRepository(ownerTenantId: string) {
+  const scope = requireTenantScope(ownerTenantId);
+  return createSupabaseReadinessAuthorityCommitRepository(createPrivilegedClient(), scope);
 }
 
 export function requireTenantScope(ownerTenantId: string | undefined): string {
