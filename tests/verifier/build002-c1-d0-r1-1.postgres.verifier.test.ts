@@ -645,7 +645,7 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD002-C1-D0 R1-1 independent
   });
 
   it("serializes Asset head changes in both directions", async () => {
-    const firstIds: RaceIds = { project: "c9000000-0000-4000-0000-000000000241", asset: "d9000000-0000-4000-0000-000000000241", version: "e9000000-0000-4000-0000-000000000241", versionB: "e9000000-0000-4000-0000-000000000242", tx: "f9000000-0000-4000-0000-000000000241", blueprint: "a9100000-0000-4000-0000-000000000241", profile: "a9100000-0000-4000-0000-000000000242", requirementRow: "a9200000-0000-4000-0000-000000000241", signal: "a9300000-0000-4000-0000-000000000241", requirementId: "signal.verifier.v3b.asset.first", qualification: "a9400000-0000-4000-0000-000000000241", readiness: "a9500000-0000-4000-0000-000000000241" };
+    const firstIds: RaceIds = { project: "c9000000-0000-4000-8000-000000000241", asset: "d9000000-0000-4000-8000-000000000241", version: "e9000000-0000-4000-8000-000000000241", versionB: "e9000000-0000-4000-8000-000000000242", tx: "f9000000-0000-4000-8000-000000000241", blueprint: "a9100000-0000-4000-8000-000000000241", profile: "a9100000-0000-4000-8000-000000000242", requirementRow: "a9200000-0000-4000-8000-000000000241", signal: "a9300000-0000-4000-8000-000000000241", requirementId: "signal.verifier.v3b.asset.first", qualification: "a9400000-0000-4000-8000-000000000241", readiness: "a9500000-0000-4000-8000-000000000241" };
     const firstFixture = await persistRaceFixture(firstIds, "e", true);
     const headFirst = await openRaceClient("v3b-asset-change-first-b");
     const attemptOld = await openRaceClient("v3b-asset-change-first-a");
@@ -663,7 +663,7 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD002-C1-D0 R1-1 independent
       await headFirst.client.end(); await attemptOld.client.end();
     }
 
-    const lockIds: RaceIds = { project: "c9000000-0000-4000-0000-000000000251", asset: "d9000000-0000-4000-0000-000000000251", version: "e9000000-0000-4000-0000-000000000251", versionB: "e9000000-0000-4000-0000-000000000252", tx: "f9000000-0000-4000-0000-000000000251", blueprint: "a9100000-0000-4000-0000-000000000251", profile: "a9100000-0000-4000-0000-000000000252", requirementRow: "a9200000-0000-4000-0000-000000000251", signal: "a9300000-0000-4000-0000-000000000251", requirementId: "signal.verifier.v3b.asset.lock", qualification: "a9400000-0000-4000-0000-000000000251", readiness: "a9500000-0000-4000-0000-000000000251" };
+    const lockIds: RaceIds = { project: "c9000000-0000-4000-8000-000000000251", asset: "d9000000-0000-4000-8000-000000000251", version: "e9000000-0000-4000-8000-000000000251", versionB: "e9000000-0000-4000-8000-000000000252", tx: "f9000000-0000-4000-8000-000000000251", blueprint: "a9100000-0000-4000-8000-000000000251", profile: "a9100000-0000-4000-8000-000000000252", requirementRow: "a9200000-0000-4000-8000-000000000251", signal: "a9300000-0000-4000-8000-000000000251", requirementId: "signal.verifier.v3b.asset.lock", qualification: "a9400000-0000-4000-8000-000000000251", readiness: "a9500000-0000-4000-8000-000000000251" };
     const lockFixture = await persistRaceFixture(lockIds, "f", true);
     const a = await openRaceClient("v3b-asset-d0-a");
     const b = await openRaceClient("v3b-asset-d0-b");
