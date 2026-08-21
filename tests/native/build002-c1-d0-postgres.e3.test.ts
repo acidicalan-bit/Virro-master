@@ -246,6 +246,7 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD002-C1-D0 native PostgreSQ
       signalReferences: [],
       dependencyBindings: [
         { identity: "asset.version", hash: "b2".repeat(32) },
+        { identity: "blueprint", hash: "a2".repeat(32) },
         { identity: "transaction.semantic", hash: "c2".repeat(32) },
       ],
       blueprintHash: "a2".repeat(32),
