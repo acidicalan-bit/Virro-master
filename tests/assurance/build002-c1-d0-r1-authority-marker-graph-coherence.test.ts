@@ -21,7 +21,7 @@ describe("BUILD002-C1-D0 R1 authority marker isolation and graph coherence", () 
       "build002_readiness_qualifications",
       "build002_signal_qualifications",
       "build002_qualification_signals",
-      "v_qualification.evaluator is distinct from v_readiness.evaluator",
+      "q.dependency_snapshot_id is distinct from v_snapshot.id",
       "READINESS_AUTHORITY_SIGNAL_UNIVERSE_CHANGED",
     ]) expect(migration).toContain(phrase);
   });

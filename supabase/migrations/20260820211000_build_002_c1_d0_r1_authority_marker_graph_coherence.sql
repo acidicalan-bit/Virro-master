@@ -28,14 +28,10 @@ as $$
 declare
   v_snapshot record;
   v_readiness record;
-  v_qualification record;
-  v_requirement record;
   v_required_hashes jsonb;
   v_qualification_hashes jsonb;
   v_snapshot_refs jsonb;
   v_db_refs jsonb;
-  v_qualification_refs jsonb;
-  v_expected_refs jsonb;
   v_hash_count integer;
   v_distinct_hash_count integer;
   v_requirement_count integer;
@@ -189,69 +185,6 @@ begin
   end if;
 
   return new;
-
-  for v_qualification in
-    select q.*
-    from public.build002_readiness_qualifications rq
-    join public.build002_signal_qualifications q
-      on q.owner_tenant_id = rq.owner_tenant_id
-     and q.outcome_transaction_id = rq.outcome_transaction_id
-     and q.id = rq.qualification_id
-     and q.qualification_content_hash = rq.qualification_content_hash
-    where rq.owner_tenant_id = new.owner_tenant_id
-      and rq.outcome_transaction_id = new.outcome_transaction_id
-      and rq.readiness_id = v_readiness.id
-      and rq.readiness_content_hash = v_readiness.readiness_content_hash
-  loop
-    select * into v_requirement
-    from public.build002_signal_requirements
-    where owner_tenant_id = new.owner_tenant_id
-      and outcome_transaction_id = new.outcome_transaction_id
-      and requirement_definition_hash = v_qualification.requirement_definition_hash;
-    if not found or v_requirement.requirement_id is distinct from v_qualification.requirement_id
-       or v_qualification.dependency_snapshot_id is distinct from v_snapshot.id
-       or v_qualification.dependency_snapshot_hash is distinct from v_snapshot.dependency_snapshot_hash
-       or v_qualification.qualified_at is distinct from v_readiness.created_at
-       or v_qualification.evaluator is distinct from v_readiness.evaluator then
-      raise exception 'READINESS_AUTHORITY_GRAPH_INVALID';
-    end if;
-
-    select coalesce(jsonb_agg(jsonb_build_object('signalId', value, 'contentHash', v_qualification.signal_content_hashes->>(ord - 1)) order by value), '[]'::jsonb)
-      into v_expected_refs
-    from jsonb_array_elements_text(v_qualification.signal_ids) with ordinality as ids(value, ord);
-    select coalesce(jsonb_agg(jsonb_build_object('signalId', signal_id::text, 'contentHash', signal_content_hash) order by signal_id::text), '[]'::jsonb)
-      into v_qualification_refs
-    from public.build002_qualification_signals
-    where owner_tenant_id = new.owner_tenant_id
-      and outcome_transaction_id = new.outcome_transaction_id
-      and qualification_id = v_qualification.id
-      and qualification_content_hash = v_qualification.qualification_content_hash;
-    if v_expected_refs is distinct from v_qualification_refs then
-      raise exception 'READINESS_AUTHORITY_GRAPH_INVALID';
-    end if;
-  end loop;
-
-  select coalesce(jsonb_agg(jsonb_build_object('requirementId', q.requirement_id, 'signalId', s.signal_id::text, 'contentHash', s.signal_content_hash)
-      order by q.requirement_id, s.signal_id::text, s.signal_content_hash), '[]'::jsonb)
-    into v_qualification_refs
-  from public.build002_readiness_qualifications rq
-  join public.build002_signal_qualifications q
-    on q.owner_tenant_id = rq.owner_tenant_id
-   and q.outcome_transaction_id = rq.outcome_transaction_id
-   and q.id = rq.qualification_id
-   and q.qualification_content_hash = rq.qualification_content_hash
-  join public.build002_qualification_signals s
-    on s.owner_tenant_id = q.owner_tenant_id
-   and s.outcome_transaction_id = q.outcome_transaction_id
-   and s.qualification_id = q.id
-   and s.qualification_content_hash = q.qualification_content_hash
-  where rq.owner_tenant_id = new.owner_tenant_id
-    and rq.outcome_transaction_id = new.outcome_transaction_id
-    and rq.readiness_id = v_readiness.id
-    and rq.readiness_content_hash = v_readiness.readiness_content_hash;
-  if v_qualification_refs is distinct from v_snapshot_refs then
-    raise exception 'READINESS_AUTHORITY_GRAPH_INVALID';
-  end if;
 
   return new;
 end;
