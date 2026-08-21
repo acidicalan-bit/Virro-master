@@ -5,7 +5,7 @@ import type { ResolvedOutcomeDependencySnapshot } from "@/src/application/outcom
 import { AssetSchema } from "@/src/domain/outcome/asset";
 import { AssetVersionSchema } from "@/src/domain/outcome/asset-version";
 import { OutcomeTransactionSchema } from "@/src/domain/outcome/outcome-transaction";
-import { canonicalSha256 } from "@/src/domain/outcome/specification/canonical";
+import { canonicalSha256, immutableCopy } from "@/src/domain/outcome/specification/canonical";
 import {
   SOURCE_ASSET_VERSION_BINDING_VERSION,
   TRANSACTION_SEMANTIC_BINDING_VERSION,
@@ -107,7 +107,7 @@ export class OutcomeReadinessAuthorityCommitMaterialResolver {
       throw new OutcomeReadinessAuthorityCommitMaterialError("MATERIAL_SNAPSHOT_MISMATCH");
     }
 
-    return {
+    return immutableCopy({
       transaction: {
         ownerTenantId: authority.ownerTenantId,
         transactionId: transaction.id,
@@ -139,7 +139,7 @@ export class OutcomeReadinessAuthorityCommitMaterialResolver {
         requirementProfileVersion: authority.binding.requirementProfile.version,
         requirementProfileHash: authority.binding.requirementProfile.hash,
       },
-    };
+    });
   }
 
   private async readTransaction(id: string) {
