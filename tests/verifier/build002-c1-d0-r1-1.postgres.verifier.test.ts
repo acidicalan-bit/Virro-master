@@ -118,6 +118,49 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD002-C1-D0 R1-1 independent
     return service.query("select public.build002_commit_readiness_authority($1::uuid, $2::jsonb) as result", [ACTOR, JSON.stringify(payload)]);
   }
 
+  function payloadWithReadinessId(payload: Record<string, unknown>, id: string): Record<string, unknown> {
+    const next = structuredClone(payload) as Record<string, unknown> & { readiness: Record<string, unknown> };
+    const { id: _oldId, readinessContentHash: _oldHash, createdAt, ...material } = next.readiness;
+    void _oldId; void _oldHash;
+    next.readiness = { ...material, id, createdAt, readinessContentHash: canonicalSha256(material) };
+    return next;
+  }
+
+  async function markerCount(): Promise<number> {
+    const result = await admin.query("select count(*)::int as count from public.build002_readiness_authority_commits");
+    return result.rows[0].count as number;
+  }
+
+  async function expectBoundaryRejection(payload: Record<string, unknown>, label: string): Promise<void> {
+    try {
+      await call(payload);
+      throw new Error(`V3A_UNEXPECTED_ACCEPTANCE:${label}`);
+    } catch (error) {
+      const message = String(error);
+      expect(message, label).toMatch(/V3A_UNEXPECTED_ACCEPTANCE|GRAPH_INVALID|COMMIT_FAILED|READINESS_AUTHORITY/);
+      expect(message, label).not.toContain(`V3A_UNEXPECTED_ACCEPTANCE:${label}`);
+      console.info(`V3A_REJECTION_${label}=${message}`);
+    }
+  }
+
+  async function setUserTriggers(table: string, enabledState: "ENABLE" | "DISABLE"): Promise<void> {
+    await admin.query(`alter table public.${table} ${enabledState} trigger all`);
+  }
+
+  async function transactionTableSnapshot(transactionId: string): Promise<Record<string, string>> {
+    const tables = [
+      "build002_signal_requirements", "build002_dependency_snapshots", "build002_dependency_requirements",
+      "build002_dependency_signals", "build002_signal_qualifications", "build002_qualification_signals",
+      "build002_delegation_readiness", "build002_readiness_qualifications", "build002_readiness_authority_commits",
+    ];
+    const snapshot: Record<string, string> = {};
+    for (const table of tables) {
+      const rows = await admin.query(`select to_jsonb(t) as row from public.${table} t where owner_tenant_id=$1 and outcome_transaction_id=$2 order by to_jsonb(t)::text`, [TENANT, transactionId]);
+      snapshot[table] = JSON.stringify(rows.rows.map((row) => row.row));
+    }
+    return snapshot;
+  }
+
   async function insertRequirement(client: Client, rowId: string, requirement: SignalRequirement, transactionId = TX, blueprintId = BLUEPRINT, blueprintHash = hashes.blueprint) {
     await client.query("select public.build002_insert_signal_requirement($1::jsonb)", [JSON.stringify({ id: rowId, owner_tenant_id: TENANT, outcome_transaction_id: transactionId, requirement_id: requirement.requirementId, semantic_type: requirement.semanticType, critical: requirement.critical, accepted_provenance: requirement.acceptedProvenance, qualification_rule: requirement.qualificationRule, dependency_selectors: requirement.dependencySelectors, blueprint_id: blueprintId, blueprint_version: 1, blueprint_hash: blueprintHash, policy_id: null, policy_hash: null, schema_version: requirement.definitionSchemaVersion, requirement_definition_hash: requirement.requirementDefinitionHash, created_at: requirement.createdAt })]);
   }
@@ -241,6 +284,138 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD002-C1-D0 R1-1 independent
     expect(status.rows[0].status).toBe("PREPARED");
     const writes = await admin.query("select (select count(*) from public.mutation_leases) as leases, (select count(*) from public.execution_runs) as runs, (select count(*) from public.state_commits) as commits");
     expect(Object.values(writes.rows[0]).every((entry) => String(entry) === "0")).toBe(true);
+  });
+
+  it("rejects qualification-link wrong-hash, missing, and extra variants without a marker", async () => {
+    const qualificationLink = "build002_qualification_signals";
+    const before = await markerCount();
+    const wrongHashPayload = payloadWithReadinessId(value.payload, "a9500000-0000-4000-8000-000000000101");
+    await setUserTriggers(qualificationLink, "DISABLE");
+    try { await admin.query("update public.build002_qualification_signals set signal_content_hash=$1 where owner_tenant_id=$2 and outcome_transaction_id=$3 and qualification_id=$4 and signal_id=$5", ["f".repeat(64), TENANT, TX, QUAL, SIG]); }
+    finally { await setUserTriggers(qualificationLink, "ENABLE"); }
+    try { await expectBoundaryRejection(wrongHashPayload, "QUALIFICATION_LINK_WRONG_HASH"); }
+    finally {
+      await setUserTriggers(qualificationLink, "DISABLE");
+      await admin.query("update public.build002_qualification_signals set signal_content_hash=$1 where owner_tenant_id=$2 and outcome_transaction_id=$3 and qualification_id=$4 and signal_id=$5", [value.signal.contentHash, TENANT, TX, QUAL, SIG]);
+      await setUserTriggers(qualificationLink, "ENABLE");
+    }
+    expect(await markerCount()).toBe(before);
+
+    const missingPayload = payloadWithReadinessId(value.payload, "a9500000-0000-4000-8000-000000000102");
+    await setUserTriggers(qualificationLink, "DISABLE");
+    try { await admin.query("delete from public.build002_qualification_signals where owner_tenant_id=$1 and outcome_transaction_id=$2 and qualification_id=$3 and signal_id=$4", [TENANT, TX, QUAL, SIG]); }
+    finally { await setUserTriggers(qualificationLink, "ENABLE"); }
+    try { await expectBoundaryRejection(missingPayload, "QUALIFICATION_LINK_MISSING"); }
+    finally {
+      await setUserTriggers(qualificationLink, "DISABLE");
+      await admin.query("insert into public.build002_qualification_signals(owner_tenant_id,outcome_transaction_id,qualification_id,qualification_content_hash,signal_id,signal_content_hash,requirement_id) values ($1,$2,$3,$4,$5,$6,$7)", [TENANT, TX, QUAL, value.qualification.qualificationContentHash, SIG, value.signal.contentHash, value.requirement.requirementId]);
+      await setUserTriggers(qualificationLink, "ENABLE");
+    }
+    expect(await markerCount()).toBe(before);
+
+    const extraSignal = createSignal({ ...value.signal, signalId: "a9300000-0000-4000-8000-000000000101", payload: { verifier: "v3a-extra" } });
+    const extraQualification = "a9400000-0000-4000-8000-000000000101";
+    await insertSignal(service, extraSignal, value.requirement);
+    await admin.query("insert into public.build002_signal_qualifications(id,owner_tenant_id,outcome_transaction_id,requirement_id,requirement_definition_hash,dependency_snapshot_id,dependency_snapshot_hash,signal_ids,signal_content_hashes,evaluator,outcome,reason_code,evidence_valid_until,qualified_at,schema_version,qualification_content_hash) select $1,owner_tenant_id,outcome_transaction_id,requirement_id,requirement_definition_hash,dependency_snapshot_id,dependency_snapshot_hash,signal_ids,signal_content_hashes,evaluator,outcome,reason_code,evidence_valid_until,qualified_at,schema_version,qualification_content_hash from public.build002_signal_qualifications where id=$2", [extraQualification, QUAL]);
+    await admin.query("insert into public.build002_readiness_qualifications(owner_tenant_id,outcome_transaction_id,readiness_id,readiness_content_hash,qualification_id,qualification_content_hash) values ($1,$2,$3,$4,$5,$6)", [TENANT, TX, READY, value.readiness.readinessContentHash, extraQualification, value.qualification.qualificationContentHash]);
+    const extraPayload = payloadWithReadinessId(value.payload, "a9500000-0000-4000-8000-000000000103");
+    try { await expectBoundaryRejection(extraPayload, "QUALIFICATION_LINK_EXTRA"); }
+    finally {
+      await setUserTriggers("build002_readiness_qualifications", "DISABLE");
+      await admin.query("delete from public.build002_readiness_qualifications where owner_tenant_id=$1 and outcome_transaction_id=$2 and readiness_id=$3 and qualification_id=$4", [TENANT, TX, READY, extraQualification]);
+      await setUserTriggers("build002_readiness_qualifications", "ENABLE");
+      await setUserTriggers("build002_signal_qualifications", "DISABLE");
+      await admin.query("delete from public.build002_signal_qualifications where id=$1", [extraQualification]);
+      await setUserTriggers("build002_signal_qualifications", "ENABLE");
+      await setUserTriggers("build002_signals", "DISABLE");
+      await admin.query("delete from public.build002_signals where signal_id=$1", [extraSignal.signalId]);
+      await setUserTriggers("build002_signals", "ENABLE");
+    }
+    expect(await markerCount()).toBe(before);
+  });
+
+  it("rejects readiness-link wrong-hash, missing, and extra variants without a marker", async () => {
+    const readinessLink = "build002_readiness_qualifications";
+    const before = await markerCount();
+    const wrongHashPayload = payloadWithReadinessId(value.payload, "a9500000-0000-4000-8000-000000000104");
+    await setUserTriggers(readinessLink, "DISABLE");
+    try { await admin.query("update public.build002_readiness_qualifications set qualification_content_hash=$1 where owner_tenant_id=$2 and outcome_transaction_id=$3 and readiness_id=$4 and qualification_id=$5", ["e".repeat(64), TENANT, TX, READY, QUAL]); }
+    finally { await setUserTriggers(readinessLink, "ENABLE"); }
+    try { await expectBoundaryRejection(wrongHashPayload, "READINESS_LINK_WRONG_HASH"); }
+    finally {
+      await setUserTriggers(readinessLink, "DISABLE");
+      await admin.query("update public.build002_readiness_qualifications set qualification_content_hash=$1 where owner_tenant_id=$2 and outcome_transaction_id=$3 and readiness_id=$4 and qualification_id=$5", [value.qualification.qualificationContentHash, TENANT, TX, READY, QUAL]);
+      await setUserTriggers(readinessLink, "ENABLE");
+    }
+    expect(await markerCount()).toBe(before);
+
+    const missingPayload = payloadWithReadinessId(value.payload, "a9500000-0000-4000-8000-000000000105");
+    await setUserTriggers(readinessLink, "DISABLE");
+    try { await admin.query("delete from public.build002_readiness_qualifications where owner_tenant_id=$1 and outcome_transaction_id=$2 and readiness_id=$3 and qualification_id=$4", [TENANT, TX, READY, QUAL]); }
+    finally { await setUserTriggers(readinessLink, "ENABLE"); }
+    try { await expectBoundaryRejection(missingPayload, "READINESS_LINK_MISSING"); }
+    finally {
+      await setUserTriggers(readinessLink, "DISABLE");
+      await admin.query("insert into public.build002_readiness_qualifications(owner_tenant_id,outcome_transaction_id,readiness_id,readiness_content_hash,qualification_id,qualification_content_hash) values ($1,$2,$3,$4,$5,$6)", [TENANT, TX, READY, value.readiness.readinessContentHash, QUAL, value.qualification.qualificationContentHash]);
+      await setUserTriggers(readinessLink, "ENABLE");
+    }
+    expect(await markerCount()).toBe(before);
+
+    const extraQualification = "a9400000-0000-0000-8000-000000000102";
+    await admin.query("insert into public.build002_signal_qualifications(id,owner_tenant_id,outcome_transaction_id,requirement_id,requirement_definition_hash,dependency_snapshot_id,dependency_snapshot_hash,signal_ids,signal_content_hashes,evaluator,outcome,reason_code,evidence_valid_until,qualified_at,schema_version,qualification_content_hash) select $1,owner_tenant_id,outcome_transaction_id,requirement_id,requirement_definition_hash,dependency_snapshot_id,dependency_snapshot_hash,signal_ids,signal_content_hashes,evaluator,outcome,reason_code,evidence_valid_until,qualified_at,schema_version,qualification_content_hash from public.build002_signal_qualifications where id=$2", [extraQualification, QUAL]);
+    await admin.query("insert into public.build002_readiness_qualifications(owner_tenant_id,outcome_transaction_id,readiness_id,readiness_content_hash,qualification_id,qualification_content_hash) values ($1,$2,$3,$4,$5,$6)", [TENANT, TX, READY, value.readiness.readinessContentHash, extraQualification, value.qualification.qualificationContentHash]);
+    const extraPayload = payloadWithReadinessId(value.payload, "a9500000-0000-4000-8000-000000000106");
+    try { await expectBoundaryRejection(extraPayload, "READINESS_LINK_EXTRA"); }
+    finally {
+      await setUserTriggers(readinessLink, "DISABLE");
+      await admin.query("delete from public.build002_readiness_qualifications where owner_tenant_id=$1 and outcome_transaction_id=$2 and readiness_id=$3 and qualification_id=$4", [TENANT, TX, READY, extraQualification]);
+      await setUserTriggers(readinessLink, "ENABLE");
+      await setUserTriggers("build002_signal_qualifications", "DISABLE");
+      await admin.query("delete from public.build002_signal_qualifications where id=$1", [extraQualification]);
+      await setUserTriggers("build002_signal_qualifications", "ENABLE");
+    }
+    expect(await markerCount()).toBe(before);
+  });
+
+  it("rolls back a valid new graph on a verifier-only AFTER INSERT marker failure", async () => {
+    const ids = { project: "c9000000-0000-4000-8000-000000000101", asset: "d9000000-0000-4000-8000-000000000101", version: "e9000000-0000-4000-8000-000000000101", tx: "f9000000-0000-4000-8000-000000000101", blueprint: "a9100000-0000-4000-8000-000000000101", profile: "a9100000-0000-4000-8000-000000000102", requirementRow: "a9200000-0000-4000-8000-000000000101", signal: "a9300000-0000-4000-8000-000000000102", qualification: "a9400000-0000-4000-8000-000000000102", readiness: "a9500000-0000-4000-8000-000000000107" };
+    const createdAt = new Date(Date.now() - 60_000).toISOString();
+    const requirement = compileSignalRequirement({ requirementId: "signal.verifier.v3a.rollback", subjectKind: "OUTCOME_TRANSACTION", semanticType: "TEXT", critical: true, acceptedProvenance: ["OBSERVED"], qualificationRule: { version: "1", cardinality: "SINGLE_VALUED", humanReviewRequired: false }, dependencySelectors: [{ identity: "asset.version", required: true }, { identity: "blueprint", required: true }], blueprintId: ids.blueprint, blueprintVersion: 1, blueprintHash: "a".repeat(64), policyId: null, policyHash: null, definitionSchemaVersion: "build002-signal-requirement-v0.1" }, createdAt);
+    const signal = createSignal({ signalId: ids.signal, ownerTenantId: TENANT, transactionId: ids.tx, requirementId: requirement.requirementId, payload: { verifier: "v3a-rollback" }, source: { identity: "independent-v3a", version: "1", hash: "b".repeat(64) }, provenance: "OBSERVED", capturedAt: new Date(Date.parse(createdAt) - 30_000).toISOString(), validUntil: new Date(Date.parse(createdAt) + 3_600_000).toISOString(), dependency: { identity: "asset.version", hash: "c".repeat(64) }, schemaVersion: "build002-signal-v0.2" });
+    const snapshot = createDependencySnapshot({ schemaVersion: "build002-dependency-snapshot-v0.2", ownerTenantId: TENANT, transactionId: ids.tx, requirementDefinitionHashes: [requirement.requirementDefinitionHash], signalReferences: [{ requirementId: requirement.requirementId, signalId: signal.signalId, contentHash: signal.contentHash }], dependencyBindings: [{ identity: "asset.version", hash: "c".repeat(64) }, { identity: "blueprint", hash: "a".repeat(64) }, { identity: "transaction.semantic", hash: "d".repeat(64) }], blueprintHash: "a".repeat(64), policyHash: null, taskSpecHash: null, transactionSemanticHash: "d".repeat(64), sourceAssetVersionHash: "c".repeat(64), contextLensHash: null });
+    const evaluator = currentDefaultEvaluator();
+    const qualification = evaluateSignalQualification({ requirement, signals: [signal], currentDependencySnapshot: snapshot, evaluator, evaluationTime: createdAt, idFactory: () => ids.qualification });
+    const readiness = evaluateDelegationReadiness({ subject: { kind: "OUTCOME_TRANSACTION", ownerTenantId: TENANT, transactionId: ids.tx }, requirements: [requirement], qualifications: [qualification], dependencySnapshot: snapshot, evaluator, evaluationTime: createdAt, idFactory: () => ids.readiness });
+
+    await admin.query("insert into public.projects(id,name,owner_tenant_id) values ($1,'v3a-rollback',$2)", [ids.project, TENANT]);
+    await admin.query("insert into public.assets(id,project_id,name,owner_tenant_id,current_version_id) values ($1,$2,'v3a-rollback',$3,null)", [ids.asset, ids.project, TENANT]);
+    await admin.query("insert into public.asset_versions(id,asset_id,version_number,state,owner_tenant_id) values ($1,$2,1,'{}',$3)", [ids.version, ids.asset, TENANT]);
+    await admin.query("update public.assets set current_version_id=$1 where id=$2", [ids.version, ids.asset]);
+    await admin.query("insert into public.outcome_transactions(id,owner_tenant_id,project_id,asset_id,base_version_id,raw_request,status) values ($1,$2,$3,$4,$5,'v3a-rollback','PREPARED')", [ids.tx, TENANT, ids.project, ids.asset, ids.version]);
+    await admin.query("insert into public.outcome_blueprints(id,version,hash,previous_version_hash,status,published_at,definition) values ($1,1,$2,null,'PUBLISHED',now(),$3::jsonb)", [ids.blueprint, "a".repeat(64), JSON.stringify({ id: ids.blueprint, version: 1, hash: "a".repeat(64), previousVersionHash: null })]);
+    await admin.query("insert into public.outcome_requirement_profiles(id,version,hash,previous_version_hash,blueprint_id,blueprint_version,blueprint_hash,policy_id,policy_hash,status,published_at,definition) values ($1,1,$2,null,$3,1,$4,null,null,'PUBLISHED',now(),$5::jsonb)", [ids.profile, "e".repeat(64), ids.blueprint, "a".repeat(64), JSON.stringify({ schemaVersion: "outcome-requirement-profile-v0.1", id: ids.profile, version: 1, previousVersionHash: null, blueprint: { id: ids.blueprint, version: 1, hash: "a".repeat(64) }, policy: null, requirements: [{ requirementId: requirement.requirementId, semanticType: requirement.semanticType, critical: requirement.critical, acceptedProvenance: requirement.acceptedProvenance, qualificationRule: requirement.qualificationRule, dependencySelectors: requirement.dependencySelectors }] })]);
+    await admin.query("insert into public.outcome_transaction_requirement_bindings(owner_tenant_id,outcome_transaction_id,blueprint_id,blueprint_version,blueprint_hash,requirement_profile_id,requirement_profile_version,requirement_profile_hash,policy_id,policy_hash,schema_version,binding_hash,bound_at) values ($1,$2,$3,1,$4,$5,1,$6,null,null,'outcome-transaction-requirement-binding-v0.1',$7,now())", [TENANT, ids.tx, ids.blueprint, "a".repeat(64), ids.profile, "e".repeat(64), "f".repeat(64)]);
+    await insertRequirement(service, ids.requirementRow, requirement, ids.tx, ids.blueprint, "a".repeat(64));
+    await insertSignal(service, signal, requirement, ids.tx);
+
+    const payload = { owner_tenant_id: TENANT, outcome_transaction_id: ids.tx, transaction: { ownerTenantId: TENANT, transactionId: ids.tx, projectId: ids.project, assetId: ids.asset, baseVersionId: ids.version, rawRequest: "v3a-rollback" }, asset: { id: ids.asset, ownerTenantId: TENANT, projectId: ids.project, currentVersionId: ids.version }, sourceVersion: { id: ids.version, ownerTenantId: TENANT, assetId: ids.asset, versionNumber: 1, parentVersionId: null, state: {} }, binding: { bindingHash: "f".repeat(64), blueprintId: ids.blueprint, blueprintVersion: 1, blueprintHash: "a".repeat(64), requirementProfileId: ids.profile, requirementProfileVersion: 1, requirementProfileHash: "e".repeat(64) }, requirements: [requirement], dependency_snapshot: snapshot, qualifications: [{ ...qualification, signalReferences: [{ signalId: signal.signalId, contentHash: signal.contentHash }] }], readiness, schema_version: "build002-readiness-authority-commit-v0.1" };
+    const historicalBefore = await transactionTableSnapshot(TX);
+    const newBefore = await transactionTableSnapshot(ids.tx);
+    await admin.query("create or replace function public.verifier_v3a_fail_marker() returns trigger language plpgsql as $$ begin raise exception 'V3A_FORCED_MARKER_FAILURE'; end; $$");
+    await admin.query("drop trigger if exists verifier_v3a_fail_marker on public.build002_readiness_authority_commits");
+    await admin.query("create trigger verifier_v3a_fail_marker after insert on public.build002_readiness_authority_commits for each row execute function public.verifier_v3a_fail_marker()");
+    try {
+      await expectBoundaryRejection(payload, "ATOMIC_ROLLBACK");
+    } finally {
+      await admin.query("drop trigger if exists verifier_v3a_fail_marker on public.build002_readiness_authority_commits");
+      await admin.query("drop function if exists public.verifier_v3a_fail_marker()");
+    }
+    const newAfter = await transactionTableSnapshot(ids.tx);
+    const historicalAfter = await transactionTableSnapshot(TX);
+    expect(newAfter).toEqual(newBefore);
+    expect(historicalAfter).toEqual(historicalBefore);
+    console.info("V3A_ATOMIC_ROLLBACK_NEW_ROW_DELTA=0");
+    console.info("V3A_HISTORICAL_ROWS_SURVIVE=PASS");
   });
 
   it("ignores a historical noncanonical signal but rejects a canonical extra signal", async () => {
