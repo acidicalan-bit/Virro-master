@@ -18,6 +18,7 @@ import {
   type SignalQualification,
   type SignalRequirement,
 } from "@/src/domain/outcome/signal-readiness";
+import { canonicalSha256 } from "@/src/domain/outcome/specification/canonical";
 
 const enabled = process.env.BUILD002_VERIFIER_NATIVE_PG === "true";
 const databaseUrl = process.env.BUILD002_VERIFIER_NATIVE_PG_URL;
@@ -237,6 +238,74 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD002-C1-D0 R1-1 independent
     const extra = createSignal({ ...extraInput, signalId: "a9300000-0000-4000-8000-000000000003", payload: { extra: true } });
     await service.query("select public.build002_insert_signal($1::jsonb)", [JSON.stringify({ signal_id: extra.signalId, owner_tenant_id: TENANT, outcome_transaction_id: TX, requirement_id: extra.requirementId, requirement_definition_hash: value.requirement.requirementDefinitionHash, payload: extra.payload, source: extra.source, provenance: extra.provenance, captured_at: extra.capturedAt, valid_until: extra.validUntil, dependency_identity: extra.dependency.identity, dependency_hash: extra.dependency.hash, schema_version: extra.schemaVersion, content_hash: extra.contentHash })]);
     await expect(call(value.payload)).rejects.toThrow(/SIGNAL_UNIVERSE_CHANGED|COMMIT_FAILED/);
+  });
+
+  it("checks marker visibility through real authenticated and anon roles", async () => {
+    const own = new Client({ connectionString: dbUrl(databaseUrl!, database) });
+    await own.connect();
+    try {
+      await own.query("set role authenticated");
+      await own.query("select set_config('request.jwt.claim.sub', $1, false)", [ACTOR]);
+      const visible = await own.query("select count(*)::int as count from public.build002_readiness_authority_commits");
+      expect(visible.rows[0].count).toBeGreaterThan(0);
+      await admin.query("update public.tenant_memberships set status='REVOKED' where tenant_id=$1 and principal_id=$2", [TENANT, ACTOR]);
+      const revoked = await own.query("select count(*)::int as count from public.build002_readiness_authority_commits");
+      expect(revoked.rows[0].count).toBe(0);
+      await admin.query("update public.tenant_memberships set status='ACTIVE' where tenant_id=$1 and principal_id=$2", [TENANT, ACTOR]);
+      await admin.query("update public.tenants set status='SUSPENDED' where id=$1", [TENANT]);
+      const suspended = await own.query("select count(*)::int as count from public.build002_readiness_authority_commits");
+      expect(suspended.rows[0].count).toBe(0);
+      await admin.query("update public.tenants set status='ACTIVE' where id=$1", [TENANT]);
+      const foreign = new Client({ connectionString: dbUrl(databaseUrl!, database) });
+      await foreign.connect();
+      try {
+        await foreign.query("set role authenticated");
+        await foreign.query("select set_config('request.jwt.claim.sub', $1, false)", ["a9000000-0000-4000-8000-000000000099"]);
+        const rows = await foreign.query("select count(*)::int as count from public.build002_readiness_authority_commits");
+        expect(rows.rows[0].count).toBe(0);
+      } finally { await foreign.end(); }
+      const anon = new Client({ connectionString: dbUrl(databaseUrl!, database) });
+      await anon.connect();
+      try { await anon.query("set role anon"); await expect(anon.query("select * from public.build002_readiness_authority_commits")).rejects.toThrow(/permission denied/); } finally { await anon.end(); }
+    } finally {
+      await admin.query("update public.tenants set status='ACTIVE' where id=$1", [TENANT]);
+      await admin.query("update public.tenant_memberships set status='ACTIVE' where tenant_id=$1 and principal_id=$2", [TENANT, ACTOR]);
+      await own.end();
+    }
+  });
+
+  it("commits a legitimate zero-signal non-ready authority without execution", async () => {
+    const ids = { project: "c9000000-0000-4000-8000-000000000002", asset: "d9000000-0000-4000-8000-000000000002", version: "e9000000-0000-4000-8000-000000000002", tx: "f9000000-0000-4000-8000-000000000002", blueprint: "a9100000-0000-4000-8000-000000000003", profile: "a9100000-0000-4000-8000-000000000004", requirementRow: "a9200000-0000-4000-8000-000000000003", requirement: "a9600000-0000-4000-8000-000000000001", qualification: "a9700000-0000-4000-8000-000000000001", readiness: "a9800000-0000-4000-8000-000000000001" };
+    const createdAt = new Date(Date.now() - 60_000).toISOString();
+    const requirement = compileSignalRequirement({ requirementId: "signal.verifier.zero", subjectKind: "OUTCOME_TRANSACTION", semanticType: "TEXT", critical: true, acceptedProvenance: ["OBSERVED"], qualificationRule: { version: "1", cardinality: "SINGLE_VALUED", humanReviewRequired: false }, dependencySelectors: [{ identity: "asset.version", required: true }, { identity: "blueprint", required: true }], blueprintId: ids.blueprint, blueprintVersion: 1, blueprintHash: "a".repeat(64), policyId: null, policyHash: null, definitionSchemaVersion: "build002-signal-requirement-v0.1" }, createdAt);
+    const snapshot = createDependencySnapshot({ schemaVersion: "build002-dependency-snapshot-v0.2", ownerTenantId: TENANT, transactionId: ids.tx, requirementDefinitionHashes: [requirement.requirementDefinitionHash], signalReferences: [], dependencyBindings: [{ identity: "asset.version", hash: "b".repeat(64) }, { identity: "blueprint", hash: "a".repeat(64) }, { identity: "transaction.semantic", hash: "c".repeat(64) }], blueprintHash: "a".repeat(64), policyHash: null, taskSpecHash: null, transactionSemanticHash: "c".repeat(64), sourceAssetVersionHash: "b".repeat(64), contextLensHash: null });
+    const qualification = evaluateSignalQualification({ requirement, signals: [], currentDependencySnapshot: snapshot, evaluator: currentDefaultEvaluator(), evaluationTime: createdAt, idFactory: () => ids.qualification });
+    const readiness = evaluateDelegationReadiness({ subject: { kind: "OUTCOME_TRANSACTION", ownerTenantId: TENANT, transactionId: ids.tx }, requirements: [requirement], qualifications: [qualification], dependencySnapshot: snapshot, evaluator: currentDefaultEvaluator(), evaluationTime: createdAt, idFactory: () => ids.readiness });
+    await admin.query("insert into public.projects(id,name,owner_tenant_id) values ($1,'zero',$2)", [ids.project, TENANT]);
+    await admin.query("insert into public.assets(id,project_id,name,owner_tenant_id,current_version_id) values ($1,$2,'zero',$3,null)", [ids.asset, ids.project, TENANT]);
+    await admin.query("insert into public.asset_versions(id,asset_id,version_number,state,owner_tenant_id) values ($1,$2,1,'{}',$3)", [ids.version, ids.asset, TENANT]);
+    await admin.query("update public.assets set current_version_id=$1 where id=$2", [ids.version, ids.asset]);
+    await admin.query("insert into public.outcome_transactions(id,owner_tenant_id,project_id,asset_id,base_version_id,raw_request,status) values ($1,$2,$3,$4,$5,'zero','PREPARED')", [ids.tx, TENANT, ids.project, ids.asset, ids.version]);
+    await admin.query("insert into public.outcome_blueprints(id,version,hash,previous_version_hash,status,published_at,definition) values ($1,1,$2,null,'PUBLISHED',now(),$3::jsonb)", [ids.blueprint, "a".repeat(64), JSON.stringify({ id: ids.blueprint, version: 1, previousVersionHash: null })]);
+    await admin.query("insert into public.outcome_requirement_profiles(id,version,hash,previous_version_hash,blueprint_id,blueprint_version,blueprint_hash,policy_id,policy_hash,status,published_at,definition) values ($1,1,$2,null,$3,1,$4,null,null,'PUBLISHED',now(),$5::jsonb)", [ids.profile, "d".repeat(64), ids.blueprint, "a".repeat(64), JSON.stringify({ schemaVersion: "outcome-requirement-profile-v0.1", id: ids.profile, version: 1, previousVersionHash: null, blueprint: { id: ids.blueprint, version: 1, hash: "a".repeat(64) }, policy: null, requirements: [{ requirementId: requirement.requirementId, semanticType: requirement.semanticType, critical: requirement.critical, acceptedProvenance: requirement.acceptedProvenance, qualificationRule: requirement.qualificationRule, dependencySelectors: requirement.dependencySelectors }] })]);
+    await admin.query("insert into public.outcome_transaction_requirement_bindings(owner_tenant_id,outcome_transaction_id,blueprint_id,blueprint_version,blueprint_hash,requirement_profile_id,requirement_profile_version,requirement_profile_hash,policy_id,policy_hash,schema_version,binding_hash,bound_at) values ($1,$2,$3,1,$4,$5,1,$6,null,null,'outcome-transaction-requirement-binding-v0.1',$7,now())", [TENANT, ids.tx, ids.blueprint, "a".repeat(64), ids.profile, "d".repeat(64), "e".repeat(64)]);
+    const payload = { owner_tenant_id: TENANT, outcome_transaction_id: ids.tx, transaction: { ownerTenantId: TENANT, transactionId: ids.tx, projectId: ids.project, assetId: ids.asset, baseVersionId: ids.version, rawRequest: "zero" }, asset: { id: ids.asset, ownerTenantId: TENANT, projectId: ids.project, currentVersionId: ids.version }, sourceVersion: { id: ids.version, ownerTenantId: TENANT, assetId: ids.asset, versionNumber: 1, parentVersionId: null, state: {} }, binding: { bindingHash: "e".repeat(64), blueprintId: ids.blueprint, blueprintVersion: 1, blueprintHash: "a".repeat(64), requirementProfileId: ids.profile, requirementProfileVersion: 1, requirementProfileHash: "d".repeat(64) }, requirements: [requirement], dependency_snapshot: snapshot, qualifications: [{ ...qualification, signalReferences: [] }], readiness };
+    const result = await call(payload);
+    expect(result.rows[0].result.authority_commit_id).toBeTruthy();
+    expect(readiness.state).toBe("INSUFFICIENT_SIGNAL");
+    const status = await admin.query("select status from public.outcome_transactions where id=$1", [ids.tx]);
+    expect(status.rows[0].status).toBe("PREPARED");
+    const signals = await admin.query("select count(*)::int as count from public.build002_signals where outcome_transaction_id=$1", [ids.tx]);
+    expect(signals.rows[0].count).toBe(0);
+  });
+
+  it("rejects a READY graph expired at the DB authority boundary", async () => {
+    const expired = structuredClone(value.payload) as Record<string, unknown> & { readiness: Record<string, unknown> };
+    const expiredReadiness = { ...expired.readiness, validUntil: new Date(Date.now() - 1_000).toISOString() } as Record<string, unknown>;
+    const { id, readinessContentHash: _hash, createdAt, ...material } = expiredReadiness;
+    void id; void _hash; void createdAt;
+    expired.readiness = { ...material, id: value.readiness.id, createdAt: value.readiness.createdAt, readinessContentHash: canonicalSha256(material) };
+    await expect(call(expired)).rejects.toThrow(/EXPIRED_BEFORE_COMMIT|GRAPH_INVALID|COMMIT_FAILED/);
   });
 
   it("keeps the transaction PREPARED and leaves execution/state-commit tables untouched", async () => {
