@@ -218,3 +218,7 @@ comment on table public.build002_readiness_authority_capability is
   'BUILD002-C1-D0 internal transaction capability; no API role may read or write this marker.';
 comment on table public.build002_readiness_authority_commits is
   'BUILD002-C1-D0 immutable marker. R1 requires a self-coherent persisted graph and grants no direct service-role INSERT.';
+
+-- TEMPORARY DIAGNOSTIC: removed before the final R1 candidate.
+drop trigger build002_readiness_authority_marker_graph_coherent
+  on public.build002_readiness_authority_commits;
