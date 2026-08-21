@@ -195,7 +195,8 @@ begin
     into v_persisted_requirements, v_persisted_requirement_hashes
   from public.build002_signal_requirements
   where owner_tenant_id = new.owner_tenant_id
-    and outcome_transaction_id = new.outcome_transaction_id;
+    and outcome_transaction_id = new.outcome_transaction_id
+    and requirement_definition_hash in (select value from jsonb_array_elements_text(v_required_hashes));
   if v_profile_requirements is distinct from v_persisted_requirements
      or v_persisted_requirement_hashes is distinct from v_required_hashes then
     raise exception 'READINESS_AUTHORITY_C0_CHANGED';

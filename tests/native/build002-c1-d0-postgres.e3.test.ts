@@ -263,6 +263,30 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD002-C1-D0 native PostgreSQ
   });
 
   it("rejects stale signal graphs, revoked membership, suspended tenant, stale head, expiry, and legacy evaluator", async () => {
+    const historicalRequirement = compileSignalRequirement({
+      requirementId: "signal.d0.historical",
+      subjectKind: value.requirement.subjectKind,
+      semanticType: value.requirement.semanticType,
+      critical: value.requirement.critical,
+      acceptedProvenance: value.requirement.acceptedProvenance,
+      qualificationRule: value.requirement.qualificationRule,
+      dependencySelectors: value.requirement.dependencySelectors,
+      blueprintId: value.requirement.blueprintId,
+      blueprintVersion: value.requirement.blueprintVersion,
+      blueprintHash: value.requirement.blueprintHash,
+      policyId: value.requirement.policyId,
+      policyHash: value.requirement.policyHash,
+      definitionSchemaVersion: value.requirement.definitionSchemaVersion,
+    }, value.requirement.createdAt);
+    const historicalSignal = createSignal({
+      ...value.signal,
+      signalId: "a2000000-0000-4000-8000-000000000004",
+      requirementId: historicalRequirement.requirementId,
+      payload: { value: "historical" },
+    });
+    await service.query("select public.build002_insert_signal_requirement($1::jsonb)", [JSON.stringify({ id: "a5000000-0000-4000-8000-000000000002", owner_tenant_id: TENANT, outcome_transaction_id: TRANSACTION, requirement_id: historicalRequirement.requirementId, semantic_type: historicalRequirement.semanticType, critical: historicalRequirement.critical, accepted_provenance: historicalRequirement.acceptedProvenance, qualification_rule: historicalRequirement.qualificationRule, dependency_selectors: historicalRequirement.dependencySelectors, blueprint_id: BLUEPRINT, blueprint_version: 1, blueprint_hash: BLUEPRINT_HASH, policy_id: null, policy_hash: null, schema_version: historicalRequirement.definitionSchemaVersion, requirement_definition_hash: historicalRequirement.requirementDefinitionHash, created_at: historicalRequirement.createdAt })]);
+    await service.query("select public.build002_insert_signal($1::jsonb)", [JSON.stringify({ signal_id: historicalSignal.signalId, owner_tenant_id: TENANT, outcome_transaction_id: TRANSACTION, requirement_id: historicalSignal.requirementId, requirement_definition_hash: historicalRequirement.requirementDefinitionHash, payload: historicalSignal.payload, source: historicalSignal.source, provenance: historicalSignal.provenance, captured_at: historicalSignal.capturedAt, valid_until: historicalSignal.validUntil, dependency_identity: historicalSignal.dependency.identity, dependency_hash: historicalSignal.dependency.hash, schema_version: historicalSignal.schemaVersion, content_hash: historicalSignal.contentHash })]);
+    await expect(service.query("select public.build002_commit_readiness_authority($1::uuid, $2::jsonb)", [ACTOR, JSON.stringify(value.payload)])).resolves.toBeDefined();
     const { contentHash: _extraHash, ...extraInput } = value.signal;
     void _extraHash;
     const extra = createSignal({ ...extraInput, signalId: "a2000000-0000-4000-8000-000000000002", payload: { value: "extra" } });
