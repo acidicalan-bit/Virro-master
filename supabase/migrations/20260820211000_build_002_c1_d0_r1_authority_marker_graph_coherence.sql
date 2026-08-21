@@ -141,6 +141,53 @@ begin
     raise exception 'READINESS_AUTHORITY_GRAPH_INVALID';
   end if;
 
+  if exists (
+    select 1
+    from public.build002_readiness_qualifications rq
+    join public.build002_signal_qualifications q
+      on q.owner_tenant_id = rq.owner_tenant_id
+     and q.outcome_transaction_id = rq.outcome_transaction_id
+     and q.id = rq.qualification_id
+     and q.qualification_content_hash = rq.qualification_content_hash
+    left join public.build002_signal_requirements req
+      on req.owner_tenant_id = q.owner_tenant_id
+     and req.outcome_transaction_id = q.outcome_transaction_id
+     and req.requirement_definition_hash = q.requirement_definition_hash
+    where rq.owner_tenant_id = new.owner_tenant_id
+      and rq.outcome_transaction_id = new.outcome_transaction_id
+      and rq.readiness_id = v_readiness.id
+      and rq.readiness_content_hash = v_readiness.readiness_content_hash
+      and (req.requirement_id is null
+        or req.requirement_id is distinct from q.requirement_id
+        or q.dependency_snapshot_id is distinct from v_snapshot.id
+        or q.dependency_snapshot_hash is distinct from v_snapshot.dependency_snapshot_hash)
+  ) then
+    raise exception 'READINESS_AUTHORITY_GRAPH_INVALID';
+  end if;
+
+  if exists (
+    select 1
+    from public.build002_readiness_qualifications rq
+    join public.build002_signal_qualifications q
+      on q.owner_tenant_id = rq.owner_tenant_id
+     and q.outcome_transaction_id = rq.outcome_transaction_id
+     and q.id = rq.qualification_id
+     and q.qualification_content_hash = rq.qualification_content_hash
+    where rq.owner_tenant_id = new.owner_tenant_id
+      and rq.outcome_transaction_id = new.outcome_transaction_id
+      and rq.readiness_id = v_readiness.id
+      and rq.readiness_content_hash = v_readiness.readiness_content_hash
+      and jsonb_array_length(q.signal_ids) <> (
+        select count(*)
+        from public.build002_qualification_signals qs
+        where qs.owner_tenant_id = q.owner_tenant_id
+          and qs.outcome_transaction_id = q.outcome_transaction_id
+          and qs.qualification_id = q.id
+          and qs.qualification_content_hash = q.qualification_content_hash)
+  ) then
+    raise exception 'READINESS_AUTHORITY_GRAPH_INVALID';
+  end if;
+
   return new;
 
   for v_qualification in
