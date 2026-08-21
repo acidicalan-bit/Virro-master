@@ -9,6 +9,7 @@ import type {
 } from "@/src/application/ports/outcome/readiness-authority-commit-repository";
 import type { OutcomeReadinessAuthorityCommitMaterial } from "@/src/application/outcome/resolve-outcome-readiness-authority-commit-material";
 import { immutableCopy } from "@/src/domain/outcome/specification/canonical";
+import { instantEquals } from "@/src/domain/outcome/signal-readiness";
 
 type RequirementAuthorityResolver = Readonly<{
   resolve(input: Readonly<{ authority: AuthorityContext; outcomeTransactionId: string }>): Promise<ResolvedOutcomeRequirementAuthority>;
@@ -132,6 +133,8 @@ export class OutcomeReadinessAuthorityOrchestrator {
       || record.outcomeTransactionId !== resolvedAuthority.outcomeTransactionId
       || record.principalId !== authority.principalId
       || record.dependencySnapshotHash !== candidate.dependencySnapshot.dependencySnapshotHash
+      || record.readinessId !== candidate.readiness.id
+      || !sameEvaluationInstant(record.evaluationTime, candidate.readiness.createdAt)
       || record.readinessContentHash !== candidate.readiness.readinessContentHash) {
       throw new OutcomeReadinessAuthorityOrchestrationError("COMMIT_REJECTED");
     }
@@ -150,6 +153,14 @@ export class OutcomeReadinessAuthorityOrchestrator {
     } catch {
       throw new OutcomeReadinessAuthorityOrchestrationError(code);
     }
+  }
+}
+
+function sameEvaluationInstant(left: string, right: string): boolean {
+  try {
+    return instantEquals(left, right);
+  } catch {
+    return false;
   }
 }
 

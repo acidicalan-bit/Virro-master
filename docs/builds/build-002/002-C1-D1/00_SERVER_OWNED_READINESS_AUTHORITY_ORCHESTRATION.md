@@ -41,6 +41,16 @@ readiness assessments, not only `READY` assessments: a valid
 `INSUFFICIENT_SIGNAL` assessment may be historical authoritative evidence.
 Authority of an assessment does not mean that the assessment is `READY`.
 
+A successful D1 result is one coherent pair:
+`AuthorityCommit` <-> `DelegationReadiness`. The pair is bound by the exact
+readiness identity, readiness content hash, dependency snapshot hash, and
+evaluation instant. A D0 record whose `readinessId` names another readiness,
+or whose `evaluationTime` is not the same canonical instant as
+`readiness.createdAt`, is rejected as `COMMIT_REJECTED`. The D1 boundary uses
+the frozen domain instant semantics and fails closed for malformed timestamps.
+`evaluationTime` is the readiness evaluation instant; it is intentionally not
+required to equal `committedAt`, which is the database marker commit time.
+
 The result states `COMMIT_TIME_SERIALIZED` and explicitly records
 `REVALIDATION_REQUIRED_FOR_CONSEQUENCE`. Even `READY` does not establish
 current delegability or execution permission. A later signal, membership,

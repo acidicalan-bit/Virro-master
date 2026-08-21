@@ -182,6 +182,9 @@ describe("BUILD002-C1-D1 server-owned readiness authority orchestration", () => 
     expect(result.authorityCommit.authorityCommitId).toBe(fixture.record.authorityCommitId);
     expect(result.readiness.state).toBe("READY");
     expect(result.authorityCommit.readinessContentHash).toBe(result.readiness.readinessContentHash);
+    expect(result.authorityCommit.readinessId).toBe(result.readiness.id);
+    expect(result.authorityCommit.evaluationTime).toBe(result.readiness.createdAt);
+    expect(result.authorityCommit.committedAt).not.toBe(result.readiness.createdAt);
     expect(result.authorityScope).toBe("COMMIT_TIME_SERIALIZED");
     expect(result.postCommitCurrentness).toBe("REVALIDATION_REQUIRED_FOR_CONSEQUENCE");
     expect(Object.isFrozen(result)).toBe(true);
@@ -216,7 +219,7 @@ describe("BUILD002-C1-D1 server-owned readiness authority orchestration", () => 
       signalUniverse: { resolve: async () => assessment.universe },
       dependencySnapshot: { resolve: async () => assessment.dependency },
       readinessCandidate: { resolve: () => assessment.candidate },
-      commit: { commit: async (input) => { d0Calls += 1; return fixtureRecord({ dependencySnapshotHash: input.dependencySnapshot.dependencySnapshotHash, readinessContentHash: input.readiness.readinessContentHash }); }, findById: async () => null, findByReadinessId: async () => null },
+      commit: { commit: async (input) => { d0Calls += 1; return fixtureRecord({ dependencySnapshotHash: input.dependencySnapshot.dependencySnapshotHash, readinessId: input.readiness.id, readinessContentHash: input.readiness.readinessContentHash, evaluationTime: input.readiness.createdAt }); }, findById: async () => null, findByReadinessId: async () => null },
     });
     const result = await new OutcomeReadinessAuthorityOrchestrator(fixture.dependencies).run({
       authority: authorityContext,
@@ -236,7 +239,7 @@ describe("BUILD002-C1-D1 server-owned readiness authority orchestration", () => 
       signalUniverse: { resolve: async () => assessment.universe },
       dependencySnapshot: { resolve: async () => assessment.dependency },
       readinessCandidate: { resolve: () => assessment.candidate },
-      commit: { commit: async (input) => fixtureRecord({ dependencySnapshotHash: input.dependencySnapshot.dependencySnapshotHash, readinessContentHash: input.readiness.readinessContentHash }), findById: async () => null, findByReadinessId: async () => null },
+      commit: { commit: async (input) => fixtureRecord({ dependencySnapshotHash: input.dependencySnapshot.dependencySnapshotHash, readinessId: input.readiness.id, readinessContentHash: input.readiness.readinessContentHash, evaluationTime: input.readiness.createdAt }), findById: async () => null, findByReadinessId: async () => null },
     });
     const result = await new OutcomeReadinessAuthorityOrchestrator(fixture.dependencies).run({ authority: authorityContext, outcomeTransactionId: TRANSACTION });
     expect(assessment.universe.requirements[0].signals).toEqual([]);
@@ -251,7 +254,7 @@ describe("BUILD002-C1-D1 server-owned readiness authority orchestration", () => 
       signalUniverse: { resolve: async () => assessment.universe },
       dependencySnapshot: { resolve: async () => assessment.dependency },
       readinessCandidate: { resolve: () => assessment.candidate },
-      commit: { commit: async (input) => fixtureRecord({ dependencySnapshotHash: input.dependencySnapshot.dependencySnapshotHash, readinessContentHash: input.readiness.readinessContentHash }), findById: async () => null, findByReadinessId: async () => null },
+      commit: { commit: async (input) => fixtureRecord({ dependencySnapshotHash: input.dependencySnapshot.dependencySnapshotHash, readinessId: input.readiness.id, readinessContentHash: input.readiness.readinessContentHash, evaluationTime: input.readiness.createdAt }), findById: async () => null, findByReadinessId: async () => null },
     });
     const result = await new OutcomeReadinessAuthorityOrchestrator(fixture.dependencies).run({ authority: authorityContext, outcomeTransactionId: TRANSACTION, readiness: { state: "READY" } } as never);
     expect(result.readiness.state).toBe("INSUFFICIENT_SIGNAL");
@@ -309,6 +312,20 @@ describe("BUILD002-C1-D1 server-owned readiness authority orchestration", () => 
     let attempts = 0;
     const fixture = orchestratorFixture({
       commit: { commit: async () => { attempts += 1; return fixtureRecord({ readinessContentHash: "f".repeat(64) }); }, findById: async () => null, findByReadinessId: async () => null },
+    });
+    await expect(new OutcomeReadinessAuthorityOrchestrator(fixture.dependencies).run({ authority: authorityContext, outcomeTransactionId: TRANSACTION }))
+      .rejects.toEqual(new OutcomeReadinessAuthorityOrchestrationError("COMMIT_REJECTED"));
+    expect(attempts).toBe(1);
+  });
+
+  it.each([
+    ["readiness ID", { readinessId: "a0000000-0000-4000-8000-000000000099" }],
+    ["evaluation time", { evaluationTime: "2026-08-21T11:01:00.000Z" }],
+    ["malformed evaluation time", { evaluationTime: "not-an-instant" }],
+  ])("rejects a D0 record with a contradictory %s", async (_label, override) => {
+    let attempts = 0;
+    const fixture = orchestratorFixture({
+      commit: { commit: async () => { attempts += 1; return fixtureRecord(override); }, findById: async () => null, findByReadinessId: async () => null },
     });
     await expect(new OutcomeReadinessAuthorityOrchestrator(fixture.dependencies).run({ authority: authorityContext, outcomeTransactionId: TRANSACTION }))
       .rejects.toEqual(new OutcomeReadinessAuthorityOrchestrationError("COMMIT_REJECTED"));
