@@ -69,7 +69,7 @@ jobs:
       - name: ESLint
         run: pnpm lint
       - name: Full regression
-        run: pnpm test
+        run: pnpm exec vitest run --exclude "tests/verifier/**" --reporter=verbose
       - name: Production build
         run: pnpm build
       - name: Enforce independent verifier result
