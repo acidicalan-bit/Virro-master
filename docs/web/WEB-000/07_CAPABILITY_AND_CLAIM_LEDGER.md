@@ -13,6 +13,12 @@ type CapabilityStatus = "available" | "pilot" | "planned" | "conceptual";
 
 Internal proof is not automatically “available.” Marketing must map engineering evidence to a public status and audience before publishing.
 
+## Public semantic invariant
+
+`READINESS != AUTHORITY != DELEGABILITY != EXECUTION`.
+
+`READY` means only that the applicable readiness requirements are satisfied for the evaluated state. It does not mean authorized, permission granted, delegable, may execute, or may move to execution. A readiness result cannot skip the contract or authority stages.
+
 ## Capability ledger at baseline
 
 | Capability | Public status | Evidence | Boundary |
@@ -41,7 +47,9 @@ Internal proof is not automatically “available.” Marketing must map engineer
 | “Keep work aligned across people, tools and AI.” | CONCEPTUAL thesis | Allowed as desired outcome, not guaranteed result |
 | “Virro computes deterministic readiness candidates.” | SUPPORTED_BY_CURRENT_PRODUCT | Allowed with “pilot/internal capability” and candidate/non-authoritative boundary |
 | “Readiness uses current requirements, signals, provenance and dependency bindings.” | PROVEN at baseline | Allowed in technical explanation of C1-C candidate evaluation |
+| “READY means the applicable readiness requirements are satisfied for the evaluated state.” | PROVEN at baseline | Allowed for a reviewed deterministic demo; disclose the candidate/non-authoritative boundary |
 | “A READY result authorizes execution.” | REJECT at baseline | C1-C explicitly makes no delegability decision |
+| “A READY result grants permission, delegability, or execution.” | REJECT at baseline | Keep readiness, contract, authority, delegability, and execution as separate stages |
 | “Non-ready work cannot execute.” | PLANNED | Do not use as current claim until the shared choke point is proven |
 | “Virro detects when a bound source version changes.” | SUPPORTED_BY_CURRENT_PRODUCT | Allowed for the bounded dependency-snapshot/readiness path |
 | “Virro automatically updates every downstream tool.” | NOT_PROVEN | Reject |
@@ -76,8 +84,17 @@ No fake metrics, customers, testimonials, logo rails, certifications, integratio
 
 ## Readiness state model
 
-Public states may include:
+The broader canonical public vocabulary is preserved, but WEB-001 demo safety is narrower:
 
-`READY`, `READY_WITH_CONDITIONS`, `NEEDS_CONTEXT`, `INSUFFICIENT_SIGNAL`, `HUMAN_REVIEW_REQUIRED`, `STALE`, `BLOCKED_BY_POLICY`, and `UNKNOWN`.
+| Public state | WEB-001 demo mapping | Boundary |
+| --- | --- | --- |
+| `READY` | DEMO_SAFE_NOW | Applicable readiness requirements are satisfied; no authority, delegability, or execution implication |
+| `INSUFFICIENT_SIGNAL` | DEMO_SAFE_NOW | A required compatible current Signal is missing |
+| `HUMAN_REVIEW_REQUIRED` | DEMO_SAFE_NOW | Human review is required; the readiness result does not supply that authority |
+| `READY_WITH_CONDITIONS` | REVIEW_REQUIRED | Preserve in canonical vocabulary; do not use as an active WEB-001 deterministic transition |
+| `NEEDS_CONTEXT` | CONCEPTUAL | Requires an independently reviewed mapping before implementation |
+| `STALE` | REVIEW_REQUIRED | Bounded stale detection is evidenced, but the exact public state transition still requires claim mapping |
+| `BLOCKED_BY_POLICY` | PLANNED | No active WEB-001 mapping is authorized |
+| `UNKNOWN` | REVIEW_REQUIRED | Requires explicit deterministic entry and exit semantics |
 
-The baseline domain directly evidences `READY`, `INSUFFICIENT_SIGNAL`, and `HUMAN_REVIEW_REQUIRED` in readiness output; other public labels require mapping review before implementation. Never convert the model to a 0–100 score.
+`DEMO_SAFE_NOW` does not mean generally available, authoritative, delegable, or executable. Never convert the model to a 0–100 score.

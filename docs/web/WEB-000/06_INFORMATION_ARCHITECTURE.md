@@ -39,7 +39,7 @@ Virro
 
 1. **Hero / WorkState Field** — category, primary mechanism, CTA.
 2. **The coordination gap** — tools can each be correct while work meaning diverges.
-3. **Readiness Gate** — enough current, authorized support to move.
+3. **Readiness Gate** — whether the applicable readiness requirements are satisfied; authority, delegability, and execution are evaluated elsewhere.
 4. **Stale Propagation** — source change invalidates dependent work.
 5. **One Intent / Multiple Authorized Views** — documentation stays aligned.
 6. **Delegation Assurance Rail** — human and AI executor variants.
@@ -76,7 +76,7 @@ Only publish claims supported by the claim ledger. Do not show SOC 2, ISO 27001,
 
 ## Mobile transformation
 
-- WorkState Field → stacked source cards → authorized state → executor state rail.
+- WorkState Field → stacked generic source cards → scenario work state → separate readiness and authority boundaries → dependent view rail.
 - Readiness Gate → checklist then gate/reasons.
 - Stale map → vertical dependency tree with affected descendants.
 - Authorized Views → stacked accordion or accessible tabs.

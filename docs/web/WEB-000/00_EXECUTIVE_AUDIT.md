@@ -23,7 +23,7 @@ This is not a copy refresh. It is a category, evidence, and deployment-boundary 
 | --- | --- | --- |
 | Explicitly labeled conceptual demos | **KEEP** | They avoid fabricated customers and can become Work Assurance scenarios. |
 | “Now / later / not yet” restraint | **MODIFY** | Preserve the honesty, translate it into explicit capability status. |
-| System-level coordination idea | **MODIFY** | Reframe from coordinating vendors to aligning authorized work state. |
+| System-level coordination idea | **MODIFY** | Reframe from coordinating vendors to aligning a versioned work state while keeping readiness, authority, delegability, and execution separate. |
 | Strong interactive product demonstrations | **MODIFY** | Replace café/agency demos with deterministic state transitions. |
 | Studio / Systems / Academy as primary architecture | **REJECT** | It anchors Virro in an agency category. |
 | Small-business transformation headline and diagnostic CTA | **REJECT** | It attracts the wrong buyer and obscures the product. |
@@ -41,11 +41,11 @@ Technically serious, precise, calm, alive, and auditable. The page should feel l
 - **Primary message:** Keep work aligned across people, tools and AI.
 - **Secondary message:** From scattered context to verifiable work.
 - **Commercial wedge:** Delegate to AI without losing intent.
-- **Replacement clarification:** Virro does not replace Jira, GitHub, Slack, or documentation tools. It evaluates and preserves the authorized work state across them.
+- **Replacement clarification:** Virro is positioned as complementary to planning, chat, code, design, and documentation systems. Named integration availability requires an exact `CapabilityStatus` and evidence.
 
 ## Signature web experience
 
-The hero must be a custom **WorkState Field**. A visitor sees signals from people and tools converge into an authorized, versioned work state. One source changes; dependent work becomes stale; provenance remains inspectable. This single mechanism explains what Virro is, where it sits, and why it is different.
+The hero must be a custom **WorkState Field**. In an explicitly labeled conceptual workflow, a visitor sees signals from people and tools converge into a versioned work state whose authority boundary is shown separately. One source changes; dependent work becomes stale; provenance remains inspectable. This single mechanism explains what Virro is, where it sits, and why it is different without presenting the demo as a producer of production authority.
 
 Selected homepage modules:
 
@@ -69,4 +69,4 @@ Option B (separate Vercel deployments from the same repository) is an acceptable
 
 ## Acceptance outcome
 
-The direction passes the ten-second test only if a technical buyer can say: Virro connects work across tools, maintains an authorized current state, decides whether work has enough support to move, and exposes stale or unsupported delegation before it silently drifts.
+The direction passes the ten-second test only if a technical buyer understands the proposed product model: Virro connects work across tools, represents a current versioned work state, evaluates whether applicable readiness requirements are satisfied, and exposes stale support before the separate contract, authority, delegation, and execution stages. Capability status must distinguish this conceptual architecture from available or pilot proof.

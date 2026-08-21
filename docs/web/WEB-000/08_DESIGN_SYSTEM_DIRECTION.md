@@ -82,6 +82,8 @@ Use system sans + system mono in the first implementation. A later self-hosted t
 | BLOCKED_BY_POLICY | barred rectangle | rule bar | state/policy | full text |
 | UNKNOWN | dotted frame | question | ink/muted | UNKNOWN |
 
+Only `READY`, `INSUFFICIENT_SIGNAL`, and `HUMAN_REVIEW_REQUIRED` are `DEMO_SAFE_NOW` for WEB-001. The remaining rows preserve the broader canonical visual vocabulary but require their Claim Ledger mapping before use. In particular, `READY_WITH_CONDITIONS` is `REVIEW_REQUIRED` and is not an active WEB-001 deterministic transition.
+
 ## Icon style
 
 Use 1.5px technical line icons with squared terminals and a small vocabulary: signal, binding, version, evidence, human authority, policy, stale, gate. Icons support text and are never decorative shield substitutes.

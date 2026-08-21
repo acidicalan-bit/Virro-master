@@ -70,15 +70,17 @@ Use a measured coordinate grid, faint signal rails, and topological junctions. T
 
 ```text
 ┌──────────────────────────────────────────────────────────────┐
-│ WORK ASSURANCE / WORK STATE v17                     12:42:09 │
+│ CONCEPTUAL WORKFLOW / WORK STATE v17                12:42:09 │
 │                                                              │
-│ Keep work aligned across      [Slack decision] ──┐           │
-│ people, tools and AI.         [Jira scope] ──────┼─▶ v17     │
-│                                [Figma v14] ───────┘  READY    │
-│ Virro maintains one current,                              │   │
-│ authorized state and shows      CHANGE Figma v14 → v15    │   │
-│ when work no longer supports       ├─ Dev  → STALE         │   │
-│ delegation.                         └─ QA   → STALE         │   │
+│ Keep work aligned across      [Planning scope] ─────┐        │
+│ people, tools and AI.         [Chat decision] ──────┤        │
+│ From scattered context to     [Design v14] ─────────┼─▶ v17  │
+│ verifiable work.              [Code baseline] ──────┤ READY  │
+│                               [Human approval] ─────┘        │
+│ PRODUCT DEMO: readiness means requirements satisfied.       │
+│ AUTHORITY: represented conceptually; not produced here.     │
+│ CHANGE Design v14 → v15       ├─ Dev view → STALE            │
+│                               └─ QA view  → STALE            │
 │                                                              │
 │ [See how it works] [Join pilot]       inspect provenance ↗   │
 └──────────────────────────────────────────────────────────────┘

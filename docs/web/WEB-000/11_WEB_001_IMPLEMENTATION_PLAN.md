@@ -18,7 +18,7 @@ The original suggested sequence is modified so deployment isolation and claim au
 - Finalize `/`, `/how-it-works`, `/trust`, `/company`, `/privacy`, `/terms`.
 - Freeze hero headline/support copy and CTA readiness.
 
-**Gate:** every material claim has an owner, status, and evidence link; no fake proof.
+**Gate:** every material claim has an owner, status, and evidence link; no fake proof; `READINESS_AUTHORITY_SEPARATION=PASS`; `DEMO_STATE_MAPPING=EVIDENCE_BACKED`; `CONCEPTUAL_INTEGRATIONS_LABELED=YES`.
 
 ## WEB-001-C — Server-first shell and tokens
 
@@ -30,18 +30,19 @@ The original suggested sequence is modified so deployment isolation and claim au
 
 ## WEB-001-D — First meaningful WorkState Field slice
 
-- Implement the hero's static source → authorized state → executor relationship.
+- Implement the hero as an explicitly labeled `CONCEPTUAL WORKFLOW` or `PRODUCT DEMO` using generic source categories and separate readiness, authority, delegability, and execution stages.
 - Add one deterministic source-version change and provenance disclosure as a small client island.
 - Use custom HTML/CSS/SVG and a complete reduced-motion/static equivalent.
 
-**Gate:** ten-second/CTO/nontechnical tests pass before additional modules are built.
+**Gate:** hero claim review passes before implementation expands; the demo does not produce or imply production authority; ten-second/CTO/nontechnical tests pass before additional modules are built.
 
 ## WEB-001-E — Readiness Gate
 
 - Build authored signal checklist, state result, reason list, evaluator/time metadata, and live announcement.
-- Use explicit states; never add a score.
+- Use the evidence-backed `INSUFFICIENT_SIGNAL → READY` transition, with optional `HUMAN_REVIEW_REQUIRED`; never add a score.
+- Do not implement `READY_WITH_CONDITIONS` as an active deterministic transition unless a later mapping is independently evidenced and authorized.
 
-**Gate:** keyboard, touch, reduced motion, and exact claim mapping pass.
+**Gate:** keyboard, touch, reduced motion, and exact claim mapping pass; `READINESS_AUTHORITY_SEPARATION=PASS`; `DEMO_STATE_MAPPING=EVIDENCE_BACKED`; `CONCEPTUAL_INTEGRATIONS_LABELED=YES`.
 
 ## WEB-001-F — Stale Propagation Map
 

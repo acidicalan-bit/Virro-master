@@ -29,22 +29,24 @@ Scores are 1–5. For implementation complexity and performance risk, 5 means ha
 **Purpose:** communicate Virro's placement and entire category in one mechanism.
 
 ```text
-[Slack decision] ── signal ───┐
-[Jira requirement] ─ scope ───┼────▶ ┌──────────────────┐
-[Figma v14] ───── version ────┤      │ AUTHORIZED       │
-[Human approval] ─ authority ─┘      │ WORK STATE v17   │
-                                      │ READY            │
-                                      └────────┬─────────┘
-                                               │
-                                      ┌────────┴────────┐
-                                      ▼                 ▼
-                                   [Dev] READY       [QA] READY
+CONCEPTUAL WORKFLOW — EXAMPLE SOURCE CATEGORIES
+[Planning requirement] ─ scope ─────┐
+[Chat decision] ─────── signal ─────┤
+[Design v14] ────────── version ────┼────▶ ┌────────────────────┐
+[Code baseline] ─────── dependency ─┤      │ SCENARIO WORK STATE│
+[Human approval] ────── authority ──┘      │ v17                │
+                                            │ READINESS: READY   │
+                                            └─────────┬──────────┘
+                                                      │
+                                            AUTHORITY BOUNDARY
+                                      represented conceptually;
+                                      not produced by this demo
 
-CHANGE: Figma v14 → v15
-                                   [Dev] STALE       [QA] STALE
+CHANGE: Design v14 → v15
+                                      [Dev view] STALE  [QA view] STALE
 ```
 
-**Anatomy:** source rail, typed connection, authorized-state card, version ID, readiness chip, executor branches, change event, provenance trigger.
+**Anatomy:** scenario label, generic source rail, typed connection, versioned work-state card, readiness chip, separate authority boundary, dependent views, change event, provenance trigger.
 
 **Interaction:** play/pause one deterministic change; inspect any input; reset. No freeform prompt. Keyboard controls mirror pointer controls.
 
@@ -55,27 +57,37 @@ CHANGE: Figma v14 → v15
 **Purpose:** explain readiness as explicit state, not confidence.
 
 ```text
-REQUIRED SIGNALS                       GATE
-✓ Approved scope    current            ┌───────────────┐
-✓ Source version    v17                │ READY         │──▶ MAY MOVE
-! QA acceptance     missing            │ 2/3 supported │
-                                         └───────────────┘
+PRODUCT DEMO — READINESS ONLY
 
-Add QA acceptance
-                                         ┌──────────────────────┐
-                                         │ READY_WITH_CONDITIONS│
-                                         └──────────────────────┘
+REQUIRED SIGNALS                       READINESS
+✓ Approved scope             current   ┌─────────────────────┐
+! Compatible current Signal  missing   │ INSUFFICIENT_SIGNAL │
+                                        │ requirement missing │
+                                        └─────────────────────┘
+
+Add compatible current Signal
+✓ Compatible current Signal  current   ┌─────────────────────┐
+                                        │ READY               │
+                                        │ requirements        │
+                                        │ satisfied           │
+                                        └─────────────────────┘
+
+──────────────────── AUTHORITY BOUNDARY ────────────────────
+AUTHORITY: not evaluated here
+
+Optional authored example:
+human review required                  HUMAN_REVIEW_REQUIRED
 ```
 
-**Anatomy:** required-signal list, qualification outcome, dependency version, evaluator/time, gate state, reason list, permitted next action.
+**Anatomy:** required-signal list, qualification outcome, dependency version, evaluator/time, gate state, reason list, and an explicit authority boundary. No permitted next action is inferred.
 
-**Interaction:** visitors toggle one authored signal and see the deterministic state/reasons change. Text announces the result in an `aria-live="polite"` region.
+**Interaction:** visitors toggle one authored Signal and see the evidence-backed deterministic transition `INSUFFICIENT_SIGNAL → READY`; an optional authored scenario may show `HUMAN_REVIEW_REQUIRED`. Text announces the result in an `aria-live="polite"` region.
 
-**Implementation contract:** native checkbox/button controls; no graph library; no score. Mobile becomes a vertical checklist followed by the gate.
+**Implementation contract:** native checkbox/button controls; no graph library; no score. `READY` means only that the applicable readiness requirements are satisfied for the evaluated state. It does not mean authorized, permission granted, delegable, may execute, or may move to execution. `READY_WITH_CONDITIONS` is not an active WEB-001 demo transition. Mobile becomes a vertical checklist followed by the gate and the separate authority boundary.
 
 ## 3. Stale Propagation Map
 
-**Purpose:** demonstrate how a source change invalidates dependent work before it moves.
+**Purpose:** demonstrate how a source change invalidates dependent work before later contract, authority, delegation, or execution stages.
 
 ```text
 SOURCE v14 ─────┬────▶ DEV SPEC v8 ───▶ EXECUTOR A
@@ -145,6 +157,8 @@ Human → Human        Human → AI        AI → Human        AI → AI
 **Interaction:** select an authored actor pair and see the same assurance stages relabeled, not a different system.
 
 **Implementation contract:** ordered list with buttons; line is decorative. Mobile is the native vertical form.
+
+Readiness, contract, authority, and execution remain separate stages. No interaction may shortcut `READINESS → EXECUTION`, and no stage auto-advances because a readiness result is `READY`.
 
 ## 7. Integration Constellation
 

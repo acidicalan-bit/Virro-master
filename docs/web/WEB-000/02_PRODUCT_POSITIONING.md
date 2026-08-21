@@ -2,7 +2,7 @@
 
 ## Category
 
-**Work Assurance** is the public category. Virro is the assurance layer for work: it keeps people, tools, and AI aligned around the same current, authorized understanding of what must happen and verifies that execution matches what was agreed.
+**Work Assurance** is the public category. It positions Virro as the assurance layer for work: a product model designed to keep people, tools, and AI aligned around the same current, authorized understanding of what must happen and to verify execution against what was agreed. Current public capability remains bounded by the status and evidence in the Claim Ledger.
 
 This category is distinct from project management, observability, documentation generation, AI copilots, and workflow automation. Virro does not own the work system of record or the executor. It owns the assurance boundary between intent, current context, authorization, execution evidence, and human acceptance.
 
@@ -14,7 +14,7 @@ This category is distinct from project management, observability, documentation 
 
 Recommended hero support copy:
 
-> Virro turns scattered requirements, decisions, and source changes into one versioned work state—then shows whether a person or AI has enough current, authorized context to move.
+> Virro brings scattered requirements, decisions, and source changes into a versioned work-state model—then shows readiness separately from authority, delegability, and execution.
 
 Recommended clarification:
 
@@ -25,15 +25,19 @@ Recommended clarification:
 ```text
 INTENT
   ↓
-AUTHORIZED CONTEXT
+CURRENT CONTEXT
   ↓
 SIGNALS + DEPENDENCIES
   ↓
-READINESS CANDIDATE
+READINESS
   ↓
-WORK CONTRACT + AUTHORITY
+WORK CONTRACT
   ↓
-HUMAN / AI EXECUTOR
+AUTHORITY
+  ↓
+DELEGABILITY
+  ↓
+HUMAN / AI EXECUTION
   ↓
 EVIDENCE + VERIFICATION
   ↓
@@ -42,7 +46,7 @@ HUMAN ACCEPTANCE
 OUTCOME
 ```
 
-The website must never imply that this entire chain is currently one generally available production product. Every named capability must carry `available`, `pilot`, `planned`, or `conceptual` status.
+The website must never imply that this entire chain is currently one generally available production product. Readiness does not grant authority, delegability, permission, or execution. Every named capability must carry `available`, `pilot`, `planned`, or `conceptual` status.
 
 ## Audience framing
 
@@ -58,8 +62,8 @@ The website must never imply that this entire chain is currently one generally a
 ### Nontechnical buyer
 
 - The tools your team uses can disagree.
-- Virro keeps the important meaning synchronized.
-- It shows what is missing or stale before work moves.
+- Virro's product model is designed to keep the important meaning synchronized.
+- A labeled product demo can show what is missing or stale without granting authority or permission to execute.
 - It records why a decision was made and what changed.
 
 ## Human / AI balance
@@ -78,12 +82,12 @@ The website should depict `Human → Human`, `Area → Area`, `Human → AI`, `A
 
 ## Ten-second acceptance test
 
-A first-time visitor must understand that Virro:
+A first-time visitor must understand the product thesis, without confusing it with current availability:
 
 1. connects work across tools;
-2. maintains a current authorized state;
-3. determines whether work has sufficient support to move;
-4. prevents human and AI delegation from silently drifting.
+2. represents a current, versioned work state with a distinct authority boundary;
+3. evaluates whether applicable readiness requirements are satisfied without deciding authority, delegability, or execution;
+4. exposes stale or unsupported context before later delegation and execution stages.
 
 If the page only communicates “advanced AI” or “cool infrastructure,” it fails.
 
