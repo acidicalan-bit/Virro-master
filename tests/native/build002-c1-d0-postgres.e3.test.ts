@@ -191,7 +191,14 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD002-C1-D0 native PostgreSQ
   it("commits READY exactly once, keeps PREPARED, and replays idempotently", async () => {
     const preexisting = await admin.query("select id, requirement_id, requirement_definition_hash from public.build002_signal_qualifications");
     console.log("R1 preexisting qualifications", preexisting.rows);
-    const first = await service.query("select public.build002_commit_readiness_authority($1::uuid, $2::jsonb) as result", [ACTOR, JSON.stringify(value.payload)]);
+    console.log("R1 candidate qualification", value.qualification);
+    let first;
+    try {
+      first = await service.query("select public.build002_commit_readiness_authority($1::uuid, $2::jsonb) as result", [ACTOR, JSON.stringify(value.payload)]);
+    } catch (error) {
+      console.log("R1 first error detail", error);
+      throw error;
+    }
     console.log("R1 first commit", first.rows[0].result);
     console.log("R1 stored qualifications", (await admin.query("select id, requirement_id, requirement_definition_hash, dependency_snapshot_id, dependency_snapshot_hash, signal_ids, signal_content_hashes, evaluator, outcome, reason_code from public.build002_signal_qualifications")).rows);
     const second = await service.query("select public.build002_commit_readiness_authority($1::uuid, $2::jsonb) as result", [ACTOR, JSON.stringify(value.payload)]);
