@@ -115,7 +115,7 @@ export class OutcomeReadinessAuthorityCurrentnessRevalidator {
       throw new OutcomeReadinessCurrentnessError("CURRENTNESS_PHASE_FAILED");
     }
     if (!commit) throw new OutcomeReadinessCurrentnessError("AUTHORITY_COMMIT_NOT_FOUND");
-    assertCommitShape(commit, authority.tenantId);
+    assertCommitShape(commit, authority.tenantId, authorityCommitId);
 
     let resolvedAuthority: ResolvedOutcomeRequirementAuthority;
     try {
@@ -266,14 +266,18 @@ function copyAuthority(input: AuthorityContext | undefined): AuthorityContext | 
   }
 }
 
-function assertCommitShape(commit: ReadinessAuthorityCommitRecord, tenantId: string): void {
-  if (!commit.authorityCommitId.trim()
+function assertCommitShape(commit: ReadinessAuthorityCommitRecord, tenantId: string, requestedAuthorityCommitId: string): void {
+  if (!hasText(commit.authorityCommitId)
+    || commit.authorityCommitId !== requestedAuthorityCommitId
+    || !hasText(commit.ownerTenantId)
     || commit.ownerTenantId !== tenantId
-    || !commit.outcomeTransactionId.trim()
-    || !commit.principalId.trim()
-    || !commit.dependencySnapshotHash.trim()
-    || !commit.readinessId.trim()
-    || !commit.readinessContentHash.trim()) {
+    || !hasText(commit.outcomeTransactionId)
+    || !hasText(commit.principalId)
+    || !hasText(commit.dependencySnapshotId)
+    || !hasText(commit.dependencySnapshotHash)
+    || !hasText(commit.readinessId)
+    || !hasText(commit.readinessContentHash)
+    || commit.schemaVersion !== "build002-readiness-authority-commit-v0.1") {
     throw new OutcomeReadinessCurrentnessError("HISTORICAL_GRAPH_INVALID");
   }
   try {
@@ -282,6 +286,10 @@ function assertCommitShape(commit: ReadinessAuthorityCommitRecord, tenantId: str
   } catch {
     throw new OutcomeReadinessCurrentnessError("HISTORICAL_GRAPH_INVALID");
   }
+}
+
+function hasText(value: unknown): value is string {
+  return typeof value === "string" && value.trim().length > 0;
 }
 
 function validateCurrentDependency(

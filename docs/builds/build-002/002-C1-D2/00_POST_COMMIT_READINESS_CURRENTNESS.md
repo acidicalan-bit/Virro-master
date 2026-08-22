@@ -8,7 +8,11 @@ The public operation accepts only `authority` and `authorityCommitId`.
 The authority context is copied before the first asynchronous operation. The
 historical marker is read through a dedicated scoped reader using both
 `id = authorityCommitId` and `owner_tenant_id = authority.tenantId`; a
-cross-tenant marker is therefore denied at query scope.
+cross-tenant marker is therefore denied at query scope. The returned marker
+must also have `authorityCommitId === requested authorityCommitId`; query scope
+is necessary but not sufficient. Marker validation is fail-closed to the exact
+frozen schema version `build002-readiness-authority-commit-v0.1`, including a
+non-empty historical dependency snapshot ID.
 
 The operation then re-resolves C0-D from the marker's server-derived
 transaction, validates the historical readiness and dependency graph, resolves

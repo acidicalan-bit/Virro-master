@@ -93,11 +93,14 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD002-C1-D2 native PostgreSQ
     // The disposable fixture seeds only the rows needed to exercise the scoped
     // SELECT. D0 graph integrity is covered by the unchanged native D0 suite.
     await admin.query("alter table public.build002_readiness_authority_commits disable trigger build002_readiness_authority_marker_graph_coherent");
-    await admin.query("select set_config('build002.authority_commit', (select token from public.build002_readiness_authority_capability limit 1), false)");
-    const markerSql = "insert into public.build002_readiness_authority_commits(id, owner_tenant_id, outcome_transaction_id, principal_id, dependency_snapshot_id, dependency_snapshot_hash, readiness_id, readiness_content_hash, evaluation_time, schema_version) values ($1, $2, $3, $4, $5, $6, $7, $6, '2026-08-21T10:00:00Z', 'build002-readiness-authority-commit-v0.1')";
-    await admin.query(markerSql, [COMMIT_A, TENANT_A, TX_A, USER_A, SNAPSHOT_A, HASH_A, READINESS_A]);
-    await admin.query(markerSql, [COMMIT_B, TENANT_B, TX_B, USER_A, SNAPSHOT_B, HASH_B, READINESS_B]);
-    await admin.query("alter table public.build002_readiness_authority_commits enable trigger build002_readiness_authority_marker_graph_coherent");
+    try {
+      await admin.query("select set_config('build002.authority_commit', (select token from public.build002_readiness_authority_capability limit 1), false)");
+      const markerSql = "insert into public.build002_readiness_authority_commits(id, owner_tenant_id, outcome_transaction_id, principal_id, dependency_snapshot_id, dependency_snapshot_hash, readiness_id, readiness_content_hash, evaluation_time, schema_version) values ($1, $2, $3, $4, $5, $6, $7, $6, '2026-08-21T10:00:00Z', 'build002-readiness-authority-commit-v0.1')";
+      await admin.query(markerSql, [COMMIT_A, TENANT_A, TX_A, USER_A, SNAPSHOT_A, HASH_A, READINESS_A]);
+      await admin.query(markerSql, [COMMIT_B, TENANT_B, TX_B, USER_A, SNAPSHOT_B, HASH_B, READINESS_B]);
+    } finally {
+      await admin.query("alter table public.build002_readiness_authority_commits enable trigger build002_readiness_authority_marker_graph_coherent");
+    }
   }, 120_000);
 
   afterAll(async () => {

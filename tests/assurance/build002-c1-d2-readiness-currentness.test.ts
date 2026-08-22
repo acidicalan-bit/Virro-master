@@ -237,6 +237,40 @@ describe("BUILD002-C1-D2 post-commit readiness currentness", () => {
     expect(fixture.calls).toEqual(["SCOPED_COMMIT_READ"]);
   });
 
+  it("rejects a same-tenant marker that substitutes a different requested commit ID", async () => {
+    const fixture = makeFixture();
+    fixture.dependencies.scopedCommitReader = {
+      findByScopedId: async () => {
+        fixture.calls.push("SCOPED_COMMIT_READ");
+        return { ...fixture.commit, authorityCommitId: "70000000-0000-4000-8000-000000000002" };
+      },
+    };
+    await expect(run(fixture)).rejects.toEqual(new OutcomeReadinessCurrentnessError("HISTORICAL_GRAPH_INVALID"));
+    expect(fixture.calls).toEqual(["SCOPED_COMMIT_READ"]);
+  });
+
+  it("accepts the exact requested commit ID as the positive control", async () => {
+    const fixture = makeFixture();
+    const result = await run(fixture);
+    expect(result.currentness).toBe("CURRENT");
+    expect(result.authorityCommit.authorityCommitId).toBe(COMMIT);
+  });
+
+  it.each([
+    ["wrong schema version", { schemaVersion: "build002-readiness-authority-commit-v9.9" }],
+    ["blank dependency snapshot ID", { dependencySnapshotId: "   " }],
+  ])("rejects marker shape corruption: %s", async (_label, override) => {
+    const fixture = makeFixture();
+    fixture.dependencies.scopedCommitReader = {
+      findByScopedId: async () => {
+        fixture.calls.push("SCOPED_COMMIT_READ");
+        return { ...fixture.commit, ...override } as ReadinessAuthorityCommitRecord;
+      },
+    };
+    await expect(run(fixture)).rejects.toEqual(new OutcomeReadinessCurrentnessError("HISTORICAL_GRAPH_INVALID"));
+    expect(fixture.calls).toEqual(["SCOPED_COMMIT_READ"]);
+  });
+
   it("fails closed when an application reader returns a foreign marker", async () => {
     const fixture = makeFixture();
     fixture.dependencies.scopedCommitReader = { findByScopedId: async () => ({ ...fixture.commit, ownerTenantId: FOREIGN_TENANT, outcomeTransactionId: FOREIGN_TRANSACTION }) };
