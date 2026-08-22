@@ -1,0 +1,67 @@
+name: BUILD002 C1-D2 R2 independent verifier
+
+on:
+  push:
+    branches:
+      - verify/build002-c1-d2-r2-independent
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verifier:
+    name: D2-R2 adversarial verifier and regression gates
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: virro_verifier
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d virro_verifier"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+        with:
+          version: 11.19.0
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Assurance manifest
+        run: pnpm assurance:check
+      - name: Independent D2-R2 verifier
+        run: pnpm exec vitest run tests/verifier/build002-c1-d2-r2/currentness-adversarial.test.ts --reporter=verbose
+      - name: Independent PostgreSQL 17 scoped reader verifier
+        env:
+          BUILD002_VERIFIER_NATIVE_PG: "true"
+          BUILD002_VERIFIER_NATIVE_PG_URL: postgresql://postgres:postgres@localhost:5432/virro_verifier
+        run: pnpm exec vitest run tests/verifier/build002-c1-d2-r2/scoped-reader.native.e3.test.ts --reporter=verbose
+      - name: Authored D2 regression
+        run: pnpm exec vitest run tests/assurance/build002-c1-d2-readiness-currentness.test.ts --reporter=verbose
+      - name: D2 native regression
+        env:
+          BUILD002_NATIVE_PG_C1_D2: "true"
+          BUILD002_NATIVE_PG_C1_D2_URL: postgresql://postgres:postgres@localhost:5432/virro_verifier
+        run: pnpm exec vitest run tests/native/build002-c1-d2-scoped-reader.e3.test.ts --reporter=verbose
+      - name: D1 regression
+        run: pnpm exec vitest run tests/assurance/build002-c1-d1-readiness-authority-orchestration.test.ts --reporter=verbose
+      - name: D0 native regression
+        env:
+          BUILD002_NATIVE_PG_C1_D0: "true"
+          BUILD002_NATIVE_PG_C1_D0_URL: postgresql://postgres:postgres@localhost:5432/virro_verifier
+        run: pnpm exec vitest run tests/native/build002-c1-d0-postgres.e3.test.ts --reporter=verbose
+      - name: TypeScript and ESLint
+        run: pnpm typecheck && pnpm lint
+      - name: Full regression
+        run: pnpm test
+      - name: Production build
+        run: pnpm build
