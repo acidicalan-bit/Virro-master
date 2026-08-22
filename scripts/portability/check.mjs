@@ -10,6 +10,13 @@ const ALLOWED_CLASSES = new Set([
   "TEST_ONLY",
 ]);
 const ALLOWED_LOCKIN_STATUSES = new Set(["PROVEN", "PARTIALLY_PROVEN", "NOT_PROVEN", "BLOCKED"]);
+const KNOWN_SECRET_NAMES = new Set(["OPENAI_API_KEY", "SUPABASE_SECRET_KEY", "SUPABASE_SERVICE_ROLE_KEY"]);
+const PUBLIC_KEY_EXCEPTIONS = new Set([
+  "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
+  "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+  "SUPABASE_ANON_KEY",
+]);
+const SENSITIVE_NAME_PATTERN = /(?:SECRET|PASSWORD|TOKEN|PRIVATE_KEY|SERVICE_ROLE|API_KEY)/;
 const BASELINE_DEBT_PATH = "src/application/outcome/media/image-edit-service.ts";
 const BASELINE_DEBT_SHA256 = "10dc3d9a5e18bb1ba75e992f49862954b64e2bc7e1d2418018d78c4986aa22a6";
 
@@ -53,6 +60,11 @@ function parseLockinStatuses(source) {
 
 function read(root, relative) {
   return fs.readFileSync(path.join(root, relative), "utf8");
+}
+
+function isSensitiveName(name) {
+  if (PUBLIC_KEY_EXCEPTIONS.has(name)) return false;
+  return SENSITIVE_NAME_PATTERN.test(name);
 }
 
 export function inspect(root = process.cwd()) {
@@ -102,6 +114,7 @@ export function inspect(root = process.cwd()) {
   let inventory;
   let inventoryAuthority = false;
   let inventoryErrors = [];
+  let sensitiveClassificationErrors = [];
   if (fs.existsSync(path.join(root, "scripts/portability/environment-contract.json"))) {
     inventoryAuthority = true;
     try {
@@ -115,11 +128,23 @@ export function inspect(root = process.cwd()) {
         ...(variables || []).flatMap((row) => [
           ...(typeof row.name === "string" && /^[A-Z][A-Z0-9_]*$/.test(row.name) ? [] : [`name:${row.name}`]),
           ...(ALLOWED_CLASSES.has(row.classification) ? [] : [`classification:${row.name}`]),
+          ...(typeof row.sensitive === "boolean" ? [] : [`sensitive:${row.name}`]),
           ...(typeof row.optional === "boolean" ? [] : [`optional:${row.name}`]),
           ...(typeof row.legacy === "boolean" ? [] : [`legacy:${row.name}`]),
-          ...(row.name?.startsWith("NEXT_PUBLIC_") && row.classification === "RUNTIME_SECRET" ? [`public secret:${row.name}`] : []),
+          ...(row.name?.startsWith("NEXT_PUBLIC_") && row.classification !== "BUILD_TIME_PUBLIC" ? [`public classification:${row.name}`] : []),
+          ...(row.name?.startsWith("NEXT_PUBLIC_") && row.sensitive ? [`public sensitive:${row.name}`] : []),
         ]),
       ];
+      sensitiveClassificationErrors = (variables || []).flatMap((row) => {
+        if (typeof row.name !== "string") return [`invalid name sensitivity:${row.name}`];
+        const expectedSensitive = isSensitiveName(row.name);
+        return [
+          ...(row.sensitive !== expectedSensitive ? [`sensitivity:${row.name}`] : []),
+          ...(expectedSensitive && row.classification !== "RUNTIME_SECRET" ? [`classification:${row.name}`] : []),
+          ...(KNOWN_SECRET_NAMES.has(row.name) && row.classification !== "RUNTIME_SECRET" ? [`known secret:${row.name}`] : []),
+          ...(KNOWN_SECRET_NAMES.has(row.name) && row.sensitive !== true ? [`known secret flag:${row.name}`] : []),
+        ];
+      });
     } catch {
       inventoryErrors = ["invalid JSON"];
     }
@@ -157,14 +182,21 @@ export function inspect(root = process.cwd()) {
     && /org\.opencontainers\.image\.revision/.test(dockerfile);
   const sourceIdentityFailClosed = /\^\[0-9a-f\]\{40\}/.test(dockerfile) && !/SOURCE_SHA=unknown/.test(dockerfile);
 
-  if (missing.length || coreViolations.length || inventoryErrors.length || missingEnvRegistry.length || missingRequired.length || unregisteredNextPublic.length || registerDrift.length || invalidLockinStatuses.length || !inventoryAuthority || !environmentDocSync || applicationSupabaseDebt.length !== 1 || !baselineDebtUnchanged || !standalone || !dockerContract || !sourceIdentityFailClosed) {
-    failures.push({ missing, coreViolations, inventoryErrors, missingEnvRegistry, missingRequired, unregisteredNextPublic, registerDrift, invalidLockinStatuses, inventoryAuthority, environmentDocSync, applicationSupabaseDebt, baselineDebtUnchanged, standalone, dockerContract, sourceIdentityFailClosed });
+  if (missing.length || coreViolations.length || inventoryErrors.length || sensitiveClassificationErrors.length || missingEnvRegistry.length || missingRequired.length || unregisteredNextPublic.length || registerDrift.length || invalidLockinStatuses.length || !inventoryAuthority || !environmentDocSync || applicationSupabaseDebt.length !== 1 || !baselineDebtUnchanged || !standalone || !dockerContract || !sourceIdentityFailClosed) {
+    failures.push({ missing, coreViolations, inventoryErrors, sensitiveClassificationErrors, missingEnvRegistry, missingRequired, unregisteredNextPublic, registerDrift, invalidLockinStatuses, inventoryAuthority, environmentDocSync, applicationSupabaseDebt, baselineDebtUnchanged, standalone, dockerContract, sourceIdentityFailClosed });
   }
 
   return {
     failures,
     checks: {
       PORTABILITY_STATIC: failures.length === 0,
+      SECRET_CLASSIFICATION_INVARIANT: sensitiveClassificationErrors.length === 0 ? "PASS" : "FAIL",
+      CANONICAL_ENV_AUTHORITY: inventoryAuthority ? "scripts/portability/environment-contract.json" : "MISSING",
+      KNOWN_SECRET_VARIABLES: [...KNOWN_SECRET_NAMES],
+      KNOWN_SECRET_CLASSIFICATIONS: Object.fromEntries([...KNOWN_SECRET_NAMES].map((name) => [name, inventoryByName.get(name)?.classification || "MISSING"])),
+      SENSITIVE_NAME_RULE: "SECRET|PASSWORD|TOKEN|PRIVATE_KEY|SERVICE_ROLE|API_KEY, excluding explicit public exceptions",
+      PUBLIC_KEY_EXCEPTIONS: [...PUBLIC_KEY_EXCEPTIONS],
+      NEXT_PUBLIC_CLASSIFICATION_INVARIANT: inventoryRows.filter((row) => row.name?.startsWith("NEXT_PUBLIC_") && (row.classification !== "BUILD_TIME_PUBLIC" || row.sensitive)).length === 0 ? "PASS" : "FAIL",
       DOMAIN_VERCEL_DEPENDENCIES: 0,
       APPLICATION_VERCEL_DEPENDENCIES: 0,
       DOMAIN_SUPABASE_DEPENDENCIES: coreFiles.filter((file) => file.startsWith("src/domain/") && /@supabase\//.test(read(root, file))).length,

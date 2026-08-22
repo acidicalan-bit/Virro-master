@@ -34,6 +34,12 @@ The machine-checkable environment authority is
 `scripts/portability/environment-contract.json`; the human-readable table is
 checked for synchronization.
 
+R2 adds a fail-closed secret classification invariant to that authority:
+known credentials remain runtime secrets, conservative credential-like names
+cannot be classified as public or server configuration, and every
+`NEXT_PUBLIC_*` variable remains non-sensitive build-time public configuration.
+Public key exceptions are explicit and narrow.
+
 ## Required CI evidence
 
 The dedicated portability workflow must run against the exact candidate SHA and

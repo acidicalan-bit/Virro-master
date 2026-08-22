@@ -7,6 +7,22 @@ The canonical machine-readable authority is
 `scripts/portability/environment-contract.json`. This table is checked against
 that inventory by `pnpm portability:check`.
 
+## Secret Classification Invariant
+
+The inventory is also authoritative for the boolean `sensitive` field. The
+credential variables `OPENAI_API_KEY`, `SUPABASE_SECRET_KEY`, and
+`SUPABASE_SERVICE_ROLE_KEY` must remain sensitive and classified as
+`RUNTIME_SECRET`. Conservative name detection also treats `SECRET`,
+`PASSWORD`, `TOKEN`, `PRIVATE_KEY`, `SERVICE_ROLE`, and `API_KEY` forms as
+sensitive candidates. Explicit public exceptions are limited to
+`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and
+`SUPABASE_ANON_KEY`.
+
+Every `NEXT_PUBLIC_*` variable must be `BUILD_TIME_PUBLIC` and non-sensitive.
+The checker validates name semantics, the boolean flag, classification, and
+documentation sync independently; synchronized edits cannot make a
+credential public.
+
 | Name | Classification | Optional/legacy | Portability note |
 | --- | --- | --- | --- |
 | `NEXT_PUBLIC_SUPABASE_URL` | `BUILD_TIME_PUBLIC` | required | Embedded by Next when referenced by browser code. |

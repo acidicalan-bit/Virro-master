@@ -73,6 +73,50 @@ describe("PORTABILITY-000 runtime contract", () => {
       else rmSync(file, { force: true });
       expect(check(), `${relative} restored`).toBe(true);
     };
+    const mutateSynchronizedClassification = (name: string, classification: string) => {
+      const inventoryFile = resolve(fixture, "scripts/portability/environment-contract.json");
+      const docFile = resolve(fixture, "docs/architecture/ENVIRONMENT_CONTRACT.md");
+      const inventoryOriginal = readFileSync(inventoryFile, "utf8");
+      const docOriginal = readFileSync(docFile, "utf8");
+      try {
+        const inventory = JSON.parse(inventoryOriginal) as { variables: Array<{ name: string; classification: string }> };
+        inventory.variables.find((row) => row.name === name)!.classification = classification;
+        writeFileSync(inventoryFile, JSON.stringify(inventory, null, 2));
+        const docLines = docOriginal.split(/\r?\n/);
+        const docRowIndex = docLines.findIndex((line) => line.startsWith(`| \`${name}\` |`));
+        expect(docRowIndex).toBeGreaterThanOrEqual(0);
+        const docCells = docLines[docRowIndex].split("|");
+        docCells[2] = ` \`${classification}\` `;
+        docLines[docRowIndex] = docCells.join("|");
+        writeFileSync(docFile, docLines.join("\n"));
+        expect(check(), `${name} -> ${classification}`).toBe(false);
+      } finally {
+        writeFileSync(inventoryFile, inventoryOriginal);
+        writeFileSync(docFile, docOriginal);
+      }
+      expect(check(), `${name} restored`).toBe(true);
+    };
+    const mutateNewSensitiveVariable = (name: string, classification: string) => {
+      const inventoryFile = resolve(fixture, "scripts/portability/environment-contract.json");
+      const envFile = resolve(fixture, ".env.example");
+      const docFile = resolve(fixture, "docs/architecture/ENVIRONMENT_CONTRACT.md");
+      const inventoryOriginal = readFileSync(inventoryFile, "utf8");
+      const envOriginal = readFileSync(envFile, "utf8");
+      const docOriginal = readFileSync(docFile, "utf8");
+      try {
+        const inventory = JSON.parse(inventoryOriginal) as { variables: Array<Record<string, unknown>> };
+        inventory.variables.push({ name, classification, sensitive: false, optional: false, legacy: false });
+        writeFileSync(inventoryFile, JSON.stringify(inventory, null, 2));
+        writeFileSync(envFile, `${envOriginal}\n${name}=fixture\n`);
+        writeFileSync(docFile, `${docOriginal}\n| \`${name}\` | \`${classification}\` | required | R2 attack fixture. |\n`);
+        expect(check(), `${name} -> ${classification}`).toBe(false);
+      } finally {
+        writeFileSync(inventoryFile, inventoryOriginal);
+        writeFileSync(envFile, envOriginal);
+        writeFileSync(docFile, docOriginal);
+      }
+      expect(check(), `${name} restored`).toBe(true);
+    };
     try {
       expect(check()).toBe(true);
       mutate("src/domain/auth/authority.ts", (source) => `${source}\nimport \"@supabase/attack\";\n`);
@@ -94,6 +138,25 @@ describe("PORTABILITY-000 runtime contract", () => {
       });
       mutate("docs/architecture/PROVIDER_LOCKIN_REGISTER.md", (source) => source.replace("| Vercel runtime |", "| Vercel runtime |").replace("| None in domain/application | PROVEN |", "| None in domain/application | INVALID |"));
       mutate("next.config.ts", (source) => source.replace('output: "standalone"', 'output: "server"'));
+
+      mutateSynchronizedClassification("OPENAI_API_KEY", "BUILD_TIME_PUBLIC");
+      mutateSynchronizedClassification("OPENAI_API_KEY", "RUNTIME_PUBLIC");
+      mutateSynchronizedClassification("OPENAI_API_KEY", "RUNTIME_SERVER_CONFIG");
+      mutateSynchronizedClassification("SUPABASE_SECRET_KEY", "BUILD_TIME_PUBLIC");
+      mutateSynchronizedClassification("SUPABASE_SERVICE_ROLE_KEY", "RUNTIME_PUBLIC");
+      mutateSynchronizedClassification("NEXT_PUBLIC_SUPABASE_URL", "RUNTIME_SECRET");
+      mutateNewSensitiveVariable("PAYMENTS_API_TOKEN", "RUNTIME_PUBLIC");
+      mutateNewSensitiveVariable("SOME_PASSWORD", "RUNTIME_SERVER_CONFIG");
+
+      const inventory = JSON.parse(read("scripts/portability/environment-contract.json")) as { variables: Array<{ name: string; classification: string; sensitive: boolean }> };
+      for (const [name, classification] of [
+        ["NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", "BUILD_TIME_PUBLIC"],
+        ["NEXT_PUBLIC_SUPABASE_ANON_KEY", "BUILD_TIME_PUBLIC"],
+        ["SUPABASE_ANON_KEY", "RUNTIME_PUBLIC"],
+      ] as const) {
+        const row = inventory.variables.find((candidate) => candidate.name === name);
+        expect(row).toMatchObject({ name, classification, sensitive: false });
+      }
     } finally {
       rmSync(fixture, { recursive: true, force: true });
     }
