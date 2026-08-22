@@ -46,6 +46,23 @@ jobs:
           test "$(docker image inspect virro-product:${GITHUB_SHA} --format '{{.Config.User}}')" != "0"
           test "$(docker image inspect virro-product:${GITHUB_SHA} --format '{{.Config.User}}')" != "root"
           docker image inspect virro-product:${GITHUB_SHA} --format 'IMAGE_DIGEST={{.Id}} IMAGE_SIZE_BYTES={{.Size}}'
+      - name: Reject missing and malformed source identity
+        run: |
+          set +e
+          values=("__MISSING__" "unknown" "abc" "$(printf 'a%.0s' {1..39})" "$(printf 'a%.0s' {1..41})" "${GITHUB_SHA^^}")
+          for value in "${values[@]}"; do
+            if [ "$value" = "__MISSING__" ]; then
+              docker build . >/dev/null 2>&1
+            else
+              docker build --build-arg SOURCE_SHA="$value" . >/dev/null 2>&1
+            fi
+            status=$?
+            if [ "$status" -eq 0 ]; then
+              echo "SOURCE_SHA_ATTACK_ACCEPTED:$value"
+              exit 1
+            fi
+          done
+          set -e
 
   container-smoke:
     name: CONTAINER_SMOKE

@@ -35,10 +35,13 @@ async function liveCheck() {
 }
 
 try {
+  if (!/^[0-9a-f]{40}$/.test(sourceSha)) throw new Error("EXPECTED_SOURCE_SHA_MALFORMED");
   run(["build", "--build-arg", `SOURCE_SHA=${sourceSha}`, "-t", imageTag, "."], { stdio: "inherit" });
   const inspect = JSON.parse(run(["image", "inspect", imageTag]))[0];
   const labels = inspect.Config?.Labels || {};
-  if (labels["org.opencontainers.image.revision"] !== sourceSha) throw new Error("OCI_REVISION_MISMATCH");
+  const revision = labels["org.opencontainers.image.revision"];
+  if (!/^[0-9a-f]{40}$/.test(revision || "")) throw new Error("OCI_REVISION_MALFORMED");
+  if (revision !== sourceSha) throw new Error("OCI_REVISION_MISMATCH");
   if (labels["org.opencontainers.image.source"] !== "https://github.com/acidicalan-bit/Virro-master") throw new Error("OCI_SOURCE_MISMATCH");
   if (inspect.Config?.User === "0" || inspect.Config?.User === "root") throw new Error("PRIVILEGED_CONTAINER");
   const imageDigest = String(inspect.Id || "").replace(/^sha256:/, "sha256:");

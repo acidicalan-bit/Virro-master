@@ -16,9 +16,13 @@ the application ports and domain semantics.
 | Supabase RPC | `src/infrastructure/persistence/**`, migrations | Server-owned writes and authority commits | SQL/function or service API | RPC repository adapters | Application repository ports | PARTIALLY_PROVEN |
 | Provider environment variables | `.env.example`, `src/infrastructure/supabase/config.ts` | Runtime/build configuration | Deployment secret/config store | Environment contract | Configuration functions | PARTIALLY_PROVEN |
 | OpenAI SDK/API | `src/infrastructure/models/`, `src/infrastructure/executors/` | Intent and image provider calls | Another model/provider adapter | `IntentModel` and executor ports | Application ports | PARTIALLY_PROVEN |
-| Vercel runtime | Next deployment metadata only | Hosting/build target | OCI process on another platform | Next standalone server | None in domain/application | PROVEN_ABSENT_FROM_CORE |
+| Vercel runtime | Next deployment metadata only | Hosting/build target | OCI process on another platform | Next standalone server | None in domain/application | PROVEN |
 
-Known bounded debt: `src/application/outcome/media/image-edit-service.ts` still
-accepts a type-only `SupabaseClient` for an existing storage path. It is
-allowlisted and unchanged by PORTABILITY-000; new application-level Supabase
-imports fail `pnpm portability:check`.
+The Vercel row is `PROVEN` only for the absence of a Vercel dependency in the
+domain/application core; it does not prove full runtime parity.
+
+Known baseline provider debt: `src/application/outcome/media/image-edit-service.ts`
+contains a concrete application-layer Supabase Storage coupling through an
+existing `SupabaseClient` path. It is frozen baseline debt, unchanged by
+PORTABILITY-000, and is the only allowlisted application Supabase dependency.
+New application-level Supabase imports fail `pnpm portability:check`.

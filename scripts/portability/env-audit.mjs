@@ -1,14 +1,21 @@
 import fs from "node:fs";
 
+const inventoryPath = "scripts/portability/environment-contract.json";
+const inventory = JSON.parse(fs.readFileSync(inventoryPath, "utf8"));
 const source = fs.readFileSync(".env.example", "utf8");
 const names = [...source.matchAll(/^([A-Z][A-Z0-9_]*)=/gm)].map((match) => match[1]);
-const classify = (name) => {
-  if (name.startsWith("NEXT_PUBLIC_")) return "BUILD_TIME_PUBLIC";
-  if (name.includes("ANON")) return "RUNTIME_PUBLIC";
-  if (name === "FIELD_BETA_CONTROLLED_EXECUTOR") return "TEST_ONLY";
-  if (/KEY|SECRET|TOKEN|PASSWORD/.test(name) && !name.includes("MODEL")) return "RUNTIME_SECRET";
-  if (/PROVIDER|BASE_URL|MODEL|VERSION|ENABLED|SAMPLING_RATE|ROUTES/.test(name)) return "RUNTIME_SERVER_CONFIG";
-  return "RUNTIME_SERVER_CONFIG";
-};
-const rows = names.map((name) => ({ name, class: classify(name) }));
-console.log(JSON.stringify({ variables: rows, values: "omitted", nextPublic: rows.filter((row) => row.name.startsWith("NEXT_PUBLIC_")) }, null, 2));
+const byName = new Map(inventory.variables.map((row) => [row.name, row]));
+const missingFromInventory = names.filter((name) => !byName.has(name));
+const missingRequired = inventory.variables.filter((row) => !row.optional && !names.includes(row.name)).map((row) => row.name);
+
+console.log(JSON.stringify({
+  authority: inventoryPath,
+  variables: names.map((name) => ({ ...byName.get(name), value: undefined })),
+  values: "omitted",
+  nextPublic: inventory.variables.filter((row) => row.classification === "BUILD_TIME_PUBLIC"),
+  missingFromInventory,
+  missingRequired,
+  ENVIRONMENT_CONTRACT_RATCHET: missingFromInventory.length || missingRequired.length ? "FAIL" : "PASS",
+}, null, 2));
+
+if (missingFromInventory.length || missingRequired.length) process.exitCode = 1;

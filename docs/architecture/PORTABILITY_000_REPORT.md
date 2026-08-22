@@ -14,19 +14,25 @@ or production deployment.
 - `NODE_VERSION`: 24
 - `PNPM_VERSION`: 11.19.0
 
-## Evidence dimensions
+## Migration readiness matrix
+
+Statuses are deliberately limited to `PROVEN`, `PARTIALLY_PROVEN`,
+`NOT_PROVEN`, and `BLOCKED`.
 
 | Dimension | Candidate status | Boundary |
 | --- | --- | --- |
-| Vercel to container runtime | PARTIALLY_PROVEN | Standalone build and ordinary Next build are both required; Docker smoke is CI evidence. |
-| Supabase DB to PostgreSQL | PARTIALLY_PROVEN | SQL/RLS/RPC register exists; no database migration was attempted. |
-| Supabase Auth extraction | PARTIALLY_PROVEN | Trusted `AuthorityContext` is portable; SSR/session adapter remains provider-specific. |
-| Supabase Storage extraction | PARTIALLY_PROVEN | Media object port exists; Supabase adapter remains current implementation. |
-| OpenAI provider extraction | PARTIALLY_PROVEN | Provider calls remain in infrastructure adapters; no portability smoke call is made. |
-| Local filesystem independence | PARTIALLY_PROVEN | Core paths have no durable writes; read-only container smoke is required. |
-| Environment portability | NOT_PROVEN | Existing `NEXT_PUBLIC_*` values create build-time coupling. |
+| `VERCEL_TO_CONTAINER_RUNTIME` | PARTIALLY_PROVEN | `CONTAINER_PROCESS_RUNTIME` is proven by CI build/smoke; `FULL_APPLICATION_RUNTIME_PARITY` is not proven by liveness alone. |
+| `SUPABASE_DB_PORTABILITY` | PARTIALLY_PROVEN | SQL/RLS/RPC register exists; no database migration was attempted. |
+| `SUPABASE_AUTH_PORTABILITY` | PARTIALLY_PROVEN | Trusted `AuthorityContext` is portable; SSR/session adapter remains provider-specific. |
+| `SUPABASE_STORAGE_PORTABILITY` | PARTIALLY_PROVEN | Media object port exists; the concrete baseline application coupling remains. |
+| `OPENAI_PROVIDER_PORTABILITY` | PARTIALLY_PROVEN | Provider calls remain in infrastructure adapters; no portability smoke call is made. |
+| `LOCAL_FILESYSTEM_INDEPENDENCE` | PARTIALLY_PROVEN | Core paths have no durable writes; CI proves a read-only root with `/tmp` writable. |
+| `ENVIRONMENT_PORTABILITY` | NOT_PROVEN | Existing `NEXT_PUBLIC_*` values create build-time coupling. |
 
 `FULLY_PORTABLE` is intentionally not claimed. `SINGLE_IMAGE_MULTI_ENV=NOT_YET_PROVEN`.
+The machine-checkable environment authority is
+`scripts/portability/environment-contract.json`; the human-readable table is
+checked for synchronization.
 
 ## Required CI evidence
 
