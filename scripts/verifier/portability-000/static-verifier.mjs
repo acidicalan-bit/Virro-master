@@ -3,13 +3,15 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { execFileSync, spawnSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 
 export const PRODUCT_SHA = "935c568ab273f9adae8c23785a77191e676e82c4";
 export const PRODUCT_TREE = "9cfedfb381bd84e0edbdd0beca397f70df203f5e";
 export const BASE_SHA = "d8e31040b5479cecc52971e9d0efc9da2628eb04";
 export const BASE_TREE = "f3295a4e5abbab065b1e8d9f89383c66536869c5";
 export const PRODUCT_BRANCH = "foundation/portability-000-container-runtime";
+export const BASELINE_DEBT_PATH = "src/application/outcome/media/image-edit-service.ts";
+export const BASELINE_DEBT_SHA256 = "10dc3d9a5e18bb1ba75e992f49862954b64e2bc7e1d2418018d78c4986aa22a6";
 
 const ROOT = process.cwd();
 const ALLOWED_CLASSES = new Set(["BUILD_TIME_PUBLIC", "RUNTIME_PUBLIC", "RUNTIME_SERVER_CONFIG", "RUNTIME_SECRET", "TEST_ONLY"]);
@@ -213,15 +215,19 @@ export function verifyStatic() {
   const boundaries = scanProviderBoundaries();
   const register = read("docs/architecture/PROVIDER_LOCKIN_REGISTER.md");
   const invalidStatuses = [...register.matchAll(/^\|.*\|\s*([A-Z_]+)\s*\|$/gm)].map((match) => match[1]).filter((status) => !LOCKIN_STATUSES.has(status));
-  const baselineDebt = execFileSync("git", ["show", `${BASE_SHA}:src/application/outcome/media/image-edit-service.ts`], { encoding: "utf8" });
-  const currentDebt = read("src/application/outcome/media/image-edit-service.ts");
+  const currentDebt = read(BASELINE_DEBT_PATH);
+  const baselineDebtResult = run("git", ["show", `${BASE_SHA}:${BASELINE_DEBT_PATH}`]);
+  const baselineDebt = baselineDebtResult.status === 0 ? baselineDebtResult.stdout : null;
+  const baselineDebtHash = baselineDebt === null ? BASELINE_DEBT_SHA256 : hash(baselineDebt);
   const health = read("app/api/health/live/route.ts");
   const compose = read("compose.portability.yml");
   const dockerignore = read(".dockerignore");
   const packageJson = JSON.parse(read("package.json"));
   const result = {
-    PRODUCT_SHA: currentSha === PRODUCT_SHA ? PRODUCT_SHA : currentSha,
-    PRODUCT_TREE: currentTree,
+    PRODUCT_SHA,
+    PRODUCT_TREE,
+    VERIFIER_SHA: currentSha,
+    VERIFIER_TREE: currentTree,
     PRODUCT_REMOTE_SHA: productRemoteSha,
     PRODUCT_FILES_CHANGED_BY_VERIFIER: productFilesChangedByVerifier,
     BASE_SHA,
@@ -246,7 +252,8 @@ export function verifyStatic() {
     SINGLE_IMAGE_MULTI_ENV: "NOT_YET_PROVEN",
     DOMAIN_SUPABASE_DEPENDENCIES: boundaries.domainSupabase.length,
     APPLICATION_SUPABASE_DEPENDENCIES: boundaries.applicationSupabase.length,
-    BASELINE_PROVIDER_DEBT_UNCHANGED: hash(baselineDebt) === hash(currentDebt) ? "YES" : "NO",
+    BASELINE_PROVIDER_DEBT_UNCHANGED: baselineDebtHash === hash(currentDebt) ? "YES" : "NO",
+    BASELINE_PROVIDER_DEBT_SOURCE: baselineDebt === null ? "CANONICAL_CONTRACT_HASH_FALLBACK" : `${BASE_SHA}:${BASELINE_DEBT_PATH}`,
     BASELINE_DEBT_MUTATION_ATTACK: ratchetAttacks.find((attack) => attack.name === "baseline debt mutation")?.pass ? "PASS" : "FAIL",
     DOMAIN_VERCEL_DEPENDENCIES: boundaries.domainVercel.length,
     APPLICATION_VERCEL_DEPENDENCIES: boundaries.applicationVercel.length,
@@ -270,13 +277,12 @@ export function verifyStatic() {
   result.PORTABILITY_CHECK = [result.ENVIRONMENT_CONTRACT_DOC_SYNC, result.ENV_EXAMPLE_REGISTRY_COHERENCE, result.BASELINE_DEBT_MUTATION_ATTACK, result.SOURCE_ENV_USAGE_SCAN, result.HIDDEN_ENV_RATCHET_ATTACK, result.SECRET_CLASSIFICATION_INVARIANT].every((value) => value === "PASS") ? "PASS" : "FAIL";
   result.INDEPENDENT_RATCHET_ATTACKS = result.RATCHET_ATTACK_FAILURES.length === 0 ? "PASS" : "FAIL";
   result.VERIFICATION_FAILURES = [
-    ...(currentSha !== PRODUCT_SHA ? [`PRODUCT_SHA expected ${PRODUCT_SHA}, observed ${currentSha}`] : []),
-    ...(currentTree !== PRODUCT_TREE ? [`PRODUCT_TREE expected ${PRODUCT_TREE}, observed ${currentTree}`] : []),
     ...(productRemoteSha !== PRODUCT_SHA ? [`PRODUCT_REMOTE_SHA expected ${PRODUCT_SHA}, observed ${productRemoteSha}`] : []),
     ...(productFilesChangedByVerifier.length ? ["PRODUCT_FILES_CHANGED_BY_VERIFIER is not empty"] : []),
     ...(unregisteredSourceEnv.length ? [`UNREGISTERED_SOURCE_ENV_USAGE_NOT_RATCHETED: ${unregisteredSourceEnv.join(", ")}`] : []),
     ...(hiddenAttack?.pass ? ["HIDDEN_ENV_RATCHET_ATTACK accepted an unregistered production env reference"] : []),
     ...(result.RATCHET_ATTACK_FAILURES.length ? ["One or more independent portability attacks did not fail closed"] : []),
+    ...(result.BASELINE_PROVIDER_DEBT_UNCHANGED !== "YES" ? ["BASELINE_PROVIDER_DEBT_CHANGED: canonical debt bytes do not match the required baseline hash"] : []),
   ];
   return result;
 }

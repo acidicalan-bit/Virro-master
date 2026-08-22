@@ -56,6 +56,10 @@ environment access.
 - Domain Supabase/Vercel/Next/OpenAI dependencies: zero.
 - Application Supabase dependency: one frozen baseline path.
 - Baseline debt byte identity: pass.
+- Baseline debt comparison uses the canonical contract SHA-256
+  (`10dc3d9a5e18bb1ba75e992f49862954b64e2bc7e1d2418018d78c4986aa22a6`)
+  when a shallow CI checkout cannot resolve the historical blob; the current
+  product bytes still match that required digest.
 - Provider register vocabulary and required terms: pass.
 - Health endpoint is process-liveness-only: pass by static inspection.
 - `SINGLE_IMAGE_MULTI_ENV`: `NOT_YET_PROVEN`.
