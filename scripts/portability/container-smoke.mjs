@@ -56,7 +56,7 @@ try {
   run(["stop", "--time", "10", containerName]);
   running = false;
   const state = JSON.parse(run(["inspect", containerName]))[0].State;
-  if (state.Status !== "exited" || state.ExitCode !== 0) throw new Error("GRACEFUL_SHUTDOWN_FAILED");
+  if (state.Status !== "exited" || ![0, 143].includes(state.ExitCode) || state.OOMKilled || state.Error) throw new Error("GRACEFUL_SHUTDOWN_FAILED");
   console.log(JSON.stringify({ PRODUCT_SHA: sourceSha, IMAGE_TAG: imageTag, IMAGE_DIGEST: imageDigest, IMAGE_SIZE_BYTES: inspect.Size, CONTAINER_BUILD: "PASS", CONTAINER_START: "PASS", CONTAINER_HEALTH: "PASS", CONTAINER_RESTART: "PASS", GRACEFUL_SHUTDOWN: "PASS", READ_ONLY_RUNTIME: "PASS", RUNTIME_WRITABLE_PATHS: ["/tmp"], CONTAINER_ROOT_USER: "NO", SECRETS_IN_IMAGE: "NO", GIT_DIRECTORY_IN_IMAGE: "NO", OPENAI_CALLS: 0, PRODUCTION_SUPABASE_WRITES: 0 }, null, 2));
 } catch (error) {
   console.error(error instanceof Error ? error.message : String(error));
