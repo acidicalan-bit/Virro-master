@@ -14,6 +14,10 @@ is necessary but not sufficient. Marker validation is fail-closed to the exact
 frozen schema version `build002-readiness-authority-commit-v0.1`, including a
 non-empty historical dependency snapshot ID.
 
+The temporal invariant is also fail-closed: `evaluationTime <= committedAt <=
+revalidatedAt`. Equal instants are valid; an evaluation after commit or a
+revalidation before commit is rejected using the frozen instant semantics.
+
 The operation then re-resolves C0-D from the marker's server-derived
 transaction, validates the historical readiness and dependency graph, resolves
 the current C1-A signal universe and C1-B dependency snapshot, and delegates

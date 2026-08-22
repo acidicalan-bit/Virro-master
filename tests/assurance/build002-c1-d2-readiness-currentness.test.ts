@@ -271,6 +271,48 @@ describe("BUILD002-C1-D2 post-commit readiness currentness", () => {
     expect(fixture.calls).toEqual(["SCOPED_COMMIT_READ"]);
   });
 
+  it("rejects a marker committed before its evaluation instant", async () => {
+    const fixture = makeFixture();
+    fixture.dependencies.scopedCommitReader = {
+      findByScopedId: async () => {
+        fixture.calls.push("SCOPED_COMMIT_READ");
+        return { ...fixture.commit, committedAt: "2026-08-21T09:59:59.999Z" };
+      },
+    };
+    await expect(run(fixture)).rejects.toEqual(new OutcomeReadinessCurrentnessError("HISTORICAL_GRAPH_INVALID"));
+    expect(fixture.calls).toEqual(["SCOPED_COMMIT_READ"]);
+  });
+
+  it("accepts a marker committed after its evaluation instant", async () => {
+    const fixture = makeFixture();
+    const result = await run(fixture);
+    expect(result.currentness).toBe("CURRENT");
+  });
+
+  it("accepts equal evaluation and commit instants", async () => {
+    const fixture = makeFixture();
+    fixture.dependencies.scopedCommitReader = { findByScopedId: async () => ({ ...fixture.commit, committedAt: ASSESSMENT_TIME }) };
+    const result = await run(fixture);
+    expect(result.currentness).toBe("CURRENT");
+  });
+
+  it("rejects revalidation before marker commit without current graph reads", async () => {
+    const fixture = makeFixture();
+    fixture.dependencies.scopedCommitReader = { findByScopedId: async () => ({ ...fixture.commit, committedAt: "2026-08-21T11:00:01.000Z" }) };
+    fixture.dependencies.clock = { now: () => "2026-08-21T11:00:00.500Z" };
+    await expect(run(fixture)).rejects.toEqual(new OutcomeReadinessCurrentnessError("CURRENTNESS_PHASE_FAILED"));
+    expect(fixture.calls).not.toContain("C1-A");
+    expect(fixture.calls).not.toContain("C1-B");
+  });
+
+  it("accepts revalidation exactly at marker commit", async () => {
+    const fixture = makeFixture();
+    fixture.dependencies.scopedCommitReader = { findByScopedId: async () => ({ ...fixture.commit, committedAt: REVALIDATION_TIME }) };
+    fixture.dependencies.clock = { now: () => REVALIDATION_TIME };
+    const result = await run(fixture);
+    expect(result.currentness).toBe("CURRENT");
+  });
+
   it("fails closed when an application reader returns a foreign marker", async () => {
     const fixture = makeFixture();
     fixture.dependencies.scopedCommitReader = { findByScopedId: async () => ({ ...fixture.commit, ownerTenantId: FOREIGN_TENANT, outcomeTransactionId: FOREIGN_TRANSACTION }) };

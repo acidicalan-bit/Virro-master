@@ -2,6 +2,7 @@ import type { AuthorityContext } from "@/src/domain/auth/authority";
 import {
   currentDefaultEvaluator,
   evaluateReadinessValidity,
+  instantBefore,
   instantEquals,
   parseInstant,
   sameEvaluatorIdentity,
@@ -140,6 +141,9 @@ export class OutcomeReadinessAuthorityCurrentnessRevalidator {
     let currentEvaluator: EvaluatorIdentity;
     try {
       revalidatedAt = parseInstant(this.clock.now());
+      if (instantBefore(revalidatedAt, commit.committedAt)) {
+        throw new OutcomeReadinessCurrentnessError("CURRENTNESS_PHASE_FAILED");
+      }
       currentEvaluator = this.evaluator.current();
       if (!verifyEvaluatorIdentity(currentEvaluator)) throw new Error("invalid evaluator");
     } catch {
@@ -283,6 +287,9 @@ function assertCommitShape(commit: ReadinessAuthorityCommitRecord, tenantId: str
   try {
     parseInstant(commit.evaluationTime);
     parseInstant(commit.committedAt);
+    if (instantBefore(commit.committedAt, commit.evaluationTime)) {
+      throw new Error("historical marker committed before evaluation");
+    }
   } catch {
     throw new OutcomeReadinessCurrentnessError("HISTORICAL_GRAPH_INVALID");
   }
