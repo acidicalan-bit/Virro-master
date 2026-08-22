@@ -7,7 +7,8 @@ const hostPort = String(Number(process.env.PORTABILITY_HOST_PORT || 32000) + (pr
 let running = false;
 
 function run(args, options = {}) {
-  return execFileSync("docker", args, { encoding: "utf8", stdio: options.stdio || ["ignore", "pipe", "pipe"] }).trim();
+  const output = execFileSync("docker", args, { encoding: "utf8", stdio: options.stdio || ["ignore", "pipe", "pipe"] });
+  return String(output ?? "").trim();
 }
 function wait(ms) { return new Promise((resolve) => setTimeout(resolve, ms)); }
 async function waitHealthy() {
