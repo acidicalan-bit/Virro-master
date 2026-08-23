@@ -19,6 +19,7 @@ const PUBLIC_KEY_EXCEPTIONS = new Set([
 const SENSITIVE_NAME_PATTERN = /(?:SECRET|PASSWORD|TOKEN|PRIVATE_KEY|SERVICE_ROLE|API_KEY)/;
 const BASELINE_DEBT_PATH = "src/application/outcome/media/image-edit-service.ts";
 const BASELINE_DEBT_SHA256 = "10dc3d9a5e18bb1ba75e992f49862954b64e2bc7e1d2418018d78c4986aa22a6";
+const SOURCE_FILE_EXTENSIONS = /\.(?:ts|tsx|mts|cts|js|mjs|cjs)$/;
 const SYSTEM_ENV_ALLOWLIST = Object.freeze({
   NODE_ENV: "Node runtime mode; not application configuration.",
 });
@@ -31,7 +32,7 @@ function filesUnder(root, relativeRoot) {
     for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
       const absolute = path.join(directory, entry.name);
       if (entry.isDirectory()) visit(absolute);
-      else if (/\.(?:ts|tsx|js|mjs)$/.test(entry.name)) result.push(path.relative(root, absolute).replaceAll(path.sep, "/"));
+      else if (SOURCE_FILE_EXTENSIONS.test(entry.name)) result.push(path.relative(root, absolute).replaceAll(path.sep, "/"));
     }
   };
   visit(absoluteRoot);

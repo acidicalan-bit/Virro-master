@@ -129,6 +129,9 @@ describe("PORTABILITY-000 runtime contract", () => {
       mutate("src/application/portability-hidden-bracket.ts", () => "export const hidden = process.env[\"PORTABILITY_HIDDEN_BRACKET\"];\n");
       mutate("src/application/portability-hidden-single-quote.ts", () => "export const hidden = process.env['PORTABILITY_HIDDEN_SINGLE_QUOTE'];\n");
       mutate("src/application/portability-dynamic-env.ts", () => "const key = 'PORTABILITY_DYNAMIC'; export const hidden = process.env[key];\n");
+      mutate("src/infrastructure/portability-hidden-env.mts", () => "export const hidden = process.env.PORTABILITY_HIDDEN_MTS_CONFIG;\n");
+      mutate("src/infrastructure/portability-hidden-bracket.mts", () => "export const hidden = process.env[\"PORTABILITY_HIDDEN_MTS_BRACKET\"];\n");
+      mutate("src/infrastructure/portability-dynamic-env.mts", () => "const key = \"PORTABILITY_DYNAMIC_MTS\"; process.env[key];\n");
       mutate("scripts/portability/environment-contract.json", (source) => {
         const inventory = JSON.parse(source);
         inventory.variables = inventory.variables.filter((row: { name: string }) => row.name !== "OPENAI_API_KEY");
