@@ -23,6 +23,7 @@ const predecessorTests = [
   "tests/native/build002-c1-b-postgres.e3.test.ts",
   "tests/native/build002-c1-c-postgres.e3.test.ts",
 ];
+const expectedPromotionFixFiles = new Set(predecessorTests);
 
 function git(...args: string[]): string {
   return execFileSync("git", args, { cwd: process.cwd(), encoding: "utf8" }).trim();
@@ -96,6 +97,16 @@ describe("BUILD002-C1-D3-R3 independent verifier", () => {
     expect(migrations).toContain(R3.split("/").pop());
     expect(git("diff", "--quiet", R2_SHA, PRODUCT_SHA, "--", R0)).toBe("");
     expect(git("diff", "--quiet", R2_SHA, PRODUCT_SHA, "--", R1)).toBe("");
+  });
+
+  it("proves the promotion fix delta is predecessor-test-only", () => {
+    const delta = git("diff", "--name-status", VERIFIED_R3_SHA, PRODUCT_SHA)
+      .split(/\r?\n/)
+      .filter(Boolean)
+      .map((line) => line.split(/\s+/));
+    expect(delta).toHaveLength(expectedPromotionFixFiles.size);
+    expect(delta.every(([status, path]) => status === "M" && expectedPromotionFixFiles.has(path))).toBe(true);
+    expect(delta.some(([, path]) => path.startsWith("src/") || path.startsWith("supabase/migrations/") || path.startsWith(".github/workflows/"))).toBe(false);
   });
 
   it("proves predecessor tests do not own global migration cardinality or latest-name ratchets", () => {
