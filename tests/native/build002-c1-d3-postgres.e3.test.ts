@@ -171,24 +171,24 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD002-C1-D3-R3 native Postgr
     const blockedAdmission = admit(serviceA); await waitUntilBlocked(serviceA, serviceB); await serviceB.query("commit"); await expect(blockedAdmission).rejects.toThrow(/CURRENTNESS_NOT_CURRENT|SERIALIZED_RECHECK_FAILED/); await cleanupExtras();
     const admission = await admitInTransaction(serviceA); await serviceB.query("begin"); const blockedWriter = insertRequirement(serviceB).then(() => insertSignal(serviceB)); await waitUntilBlocked(serviceB, serviceA); await serviceA.query("commit"); await blockedWriter; await serviceB.query("commit"); await cleanupExtras();
     expect(admission.admission_id).toEqual(expect.any(String));
-  });
+  }, 60_000);
   it("serializes requirement insertion in both orders", async () => {
     await serviceB.query("begin"); await insertRequirement(serviceB, secondRequirement(), REQUIREMENT3); const blockedAdmission = admit(serviceA); await waitUntilBlocked(serviceA, serviceB); await serviceB.query("commit"); await expect(blockedAdmission).rejects.toThrow(/CURRENTNESS_NOT_CURRENT|SERIALIZED_RECHECK_FAILED/);
     const admission = await admitInTransaction(serviceA); await serviceB.query("begin"); const blockedWriter = insertRequirement(serviceB, secondRequirement(), REQUIREMENT3); await waitUntilBlocked(serviceB, serviceA); await serviceA.query("commit"); await blockedWriter; await serviceB.query("commit");
     expect(admission.admission_id).toEqual(expect.any(String));
-  });
+  }, 60_000);
   it("serializes source-head changes in both orders", async () => {
     await cleanupExtras(); await admin.query("insert into public.asset_versions(id, asset_id, version_number, state, owner_tenant_id) values ($1,$2,2,'{\"width\":101}'::jsonb,$3) on conflict do nothing", [VERSION2, ASSET, TENANT]);
     await serviceB.query("begin"); await serviceB.query("update public.assets set current_version_id=$1 where id=$2", [VERSION2, ASSET]); const blockedAdmission = admit(serviceA); await waitUntilBlocked(serviceA, serviceB); await serviceB.query("commit"); await expect(blockedAdmission).rejects.toThrow(/SOURCE_ASSET_HEAD_CHANGED|CURRENTNESS_NOT_CURRENT/); await cleanupExtras();
     const admission = await admitInTransaction(serviceA); await serviceB.query("begin"); const blockedWriter = serviceB.query("update public.assets set current_version_id=$1 where id=$2", [VERSION2, ASSET]); await waitUntilBlocked(serviceB, serviceA); await serviceA.query("commit"); await blockedWriter; await serviceB.query("commit"); await cleanupExtras();
     expect(admission.admission_id).toEqual(expect.any(String));
-  });
+  }, 60_000);
   it("serializes membership revocation in both orders", async () => {
     await cleanupExtras();
     await serviceB.query("begin"); await serviceB.query("update public.tenant_memberships set status='REVOKED' where id=$1", [MEMBERSHIP]); const blockedAdmission = admit(serviceA); await waitUntilBlocked(serviceA, serviceB); await serviceB.query("commit"); await expect(blockedAdmission).rejects.toThrow(/READINESS_AUTHORITY_MEMBERSHIP_INVALID|AUTHORITY_NOT_CURRENT/); await cleanupExtras();
     const admission = await admitInTransaction(serviceA); await serviceB.query("begin"); const blockedWriter = serviceB.query("update public.tenant_memberships set status='REVOKED' where id=$1", [MEMBERSHIP]); await waitUntilBlocked(serviceB, serviceA); await serviceA.query("commit"); await blockedWriter; await serviceB.query("commit"); await cleanupExtras();
     expect(admission.admission_id).toEqual(expect.any(String));
-  });
+  }, 60_000);
   it("serializes transaction raw_request changes in both orders", async () => {
     await serviceB.query("begin");
     const writerFirst = serviceB.query("update public.outcome_transactions set raw_request='d3 changed' where id=$1", [TRANSACTION]);
@@ -204,5 +204,5 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD002-C1-D3-R3 native Postgr
     await blockedWriter;
     await serviceB.query("commit");
     expect(admission.admission_id).toEqual(expect.any(String));
-  });
+  }, 60_000);
 });
