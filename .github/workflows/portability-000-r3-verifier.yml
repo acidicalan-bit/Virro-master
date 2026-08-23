@@ -11,6 +11,8 @@ permissions:
 
 env:
   PRODUCT_SHA: 6f3dc26601d453ff699e01259bdc09c61bdd2679
+  BASE_SHA: d8e31040b5479cecc52971e9d0efc9da2628eb04
+  R3_SHA: 5144e87d0f6f7ba4e403f40aa45061d88ed4cd48
   NODE_VERSION: 24
   PNPM_VERSION: 11.19.0
 
@@ -28,6 +30,8 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Fetch frozen audit ancestry
+        run: git fetch --no-tags origin ${BASE_SHA} ${R3_SHA} ${PRODUCT_SHA}
       - name: Assert verifier identity and fail-closed evidence
         run: node scripts/verifier/portability-000-r3/verify.mjs
       - name: Run verifier test
