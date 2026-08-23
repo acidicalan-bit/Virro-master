@@ -201,7 +201,7 @@ begin
   return v_admission;
 exception when others then
   if sqlstate in ('P0001','42501','55000') then raise; end if;
-  raise exception 'SERIALIZED_RECHECK_FAILED [%] %', sqlstate, sqlerrm;
+  raise exception 'SERIALIZED_RECHECK_FAILED';
 end;
 $$;
 
