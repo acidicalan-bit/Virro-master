@@ -55,3 +55,23 @@ complete `PORTABILITY_STATIC`, `CONTAINER_BUILD`, `CONTAINER_SMOKE`, assurance,
 regression, TypeScript, lint, and production build jobs. A local machine without
 Docker is a blocker for local smoke only; CI remains the authoritative container
 evidence source.
+
+## PORTABILITY-000-COMPAT-001
+
+The post-close Vercel deployment for `be11ccf25357077dbc2d6ac278729d4a1f10f7a5`
+failed with `ENOENT` while looking for
+`/vercel/path0/.next/next-server.js.nft.json` during `pnpm run build`. The
+failure was reproduced against deployment `dpl_CuNgkm5JNQxS45anGDc6dbSNYJen`
+(`main`, state `ERROR`). The preceding `d8e31040b5479cecc52971e9d0efc9da2628eb04`
+deployment was ready.
+
+The causal boundary is the unconditional `output: "standalone"` in
+`next.config.ts`: it selects the container packaging layout for a native
+Vercel build, where the Vercel builder expects the normal Next output graph.
+COMPAT-001 makes this an infrastructure-only build adapter. With the
+platform-provided `VERCEL=1`, Next uses native Vercel output; with `VERCEL`
+unset, the existing standalone output is preserved for the OCI image. No
+application, domain, database, authority, or provider behavior changes.
+
+The actual Vercel preview for the exact candidate SHA remains the authoritative
+closure gate. A local `VERCEL=1 pnpm build` is supporting evidence only.

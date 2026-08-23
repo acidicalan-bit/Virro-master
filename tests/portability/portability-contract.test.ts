@@ -9,8 +9,10 @@ const root = process.cwd();
 const read = (file: string) => readFileSync(resolve(root, file), "utf8");
 
 describe("PORTABILITY-000 runtime contract", () => {
-  it("uses Next standalone output without changing image configuration", () => {
+  it("uses native Vercel output and standalone output elsewhere", () => {
     const config = read("next.config.ts");
+    expect(config).toContain('const isVercelBuild = process.env.VERCEL === "1";');
+    expect(config).toContain("...(isVercelBuild ? {} : { output: \"standalone\" })");
     expect(config).toContain('output: "standalone"');
     expect(config).toContain("remotePatterns");
   });
