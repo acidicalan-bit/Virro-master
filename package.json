@@ -2,6 +2,10 @@
   "name": "intent-lab",
   "version": "0.1.1",
   "private": true,
+  "packageManager": "pnpm@11.19.0",
+  "engines": {
+    "node": ">=24 <25"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -19,7 +23,10 @@
     "test:assurance": "vitest run tests/assurance --reporter=verbose",
     "assurance:manifest": "node scripts/assurance/generate-build001-manifest.mts",
     "assurance:check": "node scripts/assurance/generate-build001-manifest.mts --check",
-    "assurance:environment": "node scripts/assurance/environment-status.mjs"
+    "assurance:environment": "node scripts/assurance/environment-status.mjs",
+    "portability:check": "node scripts/portability/check.mjs",
+    "portability:env": "node scripts/portability/env-audit.mjs",
+    "portability:smoke": "node scripts/portability/container-smoke.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",
