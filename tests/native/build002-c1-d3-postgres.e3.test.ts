@@ -192,14 +192,17 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD002-C1-D3-R3 native Postgr
   it("serializes transaction raw_request changes in both orders", async () => {
     await serviceB.query("begin");
     const writerFirst = serviceB.query("update public.outcome_transactions set raw_request='d3 changed' where id=$1", [TRANSACTION]);
-    await expect(writerFirst).rejects.toThrow();
-    await rollbackQuiet(serviceB);
+    await writerFirst;
+    await serviceB.query("commit");
+    await expect(admit(serviceA)).rejects.toThrow(/CURRENTNESS_NOT_CURRENT|SERIALIZED_RECHECK_FAILED/);
+    await cleanupExtras();
     const admission = await admitInTransaction(serviceA);
     await serviceB.query("begin");
     const blockedWriter = serviceB.query("update public.outcome_transactions set raw_request='d3 changed' where id=$1", [TRANSACTION]);
-    await expect(blockedWriter).rejects.toThrow();
-    await rollbackQuiet(serviceB);
+    await waitUntilBlocked(serviceB, serviceA);
     await serviceA.query("commit");
+    await blockedWriter;
+    await serviceB.query("commit");
     expect(admission.admission_id).toEqual(expect.any(String));
   });
 });

@@ -24,6 +24,7 @@ declare
   v_blueprint record;
   v_profile record;
   v_snapshot record;
+  v_readiness record;
   v_existing record;
   v_refs jsonb;
   v_req_hashes jsonb;
@@ -90,6 +91,10 @@ begin
   lock table public.build002_delegation_readiness in share mode;
   select * into v_snapshot from public.build002_dependency_snapshots where owner_tenant_id = v_tenant and outcome_transaction_id = v_tx_id and dependency_snapshot_hash = v_commit.dependency_snapshot_hash for share;
   if not found then raise exception 'HISTORICAL_GRAPH_INVALID'; end if;
+  select * into v_readiness from public.build002_delegation_readiness where owner_tenant_id = v_tenant and outcome_transaction_id = v_tx_id and id = v_commit.readiness_id for share;
+  if not found or v_readiness.readiness_content_hash is distinct from v_commit.readiness_content_hash or v_readiness.state is distinct from 'READY' or v_readiness.dependency_snapshot_hash is distinct from v_commit.dependency_snapshot_hash then raise exception 'HISTORICAL_GRAPH_INVALID'; end if;
+  if v_readiness.valid_until is not null and v_readiness.valid_until <= v_now then raise exception 'READINESS_EXPIRED'; end if;
+  if (v_readiness.evaluator->>'schemaVersion') is distinct from 'build002-qualification-evaluator-v0.1' or (v_readiness.evaluator->>'version') is distinct from '0.2.0' or (v_readiness.evaluator->>'definitionHash') is distinct from 'df4543bb4dae1b1e14e4d1569722aef619b292ab41354388e3f1878326af1746' then raise exception 'EVALUATOR_CHANGED'; end if;
   if p_current_material->'dependencySnapshot'->>'ownerTenantId' is distinct from v_snapshot.owner_tenant_id::text
      or p_current_material->'dependencySnapshot'->>'transactionId' is distinct from v_snapshot.outcome_transaction_id::text
      or p_current_material->'dependencySnapshot'->>'schemaVersion' is distinct from v_snapshot.schema_version
