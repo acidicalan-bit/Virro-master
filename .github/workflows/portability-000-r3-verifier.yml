@@ -95,6 +95,8 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Fetch frozen audit ancestry
+        run: git fetch --no-tags origin ${BASE_SHA} ${R3_SHA} ${PRODUCT_SHA}
       - run: pnpm portability:check
       - run: pnpm portability:env
       - run: pnpm assurance:check
