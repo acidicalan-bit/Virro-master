@@ -21,11 +21,6 @@ const BASELINE_DEBT_PATH = "src/application/outcome/media/image-edit-service.ts"
 const BASELINE_DEBT_SHA256 = "10dc3d9a5e18bb1ba75e992f49862954b64e2bc7e1d2418018d78c4986aa22a6";
 const SYSTEM_ENV_ALLOWLIST = Object.freeze({
   NODE_ENV: "Node runtime mode; not application configuration.",
-  PORT: "Process listener port supplied by the runtime.",
-  HOSTNAME: "Container-provided host identity; not tenant or provider configuration.",
-  SOURCE_SHA: "OCI build identity supplied by the container build contract.",
-  CI: "CI runner marker used only for test/runtime detection.",
-  GITHUB_ACTIONS: "GitHub Actions runner marker used only by CI.",
 });
 
 function filesUnder(root, relativeRoot) {
