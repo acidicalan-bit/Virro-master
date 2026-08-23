@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - foundation/portability-000-container-runtime
+      - foundation/portability-000-r3
   workflow_dispatch:
 
 permissions:
@@ -109,4 +110,17 @@ jobs:
         env:
           BUILD002_NATIVE_PG_C1_D2: "true"
           BUILD002_NATIVE_PG_C1_D2_URL: postgresql://postgres:postgres@localhost:5432/virro_portability_d2
-        run: pnpm exec vitest run tests/native/build002-c1-d2-scoped-reader.e3.test.ts --reporter=verbose
+        run: |
+          set -o pipefail
+          pnpm exec vitest run tests/native/build002-c1-d2-scoped-reader.e3.test.ts --reporter=verbose 2>&1 | tee d2-native.log
+          node -e "const s=require('fs').readFileSync('d2-native.log','utf8').replace(/\\x1b\\[[0-9;]*m/g,''); if (!/Tests\\s+1 passed/.test(s)) process.exit(1)"
+          rm d2-native.log
+      - name: PostgreSQL 17 D0 authority commit
+        env:
+          BUILD002_NATIVE_PG_C1_D0: "true"
+          BUILD002_NATIVE_PG_C1_D0_URL: postgresql://postgres:postgres@localhost:5432/postgres
+        run: |
+          set -o pipefail
+          pnpm exec vitest run tests/native/build002-c1-d0-postgres.e3.test.ts --reporter=verbose 2>&1 | tee d0-native.log
+          node -e "const s=require('fs').readFileSync('d0-native.log','utf8').replace(/\\x1b\\[[0-9;]*m/g,''); if (!/Tests\\s+10 passed/.test(s)) process.exit(1)"
+          rm d0-native.log

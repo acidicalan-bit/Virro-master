@@ -19,6 +19,14 @@ const PUBLIC_KEY_EXCEPTIONS = new Set([
 const SENSITIVE_NAME_PATTERN = /(?:SECRET|PASSWORD|TOKEN|PRIVATE_KEY|SERVICE_ROLE|API_KEY)/;
 const BASELINE_DEBT_PATH = "src/application/outcome/media/image-edit-service.ts";
 const BASELINE_DEBT_SHA256 = "10dc3d9a5e18bb1ba75e992f49862954b64e2bc7e1d2418018d78c4986aa22a6";
+const SYSTEM_ENV_ALLOWLIST = Object.freeze({
+  NODE_ENV: "Node runtime mode; not application configuration.",
+  PORT: "Process listener port supplied by the runtime.",
+  HOSTNAME: "Container-provided host identity; not tenant or provider configuration.",
+  SOURCE_SHA: "OCI build identity supplied by the container build contract.",
+  CI: "CI runner marker used only for test/runtime detection.",
+  GITHUB_ACTIONS: "GitHub Actions runner marker used only by CI.",
+});
 
 function filesUnder(root, relativeRoot) {
   const absoluteRoot = path.join(root, relativeRoot);
@@ -65,6 +73,27 @@ function read(root, relative) {
 function isSensitiveName(name) {
   if (PUBLIC_KEY_EXCEPTIONS.has(name)) return false;
   return SENSITIVE_NAME_PATTERN.test(name);
+}
+
+function lineNumber(source, offset) {
+  return source.slice(0, offset).split(/\r?\n/).length;
+}
+
+function sourceEnvironmentAccess(root) {
+  const files = [...filesUnder(root, "src"), ...filesUnder(root, "app")];
+  if (fs.existsSync(path.join(root, "proxy.ts"))) files.push("proxy.ts");
+  const accesses = [];
+  const dynamic = [];
+  for (const relative of files) {
+    const source = read(root, relative);
+    const record = (name, index, form) => accesses.push({ name, path: relative, line: lineNumber(source, index), form });
+    for (const match of source.matchAll(/process\.env\.([A-Z][A-Z0-9_]*)/g)) record(match[1], match.index, "dot");
+    for (const match of source.matchAll(/process\.env\[\s*(["'])([A-Z][A-Z0-9_]*)\1\s*\]/g)) record(match[2], match.index, "bracket");
+    for (const match of source.matchAll(/process\.env\[\s*(?!["'])([^\]\r\n]+)\]/g)) {
+      dynamic.push({ path: relative, line: lineNumber(source, match.index), expression: match[1].trim() });
+    }
+  }
+  return { accesses, dynamic };
 }
 
 export function inspect(root = process.cwd()) {
@@ -157,6 +186,10 @@ export function inspect(root = process.cwd()) {
   const publicInventory = inventoryRows.filter((row) => row.classification === "BUILD_TIME_PUBLIC").map((row) => row.name);
   for (const name of publicInventory) nextPublic.add(name);
   const unregisteredNextPublic = [...nextPublic].filter((name) => !publicInventory.includes(name));
+  const sourceAccess = sourceEnvironmentAccess(root);
+  const systemEnvNames = new Set(Object.keys(SYSTEM_ENV_ALLOWLIST));
+  const sourceNames = [...new Set(sourceAccess.accesses.map((access) => access.name))].sort();
+  const unregisteredSourceEnv = sourceNames.filter((name) => !inventoryByName.has(name) && !systemEnvNames.has(name));
 
   const envDocRows = fs.existsSync(path.join(root, "docs/architecture/ENVIRONMENT_CONTRACT.md"))
     ? parseDocRows(read(root, "docs/architecture/ENVIRONMENT_CONTRACT.md"))
@@ -182,8 +215,8 @@ export function inspect(root = process.cwd()) {
     && /org\.opencontainers\.image\.revision/.test(dockerfile);
   const sourceIdentityFailClosed = /\^\[0-9a-f\]\{40\}/.test(dockerfile) && !/SOURCE_SHA=unknown/.test(dockerfile);
 
-  if (missing.length || coreViolations.length || inventoryErrors.length || sensitiveClassificationErrors.length || missingEnvRegistry.length || missingRequired.length || unregisteredNextPublic.length || registerDrift.length || invalidLockinStatuses.length || !inventoryAuthority || !environmentDocSync || applicationSupabaseDebt.length !== 1 || !baselineDebtUnchanged || !standalone || !dockerContract || !sourceIdentityFailClosed) {
-    failures.push({ missing, coreViolations, inventoryErrors, sensitiveClassificationErrors, missingEnvRegistry, missingRequired, unregisteredNextPublic, registerDrift, invalidLockinStatuses, inventoryAuthority, environmentDocSync, applicationSupabaseDebt, baselineDebtUnchanged, standalone, dockerContract, sourceIdentityFailClosed });
+  if (missing.length || coreViolations.length || inventoryErrors.length || sensitiveClassificationErrors.length || missingEnvRegistry.length || missingRequired.length || unregisteredNextPublic.length || unregisteredSourceEnv.length || sourceAccess.dynamic.length || registerDrift.length || invalidLockinStatuses.length || !inventoryAuthority || !environmentDocSync || applicationSupabaseDebt.length !== 1 || !baselineDebtUnchanged || !standalone || !dockerContract || !sourceIdentityFailClosed) {
+    failures.push({ missing, coreViolations, inventoryErrors, sensitiveClassificationErrors, missingEnvRegistry, missingRequired, unregisteredNextPublic, unregisteredSourceEnv, dynamicEnvAccess: sourceAccess.dynamic, registerDrift, invalidLockinStatuses, inventoryAuthority, environmentDocSync, applicationSupabaseDebt, baselineDebtUnchanged, standalone, dockerContract, sourceIdentityFailClosed });
   }
 
   return {
@@ -215,6 +248,14 @@ export function inspect(root = process.cwd()) {
       ENVIRONMENT_CONTRACT_AUTHORITY: inventoryAuthority ? "scripts/portability/environment-contract.json" : "MISSING",
       ENVIRONMENT_CONTRACT_RATCHET: failures.length === 0 ? "PASS" : "FAIL",
       ENVIRONMENT_CONTRACT_DOC_SYNC: environmentDocSync ? "PASS" : "FAIL",
+      SOURCE_ENV_USAGE_SCAN: unregisteredSourceEnv.length || sourceAccess.dynamic.length ? "FAIL" : "PASS",
+      SOURCE_ENV_USAGE_COUNT: sourceAccess.accesses.length,
+      UNREGISTERED_SOURCE_ENV_USAGE_COUNT: unregisteredSourceEnv.length,
+      UNREGISTERED_SOURCE_ENV_USAGE_NAMES: unregisteredSourceEnv,
+      DYNAMIC_ENV_ACCESS_COUNT: sourceAccess.dynamic.length,
+      DYNAMIC_ENV_ACCESS_PATHS: sourceAccess.dynamic,
+      SYSTEM_ENV_ALLOWLIST,
+      SYSTEM_ENV_ALLOWLIST_REASONED: Object.values(SYSTEM_ENV_ALLOWLIST).every((reason) => Boolean(reason)),
       REGISTER_DRIFT: registerDrift,
       INVALID_LOCKIN_STATUS_COUNT: invalidLockinStatuses.length,
       PROVIDER_DEPENDENCIES_REGISTERED: providerDependencies,

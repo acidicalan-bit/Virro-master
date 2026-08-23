@@ -125,6 +125,10 @@ describe("PORTABILITY-000 runtime contract", () => {
       mutate("src/domain/portability-attack.ts", () => `import \"@vercel/attack\";\n`);
       rmSync(resolve(fixture, "src/domain/portability-attack.ts"), { force: true });
       mutate("src/domain/auth/authority.ts", (source) => `${source}\nconst attack = \"NEXT_PUBLIC_UNREGISTERED\";\n`);
+      mutate("src/application/portability-hidden-env.ts", () => "export const hidden = process.env.PORTABILITY_HIDDEN_RUNTIME_CONFIG;\n");
+      mutate("src/application/portability-hidden-bracket.ts", () => "export const hidden = process.env[\"PORTABILITY_HIDDEN_BRACKET\"];\n");
+      mutate("src/application/portability-hidden-single-quote.ts", () => "export const hidden = process.env['PORTABILITY_HIDDEN_SINGLE_QUOTE'];\n");
+      mutate("src/application/portability-dynamic-env.ts", () => "const key = 'PORTABILITY_DYNAMIC'; export const hidden = process.env[key];\n");
       mutate("scripts/portability/environment-contract.json", (source) => {
         const inventory = JSON.parse(source);
         inventory.variables = inventory.variables.filter((row: { name: string }) => row.name !== "OPENAI_API_KEY");
@@ -144,6 +148,7 @@ describe("PORTABILITY-000 runtime contract", () => {
       mutateSynchronizedClassification("OPENAI_API_KEY", "RUNTIME_SERVER_CONFIG");
       mutateSynchronizedClassification("SUPABASE_SECRET_KEY", "BUILD_TIME_PUBLIC");
       mutateSynchronizedClassification("SUPABASE_SERVICE_ROLE_KEY", "RUNTIME_PUBLIC");
+      mutateSynchronizedClassification("LLM_API_KEY", "RUNTIME_PUBLIC");
       mutateSynchronizedClassification("NEXT_PUBLIC_SUPABASE_URL", "RUNTIME_SECRET");
       mutateNewSensitiveVariable("PAYMENTS_API_TOKEN", "RUNTIME_PUBLIC");
       mutateNewSensitiveVariable("SOME_PASSWORD", "RUNTIME_SERVER_CONFIG");

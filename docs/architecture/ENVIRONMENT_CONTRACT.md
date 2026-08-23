@@ -37,6 +37,8 @@ credential public.
 | `OPENAI_API_KEY` | `RUNTIME_SECRET` | required | Runtime-injected; never a `NEXT_PUBLIC_*` variable. |
 | `OPENAI_INTENT_MODEL` | `RUNTIME_SERVER_CONFIG` | required | Server-side model selection. |
 | `LLM_MODEL_VERSION` | `RUNTIME_SERVER_CONFIG` | optional | Server-side metadata. |
+| `LLM_API_KEY` | `RUNTIME_SECRET` | optional | Generic provider credential alternative; optional when `OPENAI_API_KEY` is configured. |
+| `LLM_MODEL` | `RUNTIME_SERVER_CONFIG` | optional | Generic provider model alternative; optional when `OPENAI_INTENT_MODEL` is configured. |
 | `IMAGE_EDIT_PROVIDER` | `RUNTIME_SERVER_CONFIG` | required | Server-side provider selection. |
 | `FIELD_BETA_CONTROLLED_EXECUTOR` | `TEST_ONLY` | optional | Controlled test harness switch. |
 | `OPENAI_IMAGE_EDIT_MODEL` | `RUNTIME_SERVER_CONFIG` | required | Server-side model selection. |

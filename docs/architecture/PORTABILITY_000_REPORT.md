@@ -40,6 +40,14 @@ cannot be classified as public or server configuration, and every
 `NEXT_PUBLIC_*` variable remains non-sensitive build-time public configuration.
 Public key exceptions are explicit and narrow.
 
+R3 registers the existing generic provider alternatives `LLM_API_KEY` and
+`LLM_MODEL` without changing model-factory precedence or provider behavior.
+The portability checker independently scans production source for dot and
+literal bracket environment access, rejects unregistered names, and reports
+dynamic bracket access instead of guessing its key set. The portability
+workflow also executes the native D0 authority-commit suite against PostgreSQL
+17 and rejects a skipped D0 or D2 gate as evidence.
+
 ## Required CI evidence
 
 The dedicated portability workflow must run against the exact candidate SHA and

@@ -13,6 +13,8 @@
     { "name": "OPENAI_API_KEY", "classification": "RUNTIME_SECRET", "sensitive": true, "optional": false, "legacy": false },
     { "name": "OPENAI_INTENT_MODEL", "classification": "RUNTIME_SERVER_CONFIG", "sensitive": false, "optional": false, "legacy": false },
     { "name": "LLM_MODEL_VERSION", "classification": "RUNTIME_SERVER_CONFIG", "sensitive": false, "optional": true, "legacy": false },
+    { "name": "LLM_API_KEY", "classification": "RUNTIME_SECRET", "sensitive": true, "optional": true, "legacy": false },
+    { "name": "LLM_MODEL", "classification": "RUNTIME_SERVER_CONFIG", "sensitive": false, "optional": true, "legacy": false },
     { "name": "IMAGE_EDIT_PROVIDER", "classification": "RUNTIME_SERVER_CONFIG", "sensitive": false, "optional": false, "legacy": false },
     { "name": "FIELD_BETA_CONTROLLED_EXECUTOR", "classification": "TEST_ONLY", "sensitive": false, "optional": true, "legacy": false },
     { "name": "OPENAI_IMAGE_EDIT_MODEL", "classification": "RUNTIME_SERVER_CONFIG", "sensitive": false, "optional": false, "legacy": false },
