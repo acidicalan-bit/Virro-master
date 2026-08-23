@@ -122,7 +122,7 @@ begin
     if v_existing.membership_id is distinct from p_membership_id or v_existing.outcome_transaction_id is distinct from v_tx_id or v_existing.readiness_id is distinct from v_commit.readiness_id then raise exception 'ADMISSION_CONFLICT'; end if;
     return jsonb_build_object('admission_id', v_existing.admission_id, 'admitted_at', v_existing.admitted_at);
   end if;
-  v_admission := public.build002_admit_delegability_legacy(p_principal_id, p_admission);
+  v_admission := public.build002_admit_delegability_legacy(p_principal_id, p_membership_id, p_authority_commit_id, p_admission);
   return v_admission;
 exception when others then
   if sqlstate in ('P0001','42501','55000') then raise; end if;
