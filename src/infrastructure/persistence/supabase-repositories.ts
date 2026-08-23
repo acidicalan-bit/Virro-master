@@ -56,6 +56,7 @@ import {
   SupabaseCandidatePreferenceRepository,
 } from "@/src/infrastructure/persistence/outcome/supabase-outcome-repositories";
 import { createTenantBuild002PersistenceRepository } from "@/src/infrastructure/persistence/outcome/supabase-build002-persistence-repository";
+import { createSupabaseDelegabilityAdmissionRepository } from "@/src/infrastructure/persistence/outcome/supabase-delegability-admission-repository";
 import { createSupabaseTransactionRequirementBindingRepository } from "@/src/infrastructure/persistence/outcome/supabase-transaction-requirement-binding-repository";
 import { createSupabaseReadinessAuthorityCommitRepository } from "@/src/infrastructure/persistence/outcome/supabase-readiness-authority-commit-repository";
 import { createSupabaseReadinessAuthorityCommitScopedReader } from "@/src/infrastructure/persistence/outcome/supabase-readiness-authority-commit-scoped-reader";
@@ -563,6 +564,11 @@ export function createTenantReadinessAuthorityCurrentnessRepositories(ownerTenan
     scopedCommitReader: createSupabaseReadinessAuthorityCommitScopedReader(client, scope),
     persistence: createTenantBuild002PersistenceRepository(client, scope),
   };
+}
+
+export function createTenantDelegabilityAdmissionRepository(ownerTenantId: string) {
+  const scope = requireTenantScope(ownerTenantId);
+  return createSupabaseDelegabilityAdmissionRepository(createPrivilegedClient(), scope);
 }
 
 export function requireTenantScope(ownerTenantId: string | undefined): string {

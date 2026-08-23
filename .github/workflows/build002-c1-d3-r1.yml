@@ -1,0 +1,72 @@
+name: BUILD002 C1-D3 R1 serialized closure
+
+on:
+  push:
+    branches:
+      - build/build002-c1-d3-serialized-delegability-admission
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  native-and-regression:
+    name: D3 R1 PostgreSQL 17 and regression
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: virro_e3
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d virro_e3"
+          --health-interval 10s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+        with:
+          version: 11.19.0
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm assurance:check && pnpm portability:check && pnpm portability:env
+      - name: D3 native PostgreSQL 17 closure
+        env:
+          BUILD002_NATIVE_PG_C1_D3: "true"
+          BUILD002_NATIVE_PG_C1_D3_URL: postgresql://postgres:postgres@localhost:5432/virro_e3
+        run: pnpm exec vitest run tests/native/build002-c1-d3-postgres.e3.test.ts --reporter=verbose
+      - name: D2 native PostgreSQL 17 regression
+        env:
+          BUILD002_NATIVE_PG_C1_D2: "true"
+          BUILD002_NATIVE_PG_C1_D2_URL: postgresql://postgres:postgres@localhost:5432/virro_e3
+        run: pnpm exec vitest run tests/native/build002-c1-d2-scoped-reader.e3.test.ts --reporter=verbose
+      - name: D0 native PostgreSQL 17 regression
+        env:
+          BUILD002_NATIVE_PG_C1_D0: "true"
+          BUILD002_NATIVE_PG_C1_D0_URL: postgresql://postgres:postgres@localhost:5432/virro_e3
+        run: pnpm exec vitest run tests/native/build002-c1-d0-postgres.e3.test.ts --reporter=verbose
+      - run: pnpm test:sql && pnpm test:model && pnpm test:application
+      - run: pnpm typecheck && pnpm lint && pnpm test && pnpm build
+
+  container:
+    name: R1 exact OCI and smoke
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Build exact source image
+        run: docker build --build-arg SOURCE_SHA=${GITHUB_SHA} -t virro-product:${GITHUB_SHA} .
+      - name: Verify OCI revision and non-root image
+        run: |
+          test "$(docker image inspect virro-product:${GITHUB_SHA} --format '{{index .Config.Labels "org.opencontainers.image.revision"}}')" = "${GITHUB_SHA}"
+          test "$(docker image inspect virro-product:${GITHUB_SHA} --format '{{.Config.User}}')" != "0"
+          test "$(docker image inspect virro-product:${GITHUB_SHA} --format '{{.Config.User}}')" != "root"
+      - name: Container health, restart, shutdown and read-only smoke
+        env:
+          PORTABILITY_SOURCE_SHA: ${{ github.sha }}
+          PORTABILITY_IMAGE_TAG: virro-product:${{ github.sha }}
+        run: node scripts/portability/container-smoke.mjs

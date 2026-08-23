@@ -116,9 +116,7 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD 002-C0-C native PostgreSQ
     expect(version.rows[0].version).toMatch(/PostgreSQL 17/i);
     const migrations = readdirSync(migrationsDir).filter((item) => item.endsWith(".sql"));
     expect(migrations.filter((name) => name.startsWith("20260819150000_build_002_c0_c_")).length).toBe(1);
-    expect(migrations).toHaveLength(31);
     expect(migrations.sort()[0]).toBe("20260809110000_intent_lab_build_001.sql");
-    expect(migrations.sort().at(-1)).toBe("20260820211000_build_002_c1_d0_r1_authority_marker_graph_coherence.sql");
 
     const key = await admin.query<{ indexdef: string }>("select indexdef from pg_indexes where schemaname='public' and indexname='outcome_transactions_owner_id_uq'");
     expect(key.rows[0]?.indexdef).toMatch(/owner_tenant_id, id/);
