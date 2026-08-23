@@ -1,7 +1,7 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { DelegabilityAdmissionRepository } from "@/src/application/ports/outcome/delegability-admission-repository";
-import { createDelegabilityAdmission, DelegabilityAdmissionSchema, type DelegabilityAdmission, type DelegabilityAdmissionMaterial } from "@/src/domain/outcome/delegability-admission";
+import type { DelegabilityAdmissionInput, DelegabilityAdmissionRepository } from "@/src/application/ports/outcome/delegability-admission-repository";
+import { createDelegabilityAdmission, DelegabilityAdmissionSchema, verifyDelegabilityAdmissionHash, type DelegabilityAdmission } from "@/src/domain/outcome/delegability-admission";
 
 type Row = Record<string, unknown>;
 
@@ -10,7 +10,7 @@ export class SupabaseDelegabilityAdmissionRepository implements DelegabilityAdmi
     if (!ownerTenantId.trim()) throw new Error("DELEGABILITY_SCOPE_INVALID");
   }
 
-  async admit(material: DelegabilityAdmissionMaterial): Promise<DelegabilityAdmission> {
+  async admit(material: DelegabilityAdmissionInput): Promise<DelegabilityAdmission> {
     if (material.ownerTenantId !== this.ownerTenantId) throw new Error("DELEGABILITY_SCOPE_INVALID");
     const admission = createDelegabilityAdmission(material);
     const { data, error } = await this.client.rpc("build002_admit_delegability", {
@@ -18,12 +18,13 @@ export class SupabaseDelegabilityAdmissionRepository implements DelegabilityAdmi
       p_membership_id: material.membershipId,
       p_authority_commit_id: material.authorityCommitId,
       p_admission: admission,
+      p_current_material: material.currentMaterial,
     });
     if (error || !data || typeof data !== "object") throw new Error(error?.message || "DELEGABILITY_ADMISSION_FAILED");
     const id = String((data as Row).admission_id ?? "");
     if (!id) throw new Error("DELEGABILITY_ADMISSION_READBACK_FAILED");
     const persisted = await this.findById(id);
-    if (!persisted || persisted.ownerTenantId !== this.ownerTenantId || persisted.admissionContentHash !== admission.admissionContentHash) throw new Error("DELEGABILITY_ADMISSION_READBACK_FAILED");
+    if (!persisted || !verifyDelegabilityAdmissionHash(persisted) || persisted.ownerTenantId !== this.ownerTenantId || persisted.authorityCommitId !== material.authorityCommitId || persisted.principalId !== material.principalId || persisted.currentDependencySnapshotHash !== material.currentDependencySnapshotHash) throw new Error("DELEGABILITY_ADMISSION_READBACK_FAILED");
     return persisted;
   }
 
@@ -31,7 +32,13 @@ export class SupabaseDelegabilityAdmissionRepository implements DelegabilityAdmi
     const { data, error } = await this.client.from("build002_delegability_admissions").select("*").eq("admission_id", admissionId).maybeSingle();
     if (error) throw new Error("DELEGABILITY_ADMISSION_READBACK_FAILED");
     if (!data) return null;
-    return rowToAdmission(data as Row);
+    try {
+      const admission = rowToAdmission(data as Row);
+      if (!verifyDelegabilityAdmissionHash(admission)) throw new Error("tampered hash");
+      return admission;
+    } catch {
+      throw new Error("DELEGABILITY_ADMISSION_READBACK_FAILED");
+    }
   }
 }
 

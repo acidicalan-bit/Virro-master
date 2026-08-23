@@ -95,7 +95,7 @@ export function verifyDelegabilityAdmissionHash(admission: DelegabilityAdmission
   return canonicalSha256(admissionHashMaterial(material)) === parsed.admissionContentHash;
 }
 
-/** Identity and wall-clock fields are excluded so an identical retry is idempotent. */
+/** Admission identity is excluded; admittedAt is excluded for retry identity, while revalidatedAt remains historical evidence. */
 function admissionHashMaterial(material: Omit<DelegabilityAdmission, "admissionContentHash">): Omit<DelegabilityAdmission, "admissionId" | "admittedAt" | "admissionContentHash"> {
   const { admissionId: _id, admittedAt: _at, ...stable } = material;
   void _id;

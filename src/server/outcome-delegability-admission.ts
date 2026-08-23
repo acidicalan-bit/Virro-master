@@ -6,6 +6,7 @@ import { OutcomeReadinessAuthorityCurrentnessRevalidator } from "@/src/applicati
 import { OutcomeRequirementAuthorityResolver } from "@/src/application/outcome/resolve-outcome-requirement-authority";
 import { OutcomeSignalUniverseResolver } from "@/src/application/outcome/resolve-outcome-signal-universe";
 import { OutcomeDependencySnapshotResolver } from "@/src/application/outcome/resolve-outcome-dependency-snapshot";
+import { SerializedDelegabilityMaterialResolver } from "@/src/application/outcome/resolve-serialized-delegability-material";
 import {
   createTenantBuild002DependencyRepositories,
   createTenantBuild002EvaluationRepositories,
@@ -28,5 +29,11 @@ export async function admitOutcomeDelegability(input: Readonly<{ authority: Auth
     signalUniverse: new OutcomeSignalUniverseResolver(evaluationRepos.build002Readiness),
     dependencySnapshot: new OutcomeDependencySnapshotResolver(dependencyRepos),
   });
-  return new OutcomeDelegabilityAdmissionService(revalidator, createTenantDelegabilityAdmissionRepository(tenant)).admit(input);
+  const material = new SerializedDelegabilityMaterialResolver({
+    transactions: authorityRepos.outcomeTransactions,
+    assets: dependencyRepos.assets,
+    assetVersions: dependencyRepos.assetVersions,
+    bindings: authorityRepos.outcomeTransactionRequirementBindings,
+  });
+  return new OutcomeDelegabilityAdmissionService(revalidator, createTenantDelegabilityAdmissionRepository(tenant), material).admit(input);
 }

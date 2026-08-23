@@ -105,7 +105,7 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD002-C1-A native PostgreSQL
     const version = await admin.query<{ version: string }>("select version() as version");
     expect(version.rows[0].version).toMatch(/PostgreSQL 17/i);
     const migrations = readdirSync(migrationsDir).filter((item) => item.endsWith(".sql")).sort();
-    expect(migrations).toHaveLength(32);
+    expect(migrations).toHaveLength(33);
     const before = await service.query<{ signals: string; requirements: string; dependencies: string; qualifications: string; readiness: string }>(`select
       (select count(*) from public.build002_signals) as signals,
       (select count(*) from public.build002_signal_requirements) as requirements,

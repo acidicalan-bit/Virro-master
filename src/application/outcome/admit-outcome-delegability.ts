@@ -4,6 +4,7 @@ import { assertDelegableReadiness, type DelegabilityAdmission } from "@/src/doma
 import { currentDefaultEvaluator } from "@/src/domain/outcome/signal-readiness";
 import type { DelegabilityAdmissionRepository } from "@/src/application/ports/outcome/delegability-admission-repository";
 import type { OutcomeReadinessAuthorityCurrentnessRevalidator } from "@/src/application/outcome/revalidate-outcome-readiness-authority-currentness";
+import type { SerializedDelegabilityMaterialResolver } from "@/src/application/outcome/resolve-serialized-delegability-material";
 
 export type OutcomeDelegabilityAdmissionInput = Readonly<{ authority: AuthorityContext; authorityCommitId: string }>;
 export class OutcomeDelegabilityAdmissionError extends Error {
@@ -11,7 +12,7 @@ export class OutcomeDelegabilityAdmissionError extends Error {
 }
 
 export class OutcomeDelegabilityAdmissionService {
-  constructor(private readonly currentness: Pick<OutcomeReadinessAuthorityCurrentnessRevalidator, "run">, private readonly repository: DelegabilityAdmissionRepository, private readonly clock: Readonly<{ now(): string }> = { now: () => new Date().toISOString() }) {}
+  constructor(private readonly currentness: Pick<OutcomeReadinessAuthorityCurrentnessRevalidator, "run">, private readonly repository: DelegabilityAdmissionRepository, private readonly materialResolver: Pick<SerializedDelegabilityMaterialResolver, "resolve">) {}
 
   async admit(input: OutcomeDelegabilityAdmissionInput): Promise<DelegabilityAdmission> {
     const authority = immutableCopy(input.authority);
@@ -23,6 +24,13 @@ export class OutcomeDelegabilityAdmissionService {
       assertDelegableReadiness(result.historicalReadiness, result.currentness);
       if (result.currentness !== "CURRENT" || !result.currentDependencySnapshotHash) throw new Error("currentness");
       const evaluator = currentDefaultEvaluator();
+      if (!result.currentDependencySnapshot) throw new Error("CURRENTNESS_NOT_CURRENT");
+      const currentMaterial = await this.materialResolver.resolve({
+        authority,
+        outcomeTransactionId: result.authorityCommit.outcomeTransactionId,
+        dependencySnapshot: result.currentDependencySnapshot,
+        evaluator,
+      });
       return await this.repository.admit({
         ownerTenantId: authority.tenantId,
         principalId: authority.principalId,
@@ -35,6 +43,7 @@ export class OutcomeDelegabilityAdmissionService {
         currentDependencySnapshotHash: result.currentDependencySnapshotHash,
         evaluator,
         revalidatedAt: result.revalidatedAt,
+        currentMaterial,
       });
     } catch (error) {
       const code = error instanceof Error ? error.message : "";

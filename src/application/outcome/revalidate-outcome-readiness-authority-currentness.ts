@@ -53,6 +53,8 @@ export type OutcomeReadinessCurrentnessResult = Readonly<{
   reasonCodes: readonly ReadinessCurrentnessReasonCode[];
   revalidatedAt: string;
   currentDependencySnapshotHash: string | null;
+  /** Server-owned snapshot material for a subsequent serialized consequence recheck. */
+  currentDependencySnapshot: DependencySnapshot | null;
   assessmentScope: "NON_ATOMIC_POST_COMMIT_CURRENTNESS";
   consequenceBoundary: "SERIALIZED_RECHECK_REQUIRED_FOR_CONSEQUENCE";
 }>;
@@ -162,7 +164,7 @@ export class OutcomeReadinessAuthorityCurrentnessRevalidator {
       currentDependency = await this.operations.resolveDependency(resolvedAuthority, universe);
     } catch (error) {
       if (error instanceof OutcomeDependencySnapshotError && error.code === "SOURCE_ASSET_HEAD_CHANGED") {
-        return this.result(commit, historicalReadiness, "STALE", ["SOURCE_ASSET_HEAD_CHANGED"], revalidatedAt, null);
+        return this.result(commit, historicalReadiness, "STALE", ["SOURCE_ASSET_HEAD_CHANGED"], revalidatedAt, null, null);
       }
       throw new OutcomeReadinessCurrentnessError("CURRENTNESS_PHASE_FAILED");
     }
@@ -174,7 +176,7 @@ export class OutcomeReadinessAuthorityCurrentnessRevalidator {
       throw new OutcomeReadinessCurrentnessError("CURRENTNESS_PHASE_FAILED");
     }
     const reasonCodes = reasonCodesFor(currentness, historicalReadiness, historicalDependency, currentSnapshot, currentEvaluator);
-    return this.result(commit, historicalReadiness, currentness, reasonCodes, revalidatedAt, currentSnapshot.dependencySnapshotHash);
+    return this.result(commit, historicalReadiness, currentness, reasonCodes, revalidatedAt, currentSnapshot.dependencySnapshotHash, currentSnapshot);
   }
 
   private async readHistoricalReadiness(scope: Build002TenantSnapshotScope, commit: ReadinessAuthorityCommitRecord): Promise<DelegationReadiness> {
@@ -232,6 +234,7 @@ export class OutcomeReadinessAuthorityCurrentnessRevalidator {
     reasonCodes: readonly ReadinessCurrentnessReasonCode[],
     revalidatedAt: string,
     currentDependencySnapshotHash: string | null,
+    currentDependencySnapshot: DependencySnapshot | null,
   ): OutcomeReadinessCurrentnessResult {
     return immutableCopy({
       authorityCommit: commit,
@@ -240,6 +243,7 @@ export class OutcomeReadinessAuthorityCurrentnessRevalidator {
       reasonCodes,
       revalidatedAt,
       currentDependencySnapshotHash,
+      currentDependencySnapshot,
       assessmentScope: "NON_ATOMIC_POST_COMMIT_CURRENTNESS" as const,
       consequenceBoundary: "SERIALIZED_RECHECK_REQUIRED_FOR_CONSEQUENCE" as const,
     });

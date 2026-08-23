@@ -34,9 +34,11 @@ describe("BUILD002-C1-D3 delegability admission", () => {
     expect(verifyDelegabilityAdmissionHash({ ...admission, currentness: "CURRENT", admissionContentHash: "c".repeat(64) })).toBe(false);
   });
 
-  it("keeps identical retries idempotent at the content identity", () => {
+  it("keeps retry identity separate from the historical content hash", () => {
     const first = createDelegabilityAdmission(material, "2026-08-23T12:00:01.000Z", uuid);
-    const retry = createDelegabilityAdmission(material, "2026-08-23T12:01:01.000Z", "00000000-0000-4000-8000-000000000002");
-    expect(retry.admissionContentHash).toBe(first.admissionContentHash);
+    const retry = createDelegabilityAdmission({ ...material, revalidatedAt: "2026-08-23T12:01:00.000Z" }, "2026-08-23T12:01:01.000Z", "00000000-0000-4000-8000-000000000002");
+    expect(retry.admissionContentHash).not.toBe(first.admissionContentHash);
+    expect(verifyDelegabilityAdmissionHash(first)).toBe(true);
+    expect(verifyDelegabilityAdmissionHash(retry)).toBe(true);
   });
 });
