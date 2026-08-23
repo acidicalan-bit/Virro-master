@@ -30,6 +30,8 @@ jobs:
           --health-interval 10s --health-timeout 5s --health-retries 10
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
       - uses: pnpm/action-setup@7088e561eb65bb68695d245aa206f005ef30921d
         with:
           version: 11.19.0
@@ -77,6 +79,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
       - name: Build exact product revision image
         run: docker build --build-arg SOURCE_SHA=${PRODUCT_SHA} -t virro-product:${PRODUCT_SHA} .
       - name: Verify OCI revision and non-root image
