@@ -25,11 +25,11 @@ jobs:
           --health-cmd "pg_isready -U postgres -d virro_e3"
           --health-interval 10s --health-timeout 5s --health-retries 10
     steps:
-      - uses: actions/checkout@d23441a48a516b6c34aea4fa41551a30e30af803 # v6
-      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: pnpm/action-setup@7088e561eb65bb68695d245aa206f005ef30921d # v4.1.0
         with:
           version: 11.19.0
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 24
           cache: pnpm
@@ -71,7 +71,7 @@ jobs:
     name: R2 exact OCI and smoke
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@d23441a48a516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: Build exact source image
         run: docker build --build-arg SOURCE_SHA=${GITHUB_SHA} -t virro-product:${GITHUB_SHA} .
       - name: Verify OCI revision and non-root image
