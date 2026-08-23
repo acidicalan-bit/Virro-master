@@ -1,0 +1,97 @@
+name: BUILD002 C1-D3 R3 independent serialized delegability verification
+
+on:
+  push:
+    branches:
+      - verify/build002-c1-d3-r3-promo-001
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  PRODUCT_SHA: 3c1481fb7f7bdbe243cbfe2a272d32358eded879
+  BUILD002_NATIVE_PG_C1_D3_URL: postgresql://postgres:postgres@localhost:5432/virro_e3
+
+jobs:
+  independent:
+    name: independent PostgreSQL 17 and product gates
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: virro_e3
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d virro_e3"
+          --health-interval 10s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@7088e561eb65bb68695d245aa206f005ef30921d
+        with:
+          version: 11.19.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Independent verifier attacks and provenance
+        run: pnpm exec vitest run tests/verify/build002-c1-d3-r3-independent.test.ts --reporter=verbose
+      - name: Native PostgreSQL 17 R3 evidence pass one
+        env:
+          BUILD002_NATIVE_PG_C1_D3: "true"
+        run: pnpm exec vitest run tests/native/build002-c1-d3-postgres.e3.test.ts --reporter=verbose
+      - name: Native PostgreSQL 17 R3 evidence pass two
+        env:
+          BUILD002_NATIVE_PG_C1_D3: "true"
+        run: pnpm exec vitest run tests/native/build002-c1-d3-postgres.e3.test.ts --reporter=verbose
+      - name: D2 PostgreSQL 17 regression
+        env:
+          BUILD002_NATIVE_PG_C1_D2: "true"
+          BUILD002_NATIVE_PG_C1_D2_URL: ${{ env.BUILD002_NATIVE_PG_C1_D3_URL }}
+        run: pnpm exec vitest run tests/native/build002-c1-d2-scoped-reader.e3.test.ts --reporter=verbose
+      - name: D0 PostgreSQL 17 regression
+        env:
+          BUILD002_NATIVE_PG_C1_D0: "true"
+          BUILD002_NATIVE_PG_C1_D0_URL: ${{ env.BUILD002_NATIVE_PG_C1_D3_URL }}
+        run: pnpm exec vitest run tests/native/build002-c1-d0-postgres.e3.test.ts --reporter=verbose
+      - name: D1 authored regression
+        run: pnpm exec vitest run tests/assurance/build002-c1-d1-readiness-authority-orchestration.test.ts --reporter=verbose
+      - run: pnpm assurance:check && pnpm portability:check && pnpm portability:env
+      - run: pnpm test:sql && pnpm test:model && pnpm test:application
+      - run: pnpm typecheck && pnpm lint
+      - name: Standalone build without Vercel mode
+        run: |
+          unset VERCEL
+          pnpm build
+          test -f .next/standalone/server.js
+      - name: Vercel build mode
+        env:
+          VERCEL: "1"
+        run: pnpm build
+      - run: pnpm test
+
+  container:
+    name: product OCI and smoke at immutable product revision
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+      - name: Build exact product revision image
+        run: docker build --build-arg SOURCE_SHA=${PRODUCT_SHA} -t virro-product:${PRODUCT_SHA} .
+      - name: Verify OCI revision and non-root image
+        run: |
+          test "$(docker image inspect virro-product:${PRODUCT_SHA} --format '{{index .Config.Labels "org.opencontainers.image.revision"}}')" = "${PRODUCT_SHA}"
+          test "$(docker image inspect virro-product:${PRODUCT_SHA} --format '{{.Config.User}}')" != "0"
+          test "$(docker image inspect virro-product:${PRODUCT_SHA} --format '{{.Config.User}}')" != "root"
+      - name: Container health, restart, shutdown and read-only smoke
+        env:
+          PORTABILITY_SOURCE_SHA: ${{ env.PRODUCT_SHA }}
+          PORTABILITY_IMAGE_TAG: virro-product:${{ env.PRODUCT_SHA }}
+        run: node scripts/portability/container-smoke.mjs
