@@ -1,0 +1,42 @@
+{
+  "observedAt": "2026-08-23T06:55:00-06:00",
+  "baselineDeployment": {
+    "id": "dpl_CuNgkm5JNQxS45anGDc6dbSNYJen",
+    "sha": "be11ccf25357077dbc2d6ac278729d4a1f10f7a5",
+    "ref": "main",
+    "state": "ERROR",
+    "error": "ENOENT /vercel/path0/.next/next-server.js.nft.json"
+  },
+  "prePortabilityDeployment": {
+    "id": "dpl_9DhVpuz9Rw63gjGzoxhkSJkmhonK",
+    "sha": "d8e31040b5479cecc52971e9d0efc9da2628eb04",
+    "ref": "main",
+    "state": "READY"
+  },
+  "productPreview": {
+    "id": "dpl_5phPB8ASQ9DCSAHAvtFVDhCfoUWU",
+    "projectId": "prj_dxDdPa7DnRkLsQuYlSqo2ZgULuAr",
+    "projectName": "virro-web",
+    "sha": "dcc56e16f79973009909eb701b31073adc65d31e",
+    "ref": "foundation/portability-000-compat-001-vercel-runtime",
+    "state": "READY",
+    "target": null,
+    "aliases": [
+      "https://virro-gw3ij8ut0-mirro-web.vercel.app",
+      "https://virro-web-git-foundation-portability-000-compa-778948-mirro-web.vercel.app"
+    ]
+  },
+  "routes": {
+    "root": { "status": 200 },
+    "health": { "status": 204, "bodyLength": 0 }
+  },
+  "container": {
+    "ociRevision": "dcc56e16f79973009909eb701b31073adc65d31e",
+    "imageId": "sha256:be74b5bca94b7ddbdcc36428f257af46935c209541778f1b1ce90052bb9daa07",
+    "imageDigest": null
+  },
+  "brandedDomainsBefore": {
+    "virro.app": { "status": 308 },
+    "www.virro.app": { "status": 200 }
+  }
+}
