@@ -94,7 +94,7 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD002-C1-B native PostgreSQL
   it("applies all 30 migrations and resolves the tenant-owned current state without writes", async () => {
     expect((await admin.query<{ version: string }>("select version() as version")).rows[0].version).toMatch(/PostgreSQL 17/i);
     const migrations = readdirSync(migrationsDir).filter((item) => item.endsWith(".sql")).sort();
-    expect(migrations).toHaveLength(31);
+    expect(migrations).toHaveLength(32);
     const before = await admin.query<{ projects: string; assets: string; versions: string; transactions: string; dependencies: string }>(`select
       (select count(*) from public.projects) as projects,
       (select count(*) from public.assets) as assets,

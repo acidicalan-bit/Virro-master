@@ -294,7 +294,7 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD 002-C0-E native composed 
     const version = await admin.query<{ version: string }>("select version() as version");
     expect(version.rows[0].version).toMatch(/PostgreSQL 17/i);
     const migrations = readdirSync(migrationsDir).filter((item) => item.endsWith(".sql")).sort();
-    expect(migrations).toHaveLength(31);
+    expect(migrations).toHaveLength(32);
     expect(migrations[0]).toBe("20260809110000_intent_lab_build_001.sql");
     expect(migrations.at(-1)).toBe("20260820211000_build_002_c1_d0_r1_authority_marker_graph_coherence.sql");
     const persisted = await admin.query("select id::text, owner_tenant_id::text, raw_request from public.outcome_transactions where id in ($1,$2) order by id", [TX_A, TX_B]);
@@ -452,7 +452,7 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD 002-C0-E native composed 
   it("has no C0-E HTTP, readiness, ingestion, execution, or persistence surface", async () => {
     const source = readFileSync(resolve(process.cwd(), "src/application/outcome/resolve-outcome-requirement-authority.ts"), "utf8");
     expect(source).not.toMatch(/evaluateReadiness|qualifySignal|canDelegate|ExecutionAuthority|MutationLease|executor\.execute|StateCommit/);
-    expect(readdirSync(resolve(process.cwd(), "supabase/migrations")).filter((item) => item.endsWith(".sql"))).toHaveLength(31);
+    expect(readdirSync(resolve(process.cwd(), "supabase/migrations")).filter((item) => item.endsWith(".sql"))).toHaveLength(32);
     const signalCounts = await snapshot(admin);
     expect(signalCounts.build002_signal_requirements).toBe(0);
     expect(signalCounts.build002_signals).toBe(0);
