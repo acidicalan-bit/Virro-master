@@ -60,6 +60,8 @@ jobs:
           BUILD002_NATIVE_PG_C1_D0: "true"
           BUILD002_NATIVE_PG_C1_D0_URL: ${{ env.BUILD002_NATIVE_PG_C1_D3_URL }}
         run: pnpm exec vitest run tests/native/build002-c1-d0-postgres.e3.test.ts --reporter=verbose
+      - name: D1 authored regression
+        run: pnpm exec vitest run tests/assurance/build002-c1-d1-readiness-authority-orchestration.test.ts --reporter=verbose
       - run: pnpm assurance:check && pnpm portability:check && pnpm portability:env
       - run: pnpm test:sql && pnpm test:model && pnpm test:application
       - run: pnpm typecheck && pnpm lint
