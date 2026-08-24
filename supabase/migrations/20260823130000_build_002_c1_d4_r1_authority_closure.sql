@@ -185,7 +185,10 @@ begin
   select * into v_commit from public.build002_readiness_authority_commits where id = v_admission.authority_commit_id for update;
   if not found or v_commit.owner_tenant_id is distinct from v_tenant
      or v_commit.principal_id is distinct from p_principal_id
-     or v_commit.outcome_transaction_id is distinct from v_tx.id then
+     or v_commit.outcome_transaction_id is distinct from v_tx.id
+     or v_commit.dependency_snapshot_hash is distinct from v_admission.current_dependency_snapshot_hash
+     or v_commit.readiness_id is distinct from v_admission.readiness_id
+     or v_commit.readiness_content_hash is distinct from v_admission.readiness_content_hash then
     raise exception 'EXECUTION_AUTHORITY_IDENTITY_MISMATCH';
   end if;
   if v_admission.authority_commit_id is distinct from v_commit.id
@@ -193,9 +196,10 @@ begin
     raise exception 'EXECUTION_AUTHORITY_IDENTITY_MISMATCH';
   end if;
   select * into v_asset from public.assets where id = v_tx.asset_id and owner_tenant_id = v_tenant for update;
-  if not found or v_asset.current_version_id is distinct from v_tx.base_version_id then raise exception 'SOURCE_ASSET_HEAD_CHANGED'; end if;
+  if not found or v_asset.project_id is distinct from v_tx.project_id or v_asset.current_version_id is distinct from v_tx.base_version_id then raise exception 'SOURCE_ASSET_HEAD_CHANGED'; end if;
   select * into v_version from public.asset_versions where id = v_tx.base_version_id and asset_id = v_asset.id and owner_tenant_id = v_tenant for update;
   if not found then raise exception 'SOURCE_ASSET_VERSION_CHANGED'; end if;
+  if v_version.asset_id is distinct from v_asset.id or v_version.owner_tenant_id is distinct from v_tenant then raise exception 'SOURCE_ASSET_VERSION_CHANGED'; end if;
   select * into v_binding from public.outcome_transaction_requirement_bindings where owner_tenant_id = v_tenant and outcome_transaction_id = v_tx.id for update;
   if not found or v_binding.policy_id is not null or v_binding.policy_hash is not null then raise exception 'C0_BINDING_INVALID'; end if;
   select * into v_profile from public.outcome_requirement_profiles
@@ -252,6 +256,9 @@ begin
   v_source_hash := public.build002_canonical_sha256(jsonb_build_object('schemaVersion', 'build002-source-asset-version-binding-v0.1', 'ownerTenantId', v_tenant, 'assetId', v_asset.id, 'versionId', v_version.id, 'versionNumber', v_version.version_number, 'parentVersionId', v_version.parent_version_id, 'state', v_version.state));
   if v_snapshot.transaction_semantic_hash is distinct from v_transaction_hash or v_snapshot.source_asset_version_hash is distinct from v_source_hash then raise exception 'CURRENTNESS_NOT_CURRENT'; end if;
   if v_snapshot.blueprint_hash is distinct from v_binding.blueprint_hash or v_snapshot.schema_version is distinct from 'build002-dependency-snapshot-v0.2' then raise exception 'CURRENTNESS_NOT_CURRENT'; end if;
+  if not exists (select 1 from jsonb_array_elements(v_snapshot.dependency_bindings) b where b->>'identity' = 'transaction.semantic' and b->>'hash' = v_transaction_hash)
+     or not exists (select 1 from jsonb_array_elements(v_snapshot.dependency_bindings) b where b->>'identity' = 'asset.version' and b->>'hash' = v_source_hash)
+     or not exists (select 1 from jsonb_array_elements(v_snapshot.dependency_bindings) b where b->>'identity' = 'blueprint' and b->>'hash' = v_binding.blueprint_hash) then raise exception 'CURRENTNESS_NOT_CURRENT'; end if;
 
   select * into v_field from public.field_outcomes where transaction_id = v_tx.id and owner_tenant_id = v_tenant and task_spec_id = p_task_spec_id and task_spec_hash = p_task_spec_hash for share;
   if not found then raise exception 'TASK_SPEC_AUTHORITY_NOT_FOUND'; end if;
