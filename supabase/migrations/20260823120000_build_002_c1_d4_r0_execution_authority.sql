@@ -145,6 +145,30 @@ begin
      or v_admission.readiness_state is distinct from 'READY' then
     raise exception 'D3_ADMISSION_NOT_CURRENT';
   end if;
+  if encode(digest(jsonb_build_object(
+      'authorityCommitId', v_admission.authority_commit_id,
+      'consequenceBoundary', v_admission.consequence_boundary,
+      'currentDependencySnapshotHash', v_admission.current_dependency_snapshot_hash,
+      'currentness', v_admission.currentness,
+      'evaluatorDefinitionHash', v_admission.evaluator_definition_hash,
+      'evaluatorSchemaVersion', v_admission.evaluator_schema_version,
+      'evaluatorVersion', v_admission.evaluator_version,
+      'executionAuthorityGranted', false,
+      'executionStarted', false,
+      'historicalDependencySnapshotHash', v_admission.historical_dependency_snapshot_hash,
+      'membershipId', v_admission.membership_id,
+      'outcomeTransactionId', v_admission.outcome_transaction_id,
+      'ownerTenantId', v_admission.owner_tenant_id,
+      'principalId', v_admission.principal_id,
+      'readinessContentHash', v_admission.readiness_content_hash,
+      'readinessId', v_admission.readiness_id,
+      'readinessState', v_admission.readiness_state,
+      'revalidatedAt', to_char(v_admission.revalidated_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
+      'schemaVersion', v_admission.schema_version,
+      'scope', v_admission.scope
+    )::text, 'sha256'), 'hex') is distinct from lower(v_admission.admission_content_hash) then
+    raise exception 'D3_ADMISSION_HASH_INVALID';
+  end if;
   select * into v_snapshot from public.build002_dependency_snapshots where owner_tenant_id = v_tenant and outcome_transaction_id = v_tx.id and dependency_snapshot_hash = v_admission.current_dependency_snapshot_hash for share;
   if not found then raise exception 'CURRENTNESS_NOT_CURRENT'; end if;
   select * into v_readiness from public.build002_delegation_readiness where owner_tenant_id = v_tenant and outcome_transaction_id = v_tx.id and id = v_admission.readiness_id for share;
@@ -154,6 +178,7 @@ begin
      or v_readiness.evaluator->>'version' is distinct from v_admission.evaluator_version
      or v_readiness.evaluator->>'definitionHash' is distinct from v_admission.evaluator_definition_hash
      or v_readiness.state is distinct from 'READY' or v_readiness.valid_until is not null and v_readiness.valid_until <= v_now then raise exception 'READINESS_NOT_CURRENT'; end if;
+  if v_admission.revalidated_at < v_readiness.created_at or v_admission.revalidated_at > v_now then raise exception 'D3_REVALIDATION_TIME_INVALID'; end if;
   lock table public.build002_signal_requirements in share mode;
   lock table public.build002_signals in share mode;
   lock table public.build002_dependency_snapshots in share mode;
