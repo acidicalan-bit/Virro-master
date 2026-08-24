@@ -150,6 +150,9 @@ begin
   select * into v_readiness from public.build002_delegation_readiness where owner_tenant_id = v_tenant and outcome_transaction_id = v_tx.id and id = v_admission.readiness_id for share;
   if not found or v_readiness.readiness_content_hash is distinct from v_admission.readiness_content_hash
      or v_readiness.dependency_snapshot_hash is distinct from v_admission.current_dependency_snapshot_hash
+     or v_readiness.evaluator->>'schemaVersion' is distinct from v_admission.evaluator_schema_version
+     or v_readiness.evaluator->>'version' is distinct from v_admission.evaluator_version
+     or v_readiness.evaluator->>'definitionHash' is distinct from v_admission.evaluator_definition_hash
      or v_readiness.state is distinct from 'READY' or v_readiness.valid_until is not null and v_readiness.valid_until <= v_now then raise exception 'READINESS_NOT_CURRENT'; end if;
   lock table public.build002_signal_requirements in share mode;
   lock table public.build002_signals in share mode;
