@@ -69,6 +69,7 @@ on public.build002_execution_authorities for each row execute function public.bu
 alter table public.build002_execution_authorities enable row level security;
 revoke all on table public.build002_execution_authorities from public, anon, authenticated, service_role;
 grant select on table public.build002_execution_authorities to authenticated;
+grant select on table public.build002_execution_authorities to service_role;
 create policy build002_execution_authorities_tenant_select on public.build002_execution_authorities
 for select to authenticated using (exists (
   select 1 from public.tenant_memberships m join public.tenants t on t.id = m.tenant_id
