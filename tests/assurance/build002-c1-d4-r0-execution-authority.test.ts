@@ -29,7 +29,6 @@ const base = {
   evaluatorSchemaVersion: "build002-qualification-evaluator-v0.1",
   evaluatorVersion: "0.2.0",
   evaluatorDefinitionHash: "7".repeat(64),
-  mutationPaths: [] as string[],
   scope: "EXECUTION_AUTHORITY_ONLY" as const,
   mutationLeaseGranted: false as const,
   executionStarted: false as const,
@@ -70,6 +69,8 @@ describe("BUILD002-C1-D4-R0 execution authority fact", () => {
     const migration = readFileSync("supabase/migrations/20260823120000_build_002_c1_d4_r0_execution_authority.sql", "utf8");
     expect(migration).toContain("digest((v_spec - 'id' - 'hash' - 'createdAt')::text, 'sha256')");
     expect(migration).not.toMatch(/insert into public\.(execution_runs|mutation_leases|evidence_receipts|state_commits)/i);
+    expect(migration).not.toContain("mutation_paths");
+    expect(migration).not.toContain("mutationPaths");
     expect(migration).not.toContain("bindExecutionAuthority");
   });
 });

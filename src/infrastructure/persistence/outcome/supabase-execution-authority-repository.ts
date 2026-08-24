@@ -56,7 +56,6 @@ function rowToAuthority(row: Row): Build002ExecutionAuthority {
     blueprintHash: row.blueprint_hash,
     currentDependencySnapshotHash: row.current_dependency_snapshot_hash,
     capabilityGrant: row.capability_grant,
-    mutationPaths: row.mutation_paths,
     scope: row.scope,
     mutationLeaseGranted: row.mutation_lease_granted,
     executionStarted: row.execution_started,

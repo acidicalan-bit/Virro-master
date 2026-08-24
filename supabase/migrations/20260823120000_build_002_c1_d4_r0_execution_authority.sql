@@ -36,7 +36,6 @@ create table if not exists public.build002_execution_authorities (
   evaluator_schema_version text not null,
   evaluator_version text not null,
   evaluator_definition_hash text not null check (evaluator_definition_hash ~ '^[0-9a-fA-F]{64}$'),
-  mutation_paths jsonb not null default '[]'::jsonb check (mutation_paths = '[]'::jsonb),
   scope text not null check (scope = 'EXECUTION_AUTHORITY_ONLY'),
   mutation_lease_granted boolean not null default false check (mutation_lease_granted = false),
   execution_started boolean not null default false check (execution_started = false),
@@ -254,7 +253,6 @@ begin
     'historicalDependencySnapshotHash', v_admission.historical_dependency_snapshot_hash,
     'membershipId', p_membership_id,
     'mutationLeaseGranted', false,
-    'mutationPaths', '[]'::jsonb,
     'outcomeTransactionId', v_tx.id,
     'ownerTenantId', v_tenant,
     'principalId', p_principal_id,
@@ -267,8 +265,8 @@ begin
     'taskSpecVersion', (v_spec->>'version')::integer,
     'validUntil', case when v_readiness.valid_until is null then null else to_char(v_readiness.valid_until at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') end
   )::text, 'sha256'), 'hex');
-  insert into public.build002_execution_authorities(execution_authority_id, schema_version, owner_tenant_id, principal_id, membership_id, delegability_admission_id, delegability_admission_content_hash, authority_commit_id, outcome_transaction_id, asset_id, source_asset_version_id, source_asset_version_hash, task_spec_id, task_spec_version, task_spec_hash, blueprint_id, blueprint_version, blueprint_hash, capability_grant, capability_grant_hash, historical_dependency_snapshot_hash, current_dependency_snapshot_hash, evaluator_schema_version, evaluator_version, evaluator_definition_hash, mutation_paths, scope, mutation_lease_granted, execution_started, consequence_boundary, delegability_revalidated_at, execution_authority_revalidated_at, granted_at, valid_until, execution_authority_content_hash, idempotency_key)
-  values (v_id, 'build002-execution-authority-v0.1', v_tenant, p_principal_id, p_membership_id, p_admission_id, v_admission.admission_content_hash, v_admission.authority_commit_id, v_tx.id, v_tx.asset_id, v_version.id, v_snapshot.source_asset_version_hash, p_task_spec_id, (v_spec->>'version')::integer, p_task_spec_hash, v_binding.blueprint_id, v_binding.blueprint_version, v_binding.blueprint_hash, v_caps, v_capability_hash, v_admission.historical_dependency_snapshot_hash, v_admission.current_dependency_snapshot_hash, v_readiness.evaluator->>'schemaVersion', v_readiness.evaluator->>'version', v_readiness.evaluator->>'definitionHash', '[]'::jsonb, 'EXECUTION_AUTHORITY_ONLY', false, false, 'FRESH_MUTATION_LEASE_AND_PREEXECUTION_RECHECK_REQUIRED', v_admission.revalidated_at, v_now, v_now, v_readiness.valid_until, v_content_hash, v_key);
+  insert into public.build002_execution_authorities(execution_authority_id, schema_version, owner_tenant_id, principal_id, membership_id, delegability_admission_id, delegability_admission_content_hash, authority_commit_id, outcome_transaction_id, asset_id, source_asset_version_id, source_asset_version_hash, task_spec_id, task_spec_version, task_spec_hash, blueprint_id, blueprint_version, blueprint_hash, capability_grant, capability_grant_hash, historical_dependency_snapshot_hash, current_dependency_snapshot_hash, evaluator_schema_version, evaluator_version, evaluator_definition_hash, scope, mutation_lease_granted, execution_started, consequence_boundary, delegability_revalidated_at, execution_authority_revalidated_at, granted_at, valid_until, execution_authority_content_hash, idempotency_key)
+  values (v_id, 'build002-execution-authority-v0.1', v_tenant, p_principal_id, p_membership_id, p_admission_id, v_admission.admission_content_hash, v_admission.authority_commit_id, v_tx.id, v_tx.asset_id, v_version.id, v_snapshot.source_asset_version_hash, p_task_spec_id, (v_spec->>'version')::integer, p_task_spec_hash, v_binding.blueprint_id, v_binding.blueprint_version, v_binding.blueprint_hash, v_caps, v_capability_hash, v_admission.historical_dependency_snapshot_hash, v_admission.current_dependency_snapshot_hash, v_readiness.evaluator->>'schemaVersion', v_readiness.evaluator->>'version', v_readiness.evaluator->>'definitionHash', 'EXECUTION_AUTHORITY_ONLY', false, false, 'FRESH_MUTATION_LEASE_AND_PREEXECUTION_RECHECK_REQUIRED', v_admission.revalidated_at, v_now, v_now, v_readiness.valid_until, v_content_hash, v_key);
   return jsonb_build_object('execution_authority_id', v_id, 'execution_authority_content_hash', v_content_hash, 'granted_at', v_now);
 exception when unique_violation then
   select * into v_existing from public.build002_execution_authorities where idempotency_key = v_key;

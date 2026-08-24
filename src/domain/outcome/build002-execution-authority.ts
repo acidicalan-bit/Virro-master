@@ -21,7 +21,7 @@ export const Build002ExecutionAuthoritySchema = z.object({
   capabilityGrant: CapabilityGrantSchema, capabilityGrantHash: z.string().regex(SHA256_PATTERN),
   historicalDependencySnapshotHash: z.string().regex(SHA256_PATTERN), currentDependencySnapshotHash: z.string().regex(SHA256_PATTERN),
   evaluatorSchemaVersion: z.string().min(1), evaluatorVersion: z.string().min(1), evaluatorDefinitionHash: z.string().regex(SHA256_PATTERN),
-  scope: z.literal(EXECUTION_AUTHORITY_SCOPE), mutationPaths: z.array(z.string()).length(0), mutationLeaseGranted: z.literal(false),
+  scope: z.literal(EXECUTION_AUTHORITY_SCOPE), mutationLeaseGranted: z.literal(false),
   executionStarted: z.literal(false), consequenceBoundary: z.literal(EXECUTION_AUTHORITY_CONSEQUENCE_BOUNDARY),
   delegabilityRevalidatedAt: z.string().datetime(), executionAuthorityRevalidatedAt: z.string().datetime(), grantedAt: z.string().datetime(),
   validUntil: z.string().datetime().nullable(), executionAuthorityContentHash: z.string().regex(SHA256_PATTERN),
