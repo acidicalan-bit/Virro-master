@@ -26,8 +26,8 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD002-C1-D5-R0 native Postgr
     await admin.connect(); await service.connect();
     await admin.query("create extension if not exists pgcrypto; do $$ begin create role anon nologin; exception when duplicate_object then null; end $$; do $$ begin create role authenticated nologin; exception when duplicate_object then null; end $$; do $$ begin create role service_role nologin bypassrls; exception when duplicate_object then null; end $$; create schema if not exists auth; create table if not exists auth.users(id uuid primary key); create or replace function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$; create schema if not exists storage; create table if not exists storage.buckets(id text primary key, name text not null unique, public boolean not null default false); alter table storage.buckets add column if not exists file_size_limit bigint; alter table storage.buckets add column if not exists allowed_mime_types text[];");
     const migrations = readdirSync(migrationsDir).filter((name) => name.endsWith(".sql")).sort();
-    expect(migrations).toHaveLength(39);
-    expect(migrations.at(-1)).toBe("20260825090000_build_002_c1_d5_r1_mutation_lease_freshness_semantic_binding.sql");
+    expect(migrations).toHaveLength(40);
+    expect(migrations.at(-1)).toBe("20260825100000_build_002_c1_d5_r2_mutation_lease_contract_closure.sql");
     for (const name of migrations) await admin.query(readFileSync(resolve(migrationsDir, name), "utf8"));
     await service.query("set role service_role");
   }, 120_000);

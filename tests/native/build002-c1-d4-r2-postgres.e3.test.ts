@@ -63,7 +63,10 @@ function taskSpec(): TaskSpec {
     status: "READY", transactionId: TRANSACTION,
     blueprint: { id: BLUEPRINT, version: 1, hash: BLUEPRINT_HASH },
     source: { assetId: ASSET, versionId: VERSION, sha256: SOURCE_SHA, mimeType: "image/png", byteSize: 10 },
-    values: [{ id: "requested.color", provenance: "CUSTOMER_STATED", critical: true, visibility: ["IMAGE_EXECUTOR"], value: { nested: [1, "x", true] } }],
+    values: [
+      { id: "requested.color", provenance: "CUSTOMER_STATED", critical: true, visibility: ["IMAGE_EXECUTOR"], value: { nested: [1, "x", true] } },
+      { id: "requested.size", provenance: "CUSTOMER_STATED", critical: false, visibility: ["IMAGE_EXECUTOR"], value: 42 },
+    ],
     constraints: [{ id: "preserve.subject", effect: "MUST_NOT", target: "subject", value: { untouched: true }, source: "BLUEPRINT_FIXED" }],
     capabilityGrant: ["READ_SOURCE", "WRITE_CANDIDATE"],
     criteria: [{ id: "SAME_SPEC", description: "same spec", critical: true, verifier: "SAME_SPEC_GATE", evidenceTypes: ["POLICY_CHECK"], roles: ["VERIFIER"] }],
@@ -117,7 +120,7 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD002-C1-D4-R2 native TaskSp
     admin = new Client({ connectionString: connection(databaseUrl!, isolatedDatabase) }); service = new Client({ connectionString: connection(databaseUrl!, isolatedDatabase) }); serviceB = new Client({ connectionString: connection(databaseUrl!, isolatedDatabase) }); await admin.connect(); await service.connect(); await serviceB.connect();
     await admin.query("set application_name='r2a-admin'; create extension if not exists pgcrypto; do $$ begin create role anon nologin; exception when duplicate_object then null; end $$; do $$ begin create role authenticated nologin; exception when duplicate_object then null; end $$; do $$ begin create role service_role nologin bypassrls; exception when duplicate_object then null; end $$; create schema if not exists auth; create table if not exists auth.users(id uuid primary key); create or replace function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$; create schema if not exists storage; create table if not exists storage.buckets(id text primary key, name text not null unique, public boolean not null default false); alter table storage.buckets add column if not exists file_size_limit bigint; alter table storage.buckets add column if not exists allowed_mime_types text[];");
     await service.query("set role service_role; set application_name='r2-service-a'; set statement_timeout='30s'; set lock_timeout='20s'"); await serviceB.query("set role service_role; set application_name='r2-service-b'; set statement_timeout='30s'; set lock_timeout='20s'");
-    const migrations = readdirSync(migrationsDir).filter((name) => name.endsWith(".sql")).sort(); expect(migrations).toHaveLength(39); for (const name of migrations) await admin.query(readFileSync(resolve(migrationsDir, name), "utf8"));
+    const migrations = readdirSync(migrationsDir).filter((name) => name.endsWith(".sql")).sort(); expect(migrations).toHaveLength(40); for (const name of migrations) await admin.query(readFileSync(resolve(migrationsDir, name), "utf8"));
     instrumentD4(service); instrumentD4(serviceB);
     value = graph(); spec = taskSpec(); expect(verifyTaskSpecHash(spec)).toBe(true); expect(canonicalSha256(taskSpecHashMaterial(spec))).toBe(spec.hash);
     await admin.query("insert into auth.users(id) values ($1),($2) on conflict do nothing", [ACTOR, ACTOR_B]); await admin.query("insert into public.tenants(id, kind, status) values ($1, 'ORGANIZATION', 'ACTIVE')", [TENANT]); await admin.query("insert into public.tenant_memberships(id, tenant_id, principal_id, role, status) values ($1,$2,$3,'OWNER','ACTIVE'),('b2000000-0000-4000-8000-000000000003',$2,$4,'OWNER','ACTIVE')", [MEMBERSHIP, TENANT, ACTOR, ACTOR_B]); await admin.query("insert into public.projects(id,name,owner_tenant_id) values ($1,'r2a',$2)", [PROJECT, TENANT]); await admin.query("insert into public.assets(id,project_id,name,owner_tenant_id) values ($1,$2,'r2a',$3)", [ASSET, PROJECT, TENANT]); await admin.query("insert into public.asset_versions(id,asset_id,version_number,state,owner_tenant_id) values ($1,$2,1,'{\"width\":100}'::jsonb,$3)", [VERSION, ASSET, TENANT]); await admin.query("update public.assets set current_version_id=$1 where id=$2", [VERSION, ASSET]); await admin.query("insert into public.outcome_transactions(id,owner_tenant_id,project_id,asset_id,base_version_id,raw_request,status) values ($1,$2,$3,$4,$5,'r2a','PREPARED')", [TRANSACTION, TENANT, PROJECT, ASSET, VERSION]);
@@ -256,5 +259,34 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD002-C1-D4-R2 native TaskSp
     }
     const serviceResult = await service.query("select public.build002_grant_execution_authority($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::text) as result", [ACTOR, MEMBERSHIP, admissionId, spec.id, spec.hash]);
     expect(serviceResult.rows[0].result.execution_authority_id).toEqual(expect.any(String));
+  });
+
+  it("issues exact D5 leases for critical and non-critical TaskSpec values", async () => {
+    await admin.query("set session_replication_role='replica'");
+    await admin.query("delete from public.build002_mutation_leases");
+    await admin.query("delete from public.build002_execution_authorities");
+    await admin.query("set session_replication_role='origin'");
+    await admin.query("update public.tenants set status='ACTIVE' where id=$1", [TENANT]);
+    await admin.query("update public.tenant_memberships set status='ACTIVE' where id=$1", [MEMBERSHIP]);
+    await admin.query("update public.outcome_transactions set status='PREPARED', raw_request='r2a' where id=$1", [TRANSACTION]);
+    await admin.query("update public.assets set current_version_id=$1 where id=$2", [VERSION, ASSET]);
+
+    const authority = await service.query("select public.build002_grant_execution_authority($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::text) as result", [ACTOR, MEMBERSHIP, admissionId, spec.id, spec.hash]);
+    const authorityId = authority.rows[0].result.execution_authority_id as string;
+    const fixtures = [
+      { targetPath: "requested.color", value: spec.values.find((item) => item.id === "requested.color")?.value, suffix: "001" },
+      { targetPath: "requested.size", value: spec.values.find((item) => item.id === "requested.size")?.value, suffix: "002" },
+    ];
+    for (const fixture of fixtures) {
+      const intentId = `ab100000-0000-4000-8000-000000000${fixture.suffix}`;
+      const patchId = `ab100000-0000-4000-8000-000000001${fixture.suffix}`;
+      const valueJson = JSON.stringify(fixture.value);
+      await admin.query("insert into public.partial_intents(id,transaction_id,owner_tenant_id,raw_input,target_path,operation,desired_value) values ($1,$2,$3,'r2 exact patch','SET_ATTRIBUTE',$4,$5::jsonb)", [intentId, TRANSACTION, TENANT, fixture.targetPath, valueJson]);
+      await admin.query("insert into public.transaction_patches(id,transaction_id,owner_tenant_id,partial_intent_id,operation,target_path,parameters) values ($1,$2,$3,$4,'SET_ATTRIBUTE',$5,jsonb_build_object('value',$6::jsonb))", [patchId, TRANSACTION, TENANT, intentId, fixture.targetPath, valueJson]);
+      const issued = await service.query("select public.build002_grant_mutation_lease($1::uuid,$2::uuid,$3::uuid,$4::text,$5::text) as result", [ACTOR, MEMBERSHIP, authorityId, fixture.targetPath, "MUTABLE"]);
+      expect(issued.rows[0].result.mutation_lease_id).toEqual(expect.any(String));
+    }
+    expect((await admin.query("select count(*)::int as count from public.build002_mutation_leases")).rows[0].count).toBe(2);
+    expect((await admin.query("select count(*)::int as count from public.execution_runs")).rows[0].count).toBe(1);
   });
 });
