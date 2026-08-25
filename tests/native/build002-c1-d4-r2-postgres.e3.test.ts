@@ -50,10 +50,12 @@ function authorityFromRow(row: Record<string, unknown>): Build002ExecutionAuthor
     blueprintId: row.blueprint_id, blueprintVersion: row.blueprint_version, blueprintHash: row.blueprint_hash, capabilityGrant: row.capability_grant, capabilityGrantHash: row.capability_grant_hash,
     historicalDependencySnapshotHash: row.historical_dependency_snapshot_hash, currentDependencySnapshotHash: row.current_dependency_snapshot_hash, evaluatorSchemaVersion: row.evaluator_schema_version, evaluatorVersion: row.evaluator_version, evaluatorDefinitionHash: row.evaluator_definition_hash,
     scope: row.scope, mutationLeaseGranted: row.mutation_lease_granted, executionStarted: row.execution_started, consequenceBoundary: row.consequence_boundary,
-    delegabilityRevalidatedAt: new Date(String(row.delegability_revalidated_at)).toISOString(), executionAuthorityRevalidatedAt: new Date(String(row.execution_authority_revalidated_at)).toISOString(), grantedAt: new Date(String(row.granted_at)).toISOString(),
-    validUntil: row.valid_until === null ? null : new Date(String(row.valid_until)).toISOString(), executionAuthorityContentHash: row.execution_authority_content_hash,
+    delegabilityRevalidatedAt: isoTimestamp(row.delegability_revalidated_at), executionAuthorityRevalidatedAt: isoTimestamp(row.execution_authority_revalidated_at), grantedAt: isoTimestamp(row.granted_at),
+    validUntil: row.valid_until === null ? null : isoTimestamp(row.valid_until), executionAuthorityContentHash: row.execution_authority_content_hash,
   });
 }
+
+function isoTimestamp(value: unknown): string { return value instanceof Date ? value.toISOString() : new Date(String(value)).toISOString(); }
 
 function taskSpec(): TaskSpec {
   return attachTaskSpecHash({

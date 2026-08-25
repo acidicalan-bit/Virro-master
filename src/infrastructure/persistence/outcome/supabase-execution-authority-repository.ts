@@ -60,8 +60,8 @@ function rowToAuthority(row: Row): Build002ExecutionAuthority {
     mutationLeaseGranted: row.mutation_lease_granted,
     executionStarted: row.execution_started,
     consequenceBoundary: row.consequence_boundary,
-    executionAuthorityRevalidatedAt: new Date(String(row.execution_authority_revalidated_at)).toISOString(),
-    grantedAt: new Date(String(row.granted_at)).toISOString(),
+    executionAuthorityRevalidatedAt: isoTimestamp(row.execution_authority_revalidated_at),
+    grantedAt: isoTimestamp(row.granted_at),
     delegabilityAdmissionContentHash: row.delegability_admission_content_hash,
     authorityCommitId: row.authority_commit_id,
     assetId: row.asset_id,
@@ -72,10 +72,14 @@ function rowToAuthority(row: Row): Build002ExecutionAuthority {
     evaluatorSchemaVersion: row.evaluator_schema_version,
     evaluatorVersion: row.evaluator_version,
     evaluatorDefinitionHash: row.evaluator_definition_hash,
-    delegabilityRevalidatedAt: new Date(String(row.delegability_revalidated_at)).toISOString(),
-    validUntil: row.valid_until === null ? null : new Date(String(row.valid_until)).toISOString(),
+    delegabilityRevalidatedAt: isoTimestamp(row.delegability_revalidated_at),
+    validUntil: row.valid_until === null ? null : isoTimestamp(row.valid_until),
     executionAuthorityContentHash: row.execution_authority_content_hash,
   });
+}
+
+function isoTimestamp(value: unknown): string {
+  return value instanceof Date ? value.toISOString() : new Date(String(value)).toISOString();
 }
 
 export function createSupabaseExecutionAuthorityRepository(client: SupabaseClient, ownerTenantId: string): ExecutionAuthorityRepository {
