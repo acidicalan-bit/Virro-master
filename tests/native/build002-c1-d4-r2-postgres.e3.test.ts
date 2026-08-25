@@ -150,7 +150,8 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD002-C1-D4-R2 native TaskSp
     const pgHash = String((await admin.query("select public.build002_canonical_sha256($1::jsonb) as hash", [JSON.stringify(taskSpecHashMaterial(spec))])).rows[0].hash);
     expect(pgHash).toBe(spec.hash);
     await admin.query("set session_replication_role='replica'");
-    await admin.query("update public.field_outcomes set task_spec_snapshot = jsonb_set(task_spec_snapshot, '{compiler,version}', '999.0.0'::jsonb) where id=$1", [OUTCOME]);
+    await admin.query("delete from public.build002_execution_authorities");
+    await admin.query("update public.field_outcomes set task_spec_snapshot = jsonb_set(task_spec_snapshot, '{compiler,version}', to_jsonb('999.0.0'::text)) where id=$1", [OUTCOME]);
     await admin.query("set session_replication_role='origin'");
     await expect(service.query("select public.build002_grant_execution_authority($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::text)", [ACTOR, MEMBERSHIP, admissionId, spec.id, spec.hash])).rejects.toThrow(/TASK_SPEC_AUTHORITY_INVALID/);
     expect((await admin.query("select count(*)::int as count from public.build002_execution_authorities")).rows[0].count).toBe(0);
@@ -213,6 +214,7 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD002-C1-D4-R2 native TaskSp
     await admin.query("set session_replication_role='replica'"); await admin.query("delete from public.build002_execution_authorities"); await admin.query("delete from public.field_outcomes where id=$1", [OUTCOME]); await admin.query("set session_replication_role='origin'");
     const inserted = await service.query("insert into public.field_outcomes(id,tenant_id,transaction_id,source_version_id,source_sha256,instruction,roi,topology,task_type,provider,model,raw_candidate_id,delivered_candidate_id,recommended_strategy,strategy_id,policy_version,outcome_sku,blueprint_id,blueprint_version,blueprint_hash,blueprint_snapshot,task_spec_id,task_spec_version,task_spec_hash,task_spec_snapshot,spec_compiler_name,spec_compiler_version,machine_verification_status,same_spec_status,provider_latency_ms,preservation_latency_ms,total_latency_ms,provider_cost_usd) values ($1,$2,$3,$4,$5,'r2a','{}'::jsonb,'LOCAL_INDEPENDENT','COLOR_CHANGE','fixture','fixture',$6,$6,'P0_RAW','P0_RAW','r2a','precision-edit-v0',$7,1,$8,$9::jsonb,$10,1,$11,$12::jsonb,'r2a','1.0','PASSED','PASSED',0,0,0,0)", [OUTCOME, TENANT, TRANSACTION, VERSION, SOURCE_SHA, CANDIDATE, BLUEPRINT, BLUEPRINT_HASH, JSON.stringify({ id: BLUEPRINT, version: 1, previousVersionHash: null }), forged.id, forgedHash, JSON.stringify(forged)]); expect(inserted.rowCount).toBe(1);
     await expect(service.query("select public.build002_grant_execution_authority($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::text)", [ACTOR, MEMBERSHIP, admissionId, forged.id, forgedHash])).rejects.toThrow(/TASK_SPEC_AUTHORITY_INVALID/); expect((await admin.query("select count(*)::int as count from public.build002_execution_authorities")).rows[0].count).toBe(0);
+    await admin.query("set session_replication_role='replica'"); await admin.query("update public.field_outcomes set task_spec_hash=$1, task_spec_snapshot=$2::jsonb where id=$3", [spec.hash, JSON.stringify(spec), OUTCOME]); await admin.query("set session_replication_role='origin'");
   });
 
   it("records relational mismatch rejection and exact field_outcomes privileges", async () => {
