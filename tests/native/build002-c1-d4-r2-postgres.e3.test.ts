@@ -137,7 +137,11 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD002-C1-D4-R2 native TaskSp
     const result = await service.query("select public.build002_grant_execution_authority($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::text) as result", [ACTOR, MEMBERSHIP, admissionId, spec.id, spec.hash]); expect(result.rows[0].result.execution_authority_id).toEqual(expect.any(String));
     const row = (await admin.query("select * from public.build002_execution_authorities where execution_authority_id=$1", [result.rows[0].result.execution_authority_id])).rows[0];
     console.log("R2_AUTHORITY_ROW", JSON.stringify(row));
-    const parsed = authorityFromRow(row); console.log("R2_AUTHORITY_HASHES", canonicalSha256(executionAuthorityHashMaterial(parsed)), parsed.executionAuthorityContentHash, verifyExecutionAuthorityHash(parsed));
+    const parsed = authorityFromRow(row);
+    const material = executionAuthorityHashMaterial(parsed);
+    const pgMaterial = await admin.query("select public.build002_canonical_json($1::jsonb) as json, public.build002_canonical_sha256($1::jsonb) as hash", [JSON.stringify(material)]);
+    console.log("R2_AUTHORITY_HASHES", canonicalSha256(material), parsed.executionAuthorityContentHash, verifyExecutionAuthorityHash(parsed));
+    console.log("R2_AUTHORITY_MATERIAL", canonicalJson(material), pgMaterial.rows[0].json, pgMaterial.rows[0].hash);
     const client = { rpc: async (_name: string, args: Record<string, unknown>) => ({ data: (await service.query("select public.build002_grant_execution_authority($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::text) as result", [args.p_principal_id, args.p_membership_id, args.p_admission_id, args.p_task_spec_id, args.p_task_spec_hash])).rows[0].result, error: null }), from: (table: string) => ({ select: () => ({ eq: (column: string, id: string) => ({ maybeSingle: async () => { void table; void column; void id; return { data: row, error: null }; } }) }) }) };
     const repository = new SupabaseExecutionAuthorityRepository(client as unknown as SupabaseClient, TENANT); const authority = await repository.grant({ principalId: ACTOR, membershipId: MEMBERSHIP, admissionId, taskSpecId: spec.id, taskSpecHash: spec.hash }); expect(authority.executionAuthorityContentHash).toMatch(/^[a-f0-9]{64}$/);
   });
