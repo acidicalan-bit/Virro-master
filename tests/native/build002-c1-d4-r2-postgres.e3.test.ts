@@ -10,6 +10,7 @@ import { canonicalJson, canonicalSha256 } from "@/src/domain/outcome/specificati
 import { createSignal, compileSignalRequirement, createDependencySnapshot, currentDefaultEvaluator, evaluateSignalQualification, evaluateDelegationReadiness } from "@/src/domain/outcome/signal-readiness";
 import { createDelegabilityAdmission } from "@/src/domain/outcome/delegability-admission";
 import { SupabaseExecutionAuthorityRepository } from "@/src/infrastructure/persistence/outcome/supabase-execution-authority-repository";
+import { Build002ExecutionAuthoritySchema, executionAuthorityHashMaterial, verifyExecutionAuthorityHash, type Build002ExecutionAuthority } from "@/src/domain/outcome/build002-execution-authority";
 
 const enabled = process.env.BUILD002_NATIVE_PG_C1_D4_R2 === "true";
 const databaseUrl = process.env.BUILD002_NATIVE_PG_C1_D4_R2_URL ?? process.env.BUILD002_NATIVE_PG_URL;
@@ -40,6 +41,19 @@ const BINDING_HASH = "c".repeat(64);
 const SOURCE_SHA = "d".repeat(64);
 
 function connection(url: string, database: string): string { const parsed = new URL(url); parsed.pathname = `/${database}`; return parsed.toString(); }
+
+function authorityFromRow(row: Record<string, unknown>): Build002ExecutionAuthority {
+  return Build002ExecutionAuthoritySchema.parse({
+    schemaVersion: row.schema_version, executionAuthorityId: row.execution_authority_id, ownerTenantId: row.owner_tenant_id, principalId: row.principal_id, membershipId: row.membership_id,
+    delegabilityAdmissionId: row.delegability_admission_id, delegabilityAdmissionContentHash: row.delegability_admission_content_hash, authorityCommitId: row.authority_commit_id, outcomeTransactionId: row.outcome_transaction_id,
+    assetId: row.asset_id, sourceAssetVersionId: row.source_asset_version_id, sourceAssetVersionHash: row.source_asset_version_hash, taskSpecId: row.task_spec_id, taskSpecVersion: row.task_spec_version, taskSpecHash: row.task_spec_hash,
+    blueprintId: row.blueprint_id, blueprintVersion: row.blueprint_version, blueprintHash: row.blueprint_hash, capabilityGrant: row.capability_grant, capabilityGrantHash: row.capability_grant_hash,
+    historicalDependencySnapshotHash: row.historical_dependency_snapshot_hash, currentDependencySnapshotHash: row.current_dependency_snapshot_hash, evaluatorSchemaVersion: row.evaluator_schema_version, evaluatorVersion: row.evaluator_version, evaluatorDefinitionHash: row.evaluator_definition_hash,
+    scope: row.scope, mutationLeaseGranted: row.mutation_lease_granted, executionStarted: row.execution_started, consequenceBoundary: row.consequence_boundary,
+    delegabilityRevalidatedAt: new Date(String(row.delegability_revalidated_at)).toISOString(), executionAuthorityRevalidatedAt: new Date(String(row.execution_authority_revalidated_at)).toISOString(), grantedAt: new Date(String(row.granted_at)).toISOString(),
+    validUntil: row.valid_until === null ? null : new Date(String(row.valid_until)).toISOString(), executionAuthorityContentHash: row.execution_authority_content_hash,
+  });
+}
 
 function taskSpec(): TaskSpec {
   return attachTaskSpecHash({
@@ -123,6 +137,7 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD002-C1-D4-R2 native TaskSp
     const result = await service.query("select public.build002_grant_execution_authority($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::text) as result", [ACTOR, MEMBERSHIP, admissionId, spec.id, spec.hash]); expect(result.rows[0].result.execution_authority_id).toEqual(expect.any(String));
     const row = (await admin.query("select * from public.build002_execution_authorities where execution_authority_id=$1", [result.rows[0].result.execution_authority_id])).rows[0];
     console.log("R2_AUTHORITY_ROW", JSON.stringify(row));
+    const parsed = authorityFromRow(row); console.log("R2_AUTHORITY_HASHES", canonicalSha256(executionAuthorityHashMaterial(parsed)), parsed.executionAuthorityContentHash, verifyExecutionAuthorityHash(parsed));
     const client = { rpc: async (_name: string, args: Record<string, unknown>) => ({ data: (await service.query("select public.build002_grant_execution_authority($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::text) as result", [args.p_principal_id, args.p_membership_id, args.p_admission_id, args.p_task_spec_id, args.p_task_spec_hash])).rows[0].result, error: null }), from: (table: string) => ({ select: () => ({ eq: (column: string, id: string) => ({ maybeSingle: async () => { void table; void column; void id; return { data: row, error: null }; } }) }) }) };
     const repository = new SupabaseExecutionAuthorityRepository(client as unknown as SupabaseClient, TENANT); const authority = await repository.grant({ principalId: ACTOR, membershipId: MEMBERSHIP, admissionId, taskSpecId: spec.id, taskSpecHash: spec.hash }); expect(authority.executionAuthorityContentHash).toMatch(/^[a-f0-9]{64}$/);
   });
@@ -136,6 +151,7 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD002-C1-D4-R2 native TaskSp
   });
 
   it("rejects currentness and identity drift before authority issuance", async () => {
+    await admin.query("set session_replication_role='replica'"); await admin.query("delete from public.build002_execution_authorities"); await admin.query("set session_replication_role='origin'");
     const d4 = (principal: string, membership: string) => service.query("select public.build002_grant_execution_authority($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::text) as result", [principal, membership, admissionId, spec.id, spec.hash]);
     const driftSignal = createSignal({ signalId: SIGNAL_DRIFT, ownerTenantId: TENANT, transactionId: TRANSACTION, requirementId: value.signal.requirementId, payload: { value: "drift" }, source: value.signal.source, provenance: "OBSERVED", capturedAt: value.signal.capturedAt, validUntil: value.signal.validUntil, dependency: value.signal.dependency, schemaVersion: value.signal.schemaVersion });
     await service.query("select public.build002_insert_signal($1::jsonb)", [JSON.stringify({ signal_id: driftSignal.signalId, owner_tenant_id: TENANT, outcome_transaction_id: TRANSACTION, requirement_id: driftSignal.requirementId, requirement_definition_hash: value.requirement.requirementDefinitionHash, payload: driftSignal.payload, source: driftSignal.source, provenance: driftSignal.provenance, captured_at: driftSignal.capturedAt, valid_until: driftSignal.validUntil, dependency_identity: driftSignal.dependency.identity, dependency_hash: driftSignal.dependency.hash, schema_version: driftSignal.schemaVersion, content_hash: driftSignal.contentHash })]);
