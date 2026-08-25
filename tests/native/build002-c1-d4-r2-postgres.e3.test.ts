@@ -289,4 +289,79 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD002-C1-D4-R2 native TaskSp
     expect((await admin.query("select count(*)::int as count from public.build002_mutation_leases")).rows[0].count).toBe(2);
     expect((await admin.query("select count(*)::int as count from public.execution_runs")).rows[0].count).toBe(1);
   });
+
+  it("rejects unknown, missing, duplicate, and mismatched D5 semantics", async () => {
+    const reset = async () => {
+      await admin.query("set session_replication_role='replica'");
+      await admin.query("delete from public.build002_mutation_leases");
+      await admin.query("delete from public.build002_execution_authorities");
+      await admin.query("delete from public.transaction_patches");
+      await admin.query("delete from public.partial_intents");
+      await admin.query("update public.field_outcomes set task_spec_hash=$1, task_spec_snapshot=$2::jsonb where id=$3", [spec.hash, JSON.stringify(spec), OUTCOME]);
+      await admin.query("set session_replication_role='origin'");
+      await admin.query("update public.tenants set status='ACTIVE' where id=$1", [TENANT]);
+      await admin.query("update public.tenant_memberships set status='ACTIVE' where id=$1", [MEMBERSHIP]);
+      await admin.query("update public.outcome_transactions set status='PREPARED', raw_request='r2a' where id=$1", [TRANSACTION]);
+      await admin.query("update public.assets set current_version_id=$1 where id=$2", [VERSION, ASSET]);
+    };
+    const createAuthority = async () => {
+      const result = await service.query("select public.build002_grant_execution_authority($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::text) as result", [ACTOR, MEMBERSHIP, admissionId, spec.id, spec.hash]);
+      return result.rows[0].result.execution_authority_id as string;
+    };
+    const insertPatch = async (targetPath: string, value: unknown, suffix: string) => {
+      const intentId = `ac100000-0000-4000-8000-000000000${suffix}`;
+      const patchId = `ac100000-0000-4000-8000-000000001${suffix}`;
+      const valueJson = JSON.stringify(value);
+      await admin.query("insert into public.partial_intents(id,transaction_id,owner_tenant_id,raw_input,target_path,operation,desired_value) values ($1,$2,$3,'r2 negative patch',$4,'SET_ATTRIBUTE',$5::jsonb)", [intentId, TRANSACTION, TENANT, targetPath, valueJson]);
+      await admin.query("insert into public.transaction_patches(id,transaction_id,owner_tenant_id,partial_intent_id,operation,target_path,parameters) values ($1,$2,$3,$4,'SET_ATTRIBUTE',$5,jsonb_build_object('value',$6::jsonb))", [patchId, TRANSACTION, TENANT, intentId, targetPath, valueJson]);
+    };
+
+    await reset();
+    const unknown = structuredClone(spec) as TaskSpec;
+    (unknown.values[0] as { provenance: string }).provenance = "UNKNOWN";
+    await admin.query("set session_replication_role='replica'");
+    await admin.query("update public.field_outcomes set task_spec_snapshot=$1::jsonb where id=$2", [JSON.stringify(unknown), OUTCOME]);
+    await admin.query("set session_replication_role='origin'");
+    const unknownAuthority = await createAuthority();
+    await expect(service.query("select public.build002_grant_mutation_lease($1::uuid,$2::uuid,$3::uuid,$4::text,$5::text)", [ACTOR, MEMBERSHIP, unknownAuthority, "requested.color", "MUTABLE"])).rejects.toThrow(/PATCH_NOT_AUTHORIZED_BY_TASK_SPEC|TASK_SPEC_AUTHORITY_INVALID/);
+
+    await reset();
+    const mismatchAuthority = await createAuthority();
+    await insertPatch("requested.color", "wrong", "101");
+    await expect(service.query("select public.build002_grant_mutation_lease($1::uuid,$2::uuid,$3::uuid,$4::text,$5::text)", [ACTOR, MEMBERSHIP, mismatchAuthority, "requested.color", "MUTABLE"])).rejects.toThrow(/PATCH_NOT_AUTHORIZED_BY_TASK_SPEC/);
+
+    await reset();
+    const duplicateAuthority = await createAuthority();
+    await insertPatch("requested.color", spec.values[0].value, "102");
+    await insertPatch("requested.color", spec.values[0].value, "103");
+    await expect(service.query("select public.build002_grant_mutation_lease($1::uuid,$2::uuid,$3::uuid,$4::text,$5::text)", [ACTOR, MEMBERSHIP, duplicateAuthority, "requested.color", "MUTABLE"])).rejects.toThrow(/PATCH_NOT_AUTHORIZED_BY_TASK_SPEC/);
+    expect((await admin.query("select count(*)::int as count from public.build002_mutation_leases")).rows[0].count).toBe(0);
+  });
+
+  it("expires immutable leases and serializes identical retries", async () => {
+    await admin.query("set session_replication_role='replica'");
+    await admin.query("delete from public.build002_mutation_leases");
+    await admin.query("delete from public.build002_execution_authorities");
+    await admin.query("delete from public.transaction_patches");
+    await admin.query("delete from public.partial_intents");
+    await admin.query("update public.field_outcomes set task_spec_hash=$1, task_spec_snapshot=$2::jsonb where id=$3", [spec.hash, JSON.stringify(spec), OUTCOME]);
+    await admin.query("set session_replication_role='origin'");
+    await admin.query("update public.tenants set status='ACTIVE' where id=$1", [TENANT]);
+    await admin.query("update public.tenant_memberships set status='ACTIVE' where id=$1", [MEMBERSHIP]);
+    await admin.query("update public.outcome_transactions set status='PREPARED', raw_request='r2a' where id=$1", [TRANSACTION]);
+    await admin.query("update public.assets set current_version_id=$1 where id=$2", [VERSION, ASSET]);
+    const authority = await service.query("select public.build002_grant_execution_authority($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::text) as result", [ACTOR, MEMBERSHIP, admissionId, spec.id, spec.hash]);
+    const authorityId = authority.rows[0].result.execution_authority_id as string;
+    const valueJson = JSON.stringify(spec.values[0].value);
+    await admin.query("insert into public.partial_intents(id,transaction_id,owner_tenant_id,raw_input,target_path,operation,desired_value) values ('ad200000-0000-4000-8000-000000000001',$1,$2,'r2 retry','requested.color','SET_ATTRIBUTE',$3::jsonb)", [TRANSACTION, TENANT, valueJson]);
+    await admin.query("insert into public.transaction_patches(id,transaction_id,owner_tenant_id,partial_intent_id,operation,target_path,parameters) values ('ad200000-0000-4000-8000-000000001001',$1,$2,'ad200000-0000-4000-8000-000000000001','SET_ATTRIBUTE','requested.color',jsonb_build_object('value',$3::jsonb))", [TRANSACTION, TENANT, valueJson]);
+    const first = await service.query("select public.build002_grant_mutation_lease($1::uuid,$2::uuid,$3::uuid,$4::text,$5::text) as result", [ACTOR, MEMBERSHIP, authorityId, "requested.color", "MUTABLE"]);
+    const second = await service.query("select public.build002_grant_mutation_lease($1::uuid,$2::uuid,$3::uuid,$4::text,$5::text) as result", [ACTOR, MEMBERSHIP, authorityId, "requested.color", "MUTABLE"]);
+    expect(second.rows[0].result.mutation_lease_id).toBe(first.rows[0].result.mutation_lease_id);
+    await admin.query("set session_replication_role='replica'");
+    await admin.query("update public.build002_mutation_leases set valid_until=now()-interval '1 second'");
+    await admin.query("set session_replication_role='origin'");
+    await expect(service.query("select public.build002_grant_mutation_lease($1::uuid,$2::uuid,$3::uuid,$4::text,$5::text)", [ACTOR, MEMBERSHIP, authorityId, "requested.color", "MUTABLE"])).rejects.toThrow(/MUTATION_LEASE_EXPIRED/);
+    expect((await admin.query("select count(*)::int as count from public.build002_mutation_leases")).rows[0].count).toBe(1);
+  });
 });
