@@ -317,12 +317,12 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD002-C1-D4-R2 native TaskSp
     };
 
     await reset();
+    const unknownAuthority = await createAuthority();
     const unknown = structuredClone(spec) as TaskSpec;
     (unknown.values[0] as { provenance: string }).provenance = "UNKNOWN";
     await admin.query("set session_replication_role='replica'");
     await admin.query("update public.field_outcomes set task_spec_snapshot=$1::jsonb where id=$2", [JSON.stringify(unknown), OUTCOME]);
     await admin.query("set session_replication_role='origin'");
-    const unknownAuthority = await createAuthority();
     await expect(service.query("select public.build002_grant_mutation_lease($1::uuid,$2::uuid,$3::uuid,$4::text,$5::text)", [ACTOR, MEMBERSHIP, unknownAuthority, "requested.color", "MUTABLE"])).rejects.toThrow(/PATCH_NOT_AUTHORIZED_BY_TASK_SPEC|TASK_SPEC_AUTHORITY_INVALID/);
 
     await reset();
