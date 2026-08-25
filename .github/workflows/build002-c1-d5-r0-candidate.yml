@@ -39,7 +39,7 @@ jobs:
       - run: pnpm exec vitest run tests/native/build002-c1-d3-postgres.e3.test.ts --reporter=dot
       - run: pnpm exec vitest run tests/native/build002-c1-d2-scoped-reader.e3.test.ts --reporter=dot
       - run: pnpm exec vitest run tests/native/build002-c1-d0-postgres.e3.test.ts --reporter=dot
-      - run: pnpm exec vitest run --reporter=dot
+      - run: env -u BUILD002_NATIVE_PG_C1_D0 -u BUILD002_NATIVE_PG_C1_D0_URL -u BUILD002_NATIVE_PG_C1_D2 -u BUILD002_NATIVE_PG_C1_D2_URL -u BUILD002_NATIVE_PG_C1_D3 -u BUILD002_NATIVE_PG_C1_D3_URL -u BUILD002_NATIVE_PG_C1_D4_R2 -u BUILD002_NATIVE_PG_C1_D4_R2_URL -u BUILD002_NATIVE_PG_C1_D5_R0 -u BUILD002_NATIVE_PG_C1_D5_R0_URL pnpm exec vitest run --reporter=dot
       - run: pnpm exec tsc --noEmit --pretty false
       - run: pnpm exec eslint .
       - run: pnpm run assurance:check
