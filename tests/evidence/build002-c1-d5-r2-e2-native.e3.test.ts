@@ -203,7 +203,9 @@ describe.runIf(enabled && Boolean(databaseUrl))(`BUILD002-C1-D5-R2-E2 ${mode.toU
     const row = (await admin.query("select * from public.build002_mutation_leases limit 1")).rows[0] as Record<string, unknown>;
     const leaseId = String(row.mutation_lease_id);
     const original = String(row.mutation_lease_content_hash);
-    await admin.query("set session_replication_role='replica'; update public.build002_mutation_leases set mutation_lease_content_hash=repeat('f',64) where mutation_lease_id=$1; set session_replication_role='origin'", [leaseId]);
+    await admin.query("set session_replication_role='replica'");
+    await admin.query("update public.build002_mutation_leases set mutation_lease_content_hash=repeat('f',64) where mutation_lease_id=$1", [leaseId]);
+    await admin.query("set session_replication_role='origin'");
     await expect(admin.query("select public.build002_validate_mutation_lease_row($1::uuid)", [leaseId])).rejects.toThrow(/MUTATION_LEASE_READBACK_FAILED/);
     const tampered = leaseFromRow((await admin.query("select * from public.build002_mutation_leases where mutation_lease_id=$1", [leaseId])).rows[0] as Record<string, unknown>);
     expect(verifyBuild002MutationLeaseHash(tampered)).toBe(false);
