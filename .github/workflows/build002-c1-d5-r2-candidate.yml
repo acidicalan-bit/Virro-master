@@ -65,3 +65,65 @@ jobs:
       - run: pnpm run portability:check
       - run: pnpm run portability:env
       - run: pnpm run build
+
+  full-regression:
+    name: full-regression-${{ matrix.label }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: r1
+            ref: 8cfdabe7fb962c5cd3625faa43231f0066c17b81
+          - label: r2
+            ref: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: "${{ matrix.ref }}"
+      - uses: pnpm/action-setup@v4
+        with:
+          version: "${{ env.PNPM_VERSION }}"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "${{ env.NODE_VERSION }}"
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run assurance:check
+      - run: pnpm run portability:check
+      - run: pnpm run portability:env
+      - run: pnpm test -- --reporter=dot
+      - run: pnpm typecheck
+      - run: pnpm lint
+      - run: pnpm build
+
+  dual-runtime:
+    name: dual-runtime-build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: "${{ env.PNPM_VERSION }}"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "${{ env.NODE_VERSION }}"
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: VERCEL=1 pnpm build
+      - run: pnpm build
+
+  container:
+    name: container-portability
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: "${{ env.PNPM_VERSION }}"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "${{ env.NODE_VERSION }}"
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: PORTABILITY_SOURCE_SHA=${{ github.sha }} pnpm run portability:smoke
