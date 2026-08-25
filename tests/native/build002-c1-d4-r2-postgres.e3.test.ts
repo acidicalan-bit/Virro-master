@@ -281,7 +281,7 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD002-C1-D4-R2 native TaskSp
       const intentId = `ab100000-0000-4000-8000-000000000${fixture.suffix}`;
       const patchId = `ab100000-0000-4000-8000-000000001${fixture.suffix}`;
       const valueJson = JSON.stringify(fixture.value);
-      await admin.query("insert into public.partial_intents(id,transaction_id,owner_tenant_id,raw_input,target_path,operation,desired_value) values ($1,$2,$3,'r2 exact patch','SET_ATTRIBUTE',$4,$5::jsonb)", [intentId, TRANSACTION, TENANT, fixture.targetPath, valueJson]);
+      await admin.query("insert into public.partial_intents(id,transaction_id,owner_tenant_id,raw_input,target_path,operation,desired_value) values ($1,$2,$3,'r2 exact patch',$4,'SET_ATTRIBUTE',$5::jsonb)", [intentId, TRANSACTION, TENANT, fixture.targetPath, valueJson]);
       await admin.query("insert into public.transaction_patches(id,transaction_id,owner_tenant_id,partial_intent_id,operation,target_path,parameters) values ($1,$2,$3,$4,'SET_ATTRIBUTE',$5,jsonb_build_object('value',$6::jsonb))", [patchId, TRANSACTION, TENANT, intentId, fixture.targetPath, valueJson]);
       const issued = await service.query("select public.build002_grant_mutation_lease($1::uuid,$2::uuid,$3::uuid,$4::text,$5::text) as result", [ACTOR, MEMBERSHIP, authorityId, fixture.targetPath, "MUTABLE"]);
       expect(issued.rows[0].result.mutation_lease_id).toEqual(expect.any(String));
