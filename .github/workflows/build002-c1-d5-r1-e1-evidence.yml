@@ -28,7 +28,8 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: pnpm }
       - run: pnpm install --frozen-lockfile
-      - run: pnpm exec vitest run tests/assurance/build002-c1-d5-r1-e1-evidence.test.ts tests/assurance/build002-c1-d5-r1-mutation-lease.test.ts tests/native/build002-c1-d5-r1-e1-postgres.e3.test.ts tests/native/build002-c1-d5-r0-postgres.e3.test.ts --reporter=verbose
+      - run: pnpm exec vitest run tests/assurance/build002-c1-d5-r1-e1-evidence.test.ts tests/assurance/build002-c1-d5-r1-mutation-lease.test.ts tests/native/build002-c1-d5-r1-e1-postgres.e3.test.ts --reporter=verbose
+      - run: pnpm exec vitest run tests/native/build002-c1-d5-r0-postgres.e3.test.ts --reporter=verbose
       - run: pnpm exec tsc --noEmit --pretty false
       - run: pnpm exec eslint .
       - run: pnpm run assurance:check

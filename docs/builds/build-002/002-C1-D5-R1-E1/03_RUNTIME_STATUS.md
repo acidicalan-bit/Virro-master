@@ -5,3 +5,8 @@ PostgreSQL 17 replay, native D5 issuance, concurrency, OCI, and preview
 evidence are blocked locally. The prior full-suite run also contained timeout
 and Windows `EPERM` failures outside the R1 diff; E1 does not classify those
 as a PASS without an equivalent baseline run.
+
+The first CI attempt exposed two E1 harness-only defects: concurrent native
+suites raced while creating shared fixture roles, and the E1 preflight omitted
+the Storage columns required by the existing migration set. The repair is
+limited to test setup and workflow serialization; no product file changed.
