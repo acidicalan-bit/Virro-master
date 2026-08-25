@@ -140,8 +140,24 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD002-C1-D4-R2 native TaskSp
     const parsed = authorityFromRow(row);
     const material = executionAuthorityHashMaterial(parsed);
     const pgMaterial = await admin.query("select public.build002_canonical_json($1::jsonb) as json, public.build002_canonical_sha256($1::jsonb) as hash", [JSON.stringify(material)]);
+    const rowMaterial = await admin.query(`select public.build002_canonical_json(jsonb_build_object(
+      'assetId', asset_id, 'authorityCommitId', authority_commit_id, 'blueprintHash', blueprint_hash, 'blueprintId', blueprint_id,
+      'blueprintVersion', blueprint_version, 'capabilityGrant', capability_grant, 'capabilityGrantHash', capability_grant_hash,
+      'consequenceBoundary', consequence_boundary, 'currentDependencySnapshotHash', current_dependency_snapshot_hash,
+      'delegabilityAdmissionContentHash', delegability_admission_content_hash, 'delegabilityAdmissionId', delegability_admission_id,
+      'delegabilityRevalidatedAt', to_char(delegability_revalidated_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
+      'executionAuthorityRevalidatedAt', to_char(execution_authority_revalidated_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
+      'executionStarted', execution_started, 'evaluatorDefinitionHash', evaluator_definition_hash,
+      'evaluatorSchemaVersion', evaluator_schema_version, 'evaluatorVersion', evaluator_version,
+      'historicalDependencySnapshotHash', historical_dependency_snapshot_hash, 'membershipId', membership_id,
+      'mutationLeaseGranted', mutation_lease_granted, 'outcomeTransactionId', outcome_transaction_id,
+      'ownerTenantId', owner_tenant_id, 'principalId', principal_id, 'sourceAssetVersionHash', source_asset_version_hash,
+      'sourceAssetVersionId', source_asset_version_id, 'scope', scope, 'schemaVersion', schema_version,
+      'taskSpecHash', task_spec_hash, 'taskSpecId', task_spec_id, 'taskSpecVersion', task_spec_version,
+      'validUntil', case when valid_until is null then null else to_char(valid_until at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') end
+    )) as json from public.build002_execution_authorities where execution_authority_id=$1`, [result.rows[0].result.execution_authority_id]);
     console.log("R2_AUTHORITY_HASHES", canonicalSha256(material), parsed.executionAuthorityContentHash, verifyExecutionAuthorityHash(parsed));
-    console.log("R2_AUTHORITY_MATERIAL", canonicalJson(material), pgMaterial.rows[0].json, pgMaterial.rows[0].hash);
+    console.log("R2_AUTHORITY_MATERIAL", canonicalJson(material), pgMaterial.rows[0].json, pgMaterial.rows[0].hash, rowMaterial.rows[0].json);
     const client = { rpc: async (_name: string, args: Record<string, unknown>) => ({ data: (await service.query("select public.build002_grant_execution_authority($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::text) as result", [args.p_principal_id, args.p_membership_id, args.p_admission_id, args.p_task_spec_id, args.p_task_spec_hash])).rows[0].result, error: null }), from: (table: string) => ({ select: () => ({ eq: (column: string, id: string) => ({ maybeSingle: async () => { void table; void column; void id; return { data: row, error: null }; } }) }) }) };
     const repository = new SupabaseExecutionAuthorityRepository(client as unknown as SupabaseClient, TENANT); const authority = await repository.grant({ principalId: ACTOR, membershipId: MEMBERSHIP, admissionId, taskSpecId: spec.id, taskSpecHash: spec.hash }); expect(authority.executionAuthorityContentHash).toMatch(/^[a-f0-9]{64}$/);
   });
