@@ -34,6 +34,20 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: pnpm }
       - run: pnpm install --frozen-lockfile
+      - name: seed native Supabase storage fixture
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h localhost -U postgres -d template1 -v ON_ERROR_STOP=1 <<'SQL'
+          create schema if not exists storage;
+          create table if not exists storage.buckets(
+            id text primary key,
+            name text not null unique,
+            public boolean not null default false,
+            file_size_limit bigint,
+            allowed_mime_types text[]
+          );
+          SQL
       - run: pnpm exec vitest run tests/evidence/build002-c1-d4-r2a-task-spec-hash-authority.e3.test.ts tests/native/build002-c1-d4-r0-postgres.e3.test.ts --reporter=verbose
       - run: pnpm exec vitest run tests/native/build002-c1-d3-postgres.e3.test.ts tests/native/build002-c1-d2-scoped-reader.e3.test.ts tests/native/build002-c1-d0-postgres.e3.test.ts --reporter=dot
       - run: pnpm exec vitest run tests/assurance/build002-c1-d4-r1-authority-closure.test.ts tests/assurance/build002-c1-d4-r0-execution-authority.test.ts --reporter=dot
