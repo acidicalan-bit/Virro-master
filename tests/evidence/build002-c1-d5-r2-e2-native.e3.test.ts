@@ -200,6 +200,10 @@ describe.runIf(enabled && Boolean(databaseUrl))(`BUILD002-C1-D5-R2-E2 ${mode.toU
 
   it("rejects inconsistent persisted lease state in PostgreSQL and TypeScript", async () => {
     if (mode === "r1") { expect(await count("build002_mutation_leases")).toBe(0); return; }
+    await admin.query("set session_replication_role='replica'");
+    await admin.query("delete from public.build002_mutation_leases");
+    await admin.query("set session_replication_role='origin'");
+    await service.query("select public.build002_grant_mutation_lease($1::uuid,$2::uuid,$3::uuid,$4::text,$5::text)", [ACTOR, MEMBERSHIP, authorityId, "requested.color", "MUTABLE"]);
     const row = (await admin.query("select * from public.build002_mutation_leases limit 1")).rows[0] as Record<string, unknown>;
     const leaseId = String(row.mutation_lease_id);
     const original = String(row.mutation_lease_content_hash);
