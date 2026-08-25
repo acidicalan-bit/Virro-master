@@ -296,6 +296,7 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD002-C1-D4-R2 native TaskSp
       { targetPath: "requested.color", value: spec.values.find((item) => item.id === "requested.color")?.value, suffix: "001" },
       { targetPath: "requested.size", value: spec.values.find((item) => item.id === "requested.size")?.value, suffix: "002" },
     ];
+    const consequenceBefore = await consequenceSnapshot();
     for (const fixture of fixtures) {
       const intentId = `ab100000-0000-4000-8000-000000000${fixture.suffix}`;
       const patchId = `ab100000-0000-4000-8000-000000001${fixture.suffix}`;
@@ -307,6 +308,15 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD002-C1-D4-R2 native TaskSp
     }
     expect((await admin.query("select count(*)::int as count from public.build002_mutation_leases")).rows[0].count).toBe(2);
     expect((await admin.query("select count(*)::int as count from public.execution_runs")).rows[0].count).toBe(1);
+    const consequenceAfter = await consequenceSnapshot();
+    expect(consequenceAfter.executionRuns).toBe(consequenceBefore.executionRuns);
+    expect(consequenceAfter.evidenceReceipts).toBe(consequenceBefore.evidenceReceipts);
+    expect(consequenceAfter.verificationRuns).toBe(consequenceBefore.verificationRuns);
+    expect(consequenceAfter.stateCommits).toBe(consequenceBefore.stateCommits);
+    expect(consequenceAfter.assetVersions).toBe(consequenceBefore.assetVersions);
+    expect(consequenceAfter.candidateAssets).toBe(consequenceBefore.candidateAssets);
+    expect(consequenceAfter.costRecords).toBe(consequenceBefore.costRecords);
+    expect(consequenceAfter.transactionStatuses).toBe(consequenceBefore.transactionStatuses);
   });
 
   it("rejects unknown, missing, duplicate, and mismatched D5 semantics", async () => {
