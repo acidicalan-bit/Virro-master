@@ -293,7 +293,7 @@ begin
       'executionStarted', v_existing.execution_started, 'membershipId', v_existing.membership_id, 'mutationLeaseRevalidatedAt', to_char(v_existing.mutation_lease_revalidated_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
       'outcomeTransactionId', v_existing.outcome_transaction_id, 'ownerTenantId', v_existing.owner_tenant_id, 'principalId', v_existing.principal_id, 'scope', v_existing.scope, 'schemaVersion', v_existing.schema_version,
       'sourceAssetVersionHash', v_existing.source_asset_version_hash, 'sourceAssetVersionId', v_existing.source_asset_version_id, 'targetPath', v_existing.target_path, 'taskSpecHash', v_existing.task_spec_hash, 'taskSpecId', v_existing.task_spec_id, 'taskSpecVersion', v_existing.task_spec_version,
-      'blueprintHash', v_existing.blueprint_hash, 'validUntil', to_char(v_existing.valid_until at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'), 'category', v_existing.category)) is distinct from lower(v_existing.mutation_lease_content_hash) then
+       'blueprintHash', v_existing.blueprint_hash, 'validUntil', to_char(v_existing.valid_until at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'), 'category', v_existing.category))) is distinct from lower(v_existing.mutation_lease_content_hash) then
       raise exception 'MUTATION_LEASE_READBACK_FAILED';
     end if;
     return jsonb_build_object('mutation_lease_id', v_existing.mutation_lease_id, 'mutation_lease_content_hash', v_existing.mutation_lease_content_hash, 'granted_at', v_existing.granted_at);
