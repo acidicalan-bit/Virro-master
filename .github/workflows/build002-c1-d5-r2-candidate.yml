@@ -1,0 +1,129 @@
+name: BUILD002 C1-D5-R2 candidate
+
+on:
+  push:
+    branches: [build/build002-c1-d5-r2-mutation-lease-contract-closure]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: 22
+  PNPM_VERSION: 11.19.0
+
+jobs:
+  native-and-regression:
+    name: d5-r2-native-postgres17
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env: { POSTGRES_PASSWORD: postgres }
+        ports: [5432:5432]
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=5s --health-timeout=5s --health-retries=20
+    env:
+      BUILD002_NATIVE_PG_C1_D0: "true"
+      BUILD002_NATIVE_PG_C1_D0_URL: postgresql://postgres:postgres@localhost:5432/postgres
+      BUILD002_NATIVE_PG_C1_D2: "true"
+      BUILD002_NATIVE_PG_C1_D2_URL: postgresql://postgres:postgres@localhost:5432/postgres
+      BUILD002_NATIVE_PG_C1_D3: "true"
+      BUILD002_NATIVE_PG_C1_D3_URL: postgresql://postgres:postgres@localhost:5432/postgres
+      BUILD002_NATIVE_PG_C1_D4_R2: "true"
+      BUILD002_NATIVE_PG_C1_D4_R2_URL: postgresql://postgres:postgres@localhost:5432/postgres
+      BUILD002_NATIVE_PG_C1_D5_R0: "true"
+      BUILD002_NATIVE_PG_C1_D5_R0_URL: postgresql://postgres:postgres@localhost:5432/postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: "${{ env.PNPM_VERSION }}"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "${{ env.NODE_VERSION }}"
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: seed native storage fixture
+        env: { PGPASSWORD: postgres }
+        run: |
+          psql -h localhost -U postgres -d template1 -v ON_ERROR_STOP=1 <<'SQL'
+          create schema if not exists storage;
+          create table if not exists storage.buckets(id text primary key, name text not null unique, public boolean not null default false, file_size_limit bigint, allowed_mime_types text[]);
+          SQL
+      - run: pnpm exec vitest run tests/assurance/build002-c1-d5-r2-mutation-lease.test.ts tests/assurance/build002-c1-d5-r1-mutation-lease.test.ts --reporter=verbose
+      - run: pnpm exec vitest run tests/assurance/build002-c1-d0-r1-authority-marker-graph-coherence.test.ts tests/assurance/build002-c1-d0-readiness-authority-commit.test.ts tests/assurance/build002-c1-d1-readiness-authority-orchestration.test.ts tests/assurance/build002-c1-d2-readiness-currentness.test.ts tests/assurance/build002-c1-d3-r2-repository-integrity.test.ts tests/assurance/build002-c1-d4-r0-execution-authority.test.ts tests/assurance/build002-c1-d4-r1-authority-closure.test.ts --reporter=dot
+      - run: pnpm exec vitest run tests/native/build002-c1-d0-postgres.e3.test.ts --reporter=verbose
+      - run: pnpm exec vitest run tests/native/build002-c1-d2-scoped-reader.e3.test.ts --reporter=verbose
+      - run: pnpm exec vitest run tests/native/build002-c1-d3-postgres.e3.test.ts --reporter=verbose
+      - run: pnpm exec vitest run tests/native/build002-c1-d5-r0-postgres.e3.test.ts --reporter=verbose
+      - run: pnpm exec vitest run tests/native/build002-c1-d4-r2-postgres.e3.test.ts --reporter=verbose
+      - run: pnpm exec tsc --noEmit --pretty false
+      - run: pnpm exec eslint tests/native/build002-c1-d4-r2-postgres.e3.test.ts tests/assurance/build002-c1-d5-r2-mutation-lease.test.ts
+      - run: pnpm run assurance:check
+      - run: pnpm run portability:check
+      - run: pnpm run portability:env
+      - run: pnpm run build
+
+  full-regression:
+    name: full-regression-${{ matrix.label }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: r1
+            ref: 8cfdabe7fb962c5cd3625faa43231f0066c17b81
+          - label: r2
+            ref: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: "${{ matrix.ref }}"
+      - uses: pnpm/action-setup@v4
+        with:
+          version: "${{ env.PNPM_VERSION }}"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "${{ env.NODE_VERSION }}"
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run assurance:check
+      - run: pnpm run portability:check
+      - run: pnpm run portability:env
+      - run: pnpm test -- --reporter=dot
+      - run: pnpm typecheck
+      - run: pnpm lint
+      - run: pnpm build
+
+  dual-runtime:
+    name: dual-runtime-build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: "${{ env.PNPM_VERSION }}"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "${{ env.NODE_VERSION }}"
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: VERCEL=1 pnpm build
+      - run: pnpm build
+
+  container:
+    name: container-portability
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: "${{ env.PNPM_VERSION }}"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "${{ env.NODE_VERSION }}"
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: PORTABILITY_SOURCE_SHA=${{ github.sha }} pnpm run portability:smoke

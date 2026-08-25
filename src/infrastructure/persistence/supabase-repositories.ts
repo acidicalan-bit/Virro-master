@@ -61,6 +61,7 @@ import { createSupabaseTransactionRequirementBindingRepository } from "@/src/inf
 import { createSupabaseReadinessAuthorityCommitRepository } from "@/src/infrastructure/persistence/outcome/supabase-readiness-authority-commit-repository";
 import { createSupabaseReadinessAuthorityCommitScopedReader } from "@/src/infrastructure/persistence/outcome/supabase-readiness-authority-commit-scoped-reader";
 import { createSupabaseRequirementCatalogRepository } from "@/src/infrastructure/persistence/outcome/supabase-requirement-catalog-repository";
+import { createSupabaseBuild002MutationLeaseRepository } from "@/src/infrastructure/persistence/outcome/supabase-build002-mutation-lease-repository";
 import type { RequirementCatalogRepository } from "@/src/application/ports/outcome/requirement-catalog-repository";
 import type { OutcomeTransactionRequirementBindingRepository } from "@/src/application/ports/outcome/transaction-requirement-binding-repository";
 import type { Build002PersistenceRepository } from "@/src/application/ports/outcome/build002-persistence-repository";
@@ -569,6 +570,11 @@ export function createTenantReadinessAuthorityCurrentnessRepositories(ownerTenan
 export function createTenantDelegabilityAdmissionRepository(ownerTenantId: string) {
   const scope = requireTenantScope(ownerTenantId);
   return createSupabaseDelegabilityAdmissionRepository(createPrivilegedClient(), scope);
+}
+
+export function createTenantBuild002MutationLeaseRepository(ownerTenantId: string) {
+  const scope = requireTenantScope(ownerTenantId);
+  return createSupabaseBuild002MutationLeaseRepository(createPrivilegedClient(), scope);
 }
 
 export function requireTenantScope(ownerTenantId: string | undefined): string {

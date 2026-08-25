@@ -1,0 +1,46 @@
+name: BUILD002 C1-D5-R1 mutation lease freshness and semantic binding candidate
+
+on:
+  push:
+    branches: [build/build002-c1-d5-r1-mutation-lease-authority]
+  workflow_dispatch:
+
+jobs:
+  candidate:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env: { POSTGRES_PASSWORD: postgres }
+        ports: [5432:5432]
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=5s --health-timeout=5s --health-retries=20
+    env:
+      BUILD002_NATIVE_PG_C1_D0: "true"
+      BUILD002_NATIVE_PG_C1_D0_URL: postgresql://postgres:postgres@localhost:5432/postgres
+      BUILD002_NATIVE_PG_C1_D2: "true"
+      BUILD002_NATIVE_PG_C1_D2_URL: postgresql://postgres:postgres@localhost:5432/postgres
+      BUILD002_NATIVE_PG_C1_D3: "true"
+      BUILD002_NATIVE_PG_C1_D3_URL: postgresql://postgres:postgres@localhost:5432/postgres
+      BUILD002_NATIVE_PG_C1_D4_R2: "true"
+      BUILD002_NATIVE_PG_C1_D4_R2_URL: postgresql://postgres:postgres@localhost:5432/postgres
+      BUILD002_NATIVE_PG_C1_D5_R0: "true"
+      BUILD002_NATIVE_PG_C1_D5_R0_URL: postgresql://postgres:postgres@localhost:5432/postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 11.19.0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec vitest run tests/assurance/build002-c1-d5-r0-mutation-lease.test.ts tests/assurance/build002-c1-d5-r1-mutation-lease.test.ts tests/native/build002-c1-d5-r0-postgres.e3.test.ts --reporter=verbose
+      - run: pnpm exec vitest run tests/native/build002-c1-d4-r2-postgres.e3.test.ts --reporter=dot
+      - run: pnpm exec vitest run tests/native/build002-c1-d3-postgres.e3.test.ts --reporter=dot
+      - run: pnpm exec vitest run tests/native/build002-c1-d2-scoped-reader.e3.test.ts --reporter=dot
+      - run: pnpm exec vitest run tests/native/build002-c1-d0-postgres.e3.test.ts --reporter=dot
+      - run: env -u BUILD002_NATIVE_PG_C1_D0 -u BUILD002_NATIVE_PG_C1_D0_URL -u BUILD002_NATIVE_PG_C1_D2 -u BUILD002_NATIVE_PG_C1_D2_URL -u BUILD002_NATIVE_PG_C1_D3 -u BUILD002_NATIVE_PG_C1_D3_URL -u BUILD002_NATIVE_PG_C1_D4_R2 -u BUILD002_NATIVE_PG_C1_D4_R2_URL -u BUILD002_NATIVE_PG_C1_D5_R0 -u BUILD002_NATIVE_PG_C1_D5_R0_URL pnpm exec vitest run --reporter=dot
+      - run: pnpm exec tsc --noEmit --pretty false
+      - run: pnpm exec eslint .
+      - run: pnpm run assurance:check
+      - run: pnpm run build
