@@ -5,6 +5,7 @@ export const BUILD002_MUTATION_LEASE_SCHEMA_VERSION = "build002-mutation-lease-v
 export const BUILD002_MUTATION_LEASE_SCOPE = "MUTATION_LEASE_ONLY" as const;
 export const BUILD002_MUTATION_LEASE_CONSEQUENCE_BOUNDARY = "FRESH_PREEXECUTION_RECHECK_AND_EXECUTION_START_REQUIRED" as const;
 export const BUILD002_MUTATION_LEASE_CATEGORY = "MUTABLE" as const;
+export const BUILD002_MUTATION_LEASE_TTL_SECONDS = 300 as const;
 
 const ExactPath = z.string().trim().min(1).max(500).refine((value) => {
   if (value === "." || value === ".." || value.includes("*") || value.includes("[") || value.includes("]")) return false;

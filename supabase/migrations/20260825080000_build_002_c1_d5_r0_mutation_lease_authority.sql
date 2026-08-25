@@ -138,6 +138,7 @@ declare
   v_revalidated_iso text;
   v_valid_until timestamptz;
   v_content_hash text;
+  v_ttl_seconds integer := 300;
 begin
   if p_principal_id is null or p_membership_id is null or p_execution_authority_id is null
      or p_target_path is null or btrim(p_target_path) = '' or p_category is distinct from 'MUTABLE'
@@ -278,7 +279,7 @@ begin
     'validUntil', case when v_d4.valid_until is null then null else to_char(v_d4.valid_until at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') end));
   if lower(v_d4_hash) is distinct from lower(v_d4.execution_authority_content_hash) then raise exception 'EXECUTION_AUTHORITY_READBACK_FAILED'; end if;
   if v_d4.valid_until is null or v_d4.valid_until <= v_now then raise exception 'EXECUTION_AUTHORITY_EXPIRED'; end if;
-  v_valid_until := least(v_d4.valid_until, v_now + interval '5 minutes');
+  v_valid_until := least(v_d4.valid_until, v_now + make_interval(secs => v_ttl_seconds));
   v_revalidated_iso := to_char(v_now at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"');
   v_key := v_d4.execution_authority_id::text || ':' || p_target_path || ':MUTABLE';
 
