@@ -11,6 +11,7 @@ import { createSignal, compileSignalRequirement, createDependencySnapshot, curre
 import { createDelegabilityAdmission } from "@/src/domain/outcome/delegability-admission";
 import { SupabaseExecutionAuthorityRepository } from "@/src/infrastructure/persistence/outcome/supabase-execution-authority-repository";
 import { Build002ExecutionAuthoritySchema, executionAuthorityHashMaterial, verifyExecutionAuthorityHash, type Build002ExecutionAuthority } from "@/src/domain/outcome/build002-execution-authority";
+import { Build002MutationLeaseSchema, mutationLeaseHashMaterial, verifyBuild002MutationLeaseHash, type Build002MutationLease } from "@/src/domain/outcome/build002-mutation-lease";
 
 const enabled = process.env.BUILD002_NATIVE_PG_C1_D4_R2 === "true";
 const databaseUrl = process.env.BUILD002_NATIVE_PG_C1_D4_R2_URL ?? process.env.BUILD002_NATIVE_PG_URL;
@@ -56,6 +57,24 @@ function authorityFromRow(row: Record<string, unknown>): Build002ExecutionAuthor
 }
 
 function isoTimestamp(value: unknown): string { return value instanceof Date ? value.toISOString() : new Date(String(value)).toISOString(); }
+
+function mutationLeaseFromRow(row: Record<string, unknown>): Build002MutationLease {
+  return Build002MutationLeaseSchema.parse({
+    schemaVersion: row.schema_version, mutationLeaseId: row.mutation_lease_id, ownerTenantId: row.owner_tenant_id,
+    principalId: row.principal_id, membershipId: row.membership_id, executionAuthorityId: row.execution_authority_id,
+    executionAuthorityContentHash: row.execution_authority_content_hash, delegabilityAdmissionId: row.delegability_admission_id,
+    authorityCommitId: row.authority_commit_id, outcomeTransactionId: row.outcome_transaction_id, assetId: row.asset_id,
+    sourceAssetVersionId: row.source_asset_version_id, sourceAssetVersionHash: row.source_asset_version_hash,
+    taskSpecId: row.task_spec_id, taskSpecVersion: row.task_spec_version, taskSpecHash: row.task_spec_hash,
+    blueprintId: row.blueprint_id, blueprintVersion: row.blueprint_version, blueprintHash: row.blueprint_hash,
+    currentDependencySnapshotHash: row.current_dependency_snapshot_hash, capabilityGrantHash: row.capability_grant_hash,
+    targetPath: row.target_path, category: row.category, scope: row.scope, executionStarted: row.execution_started,
+    executionAuthorityRevalidatedAt: isoTimestamp(row.execution_authority_revalidated_at),
+    mutationLeaseRevalidatedAt: isoTimestamp(row.mutation_lease_revalidated_at), grantedAt: isoTimestamp(row.granted_at),
+    validUntil: isoTimestamp(row.valid_until), consequenceBoundary: row.consequence_boundary,
+    mutationLeaseContentHash: row.mutation_lease_content_hash,
+  });
+}
 
 function taskSpec(): TaskSpec {
   return attachTaskSpecHash({
@@ -358,6 +377,27 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD002-C1-D4-R2 native TaskSp
     const first = await service.query("select public.build002_grant_mutation_lease($1::uuid,$2::uuid,$3::uuid,$4::text,$5::text) as result", [ACTOR, MEMBERSHIP, authorityId, "requested.color", "MUTABLE"]);
     const second = await service.query("select public.build002_grant_mutation_lease($1::uuid,$2::uuid,$3::uuid,$4::text,$5::text) as result", [ACTOR, MEMBERSHIP, authorityId, "requested.color", "MUTABLE"]);
     expect(second.rows[0].result.mutation_lease_id).toBe(first.rows[0].result.mutation_lease_id);
+
+    const row = (await admin.query("select * from public.build002_mutation_leases where mutation_lease_id=$1", [first.rows[0].result.mutation_lease_id])).rows[0] as Record<string, unknown>;
+    const lease = mutationLeaseFromRow(row);
+    expect(verifyBuild002MutationLeaseHash(lease)).toBe(true);
+    expect(lease.mutationLeaseContentHash).toBe(first.rows[0].result.mutation_lease_content_hash);
+    const pgHash = await admin.query("select public.build002_canonical_sha256($1::jsonb) as hash", [JSON.stringify(mutationLeaseHashMaterial(lease))]);
+    expect(pgHash.rows[0].hash).toBe(canonicalSha256(mutationLeaseHashMaterial(lease)));
+    const crossRuntimeFixture = { ...mutationLeaseHashMaterial(lease), targetPath: "requested.ñ\\\\line\nvalue" };
+    const pgFixtureHash = await admin.query("select public.build002_canonical_sha256($1::jsonb) as hash", [JSON.stringify(crossRuntimeFixture)]);
+    expect(pgFixtureHash.rows[0].hash).toBe(canonicalSha256(crossRuntimeFixture));
+
+    await admin.query("set session_replication_role='replica'");
+    await admin.query("delete from public.build002_mutation_leases");
+    await admin.query("set session_replication_role='origin'");
+    const concurrent = await Promise.all([
+      service.query("select public.build002_grant_mutation_lease($1::uuid,$2::uuid,$3::uuid,$4::text,$5::text) as result", [ACTOR, MEMBERSHIP, authorityId, "requested.color", "MUTABLE"]),
+      serviceB.query("select public.build002_grant_mutation_lease($1::uuid,$2::uuid,$3::uuid,$4::text,$5::text) as result", [ACTOR, MEMBERSHIP, authorityId, "requested.color", "MUTABLE"]),
+    ]);
+    expect(concurrent[0].rows[0].result.mutation_lease_id).toBe(concurrent[1].rows[0].result.mutation_lease_id);
+    expect((await admin.query("select count(*)::int as count from public.build002_mutation_leases")).rows[0].count).toBe(1);
+
     await admin.query("set session_replication_role='replica'");
     await admin.query("update public.build002_mutation_leases set valid_until=now()-interval '1 second'");
     await admin.query("set session_replication_role='origin'");
