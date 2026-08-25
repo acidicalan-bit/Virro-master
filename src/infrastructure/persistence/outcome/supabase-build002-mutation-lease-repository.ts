@@ -26,14 +26,16 @@ export class SupabaseBuild002MutationLeaseRepository implements Build002Mutation
   }
 
   async findById(id: string): Promise<Build002MutationLease | null> {
-    const { data, error } = await this.client.from("build002_mutation_leases").select("*").eq("mutation_lease_id", id).maybeSingle();
+    const { data, error } = await this.client.from("build002_mutation_leases").select("*").eq("mutation_lease_id", id).eq("owner_tenant_id", this.ownerTenantId).maybeSingle();
     if (error) throw new Error("MUTATION_LEASE_READBACK_FAILED");
     if (!data) return null;
     try {
       const lease = rowToMutationLease(data as Row);
       if (lease.ownerTenantId !== this.ownerTenantId || !verifyBuild002MutationLeaseHash(lease)) throw new Error("hash");
+      if (Date.parse(lease.validUntil) <= Date.now()) throw new Error("expired");
       return lease;
     } catch {
+      if (data.valid_until && Date.parse(String(data.valid_until)) <= Date.now()) throw new Error("MUTATION_LEASE_EXPIRED");
       throw new Error("MUTATION_LEASE_READBACK_FAILED");
     }
   }
