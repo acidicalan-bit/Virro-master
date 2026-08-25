@@ -1,0 +1,37 @@
+name: BUILD002 C1-D5-R1-E1 authored evidence
+
+on:
+  push:
+    branches: [evidence/build002-c1-d5-r1-e1]
+  workflow_dispatch:
+
+jobs:
+  evidence:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env: { POSTGRES_PASSWORD: postgres }
+        ports: [5432:5432]
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=5s --health-timeout=5s --health-retries=20
+    env:
+      BUILD002_NATIVE_PG_C1_D5_R1_E1: "true"
+      BUILD002_NATIVE_PG_C1_D5_R1_E1_URL: postgresql://postgres:postgres@localhost:5432/postgres
+      BUILD002_NATIVE_PG_C1_D5_R0: "true"
+      BUILD002_NATIVE_PG_C1_D5_R0_URL: postgresql://postgres:postgres@localhost:5432/postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 11.19.0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec vitest run tests/assurance/build002-c1-d5-r1-e1-evidence.test.ts tests/assurance/build002-c1-d5-r1-mutation-lease.test.ts tests/native/build002-c1-d5-r1-e1-postgres.e3.test.ts tests/native/build002-c1-d5-r0-postgres.e3.test.ts --reporter=verbose
+      - run: pnpm exec tsc --noEmit --pretty false
+      - run: pnpm exec eslint .
+      - run: pnpm run assurance:check
+      - run: pnpm run portability:check
+      - run: pnpm run portability:env
+      - run: pnpm run build
