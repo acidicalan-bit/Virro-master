@@ -337,12 +337,12 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD002-C1-D4-R2 native TaskSp
       const result = await service.query("select public.build002_grant_execution_authority($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::text) as result", [ACTOR, MEMBERSHIP, admissionId, spec.id, spec.hash]);
       return result.rows[0].result.execution_authority_id as string;
     };
-    const insertPatch = async (targetPath: string, value: unknown, suffix: string) => {
+    const insertPatch = async (targetPath: string, value: unknown, suffix: string, operation = "SET_ATTRIBUTE") => {
       const intentId = `ac100000-0000-4000-8000-000000000${suffix}`;
       const patchId = `ac100000-0000-4000-8000-000000001${suffix}`;
       const valueJson = JSON.stringify(value);
-      await admin.query("insert into public.partial_intents(id,transaction_id,owner_tenant_id,raw_input,target_path,operation,desired_value) values ($1,$2,$3,'r2 negative patch',$4,'SET_ATTRIBUTE',$5::jsonb)", [intentId, TRANSACTION, TENANT, targetPath, valueJson]);
-      await admin.query("insert into public.transaction_patches(id,transaction_id,owner_tenant_id,partial_intent_id,operation,target_path,parameters) values ($1,$2,$3,$4,'SET_ATTRIBUTE',$5,jsonb_build_object('value',$6::jsonb))", [patchId, TRANSACTION, TENANT, intentId, targetPath, valueJson]);
+      await admin.query("insert into public.partial_intents(id,transaction_id,owner_tenant_id,raw_input,target_path,operation,desired_value) values ($1,$2,$3,'r2 negative patch',$4,$5,$6::jsonb)", [intentId, TRANSACTION, TENANT, targetPath, operation, valueJson]);
+      await admin.query("insert into public.transaction_patches(id,transaction_id,owner_tenant_id,partial_intent_id,operation,target_path,parameters) values ($1,$2,$3,$4,$5,$6,jsonb_build_object('value',$7::jsonb))", [patchId, TRANSACTION, TENANT, intentId, operation, targetPath, valueJson]);
     };
 
     await reset();
@@ -353,6 +353,29 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD002-C1-D4-R2 native TaskSp
     await admin.query("update public.field_outcomes set task_spec_snapshot=$1::jsonb where id=$2", [JSON.stringify(unknown), OUTCOME]);
     await admin.query("set session_replication_role='origin'");
     await expect(service.query("select public.build002_grant_mutation_lease($1::uuid,$2::uuid,$3::uuid,$4::text,$5::text)", [ACTOR, MEMBERSHIP, unknownAuthority, "requested.color", "MUTABLE"])).rejects.toThrow(/PATCH_NOT_AUTHORIZED_BY_TASK_SPEC|TASK_SPEC_AUTHORITY_INVALID/);
+
+    await reset();
+    const missingAuthority = await createAuthority();
+    const missing = structuredClone(spec) as TaskSpec;
+    delete (missing.values[0] as { value?: unknown }).value;
+    await admin.query("set session_replication_role='replica'");
+    await admin.query("update public.field_outcomes set task_spec_snapshot=$1::jsonb where id=$2", [JSON.stringify(missing), OUTCOME]);
+    await admin.query("set session_replication_role='origin'");
+    await expect(service.query("select public.build002_grant_mutation_lease($1::uuid,$2::uuid,$3::uuid,$4::text,$5::text)", [ACTOR, MEMBERSHIP, missingAuthority, "requested.color", "MUTABLE"])).rejects.toThrow(/PATCH_NOT_AUTHORIZED_BY_TASK_SPEC|TASK_SPEC_AUTHORITY_INVALID/);
+
+    await reset();
+    const duplicateSpecAuthority = await createAuthority();
+    const duplicateSpec = structuredClone(spec) as TaskSpec;
+    duplicateSpec.values.push(structuredClone(duplicateSpec.values[0]));
+    await admin.query("set session_replication_role='replica'");
+    await admin.query("update public.field_outcomes set task_spec_snapshot=$1::jsonb where id=$2", [JSON.stringify(duplicateSpec), OUTCOME]);
+    await admin.query("set session_replication_role='origin'");
+    await expect(service.query("select public.build002_grant_mutation_lease($1::uuid,$2::uuid,$3::uuid,$4::text,$5::text)", [ACTOR, MEMBERSHIP, duplicateSpecAuthority, "requested.color", "MUTABLE"])).rejects.toThrow(/PATCH_NOT_AUTHORIZED_BY_TASK_SPEC|TASK_SPEC_AUTHORITY_INVALID/);
+
+    await reset();
+    const operationAuthority = await createAuthority();
+    await insertPatch("requested.color", spec.values[0].value, "100", "ADJUST_ATTRIBUTE");
+    await expect(service.query("select public.build002_grant_mutation_lease($1::uuid,$2::uuid,$3::uuid,$4::text,$5::text)", [ACTOR, MEMBERSHIP, operationAuthority, "requested.color", "MUTABLE"])).rejects.toThrow(/PATCH_NOT_AUTHORIZED_BY_TASK_SPEC/);
 
     await reset();
     const mismatchAuthority = await createAuthority();
