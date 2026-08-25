@@ -12,3 +12,6 @@ the Storage columns required by the existing migration set. The repair is
 limited to test setup, the exact-patch fixture, and workflow serialization;
 no product file changed. The positive fixture reuses the existing D4 graph and
 asserts one canonical lease with no additional execution run.
+The fixture explicitly restores its disposable tenant, membership, transaction,
+and asset-head state before issuing D4; this prevents preceding negative cases
+from contaminating the positive path.
