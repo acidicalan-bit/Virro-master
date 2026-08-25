@@ -259,7 +259,10 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD002-C1-D4-R2 native TaskSp
   });
 
   it("issues one fresh D5 lease for the exact semantic patch fixture", async () => {
-    await admin.query("update public.tenants set status='ACTIVE' where id=$1; update public.tenant_memberships set status='ACTIVE' where id=$2; update public.outcome_transactions set status='PREPARED', raw_request='r2a' where id=$3; update public.assets set current_version_id=$4 where id=$5", [TENANT, MEMBERSHIP, TRANSACTION, VERSION, ASSET]);
+    await admin.query("update public.tenants set status='ACTIVE' where id=$1", [TENANT]);
+    await admin.query("update public.tenant_memberships set status='ACTIVE' where id=$1", [MEMBERSHIP]);
+    await admin.query("update public.outcome_transactions set status='PREPARED', raw_request='r2a' where id=$1", [TRANSACTION]);
+    await admin.query("update public.assets set current_version_id=$1 where id=$2", [VERSION, ASSET]);
     const authority = await service.query("select public.build002_grant_execution_authority($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::text) as result", [ACTOR, MEMBERSHIP, admissionId, spec.id, spec.hash]);
     const authorityId = authority.rows[0].result.execution_authority_id as string;
     const intentId = "ab100000-0000-4000-8000-000000000001";
