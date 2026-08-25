@@ -8,6 +8,7 @@ import { attachTaskSpecHash, taskSpecHashMaterial, verifyTaskSpecHash, type Task
 import { canonicalSha256 } from "@/src/domain/outcome/specification/canonical";
 import { createSignal, compileSignalRequirement, createDependencySnapshot, currentDefaultEvaluator, evaluateSignalQualification, evaluateDelegationReadiness } from "@/src/domain/outcome/signal-readiness";
 import { createDelegabilityAdmission } from "@/src/domain/outcome/delegability-admission";
+import { Build002MutationLeaseSchema, mutationLeaseHashMaterial, verifyBuild002MutationLeaseHash, type Build002MutationLease } from "@/src/domain/outcome/build002-mutation-lease";
 
 const enabled = process.env.BUILD002_E2_NATIVE === "true";
 const mode = process.env.BUILD002_E2_MODE === "r1" ? "r1" : "r2";
@@ -80,17 +81,36 @@ function graph() {
   return { signal, requirement, snapshot, evaluator, readiness, payload, evaluatedAt };
 }
 
+function leaseFromRow(row: Record<string, unknown>): Build002MutationLease {
+  const iso = (value: unknown) => value instanceof Date ? value.toISOString() : new Date(String(value)).toISOString();
+  return Build002MutationLeaseSchema.parse({
+    schemaVersion: row.schema_version, mutationLeaseId: row.mutation_lease_id, ownerTenantId: row.owner_tenant_id,
+    principalId: row.principal_id, membershipId: row.membership_id, executionAuthorityId: row.execution_authority_id,
+    executionAuthorityContentHash: row.execution_authority_content_hash, delegabilityAdmissionId: row.delegability_admission_id,
+    authorityCommitId: row.authority_commit_id, outcomeTransactionId: row.outcome_transaction_id, assetId: row.asset_id,
+    sourceAssetVersionId: row.source_asset_version_id, sourceAssetVersionHash: row.source_asset_version_hash,
+    taskSpecId: row.task_spec_id, taskSpecVersion: row.task_spec_version, taskSpecHash: row.task_spec_hash,
+    blueprintId: row.blueprint_id, blueprintVersion: row.blueprint_version, blueprintHash: row.blueprint_hash,
+    currentDependencySnapshotHash: row.current_dependency_snapshot_hash, capabilityGrantHash: row.capability_grant_hash,
+    targetPath: row.target_path, category: row.category, scope: row.scope, executionStarted: row.execution_started,
+    executionAuthorityRevalidatedAt: iso(row.execution_authority_revalidated_at), mutationLeaseRevalidatedAt: iso(row.mutation_lease_revalidated_at),
+    grantedAt: iso(row.granted_at), validUntil: iso(row.valid_until), consequenceBoundary: row.consequence_boundary,
+    mutationLeaseContentHash: row.mutation_lease_content_hash,
+  });
+}
+
 describe.runIf(enabled && Boolean(databaseUrl))(`BUILD002-C1-D5-R2-E2 ${mode.toUpperCase()} authored evidence`, () => {
-  let admin: Client; let service: Client; let isolatedDatabase = ""; let spec: TaskSpec; let value: ReturnType<typeof graph>; let admissionId = ""; let authorityId = "";
+  let admin: Client; let service: Client; let serviceB: Client; let isolatedDatabase = ""; let spec: TaskSpec; let value: ReturnType<typeof graph>; let admissionId = ""; let authorityId = "";
   const count = async (table: string) => Number((await admin.query(`select count(*)::int as count from public.${table}`)).rows[0].count);
 
   beforeAll(async () => {
     isolatedDatabase = `virro_d5_r2_e2_${mode}_${process.pid}_${Date.now()}`;
     const root = new Client({ connectionString: connection(databaseUrl!, "postgres") });
     await root.connect(); await root.query(`drop database if exists "${isolatedDatabase}" with (force)`); await root.query(`create database "${isolatedDatabase}"`); await root.end();
-    admin = new Client({ connectionString: connection(databaseUrl!, isolatedDatabase) }); service = new Client({ connectionString: connection(databaseUrl!, isolatedDatabase) }); await admin.connect(); await service.connect();
+    admin = new Client({ connectionString: connection(databaseUrl!, isolatedDatabase) }); service = new Client({ connectionString: connection(databaseUrl!, isolatedDatabase) }); serviceB = new Client({ connectionString: connection(databaseUrl!, isolatedDatabase) }); await admin.connect(); await service.connect(); await serviceB.connect();
     await admin.query("create extension if not exists pgcrypto; do $$ begin create role anon nologin; exception when duplicate_object then null; end $$; do $$ begin create role authenticated nologin; exception when duplicate_object then null; end $$; do $$ begin create role service_role nologin bypassrls; exception when duplicate_object then null; end $$; create schema if not exists auth; create table if not exists auth.users(id uuid primary key); create or replace function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$; create schema if not exists storage; create table if not exists storage.buckets(id text primary key, name text not null unique, public boolean not null default false, file_size_limit bigint, allowed_mime_types text[]);");
-    await service.query("set role service_role; set statement_timeout='30s'; set lock_timeout='20s'");
+    await service.query("set role service_role; set application_name='e2-service-a'; set statement_timeout='30s'; set lock_timeout='20s'");
+    await serviceB.query("set role service_role; set application_name='e2-service-b'; set statement_timeout='30s'; set lock_timeout='20s'");
     const migrations = readdirSync(migrationsDir).filter((name) => name.endsWith(".sql")).sort();
     expect(migrations).toHaveLength(expectedMigrations);
     for (const name of migrations) await admin.query(readFileSync(resolve(migrationsDir, name), "utf8"));
@@ -121,7 +141,7 @@ describe.runIf(enabled && Boolean(databaseUrl))(`BUILD002-C1-D5-R2-E2 ${mode.toU
   }, 120_000);
 
   afterAll(async () => {
-    await admin?.end(); await service?.end();
+    await admin?.end(); await service?.end(); await serviceB?.end();
     if (databaseUrl && isolatedDatabase) { const root = new Client({ connectionString: connection(databaseUrl, "postgres") }); await root.connect(); await root.query(`drop database if exists "${isolatedDatabase}" with (force)`); await root.end(); }
   });
 
@@ -145,6 +165,19 @@ describe.runIf(enabled && Boolean(databaseUrl))(`BUILD002-C1-D5-R2-E2 ${mode.toU
     await expect(service.query("select public.build002_grant_mutation_lease($1::uuid,$2::uuid,$3::uuid,$4::text,$5::text)", [ACTOR, MEMBERSHIP, authorityId, "requested.unknown", "MUTABLE"])).rejects.toThrow(/PATCH_NOT_AUTHORIZED_BY_TASK_SPEC/);
     await expect(service.query("select public.build002_grant_mutation_lease($1::uuid,$2::uuid,$3::uuid,$4::text,$5::text)", [ACTOR, MEMBERSHIP, authorityId, "requested.missing", "MUTABLE"])).rejects.toThrow(/PATCH_NOT_AUTHORIZED_BY_TASK_SPEC/);
     expect(await count("build002_mutation_leases")).toBe(2);
+
+    const retry = await service.query("select public.build002_grant_mutation_lease($1::uuid,$2::uuid,$3::uuid,$4::text,$5::text) as result", [ACTOR, MEMBERSHIP, authorityId, "requested.color", "MUTABLE"]);
+    expect(retry.rows[0].result.mutation_lease_id).toBe(criticalTrue.rows[0].result.mutation_lease_id);
+    await admin.query("set session_replication_role='replica'; delete from public.build002_mutation_leases; set session_replication_role='origin'");
+    const [left, right] = await Promise.all([
+      service.query("select public.build002_grant_mutation_lease($1::uuid,$2::uuid,$3::uuid,$4::text,$5::text) as result", [ACTOR, MEMBERSHIP, authorityId, "requested.color", "MUTABLE"]),
+      serviceB.query("select public.build002_grant_mutation_lease($1::uuid,$2::uuid,$3::uuid,$4::text,$5::text) as result", [ACTOR, MEMBERSHIP, authorityId, "requested.color", "MUTABLE"]),
+    ]);
+    expect(left.rows[0].result.mutation_lease_id).toBe(right.rows[0].result.mutation_lease_id);
+    expect(await count("build002_mutation_leases")).toBe(1);
+    await admin.query("set session_replication_role='replica'; update public.build002_mutation_leases set valid_until=now()-interval '1 second'; set session_replication_role='origin'");
+    await expect(service.query("select public.build002_grant_mutation_lease($1::uuid,$2::uuid,$3::uuid,$4::text,$5::text)", [ACTOR, MEMBERSHIP, authorityId, "requested.color", "MUTABLE"])).rejects.toThrow(/MUTATION_LEASE_EXPIRED/);
+    expect(await count("build002_mutation_leases")).toBe(1);
   });
 
   it("measures canonical ACL and zero consequence", async () => {
@@ -163,5 +196,18 @@ describe.runIf(enabled && Boolean(databaseUrl))(`BUILD002-C1-D5-R2-E2 ${mode.toU
       expect(pg.rows[0].hash).toBe(canonicalSha256(fixture));
     }
     expect(canonicalSha256(taskSpecHashMaterial(spec))).toBe(spec.hash);
+  });
+
+  it("rejects inconsistent persisted lease state in PostgreSQL and TypeScript", async () => {
+    if (mode === "r1") { expect(await count("build002_mutation_leases")).toBe(0); return; }
+    const row = (await admin.query("select * from public.build002_mutation_leases limit 1")).rows[0] as Record<string, unknown>;
+    const leaseId = String(row.mutation_lease_id);
+    const original = String(row.mutation_lease_content_hash);
+    await admin.query("set session_replication_role='replica'; update public.build002_mutation_leases set mutation_lease_content_hash=repeat('f',64) where mutation_lease_id=$1; set session_replication_role='origin'", [leaseId]);
+    await expect(admin.query("select public.build002_validate_mutation_lease_row($1::uuid)", [leaseId])).rejects.toThrow(/MUTATION_LEASE_READBACK_FAILED/);
+    const tampered = leaseFromRow((await admin.query("select * from public.build002_mutation_leases where mutation_lease_id=$1", [leaseId])).rows[0] as Record<string, unknown>);
+    expect(verifyBuild002MutationLeaseHash(tampered)).toBe(false);
+    expect(canonicalSha256(mutationLeaseHashMaterial(tampered))).toBe(original);
+    expect(tampered.mutationLeaseContentHash).not.toBe(original);
   });
 });
