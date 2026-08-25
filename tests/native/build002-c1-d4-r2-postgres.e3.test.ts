@@ -138,30 +138,38 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD002-C1-D4-R2 native TaskSp
   it("accepts a legitimate TaskSpec through D4 and the real TypeScript repository", async () => {
     const result = await service.query("select public.build002_grant_execution_authority($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::text) as result", [ACTOR, MEMBERSHIP, admissionId, spec.id, spec.hash]); expect(result.rows[0].result.execution_authority_id).toEqual(expect.any(String));
     const row = (await admin.query("select * from public.build002_execution_authorities where execution_authority_id=$1", [result.rows[0].result.execution_authority_id])).rows[0];
-    console.log("R2_AUTHORITY_ROW", JSON.stringify(row));
     const parsed = authorityFromRow(row);
     const material = executionAuthorityHashMaterial(parsed);
-    const pgMaterial = await admin.query("select public.build002_canonical_json($1::jsonb) as json, public.build002_canonical_sha256($1::jsonb) as hash", [JSON.stringify(material)]);
-    const rowMaterial = await admin.query(`select public.build002_canonical_json(jsonb_build_object(
-      'assetId', asset_id, 'authorityCommitId', authority_commit_id, 'blueprintHash', blueprint_hash, 'blueprintId', blueprint_id,
-      'blueprintVersion', blueprint_version, 'capabilityGrant', capability_grant, 'capabilityGrantHash', capability_grant_hash,
-      'consequenceBoundary', consequence_boundary, 'currentDependencySnapshotHash', current_dependency_snapshot_hash,
-      'delegabilityAdmissionContentHash', delegability_admission_content_hash, 'delegabilityAdmissionId', delegability_admission_id,
-      'delegabilityRevalidatedAt', to_char(delegability_revalidated_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
-      'executionAuthorityRevalidatedAt', to_char(execution_authority_revalidated_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
-      'executionStarted', execution_started, 'evaluatorDefinitionHash', evaluator_definition_hash,
-      'evaluatorSchemaVersion', evaluator_schema_version, 'evaluatorVersion', evaluator_version,
-      'historicalDependencySnapshotHash', historical_dependency_snapshot_hash, 'membershipId', membership_id,
-      'mutationLeaseGranted', mutation_lease_granted, 'outcomeTransactionId', outcome_transaction_id,
-      'ownerTenantId', owner_tenant_id, 'principalId', principal_id, 'sourceAssetVersionHash', source_asset_version_hash,
-      'sourceAssetVersionId', source_asset_version_id, 'scope', scope, 'schemaVersion', schema_version,
-      'taskSpecHash', task_spec_hash, 'taskSpecId', task_spec_id, 'taskSpecVersion', task_spec_version,
-      'validUntil', case when valid_until is null then null else to_char(valid_until at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') end
-    )) as json from public.build002_execution_authorities where execution_authority_id=$1`, [result.rows[0].result.execution_authority_id]);
-    console.log("R2_AUTHORITY_HASHES", canonicalSha256(material), parsed.executionAuthorityContentHash, verifyExecutionAuthorityHash(parsed));
-    console.log("R2_AUTHORITY_MATERIAL", canonicalJson(material), pgMaterial.rows[0].json, pgMaterial.rows[0].hash, rowMaterial.rows[0].json);
+    expect(verifyExecutionAuthorityHash(parsed)).toBe(true);
+    expect(canonicalSha256(material)).toBe(parsed.executionAuthorityContentHash);
     const client = { rpc: async (_name: string, args: Record<string, unknown>) => ({ data: (await service.query("select public.build002_grant_execution_authority($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::text) as result", [args.p_principal_id, args.p_membership_id, args.p_admission_id, args.p_task_spec_id, args.p_task_spec_hash])).rows[0].result, error: null }), from: (table: string) => ({ select: () => ({ eq: (column: string, id: string) => ({ maybeSingle: async () => { void table; void column; void id; return { data: row, error: null }; } }) }) }) };
     const repository = new SupabaseExecutionAuthorityRepository(client as unknown as SupabaseClient, TENANT); const authority = await repository.grant({ principalId: ACTOR, membershipId: MEMBERSHIP, admissionId, taskSpecId: spec.id, taskSpecHash: spec.hash }); expect(authority.executionAuthorityContentHash).toMatch(/^[a-f0-9]{64}$/);
+  });
+
+  it("rejects a PostgreSQL-self-consistent TaskSpec after semantic mutation", async () => {
+    const pgHash = String((await admin.query("select public.build002_canonical_sha256($1::jsonb) as hash", [JSON.stringify(taskSpecHashMaterial(spec))])).rows[0].hash);
+    expect(pgHash).toBe(spec.hash);
+    await admin.query("set session_replication_role='replica'");
+    await admin.query("update public.field_outcomes set task_spec_snapshot = jsonb_set(task_spec_snapshot, '{compiler,version}', '999.0.0'::jsonb) where id=$1", [OUTCOME]);
+    await admin.query("set session_replication_role='origin'");
+    await expect(service.query("select public.build002_grant_execution_authority($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::text)", [ACTOR, MEMBERSHIP, admissionId, spec.id, spec.hash])).rejects.toThrow(/TASK_SPEC_AUTHORITY_INVALID/);
+    expect((await admin.query("select count(*)::int as count from public.build002_execution_authorities")).rows[0].count).toBe(0);
+    await admin.query("set session_replication_role='replica'");
+    await admin.query("update public.field_outcomes set task_spec_snapshot=$1::jsonb where id=$2", [JSON.stringify(spec), OUTCOME]);
+    await admin.query("set session_replication_role='origin'");
+  });
+
+  it("rejects a tampered persisted authority on RPC retry and repository readback", async () => {
+    const issued = await service.query("select public.build002_grant_execution_authority($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::text) as result", [ACTOR, MEMBERSHIP, admissionId, spec.id, spec.hash]);
+    const authorityId = issued.rows[0].result.execution_authority_id as string;
+    await admin.query("set session_replication_role='replica'");
+    await admin.query("update public.build002_execution_authorities set execution_authority_content_hash=repeat('f',64) where execution_authority_id=$1", [authorityId]);
+    await admin.query("set session_replication_role='origin'");
+    await expect(service.query("select public.build002_grant_execution_authority($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::text)", [ACTOR, MEMBERSHIP, admissionId, spec.id, spec.hash])).rejects.toThrow(/EXECUTION_AUTHORITY_READBACK_FAILED/);
+    const client = { from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: (await admin.query("select * from public.build002_execution_authorities where execution_authority_id=$1", [authorityId])).rows[0] ?? null, error: null }) }) }) }) };
+    const repository = new SupabaseExecutionAuthorityRepository(client as unknown as SupabaseClient, TENANT);
+    await expect(repository.findById(authorityId)).rejects.toThrow(/EXECUTION_AUTHORITY_READBACK_FAILED/);
+    await admin.query("set session_replication_role='replica'"); await admin.query("delete from public.build002_execution_authorities where execution_authority_id=$1", [authorityId]); await admin.query("set session_replication_role='origin'");
   });
 
   it("serializes identical concurrent authority retries", async () => {
@@ -210,5 +218,21 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD002-C1-D4-R2 native TaskSp
   it("records relational mismatch rejection and exact field_outcomes privileges", async () => {
     await expect(service.query("insert into public.field_outcomes(id,tenant_id,transaction_id,source_version_id,source_sha256,instruction,roi,topology,task_type,provider,model,raw_candidate_id,delivered_candidate_id,recommended_strategy,strategy_id,policy_version,outcome_sku,blueprint_id,blueprint_version,blueprint_hash,blueprint_snapshot,task_spec_id,task_spec_version,task_spec_hash,task_spec_snapshot,spec_compiler_name,spec_compiler_version,machine_verification_status,same_spec_status,provider_latency_ms,preservation_latency_ms,total_latency_ms,provider_cost_usd) values (gen_random_uuid(),$1,$2,$3,$4,'r2a','{}'::jsonb,'LOCAL_INDEPENDENT','COLOR_CHANGE','fixture','fixture',$5,$5,'P0_RAW','P0_RAW','r2a','precision-edit-v0',$6,1,$7,$8::jsonb,$9,1,repeat('0',64),$10::jsonb,'r2a','1.0','PASSED','PASSED',0,0,0,0)", [TENANT, TRANSACTION, VERSION, SOURCE_SHA, CANDIDATE, BLUEPRINT, BLUEPRINT_HASH, JSON.stringify({ id: BLUEPRINT, version: 1, previousVersionHash: null }), spec.id, JSON.stringify(spec)])).rejects.toThrow(/TRUST_FIELD_TASK_SPEC_MISMATCH/);
     const privileges = await admin.query("select has_table_privilege('service_role','public.field_outcomes','SELECT') as service_select, has_table_privilege('service_role','public.field_outcomes','INSERT') as service_insert, has_table_privilege('service_role','public.field_outcomes','UPDATE') as service_update, has_table_privilege('service_role','public.field_outcomes','DELETE') as service_delete"); expect(privileges.rows[0]).toEqual({ service_select: true, service_insert: true, service_update: false, service_delete: false });
+  });
+
+  it("keeps the execution-authority table and RPC fail-closed by role", async () => {
+    const tablePrivileges = await admin.query("select r.rolname as role, has_table_privilege(r.rolname,'public.build002_execution_authorities','INSERT') as insert_ok, has_table_privilege(r.rolname,'public.build002_execution_authorities','UPDATE') as update_ok, has_table_privilege(r.rolname,'public.build002_execution_authorities','DELETE') as delete_ok from (values ('anon'::name),('authenticated'::name),('service_role'::name)) r(rolname) order by r.rolname");
+    expect(tablePrivileges.rows).toEqual([
+      { role: "anon", insert_ok: false, update_ok: false, delete_ok: false },
+      { role: "authenticated", insert_ok: false, update_ok: false, delete_ok: false },
+      { role: "service_role", insert_ok: false, update_ok: false, delete_ok: false },
+    ]);
+    for (const role of ["anon", "authenticated"]) {
+      await admin.query(`set role ${role}`);
+      await expect(admin.query("select public.build002_grant_execution_authority($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::text)", [ACTOR, MEMBERSHIP, admissionId, spec.id, spec.hash])).rejects.toThrow(/permission denied|EXECUTE/);
+      await admin.query("reset role");
+    }
+    const serviceResult = await service.query("select public.build002_grant_execution_authority($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::text) as result", [ACTOR, MEMBERSHIP, admissionId, spec.id, spec.hash]);
+    expect(serviceResult.rows[0].result.execution_authority_id).toEqual(expect.any(String));
   });
 });
