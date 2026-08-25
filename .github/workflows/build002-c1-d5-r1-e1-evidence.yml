@@ -21,6 +21,8 @@ jobs:
       BUILD002_NATIVE_PG_C1_D5_R1_E1_URL: postgresql://postgres:postgres@localhost:5432/postgres
       BUILD002_NATIVE_PG_C1_D5_R0: "true"
       BUILD002_NATIVE_PG_C1_D5_R0_URL: postgresql://postgres:postgres@localhost:5432/postgres
+      BUILD002_NATIVE_PG_C1_D4_R2: "true"
+      BUILD002_NATIVE_PG_C1_D4_R2_URL: postgresql://postgres:postgres@localhost:5432/postgres
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
