@@ -30,9 +30,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
-        with: { version: ${{ env.PNPM_VERSION }} }
+        with:
+          version: "${{ env.PNPM_VERSION }}"
       - uses: actions/setup-node@v4
-        with: { node-version: ${{ env.NODE_VERSION }}, cache: pnpm }
+        with:
+          node-version: "${{ env.NODE_VERSION }}"
+          cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: seed native storage fixture
         env: { PGPASSWORD: postgres }
@@ -63,9 +66,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
-        with: { version: ${{ env.PNPM_VERSION }} }
+        with:
+          version: "${{ env.PNPM_VERSION }}"
       - uses: actions/setup-node@v4
-        with: { node-version: ${{ env.NODE_VERSION }}, cache: pnpm }
+        with:
+          node-version: "${{ env.NODE_VERSION }}"
+          cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec vitest run tests/native/build002-c1-d0-postgres.e3.test.ts --reporter=verbose
 
@@ -86,9 +92,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
-        with: { version: ${{ env.PNPM_VERSION }} }
+        with:
+          version: "${{ env.PNPM_VERSION }}"
       - uses: actions/setup-node@v4
-        with: { node-version: ${{ env.NODE_VERSION }}, cache: pnpm }
+        with:
+          node-version: "${{ env.NODE_VERSION }}"
+          cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec vitest run tests/native/build002-c1-d2-scoped-reader.e3.test.ts --reporter=verbose
 
@@ -109,9 +118,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
-        with: { version: ${{ env.PNPM_VERSION }} }
+        with:
+          version: "${{ env.PNPM_VERSION }}"
       - uses: actions/setup-node@v4
-        with: { node-version: ${{ env.NODE_VERSION }}, cache: pnpm }
+        with:
+          node-version: "${{ env.NODE_VERSION }}"
+          cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec vitest run tests/native/build002-c1-d3-postgres.e3.test.ts --reporter=verbose
 
@@ -121,9 +133,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
-        with: { version: ${{ env.PNPM_VERSION }} }
+        with:
+          version: "${{ env.PNPM_VERSION }}"
       - uses: actions/setup-node@v4
-        with: { node-version: ${{ env.NODE_VERSION }}, cache: pnpm }
+        with:
+          node-version: "${{ env.NODE_VERSION }}"
+          cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec vitest run tests/assurance/build002-c1-d1-readiness-authority-orchestration.test.ts --reporter=verbose
 
@@ -140,11 +155,15 @@ jobs:
             ref: ${{ github.sha }}
     steps:
       - uses: actions/checkout@v4
-        with: { ref: ${{ matrix.ref }} }
+        with:
+          ref: "${{ matrix.ref }}"
       - uses: pnpm/action-setup@v4
-        with: { version: ${{ env.PNPM_VERSION }} }
+        with:
+          version: "${{ env.PNPM_VERSION }}"
       - uses: actions/setup-node@v4
-        with: { node-version: ${{ env.NODE_VERSION }}, cache: pnpm }
+        with:
+          node-version: "${{ env.NODE_VERSION }}"
+          cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm run assurance:check
       - run: pnpm run portability:check
@@ -163,9 +182,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
-        with: { version: ${{ env.PNPM_VERSION }} }
+        with:
+          version: "${{ env.PNPM_VERSION }}"
       - uses: actions/setup-node@v4
-        with: { node-version: ${{ env.NODE_VERSION }}, cache: pnpm }
+        with:
+          node-version: "${{ env.NODE_VERSION }}"
+          cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: VERCEL=1 pnpm build
       - run: pnpm build
@@ -176,8 +198,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
-        with: { version: ${{ env.PNPM_VERSION }} }
+        with:
+          version: "${{ env.PNPM_VERSION }}"
       - uses: actions/setup-node@v4
-        with: { node-version: ${{ env.NODE_VERSION }}, cache: pnpm }
+        with:
+          node-version: "${{ env.NODE_VERSION }}"
+          cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: PORTABILITY_SOURCE_SHA=${{ github.sha }} pnpm run portability:smoke
