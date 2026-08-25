@@ -1,0 +1,122 @@
+name: BUILD002 C1-D5-R2-E2 authored evidence
+
+on:
+  push:
+    branches: [evidence/build002-c1-d5-r2-e2]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: 22
+  PNPM_VERSION: 11.19.0
+  R1_SHA: 8cfdabe7fb962c5cd3625faa43231f0066c17b81
+  R2_SHA: eb739b58c77ee7a114c24a7392e3a569190f84a8
+
+jobs:
+  e2-native-r1:
+    name: e2-r1-postgres17
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env: { POSTGRES_PASSWORD: postgres }
+        ports: [5432:5432]
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=5s --health-timeout=5s --health-retries=20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: "${{ env.PNPM_VERSION }}" }
+      - uses: actions/setup-node@v4
+        with: { node-version: "${{ env.NODE_VERSION }}", cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - name: fetch exact R1 and prepare migration tree
+        run: |
+          git fetch --no-tags origin "${R1_SHA}"
+          git worktree add --detach ../virro-r1 "${R1_SHA}"
+      - name: run R1 evidence
+        env:
+          BUILD002_E2_NATIVE: "true"
+          BUILD002_E2_MODE: r1
+          BUILD002_E2_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
+          BUILD002_E2_MIGRATIONS_DIR: ${{ github.workspace }}/../virro-r1/supabase/migrations
+        run: pnpm exec vitest run tests/evidence/build002-c1-d5-r2-e2-native.e3.test.ts --reporter=verbose
+
+  e2-native-r2:
+    name: e2-r2-postgres17
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env: { POSTGRES_PASSWORD: postgres }
+        ports: [5432:5432]
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=5s --health-timeout=5s --health-retries=20
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: "${{ github.sha }}" }
+      - uses: pnpm/action-setup@v4
+        with: { version: "${{ env.PNPM_VERSION }}" }
+      - uses: actions/setup-node@v4
+        with: { node-version: "${{ env.NODE_VERSION }}", cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - name: run R2 evidence
+        env:
+          BUILD002_E2_NATIVE: "true"
+          BUILD002_E2_MODE: r2
+          BUILD002_E2_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
+        run: pnpm exec vitest run tests/evidence/build002-c1-d5-r2-e2-native.e3.test.ts --reporter=verbose
+
+  regression-and-build:
+    name: frozen-product-regression
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        ref: [8cfdabe7fb962c5cd3625faa43231f0066c17b81, eb739b58c77ee7a114c24a7392e3a569190f84a8]
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: "${{ matrix.ref }}" }
+      - uses: pnpm/action-setup@v4
+        with: { version: "${{ env.PNPM_VERSION }}" }
+      - uses: actions/setup-node@v4
+        with: { node-version: "${{ env.NODE_VERSION }}", cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run assurance:check
+      - run: pnpm run portability:check
+      - run: pnpm run portability:env
+      - run: pnpm test -- --reporter=dot
+      - run: pnpm typecheck
+      - run: pnpm lint
+      - run: pnpm build
+
+  dual-runtime:
+    name: dual-runtime-build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: "${{ env.R2_SHA }}" }
+      - uses: pnpm/action-setup@v4
+        with: { version: "${{ env.PNPM_VERSION }}" }
+      - uses: actions/setup-node@v4
+        with: { node-version: "${{ env.NODE_VERSION }}", cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: VERCEL=1 pnpm build
+      - run: pnpm build
+
+  container:
+    name: frozen-product-container
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: "${{ env.R2_SHA }}" }
+      - uses: pnpm/action-setup@v4
+        with: { version: "${{ env.PNPM_VERSION }}" }
+      - uses: actions/setup-node@v4
+        with: { node-version: "${{ env.NODE_VERSION }}", cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: PORTABILITY_SOURCE_SHA=${R2_SHA} pnpm run portability:smoke
