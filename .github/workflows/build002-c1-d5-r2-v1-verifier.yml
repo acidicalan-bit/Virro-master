@@ -1,0 +1,132 @@
+name: BUILD002 C1-D5-R2-V1 independent verifier
+
+on:
+  push:
+    branches: [verify/build002-c1-d5-r2-independent]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: 22
+  PNPM_VERSION: 11.19.0
+  PRODUCT_SHA: eb739b58c77ee7a114c24a7392e3a569190f84a8
+  PRODUCT_TREE: 8e56edd3b67cdac0031e4e62aac48175c656f17d
+  MAIN_SHA: 51e283c3a830d444170a589a6ba7ad6a837607ed
+
+jobs:
+  product-boundary:
+    name: product-boundary
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - name: verify exact product boundary
+        shell: bash
+        run: |
+          test "$(git rev-parse HEAD^0)" != "${PRODUCT_SHA}"
+          git diff --quiet "${PRODUCT_SHA}"...HEAD -- \
+            src app lib supabase/migrations package.json pnpm-lock.yaml Dockerfile \
+            next.config.* vercel.json
+          test "$(git rev-parse refs/remotes/origin/main)" = "${MAIN_SHA}"
+      - uses: pnpm/action-setup@v4
+        with: { version: "${{ env.PNPM_VERSION }}" }
+      - uses: actions/setup-node@v4
+        with: { node-version: "${{ env.NODE_VERSION }}", cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec vitest run tests/verification --reporter=verbose
+      - run: git diff --check
+
+  native-postgres17:
+    name: independent-postgres17
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env: { POSTGRES_PASSWORD: postgres }
+        ports: [5432:5432]
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=5s --health-timeout=5s --health-retries=20
+    env:
+      BUILD002_V1_NATIVE: "true"
+      BUILD002_V1_MODE: r2
+      BUILD002_V1_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
+      BUILD002_NATIVE_PG_URL: postgresql://postgres:postgres@localhost:5432/postgres
+      BUILD002_NATIVE_PG_C1_D0: "true"
+      BUILD002_NATIVE_PG_C1_D0_URL: postgresql://postgres:postgres@localhost:5432/postgres
+      BUILD002_NATIVE_PG_C1_D2: "true"
+      BUILD002_NATIVE_PG_C1_D2_URL: postgresql://postgres:postgres@localhost:5432/postgres
+      BUILD002_NATIVE_PG_C1_D3: "true"
+      BUILD002_NATIVE_PG_C1_D3_URL: postgresql://postgres:postgres@localhost:5432/postgres
+      BUILD002_NATIVE_PG_C1_D4_R2: "true"
+      BUILD002_NATIVE_PG_C1_D4_R2_URL: postgresql://postgres:postgres@localhost:5432/postgres
+      BUILD002_NATIVE_PG_C1_D5_R0: "true"
+      BUILD002_NATIVE_PG_C1_D5_R0_URL: postgresql://postgres:postgres@localhost:5432/postgres
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: pnpm/action-setup@v4
+        with: { version: "${{ env.PNPM_VERSION }}" }
+      - uses: actions/setup-node@v4
+        with: { node-version: "${{ env.NODE_VERSION }}", cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - name: independent V1 native evidence
+        run: pnpm exec vitest run tests/verification/build002-c1-d5-r2-v1-native.e3.test.ts --reporter=verbose
+      - name: predecessor D0 native regression
+        run: pnpm exec vitest run tests/native/build002-c1-d0-postgres.e3.test.ts --reporter=verbose
+      - name: predecessor D2 native regression
+        run: pnpm exec vitest run tests/native/build002-c1-d2-scoped-reader.e3.test.ts --reporter=verbose
+      - name: predecessor D3 native regression
+        run: pnpm exec vitest run tests/native/build002-c1-d3-postgres.e3.test.ts --reporter=verbose
+      - name: predecessor D4-R2 native regression
+        run: pnpm exec vitest run tests/native/build002-c1-d4-r2-postgres.e3.test.ts --reporter=verbose
+      - name: predecessor D5-R0 native regression
+        run: pnpm exec vitest run tests/native/build002-c1-d5-r0-postgres.e3.test.ts --reporter=verbose
+
+  full-regression:
+    name: full-product-regression
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: "${{ env.PRODUCT_SHA }}" }
+      - uses: pnpm/action-setup@v4
+        with: { version: "${{ env.PNPM_VERSION }}" }
+      - uses: actions/setup-node@v4
+        with: { node-version: "${{ env.NODE_VERSION }}", cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run assurance:check
+      - run: pnpm run portability:check
+      - run: pnpm run portability:env
+      - run: pnpm test -- --reporter=dot
+      - run: pnpm typecheck
+      - run: pnpm lint
+      - run: pnpm build
+
+  dual-runtime:
+    name: dual-runtime-product
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: "${{ env.PRODUCT_SHA }}" }
+      - uses: pnpm/action-setup@v4
+        with: { version: "${{ env.PNPM_VERSION }}" }
+      - uses: actions/setup-node@v4
+        with: { node-version: "${{ env.NODE_VERSION }}", cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: VERCEL=1 pnpm build
+      - run: pnpm build
+
+  container:
+    name: product-container
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: "${{ env.PRODUCT_SHA }}" }
+      - uses: pnpm/action-setup@v4
+        with: { version: "${{ env.PNPM_VERSION }}" }
+      - uses: actions/setup-node@v4
+        with: { node-version: "${{ env.NODE_VERSION }}", cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: PORTABILITY_SOURCE_SHA=${PRODUCT_SHA} pnpm run portability:smoke
