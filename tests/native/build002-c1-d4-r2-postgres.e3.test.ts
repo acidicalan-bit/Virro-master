@@ -103,7 +103,8 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD002-C1-D4-R2 native TaskSp
     for (const [index, fixture] of fixtures.entries()) {
       try {
         const result = await admin.query("select public.build002_canonical_json($1::jsonb) as json, public.build002_canonical_sha256($1::jsonb) as hash", [JSON.stringify(fixture)]);
-        if (result.rows[0].json !== canonicalJson(fixture) || result.rows[0].hash !== canonicalSha256(fixture)) failures.push(`fixture-${index}`);
+        const tsJson = canonicalJson(fixture); const tsHash = canonicalSha256(fixture); const pgJson = String(result.rows[0].json); const pgHash = String(result.rows[0].hash);
+        if (pgJson !== tsJson || pgHash !== tsHash) failures.push(`fixture-${index}:ts=${tsJson}:pg=${pgJson}:tsHash=${tsHash}:pgHash=${pgHash}`);
       } catch (error) { failures.push(`fixture-${index}:${String(error)}`); }
     }
     expect(failures).toEqual([]);
@@ -121,6 +122,7 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD002-C1-D4-R2 native TaskSp
   it("accepts a legitimate TaskSpec through D4 and the real TypeScript repository", async () => {
     const result = await service.query("select public.build002_grant_execution_authority($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::text) as result", [ACTOR, MEMBERSHIP, admissionId, spec.id, spec.hash]); expect(result.rows[0].result.execution_authority_id).toEqual(expect.any(String));
     const row = (await admin.query("select * from public.build002_execution_authorities where execution_authority_id=$1", [result.rows[0].result.execution_authority_id])).rows[0];
+    console.log("R2_AUTHORITY_ROW", JSON.stringify(row));
     const client = { rpc: async (_name: string, args: Record<string, unknown>) => ({ data: (await service.query("select public.build002_grant_execution_authority($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::text) as result", [args.p_principal_id, args.p_membership_id, args.p_admission_id, args.p_task_spec_id, args.p_task_spec_hash])).rows[0].result, error: null }), from: (table: string) => ({ select: () => ({ eq: (column: string, id: string) => ({ maybeSingle: async () => { void table; void column; void id; return { data: row, error: null }; } }) }) }) };
     const repository = new SupabaseExecutionAuthorityRepository(client as unknown as SupabaseClient, TENANT); const authority = await repository.grant({ principalId: ACTOR, membershipId: MEMBERSHIP, admissionId, taskSpecId: spec.id, taskSpecHash: spec.hash }); expect(authority.executionAuthorityContentHash).toMatch(/^[a-f0-9]{64}$/);
   });
@@ -138,17 +140,17 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD002-C1-D4-R2 native TaskSp
     const driftSignal = createSignal({ signalId: SIGNAL_DRIFT, ownerTenantId: TENANT, transactionId: TRANSACTION, requirementId: value.signal.requirementId, payload: { value: "drift" }, source: value.signal.source, provenance: "OBSERVED", capturedAt: value.signal.capturedAt, validUntil: value.signal.validUntil, dependency: value.signal.dependency, schemaVersion: value.signal.schemaVersion });
     await service.query("select public.build002_insert_signal($1::jsonb)", [JSON.stringify({ signal_id: driftSignal.signalId, owner_tenant_id: TENANT, outcome_transaction_id: TRANSACTION, requirement_id: driftSignal.requirementId, requirement_definition_hash: value.requirement.requirementDefinitionHash, payload: driftSignal.payload, source: driftSignal.source, provenance: driftSignal.provenance, captured_at: driftSignal.capturedAt, valid_until: driftSignal.validUntil, dependency_identity: driftSignal.dependency.identity, dependency_hash: driftSignal.dependency.hash, schema_version: driftSignal.schemaVersion, content_hash: driftSignal.contentHash })]);
     await expect(d4(ACTOR, MEMBERSHIP)).rejects.toThrow(/CURRENTNESS_NOT_CURRENT/);
-    await admin.query("set session_replication_role='replica'; delete from public.build002_signals where signal_id=$1; set session_replication_role='origin'", [SIGNAL_DRIFT]);
+    await admin.query("set session_replication_role='replica'"); await admin.query("delete from public.build002_signals where signal_id=$1", [SIGNAL_DRIFT]); await admin.query("set session_replication_role='origin'");
 
     const requirementDrift = compileSignalRequirement({ requirementId: "r2a.signal.drift", subjectKind: "OUTCOME_TRANSACTION", semanticType: "TEXT", critical: true, acceptedProvenance: ["OBSERVED"], qualificationRule: { version: "1", cardinality: "SINGLE_VALUED", humanReviewRequired: false }, dependencySelectors: [{ identity: "asset.version", required: true }], blueprintId: BLUEPRINT, blueprintVersion: 1, blueprintHash: BLUEPRINT_HASH, policyId: null, policyHash: null, definitionSchemaVersion: "build002-signal-requirement-v0.1" }, value.evaluatedAt);
     await service.query("select public.build002_insert_signal_requirement($1::jsonb)", [JSON.stringify({ id: REQUIREMENT_DRIFT, owner_tenant_id: TENANT, outcome_transaction_id: TRANSACTION, requirement_id: requirementDrift.requirementId, semantic_type: requirementDrift.semanticType, critical: requirementDrift.critical, accepted_provenance: requirementDrift.acceptedProvenance, qualification_rule: requirementDrift.qualificationRule, dependency_selectors: requirementDrift.dependencySelectors, blueprint_id: BLUEPRINT, blueprint_version: 1, blueprint_hash: BLUEPRINT_HASH, schema_version: requirementDrift.definitionSchemaVersion, requirement_definition_hash: requirementDrift.requirementDefinitionHash, created_at: requirementDrift.createdAt })]);
     await expect(d4(ACTOR, MEMBERSHIP)).rejects.toThrow(/CURRENTNESS_NOT_CURRENT/);
-    await admin.query("set session_replication_role='replica'; delete from public.build002_signal_requirements where id=$1; set session_replication_role='origin'", [REQUIREMENT_DRIFT]);
+    await admin.query("set session_replication_role='replica'"); await admin.query("delete from public.build002_signal_requirements where id=$1", [REQUIREMENT_DRIFT]); await admin.query("set session_replication_role='origin'");
 
     const versionB = "e2000000-0000-4000-8000-000000000002";
     await admin.query("insert into public.asset_versions(id,asset_id,version_number,state,owner_tenant_id) values ($1,$2,2,'{\"width\":101}'::jsonb,$3)", [versionB, ASSET, TENANT]); await admin.query("update public.assets set current_version_id=$1 where id=$2", [versionB, ASSET]);
     await expect(d4(ACTOR, MEMBERSHIP)).rejects.toThrow(/SOURCE_ASSET_HEAD_CHANGED/);
-    await admin.query("update public.assets set current_version_id=$1 where id=$2; set session_replication_role='replica'; delete from public.asset_versions where id=$3; set session_replication_role='origin'", [VERSION, ASSET, versionB]);
+    await admin.query("update public.assets set current_version_id=$1 where id=$2", [VERSION, ASSET]); await admin.query("set session_replication_role='replica'"); await admin.query("delete from public.asset_versions where id=$1", [versionB]); await admin.query("set session_replication_role='origin'");
 
     await admin.query("update public.tenant_memberships set status='REVOKED' where id=$1", [MEMBERSHIP]);
     await expect(d4(ACTOR, MEMBERSHIP)).rejects.toThrow(/READINESS_AUTHORITY_MEMBERSHIP_INVALID/);

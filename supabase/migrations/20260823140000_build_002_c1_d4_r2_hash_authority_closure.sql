@@ -1,6 +1,26 @@
 -- BUILD 002-C1-D4-R2: repair the forward hash encoding and current signal
 -- column binding without mutating the historical R0/R1 migrations.
 
+create or replace function public.build002_canonical_number(p_number numeric)
+returns text
+language plpgsql immutable strict
+set search_path = pg_catalog, public
+as $$
+declare
+  v_abs numeric := abs(p_number);
+  v_exponent integer;
+  v_mantissa text;
+begin
+  if p_number = 0 then return '0'; end if;
+  if v_abs >= 0.000001 and v_abs < 1000000000000000000000 then
+    return trim_scale(p_number)::text;
+  end if;
+  v_exponent := floor(log(10, v_abs))::integer;
+  v_mantissa := trim_scale(v_abs / power(10::numeric, v_exponent))::text;
+  return case when p_number < 0 then '-' else '' end || v_mantissa || 'e' || case when v_exponent < 0 then '-' else '+' end || abs(v_exponent)::text;
+end;
+$$;
+
 create or replace function public.build002_canonical_json(p_value jsonb)
 returns text
 language plpgsql immutable strict
@@ -11,7 +31,8 @@ declare
 begin
   case jsonb_typeof(p_value)
     when 'null' then return 'null';
-    when 'string', 'boolean', 'number' then return p_value::text;
+    when 'string', 'boolean' then return p_value::text;
+    when 'number' then return public.build002_canonical_number(p_value::numeric);
     when 'array' then
       select '[' || coalesce(string_agg(public.build002_canonical_json(value), ',' order by ordinality), '') || ']'
         into v_result
@@ -37,6 +58,7 @@ $$;
 
 revoke all on function public.build002_canonical_json(jsonb) from public, anon, authenticated, service_role;
 revoke all on function public.build002_canonical_sha256(jsonb) from public, anon, authenticated, service_role;
+revoke all on function public.build002_canonical_number(numeric) from public, anon, authenticated, service_role;
 
 create or replace function public.build002_grant_execution_authority(
   p_principal_id uuid,
