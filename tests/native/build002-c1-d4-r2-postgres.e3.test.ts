@@ -257,4 +257,18 @@ describe.runIf(enabled && Boolean(databaseUrl))("BUILD002-C1-D4-R2 native TaskSp
     const serviceResult = await service.query("select public.build002_grant_execution_authority($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::text) as result", [ACTOR, MEMBERSHIP, admissionId, spec.id, spec.hash]);
     expect(serviceResult.rows[0].result.execution_authority_id).toEqual(expect.any(String));
   });
+
+  it("issues one fresh D5 lease for the exact semantic patch fixture", async () => {
+    const authority = await service.query("select public.build002_grant_execution_authority($1::uuid,$2::uuid,$3::uuid,$4::uuid,$5::text) as result", [ACTOR, MEMBERSHIP, admissionId, spec.id, spec.hash]);
+    const authorityId = authority.rows[0].result.execution_authority_id as string;
+    const intentId = "ab100000-0000-4000-8000-000000000001";
+    const patchId = "ab100000-0000-4000-8000-000000000002";
+    const valueJson = JSON.stringify(spec.values.find((value) => value.id === "requested.color")?.value);
+    await admin.query("insert into public.partial_intents(id,transaction_id,owner_tenant_id,raw_input,target_path,operation,desired_value) values ($1,$2,$3,'r1 exact patch','requested.color','SET_ATTRIBUTE',$4::jsonb)", [intentId, TRANSACTION, TENANT, valueJson]);
+    await admin.query("insert into public.transaction_patches(id,transaction_id,owner_tenant_id,partial_intent_id,operation,target_path,parameters) values ($1,$2,$3,$4,'SET_ATTRIBUTE','requested.color',jsonb_build_object('value',$5::jsonb))", [patchId, TRANSACTION, TENANT, intentId, valueJson]);
+    const issued = await service.query("select public.build002_grant_mutation_lease($1::uuid,$2::uuid,$3::uuid,$4::text,$5::text) as result", [ACTOR, MEMBERSHIP, authorityId, "requested.color", "MUTABLE"]);
+    expect(issued.rows[0].result.mutation_lease_id).toEqual(expect.any(String));
+    expect((await admin.query("select count(*)::int as count from public.build002_mutation_leases")).rows[0].count).toBe(1);
+    expect((await admin.query("select count(*)::int as count from public.execution_runs")).rows[0].count).toBe(1);
+  });
 });
