@@ -11,6 +11,8 @@ import { createTenantSupabaseRepositories } from "@/src/infrastructure/persisten
 import { CompositingImagePreservationEngine } from "@/src/infrastructure/preservation/compositing-image-preservation-engine";
 import { SupabaseMediaObjectStore } from "@/src/infrastructure/storage/supabase-media-object-store";
 import { createTransientJwtRetryFetch } from "@/src/infrastructure/supabase/transient-jwt-retry-fetch";
+import { SupabaseExecutionAttemptReservationRepository } from "@/src/infrastructure/persistence/outcome/supabase-execution-attempt-reservation-repository";
+import { CanonicalFieldBetaProviderGateway } from "@/src/application/outcome/media/canonical-field-beta-provider-gateway";
 
 const services = new Map<string, PreservationVerificationService>();
 
@@ -28,11 +30,18 @@ export function createPreservationVerificationService(ownerTenantId = "internal-
   });
   const repositories = createTenantSupabaseRepositories(ownerTenantId);
   const storage = new SupabaseMediaObjectStore(client, "media", ownerTenantId);
+  const executor = createImageExecutor(client);
+  const fieldBetaProviderGateway = new CanonicalFieldBetaProviderGateway(
+    new SupabaseExecutionAttemptReservationRepository(client, ownerTenantId),
+    executor,
+  );
   const created = new PreservationVerificationService(
     repositories,
-    createImageExecutor(client),
+    executor,
     new CompositingImagePreservationEngine(),
     storage,
+    undefined,
+    fieldBetaProviderGateway,
   );
   services.set(ownerTenantId, created);
   return created;

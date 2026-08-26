@@ -3,6 +3,8 @@ import type { ROI } from "@/src/domain/outcome/media/media-asset-version";
 export type ImageEditOperation = "EDIT_REGION";
 
 export type ImageEditContext = {
+  /** Required on the supported Field Beta path and assigned only by the canonical D6 gateway. */
+  executionAttemptId?: string;
   transactionId: string;
   sourceStorageKey: string;
   sourceMimeType: string;

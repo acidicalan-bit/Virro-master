@@ -31,6 +31,7 @@ import type { FieldBetaFaultInjector } from "@/src/application/outcome/media/fie
 import type { AuthorityContext } from "@/src/domain/auth/authority";
 import { bindExecutionAuthority } from "@/src/application/outcome/execution-authority";
 import { precisionEditVerificationBinding } from "@/src/application/outcome/specification/verification-definition";
+import type { CanonicalFieldBetaProviderGateway } from "@/src/application/outcome/media/canonical-field-beta-provider-gateway";
 
 const SOURCE_MAX_BYTES = 10 * 1024 * 1024;
 
@@ -82,6 +83,8 @@ export type RunPreservationExperimentInput = {
     blueprint: import("@/src/domain/outcome/specification/outcome-blueprint").OutcomeBlueprint;
   };
   faultInjector?: FieldBetaFaultInjector;
+  /** Server-owned marker set only by supported Field Beta orchestration. */
+  requiresCanonicalD6?: true;
 };
 
 export type PreservationExperimentView = {
@@ -152,6 +155,7 @@ export class PreservationVerificationService {
     private readonly preservationEngine: ImagePreservationEngine,
     private readonly storage: MediaObjectStore,
     private readonly faultInjector?: FieldBetaFaultInjector,
+    private readonly fieldBetaProviderGateway?: CanonicalFieldBetaProviderGateway,
   ) {}
 
   async runExperiment(input: RunPreservationExperimentInput): Promise<PreservationExperimentView> {
@@ -234,6 +238,23 @@ export class PreservationVerificationService {
       targetPath: "media.pixels",
       parameters: { instruction: input.instruction.trim(), roi: policy.coreRoi },
     });
+    // D5 remains a separate authority/currentness primitive. This exact
+    // SET_ATTRIBUTE binding authorizes the TaskSpec instruction value; D6
+    // separately binds the provider's EDIT_REGION operation and value object.
+    const instructionIntent = await this.repositories.partialIntents.create({
+      transactionId: transaction.id,
+      rawInput: input.instruction.trim(),
+      targetPath: "instruction",
+      operation: "SET_ATTRIBUTE",
+      desiredValue: input.instruction.trim(),
+    });
+    await this.repositories.semanticPatches.create({
+      transactionId: transaction.id,
+      partialIntentId: instructionIntent.id,
+      operation: "SET_ATTRIBUTE",
+      targetPath: "instruction",
+      parameters: { value: input.instruction.trim() },
+    });
     await this.repositories.mutationLeases.create({
       transactionId: transaction.id,
       targetPath: "media.pixels",
@@ -272,8 +293,9 @@ export class PreservationVerificationService {
 
     const providerStartedAt = new Date().toISOString();
     let providerResult: Awaited<ReturnType<ImageEditExecutor["execute"]>>;
+    let d6Admission: { reservationId: string; consumptionId: string; executionAttemptId: string } | null = null;
     try {
-      providerResult = await this.executor.execute({
+      const providerContext = {
         transactionId: transaction.id,
         sourceStorageKey,
         sourceMimeType: input.sourceMimeType,
@@ -282,9 +304,24 @@ export class PreservationVerificationService {
         sourceBytes,
         roi: policy.coreRoi,
         instruction: input.instruction.trim(),
-      });
+      };
+      if (input.requiresCanonicalD6) {
+        if (!input.authority || !taskSpec || !this.fieldBetaProviderGateway) {
+          throw new PreservationRuntimeError("D6_RESERVATION_REQUIRED", "Field Beta provider admission requires canonical D6 authority.");
+        }
+        const admitted = await this.fieldBetaProviderGateway.invoke({ authority: input.authority, taskSpec, context: providerContext });
+        d6Admission = {
+          reservationId: admitted.reservationId,
+          consumptionId: admitted.consumptionId,
+          executionAttemptId: admitted.executionAttemptId,
+        };
+        providerResult = admitted.providerResult;
+      } else {
+        providerResult = await this.executor.execute(providerContext);
+      }
     } catch (error) {
       await this.recordProviderFailure(transaction.id, providerStartedAt, error);
+      if (error instanceof PreservationRuntimeError) throw error;
       if (isImageEditExecutionError(error)) {
         throw new PreservationRuntimeError(error.code, error.code === "PROVIDER_REQUEST_FAILED" ? "The image provider request failed." : error.message);
       }
@@ -340,6 +377,13 @@ export class PreservationVerificationService {
           taskSpecHash: taskSpec.hash,
           specCompilerName: taskSpec.compiler.name,
           specCompilerVersion: taskSpec.compiler.version,
+        } : {}),
+        ...(d6Admission ? {
+          d6ReservationId: d6Admission.reservationId,
+          d6ConsumptionId: d6Admission.consumptionId,
+          executionAttemptId: d6Admission.executionAttemptId,
+          d6ProviderAdmission: "CONSUMED",
+          externalProviderExactlyOnceClaimed: false,
         } : {}),
       },
     });
