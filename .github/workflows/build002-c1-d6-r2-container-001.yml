@@ -1,0 +1,140 @@
+name: BUILD002 C1-D6-R2 exact product container proof 001
+
+on:
+  push:
+    branches: [verify/build002-c1-d6-r2-container-001]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: 24
+  PNPM_VERSION: 11.19.0
+  PRODUCT_SHA: 73d232a3b82f630f1601a447cd7d912e183f6454
+  PRODUCT_TREE: a7d384c5c9d32f7b6e5b6f2ae6b34d1fa9ab0884
+  PRODUCT_PARENT: c573f8d56cfc322c67e1bfd82029bb2b89773006
+  C1_AUTHORITY_SHA256: 6b60f1e32e6d1ec070b7ac95ff4965372fb903943fb71c72539e41d13cf25274
+  D6_AUTHORITY_SHA256: 83ed5d1e69639b2d9b676e0886e35ea893c6932328f47092102b5de8541911c0
+
+jobs:
+  exact-product-boundary:
+    name: exact-product-boundary
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: "${{ env.PRODUCT_SHA }}"
+          fetch-depth: 0
+      - name: Prove exact product object and frozen authority
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${PRODUCT_SHA}"
+          test "$(git cat-file -t "${PRODUCT_SHA}")" = commit
+          test "$(git show -s --format=%T "${PRODUCT_SHA}")" = "${PRODUCT_TREE}"
+          test "$(git show -s --format=%P "${PRODUCT_SHA}")" = "${PRODUCT_PARENT}"
+          test "$(git diff --name-only "${PRODUCT_PARENT}" "${PRODUCT_SHA}" | wc -l | tr -d ' ')" = 14
+          test "$(git diff --name-only --diff-filter=A "${PRODUCT_PARENT}" "${PRODUCT_SHA}" -- supabase/migrations)" = "supabase/migrations/20260825110000_build_002_c1_d6_execution_attempt_reservation.sql"
+          test -z "$(git diff --name-only --diff-filter=MD "${PRODUCT_PARENT}" "${PRODUCT_SHA}" -- supabase/migrations)"
+          test "$(git ls-tree -r --name-only "${PRODUCT_SHA}" supabase/migrations | grep -c '\.sql$')" = 41
+          test -z "$(git diff --name-only "${PRODUCT_PARENT}" "${PRODUCT_SHA}" -- docs/builds/build-002/00_C1_CANONICAL_OBJECTIVE.md docs/builds/build-002/01_C1_D6_REMEDIATION_SPEC.md)"
+          python3 - <<'PY'
+          import hashlib
+          from pathlib import Path
+          expected = {
+              "docs/builds/build-002/00_C1_CANONICAL_OBJECTIVE.md": "6b60f1e32e6d1ec070b7ac95ff4965372fb903943fb71c72539e41d13cf25274",
+              "docs/builds/build-002/01_C1_D6_REMEDIATION_SPEC.md": "83ed5d1e69639b2d9b676e0886e35ea893c6932328f47092102b5de8541911c0",
+          }
+          for path, digest in expected.items():
+              actual = hashlib.sha256(Path(path).read_bytes().replace(b"\r\n", b"\n")).hexdigest()
+              if actual != digest:
+                  raise SystemExit(f"AUTHORITY_HASH_MISMATCH:{path}:{actual}")
+              print(f"AUTHORITY_HASH_PASS {path} {actual}")
+          PY
+          git diff --check "${PRODUCT_PARENT}" "${PRODUCT_SHA}"
+
+  container:
+    name: exact-product-container
+    needs: exact-product-boundary
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: "${{ env.PRODUCT_SHA }}"
+          fetch-depth: 0
+      - run: test "$(git rev-parse HEAD)" = "${PRODUCT_SHA}"
+      - uses: pnpm/action-setup@v4
+        with:
+          version: "${{ env.PNPM_VERSION }}"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "${{ env.NODE_VERSION }}"
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Exact-SHA OCI build and runtime smoke
+        run: PORTABILITY_SOURCE_SHA=${PRODUCT_SHA} pnpm run portability:smoke
+
+  postgres17:
+    name: exact-product-postgres17
+    needs: exact-product-boundary
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: [5432:5432]
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=5s --health-timeout=5s --health-retries=20
+    env:
+      BUILD002_NATIVE_PG_URL: postgresql://postgres:postgres@localhost:5432/postgres
+      BUILD002_NATIVE_PG_C1_D4_R2: "true"
+      BUILD002_NATIVE_PG_C1_D4_R2_URL: postgresql://postgres:postgres@localhost:5432/postgres
+      BUILD002_NATIVE_PG_C1_D5_R0: "true"
+      BUILD002_NATIVE_PG_C1_D5_R0_URL: postgresql://postgres:postgres@localhost:5432/postgres
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: "${{ env.PRODUCT_SHA }}"
+          fetch-depth: 0
+      - run: test "$(git rev-parse HEAD)" = "${PRODUCT_SHA}"
+      - uses: pnpm/action-setup@v4
+        with:
+          version: "${{ env.PNPM_VERSION }}"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "${{ env.NODE_VERSION }}"
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: D4-D5-D6 PostgreSQL 17 exact-product proof
+        run: pnpm exec vitest run tests/native/build002-c1-d4-r2-postgres.e3.test.ts --reporter=verbose
+      - name: D5 PostgreSQL 17 regression
+        run: pnpm exec vitest run tests/native/build002-c1-d5-r0-postgres.e3.test.ts --reporter=verbose
+
+  full-regression:
+    name: exact-product-full-regression
+    needs: exact-product-boundary
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: "${{ env.PRODUCT_SHA }}"
+          fetch-depth: 0
+      - run: test "$(git rev-parse HEAD)" = "${PRODUCT_SHA}"
+      - uses: pnpm/action-setup@v4
+        with:
+          version: "${{ env.PNPM_VERSION }}"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "${{ env.NODE_VERSION }}"
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run assurance:check
+      - run: pnpm run portability:check
+      - run: pnpm run portability:env
+      - run: pnpm test -- --reporter=dot
+      - run: pnpm run typecheck
+      - run: pnpm run lint
+      - run: pnpm run build
