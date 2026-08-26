@@ -202,7 +202,8 @@ export function inspect(root = process.cwd()) {
   const dockerfile = fs.existsSync(path.join(root, "Dockerfile")) ? read(root, "Dockerfile") : "";
   const packageJson = JSON.parse(read(root, "package.json"));
   const providerDependencies = Object.keys({ ...packageJson.dependencies, ...packageJson.devDependencies }).filter((name) => /supabase|openai|vercel/i.test(name));
-  const baselineDebtUnchanged = fs.existsSync(path.join(root, BASELINE_DEBT_PATH)) && sha256(read(root, BASELINE_DEBT_PATH)) === BASELINE_DEBT_SHA256;
+  const baselineDebtUnchanged = fs.existsSync(path.join(root, BASELINE_DEBT_PATH))
+    && sha256(read(root, BASELINE_DEBT_PATH).replaceAll("\r\n", "\n")) === BASELINE_DEBT_SHA256;
   const standalone = /output\s*:\s*["']standalone["']/.test(nextConfig);
   const dockerContract = /FROM .* AS dependencies[\s\S]*FROM dependencies AS builder[\s\S]*FROM .* AS runner/.test(dockerfile)
     && /ARG SOURCE_SHA(?!\s*=)/.test(dockerfile)

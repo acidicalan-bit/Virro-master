@@ -8,7 +8,7 @@ import {
   isDelegable,
 } from "@/src/domain/outcome/signal-readiness";
 
-const migration = readFileSync(resolve(process.cwd(), "supabase/migrations/20260820210000_build_002_c1_d0_readiness_authority_commit.sql"), "utf8");
+const migration = readFileSync(resolve(process.cwd(), "supabase/migrations/20260820210000_build_002_c1_d0_readiness_authority_commit.sql"), "utf8").replaceAll("\r\n", "\n");
 const adapter = readFileSync(resolve(process.cwd(), "src/infrastructure/persistence/outcome/supabase-readiness-authority-commit-repository.ts"), "utf8");
 const port = readFileSync(resolve(process.cwd(), "src/application/ports/outcome/readiness-authority-commit-repository.ts"), "utf8");
 

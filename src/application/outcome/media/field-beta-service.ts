@@ -105,6 +105,7 @@ export class FieldBetaService {
     const base = await this.baseRunner.runExperiment({
       ownerTenantId: this.tenantId,
       authority: this.authority,
+      requiresCanonicalD6: true,
       projectName: input.projectName,
       assetName: input.assetName,
       sourceBytes: input.sourceBytes,
