@@ -1,0 +1,256 @@
+name: BUILD002 C1-D6-R2 postmerge proof 001
+
+on:
+  push:
+    branches: [verify/build002-c1-d6-r2-postmerge-001]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: 24
+  PNPM_VERSION: 11.19.0
+  MERGE_SHA: 58e69b4d7d683412a0bfa60b5121be82d5426eaa
+  MERGE_TREE: a7d384c5c9d32f7b6e5b6f2ae6b34d1fa9ab0884
+  PRODUCT_SHA: 73d232a3b82f630f1601a447cd7d912e183f6454
+  PRODUCT_TREE: a7d384c5c9d32f7b6e5b6f2ae6b34d1fa9ab0884
+  EXPECTED_MAIN_PARENT: e13224fd2bf2b370db209d9537e56672a4409ccb
+  C1_AUTHORITY_COMMIT: 0b0010d86c42caedfea5380d306f83b8219f6506
+  C1_AUTHORITY_SHA256: 6b60f1e32e6d1ec070b7ac95ff4965372fb903943fb71c72539e41d13cf25274
+  D6_AUTHORITY_COMMIT: c573f8d56cfc322c67e1bfd82029bb2b89773006
+  D6_AUTHORITY_SHA256: 83ed5d1e69639b2d9b676e0886e35ea893c6932328f47092102b5de8541911c0
+  MIGRATION_FILENAME_SET_HASH: c7aaea36dc4611ad25c6c872c3185a84ebddb95ee84ce87857b790d07250c20b
+
+jobs:
+  exact-postmerge-boundary:
+    name: exact-postmerge-boundary
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: "${{ env.MERGE_SHA }}"
+          fetch-depth: 0
+      - name: Prove merge, product, authority, and migration identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${MERGE_SHA}"
+          test "$(git show -s --format=%T "${MERGE_SHA}")" = "${MERGE_TREE}"
+          test "$(git show -s --format=%P "${MERGE_SHA}")" = "${EXPECTED_MAIN_PARENT} ${PRODUCT_SHA}"
+          test "$(git show -s --format=%T "${PRODUCT_SHA}")" = "${PRODUCT_TREE}"
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = "${MERGE_SHA}"
+          git merge-base --is-ancestor "${C1_AUTHORITY_COMMIT}" "${MERGE_SHA}"
+          git merge-base --is-ancestor "${D6_AUTHORITY_COMMIT}" "${MERGE_SHA}"
+          test -z "$(git diff --name-only "${PRODUCT_SHA}" "${MERGE_SHA}")"
+          test -z "$(git diff --name-only "${PRODUCT_SHA}" "${MERGE_SHA}" -- supabase/migrations)"
+          python3 - <<'PY'
+          import hashlib
+          from pathlib import Path
+
+          authorities = {
+              "docs/builds/build-002/00_C1_CANONICAL_OBJECTIVE.md": "6b60f1e32e6d1ec070b7ac95ff4965372fb903943fb71c72539e41d13cf25274",
+              "docs/builds/build-002/01_C1_D6_REMEDIATION_SPEC.md": "83ed5d1e69639b2d9b676e0886e35ea893c6932328f47092102b5de8541911c0",
+          }
+          for path, expected in authorities.items():
+              actual = hashlib.sha256(Path(path).read_bytes().replace(b"\r\n", b"\n")).hexdigest()
+              if actual != expected:
+                  raise SystemExit(f"AUTHORITY_HASH_MISMATCH:{path}:{actual}")
+              print(f"AUTHORITY_HASH_PASS {path} {actual}")
+
+          names = sorted(path.name for path in Path("supabase/migrations").glob("*.sql"))
+          if len(names) != 41:
+              raise SystemExit(f"MIGRATION_COUNT_MISMATCH:{len(names)}")
+          actual = hashlib.sha256(("\n".join(names) + "\n").encode()).hexdigest()
+          expected = "c7aaea36dc4611ad25c6c872c3185a84ebddb95ee84ce87857b790d07250c20b"
+          if actual != expected:
+              raise SystemExit(f"MIGRATION_FILENAME_SET_HASH_MISMATCH:{actual}")
+          print(f"MIGRATION_IDENTITY_PASS count={len(names)} hash={actual}")
+          PY
+
+  c1-critical-postmerge:
+    name: c1-critical-postmerge
+    needs: exact-postmerge-boundary
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: "${{ env.MERGE_SHA }}"
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+        with:
+          version: "${{ env.PNPM_VERSION }}"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "${{ env.NODE_VERSION }}"
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Reprove C1 TC01-TC06 and D6 adversarial boundary
+        run: >-
+          pnpm exec vitest run
+          tests/assurance/build002-c1-d0-r1-authority-marker-graph-coherence.test.ts
+          tests/assurance/build002-c1-d0-readiness-authority-commit.test.ts
+          tests/assurance/build002-c1-d1-readiness-authority-orchestration.test.ts
+          tests/assurance/build002-c1-d2-readiness-currentness.test.ts
+          tests/assurance/build002-c1-d3-r2-repository-integrity.test.ts
+          tests/assurance/build002-c1-d4-r0-execution-authority.test.ts
+          tests/assurance/build002-c1-d4-r1-authority-closure.test.ts
+          tests/assurance/build002-c1-d5-r0-mutation-lease.test.ts
+          tests/assurance/build002-c1-d5-r1-mutation-lease.test.ts
+          tests/assurance/build002-c1-d5-r2-mutation-lease.test.ts
+          tests/assurance/build002-c1-d6-r2-execution-attempt-reservation.test.ts
+          tests/outcome/field-beta-fault-boundaries.test.ts
+          tests/field-beta-security.test.ts
+          tests/outcome/preservation-verification.test.ts
+          --reporter=verbose
+      - run: test "$(git ls-remote origin refs/heads/main | cut -f1)" = "${MERGE_SHA}"
+
+  postgres17-postmerge:
+    name: postgres17-postmerge
+    needs: exact-postmerge-boundary
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: [5432:5432]
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=5s --health-timeout=5s --health-retries=20
+    env:
+      BUILD002_NATIVE_PG_C1_D0: "true"
+      BUILD002_NATIVE_PG_C1_D0_URL: postgresql://postgres:postgres@localhost:5432/postgres
+      BUILD002_NATIVE_PG_C1_D2: "true"
+      BUILD002_NATIVE_PG_C1_D2_URL: postgresql://postgres:postgres@localhost:5432/postgres
+      BUILD002_NATIVE_PG_C1_D3: "true"
+      BUILD002_NATIVE_PG_C1_D3_URL: postgresql://postgres:postgres@localhost:5432/postgres
+      BUILD002_NATIVE_PG_C1_D4_R2: "true"
+      BUILD002_NATIVE_PG_C1_D4_R2_URL: postgresql://postgres:postgres@localhost:5432/postgres
+      BUILD002_NATIVE_PG_C1_D5_R0: "true"
+      BUILD002_NATIVE_PG_C1_D5_R0_URL: postgresql://postgres:postgres@localhost:5432/postgres
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: "${{ env.MERGE_SHA }}"
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+        with:
+          version: "${{ env.PNPM_VERSION }}"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "${{ env.NODE_VERSION }}"
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Seed native storage fixture
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h localhost -U postgres -d template1 -v ON_ERROR_STOP=1 <<'SQL'
+          create schema if not exists storage;
+          create table if not exists storage.buckets(id text primary key, name text not null unique, public boolean not null default false, file_size_limit bigint, allowed_mime_types text[]);
+          SQL
+      - run: pnpm exec vitest run tests/native/build002-c1-d0-postgres.e3.test.ts --reporter=verbose
+      - run: pnpm exec vitest run tests/native/build002-c1-d2-scoped-reader.e3.test.ts --reporter=verbose
+      - run: pnpm exec vitest run tests/native/build002-c1-d3-postgres.e3.test.ts --reporter=verbose
+      - run: pnpm exec vitest run tests/native/build002-c1-d4-r2-postgres.e3.test.ts --reporter=verbose
+      - run: pnpm exec vitest run tests/native/build002-c1-d5-r0-postgres.e3.test.ts --reporter=verbose
+      - run: test "$(git ls-remote origin refs/heads/main | cut -f1)" = "${MERGE_SHA}"
+
+  full-regression-postmerge:
+    name: full-regression-postmerge
+    needs: exact-postmerge-boundary
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: "${{ env.MERGE_SHA }}"
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+        with:
+          version: "${{ env.PNPM_VERSION }}"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "${{ env.NODE_VERSION }}"
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run assurance:check
+      - run: pnpm run portability:check
+      - run: pnpm run portability:env
+      - run: pnpm test -- --reporter=dot
+      - run: pnpm run typecheck
+      - run: pnpm run lint
+      - run: pnpm run build
+      - run: test "$(git ls-remote origin refs/heads/main | cut -f1)" = "${MERGE_SHA}"
+
+  dual-runtime-postmerge:
+    name: dual-runtime-postmerge
+    needs: exact-postmerge-boundary
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: "${{ env.MERGE_SHA }}"
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+        with:
+          version: "${{ env.PNPM_VERSION }}"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "${{ env.NODE_VERSION }}"
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Vercel local-mode build
+        run: VERCEL=1 pnpm run build
+      - name: Non-Vercel standalone build
+        run: |
+          rm -rf .next
+          unset VERCEL
+          pnpm run build
+          test -f .next/standalone/server.js
+      - run: test "$(git ls-remote origin refs/heads/main | cut -f1)" = "${MERGE_SHA}"
+
+  container-postmerge:
+    name: container-postmerge
+    needs: exact-postmerge-boundary
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: "${{ env.MERGE_SHA }}"
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+        with:
+          version: "${{ env.PNPM_VERSION }}"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "${{ env.NODE_VERSION }}"
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Exact-merge OCI build and runtime smoke
+        run: PORTABILITY_SOURCE_SHA=${MERGE_SHA} pnpm run portability:smoke
+      - run: test "$(git ls-remote origin refs/heads/main | cut -f1)" = "${MERGE_SHA}"
+
+  proof-main-stability:
+    name: proof-main-stability
+    if: always()
+    needs:
+      - c1-critical-postmerge
+      - postgres17-postmerge
+      - full-regression-postmerge
+      - dual-runtime-postmerge
+      - container-postmerge
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: "${{ env.MERGE_SHA }}"
+          fetch-depth: 0
+      - name: Prove origin main did not move during postmerge evidence
+        run: |
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = "${MERGE_SHA}"
+          test "${{ needs.c1-critical-postmerge.result }}" = "success"
+          test "${{ needs.postgres17-postmerge.result }}" = "success"
+          test "${{ needs.full-regression-postmerge.result }}" = "success"
+          test "${{ needs.dual-runtime-postmerge.result }}" = "success"
+          test "${{ needs.container-postmerge.result }}" = "success"
