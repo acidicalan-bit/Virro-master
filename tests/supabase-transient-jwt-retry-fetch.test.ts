@@ -57,4 +57,43 @@ describe("Supabase transient JWT retry fetch", () => {
     expect(sleep).toHaveBeenNthCalledWith(1, 100);
     expect(sleep).toHaveBeenNthCalledWith(2, 200);
   });
+
+  it("restarts one complete PostgREST transaction for SQLSTATE 40001", async () => {
+    const fetchImpl = vi.fn()
+      .mockResolvedValueOnce(new Response('{"code":"40001","message":"restart"}', { status: 409 }))
+      .mockResolvedValueOnce(new Response('{"ok":true}', { status: 200 }));
+    const retryFetch = createTransientJwtRetryFetch({
+      fetchImpl: fetchImpl as typeof fetch,
+      serializationRetryLimit: 1,
+      sleep: vi.fn(),
+    });
+
+    const response = await retryFetch(
+      new Request("https://example.supabase.co/rest/v1/rpc/build002_admit_delegability", {
+        method: "POST",
+        body: '{"same":"technical-attempt"}',
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    const firstBody = await (fetchImpl.mock.calls[0][0] as Request).text();
+    const secondBody = await (fetchImpl.mock.calls[1][0] as Request).text();
+    expect(secondBody).toBe(firstBody);
+  });
+
+  it.each(["40P01", "55P03", "57014", "XX000"])(
+    "fails closed without technical retry for SQLSTATE %s",
+    async (code) => {
+      const fetchImpl = vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ code, message: "fail closed" }), { status: 409 }),
+      );
+      const retryFetch = createTransientJwtRetryFetch({ fetchImpl: fetchImpl as typeof fetch });
+
+      const response = await retryFetch("https://example.supabase.co/rest/v1/rpc/protected");
+
+      expect(response.status).toBe(409);
+      expect(fetchImpl).toHaveBeenCalledTimes(1);
+    },
+  );
 });

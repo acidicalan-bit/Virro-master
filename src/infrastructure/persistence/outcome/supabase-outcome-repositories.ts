@@ -139,7 +139,16 @@ export class SupabaseAssetRepository implements AssetRepository {
   }
 
   async update(id: string, input: Partial<CreateAssetRecord> & { currentVersionId?: string | null }): Promise<AssetRecord> {
-    const { data, error } = await ownedQuery(this.client.from("assets").update({ project_id: input.projectId, name: input.name, description: input.description, current_version_id: input.currentVersionId }), this.ownerTenantId).eq("id", id).select("*").single();
+    const { data, error } = await this.client.rpc("build002_002e_update_asset", {
+      p_asset_id: id,
+      p_owner_tenant_id: requireTenantScope(this.ownerTenantId),
+      p_patch: {
+        ...(input.projectId !== undefined ? { project_id: input.projectId } : {}),
+        ...(input.name !== undefined ? { name: input.name } : {}),
+        ...(input.description !== undefined ? { description: input.description } : {}),
+        ...(input.currentVersionId !== undefined ? { current_version_id: input.currentVersionId } : {}),
+      },
+    });
     if (error || !data) throw new Error("No se pudo actualizar el activo.");
     return { id: String(data.id), ownerTenantId: data.owner_tenant_id ? String(data.owner_tenant_id) : null, projectId: String(data.project_id), name: String(data.name), description: data.description ? String(data.description) : null, currentVersionId: data.current_version_id ? String(data.current_version_id) : null, createdAt: String(data.created_at), updatedAt: String(data.updated_at) };
   }
@@ -203,7 +212,15 @@ export class SupabaseOutcomeTransactionRepository implements OutcomeTransactionR
   }
 
   async updateStatus(id: string, status: TransactionStatus, extra?: { abortReason?: string | null; completedAt?: string | null }): Promise<OutcomeTransactionRecord> {
-    const { data, error } = await ownedQuery(this.client.from("outcome_transactions").update({ status, abort_reason: extra?.abortReason, completed_at: extra?.completedAt }), this.ownerTenantId).eq("id", id).select("*").single();
+    const { data, error } = await this.client.rpc("build002_002e_update_outcome_transaction", {
+      p_transaction_id: id,
+      p_owner_tenant_id: requireTenantScope(this.ownerTenantId),
+      p_patch: {
+        status,
+        ...(extra?.abortReason !== undefined ? { abort_reason: extra.abortReason } : {}),
+        ...(extra?.completedAt !== undefined ? { completed_at: extra.completedAt } : {}),
+      },
+    });
     if (error || !data) throw new Error("No se pudo actualizar la transacción.");
     return { id: String(data.id), ownerTenantId: data.owner_tenant_id ? String(data.owner_tenant_id) : null, projectId: String(data.project_id), assetId: String(data.asset_id), baseVersionId: String(data.base_version_id), status: data.status as TransactionStatus, rawRequest: String(data.raw_request), createdAt: String(data.created_at), updatedAt: String(data.updated_at), completedAt: data.completed_at ? String(data.completed_at) : null, abortReason: data.abort_reason ? String(data.abort_reason) : null };
   }
