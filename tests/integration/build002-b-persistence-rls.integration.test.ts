@@ -66,7 +66,8 @@ describe("BUILD 002-B immutable readiness persistence and tenant RLS (PGlite sup
     `);
     const migrations = readdirSync(migrationsDir).filter((item) => item.endsWith(".sql")).sort();
     const r2Migration = migrations.find((name) => name.startsWith("20260819130000_"));
-    for (const name of migrations.filter((item) => item !== r2Migration)) {
+    const hardeningMigration = migrations.find((name) => name.includes("002e_r10_stale_concurrency_hardening"));
+    for (const name of migrations.filter((item) => item !== r2Migration && item !== hardeningMigration)) {
       await db.exec(readFileSync(resolve(migrationsDir, name), "utf8"));
     }
     await db.exec(`
@@ -149,6 +150,7 @@ describe("BUILD 002-B immutable readiness persistence and tenant RLS (PGlite sup
       reset role;
     `);
     if (r2Migration) await db.exec(readFileSync(resolve(migrationsDir, r2Migration), "utf8"));
+    if (hardeningMigration) await db.exec(readFileSync(resolve(migrationsDir, hardeningMigration), "utf8"));
   }, 30_000);
 
   afterAll(async () => db?.close());

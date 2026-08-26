@@ -16,7 +16,7 @@ export function createPreservationStudyService(): PreservationStudyService {
   if (!url || !serviceRoleKey) throw new Error("Supabase server credentials are required for the preservation study.");
   const client = createClient(url, serviceRoleKey, {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
-    global: { fetch: createTransientJwtRetryFetch() },
+    global: { fetch: createTransientJwtRetryFetch({ supabaseUrl: url }) },
   });
   service = new PreservationStudyService(
     new SupabasePreservationStudyRepository(client),

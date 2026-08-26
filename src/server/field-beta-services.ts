@@ -27,7 +27,7 @@ export function createFieldBetaService(authorityOrTenant: AuthorityContext | str
   const serviceRoleKey = getSupabasePrivilegedKey();
   const client = createClient(url, serviceRoleKey, {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
-    global: { fetch: createTransientJwtRetryFetch() },
+    global: { fetch: createTransientJwtRetryFetch({ supabaseUrl: url }) },
   });
   const repositories = createTenantSupabaseRepositories(tenantId);
   const samplingRate = parseSamplingRate(process.env.FIELD_EVAL_SAMPLING_RATE);

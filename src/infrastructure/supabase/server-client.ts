@@ -5,17 +5,20 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 
 import { getSupabasePrivilegedKey, getSupabasePublishableKey, getSupabaseUrl } from "@/src/infrastructure/supabase/config";
+import { createTransientJwtRetryFetch } from "@/src/infrastructure/supabase/transient-jwt-retry-fetch";
 
 export async function createUserScopedSupabaseClient(request?: Request): Promise<SupabaseClient> {
+  const url = getSupabaseUrl();
   const bearer = request?.headers.get("authorization")?.match(/^Bearer\s+(.+)$/i)?.[1];
   if (bearer) {
-    return createClient(getSupabaseUrl(), getSupabasePublishableKey(), {
+    return createClient(url, getSupabasePublishableKey(), {
       auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
-      global: { headers: { Authorization: `Bearer ${bearer}` } },
+      global: { headers: { Authorization: `Bearer ${bearer}` }, fetch: createTransientJwtRetryFetch({ supabaseUrl: url }) },
     });
   }
   const cookieStore = await cookies();
   return createServerClient(getSupabaseUrl(), getSupabasePublishableKey(), {
+    global: { fetch: createTransientJwtRetryFetch({ supabaseUrl: url }) },
     cookies: {
       getAll() { return cookieStore.getAll(); },
       setAll(values) {
@@ -26,5 +29,9 @@ export async function createUserScopedSupabaseClient(request?: Request): Promise
 }
 
 export function createPrivilegedSupabaseClient(): SupabaseClient {
-  return createClient(getSupabaseUrl(), getSupabasePrivilegedKey(), { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } });
+  const url = getSupabaseUrl();
+  return createClient(url, getSupabasePrivilegedKey(), {
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+    global: { fetch: createTransientJwtRetryFetch({ supabaseUrl: url }) },
+  });
 }

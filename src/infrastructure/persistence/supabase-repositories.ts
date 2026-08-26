@@ -460,7 +460,7 @@ function createPrivilegedClient(): SupabaseClient {
   }
   return createClient(url, serviceRoleKey, {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
-    global: { fetch: createTransientJwtRetryFetch() },
+    global: { fetch: createTransientJwtRetryFetch({ supabaseUrl: url }) },
   });
 }
 

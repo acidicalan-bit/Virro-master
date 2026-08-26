@@ -43,11 +43,11 @@ describe("BUILD 001-F1 local real PostgreSQL canonical commit boundary", () => {
     const vulnerableDb = new PGlite({ extensions: { pgcrypto } }) as SqlDatabase;
     try {
       await bootstrapSupabase(vulnerableDb);
-      for (const name of readdirSync(migrationsDir).filter((item) => item.endsWith(".sql") && !item.includes("_f1_") && !item.includes("_f3_") && !item.includes("_f4_")).sort()) {
+      for (const name of readdirSync(migrationsDir).filter((item) => item.endsWith(".sql") && !item.includes("_f1_") && !item.includes("_f3_") && !item.includes("_f4_") && !item.includes("002e_r10")).sort()) {
         await vulnerableDb.exec(readFileSync(resolve(migrationsDir, name), "utf8"));
       }
       await seedAuthority(vulnerableDb);
-      const fixture = await seedCanonicalFixture(vulnerableDb, 7);
+      const fixture = await seedCanonicalFixture(vulnerableDb, 7, { hardening: false });
       await expectSqlError(
         vulnerableDb,
         `select public.commit_accepted_field_outcome('${fixture.outcome}'::uuid)`,
@@ -55,7 +55,7 @@ describe("BUILD 001-F1 local real PostgreSQL canonical commit boundary", () => {
       );
       await expectNoCanonicalTransition(vulnerableDb, fixture, fixture.baseVersion, 1);
 
-      const existing = await seedCanonicalFixture(vulnerableDb, 16);
+      const existing = await seedCanonicalFixture(vulnerableDb, 16, { hardening: false });
       await vulnerableDb.exec(`
         insert into public.asset_versions(id, owner_tenant_id, asset_id, version_number, state, parent_version_id)
         values ('${existing.externalVersion}', '${TENANT}', '${existing.asset}', 2, '{"media":{"sha256":"${SOURCE_HASH}"}}'::jsonb, '${existing.baseVersion}');
@@ -200,7 +200,7 @@ describe("BUILD 001-F1 local real PostgreSQL canonical commit boundary", () => {
     await db.exec(`
       insert into public.asset_versions(id, owner_tenant_id, asset_id, version_number, state, parent_version_id)
       values ('${fixture.externalVersion}', '${TENANT}', '${fixture.asset}', 2, '{"external":true}'::jsonb, '${fixture.baseVersion}');
-      update public.assets set current_version_id = '${fixture.externalVersion}' where id = '${fixture.asset}';
+      select public.build002_002e_update_asset('${fixture.asset}','${TENANT}',jsonb_build_object('current_version_id','${fixture.externalVersion}'));
     `);
     await expectSqlError(
       db,
@@ -386,7 +386,7 @@ describe("BUILD 001-F1 local real PostgreSQL canonical commit boundary", () => {
 
   it("exposes an explicit lock-based authorization linearization point", async () => {
     const definition = await db.query<{ definition: string }>(
-      "select pg_get_functiondef('public.commit_accepted_field_outcome(uuid)'::regprocedure) as definition",
+      "select lower(pg_get_functiondef('public.commit_accepted_field_outcome(uuid)'::regprocedure) || pg_get_functiondef('public.build002_002e_inner_commit_accepted_field_outcome(uuid)'::regprocedure)) as definition",
     );
     expect(definition.rows[0].definition).toContain("for update");
     expect(definition.rows[0].definition).toContain("order by membership.id");
@@ -448,11 +448,14 @@ async function seedAuthority(db: SqlDatabase): Promise<void> {
 async function seedCanonicalFixture(
   db: SqlDatabase,
   run: number,
-  options: { acceptance?: boolean; verification?: boolean } = {},
+  options: { acceptance?: boolean; verification?: boolean; hardening?: boolean } = {},
 ): Promise<Fixture> {
   const fixture = fixtureIds(run);
   const verification = options.verification ?? true;
   const acceptance = options.acceptance ?? true;
+  const headUpdate = options.hardening === false
+    ? `update public.assets set current_version_id='${fixture.baseVersion}' where id='${fixture.asset}'`
+    : `select public.build002_002e_update_asset('${fixture.asset}','${TENANT}',jsonb_build_object('current_version_id','${fixture.baseVersion}'))`;
   const taskSpec = JSON.stringify({
     status: "READY", id: fixture.spec, version: 1, hash: SPEC_HASH,
     transactionId: fixture.transaction,
@@ -472,7 +475,7 @@ async function seedCanonicalFixture(
     values ('${fixture.asset}', '${TENANT}', '${fixture.project}', 'F1 asset ${run}');
     insert into public.asset_versions(id, owner_tenant_id, asset_id, version_number, state)
     values ('${fixture.baseVersion}', '${TENANT}', '${fixture.asset}', 1, '{"media":{"sha256":"${SOURCE_HASH}"}}'::jsonb);
-    update public.assets set current_version_id = '${fixture.baseVersion}' where id = '${fixture.asset}';
+    ${headUpdate};
     insert into public.outcome_transactions(id, owner_tenant_id, project_id, asset_id, base_version_id, status, raw_request)
     values ('${fixture.transaction}', '${TENANT}', '${fixture.project}', '${fixture.asset}', '${fixture.baseVersion}', 'VERIFIED', 'F1 canonical request');
     insert into public.outcome_transactions(id, owner_tenant_id, project_id, asset_id, base_version_id, status, raw_request)

@@ -38,7 +38,7 @@ describe("BUILD 001-F8 asset-scoped trigger boundary", () => {
   }, 30_000);
 
   it("derives ownership and rejects conflicting or mutable references after F8", async () => {
-    const db = await openDb(true); dbs.push(db); await seed(db);
+    const db = await openDb(true); dbs.push(db); await seed(db); await applyHardening(db);
     await db.exec(`
       insert into public.media_storage(storage_key,mime_type,width,height,byte_size,sha256,asset_id)
       values ('a','image/png',1,1,1,repeat('a',64),'${ids.assetA}');
@@ -68,8 +68,13 @@ describe("BUILD 001-F8 asset-scoped trigger boundary", () => {
 async function openDb(withFix: boolean): Promise<Db> {
   const db = new PGlite({ extensions: { pgcrypto } }) as unknown as Db;
   await db.exec(`create role anon nologin; create role authenticated nologin; create role service_role nologin bypassrls; create schema auth; create table auth.users(id uuid primary key); create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$; create schema storage; create table storage.buckets(id text primary key, name text not null unique, public boolean not null default false, file_size_limit bigint, allowed_mime_types text[]);`);
-  for (const name of readdirSync(migrationsDir).filter((item) => item.endsWith(".sql") && (withFix || !item.startsWith("20260817190000"))).sort()) await db.exec(readFileSync(resolve(migrationsDir, name), "utf8"));
+  for (const name of readdirSync(migrationsDir).filter((item) => item.endsWith(".sql") && !item.includes("002e_r10") && (withFix || !item.startsWith("20260817190000"))).sort()) await db.exec(readFileSync(resolve(migrationsDir, name), "utf8"));
   return db;
+}
+
+async function applyHardening(db: Db): Promise<void> {
+  const name = readdirSync(migrationsDir).find((item) => item.includes("002e_r10_stale_concurrency_hardening"));
+  if (name) await db.exec(readFileSync(resolve(migrationsDir, name), "utf8"));
 }
 
 async function seed(db: Db): Promise<void> {

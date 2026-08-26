@@ -23,7 +23,7 @@ describe("BUILD 001-F9 PreservationRun lifecycle boundary", () => {
   }, 30_000);
 
   it("allows only the supported lifecycle transition and protects lineage", async () => {
-    const db = await openDb(true); dbs.push(db); await seed(db);
+    const db = await openDb(true); dbs.push(db); await seed(db); await applyHardening(db);
     await db.exec(`
       insert into public.candidate_assets(id,owner_tenant_id,transaction_id,execution_run_id,storage_key,mime_type,width,height,byte_size,sha256,roi,instruction,provider,model,cost_usd,committed,candidate_type,source_version_id,raw_candidate_id,preservation_run_id)
       values ('${F.preserved}','${T}','${F.tx}','${F.exec}','f9/preserved','image/png',1,1,1,repeat('b',64),'{}','f9','f9','f9',null,false,'PRESERVED','${F.version}','${F.raw}','${F.run}');
@@ -50,8 +50,13 @@ describe("BUILD 001-F9 PreservationRun lifecycle boundary", () => {
 async function openDb(withFix: boolean): Promise<Db> {
   const db = new PGlite({ extensions: { pgcrypto } }) as unknown as Db;
   await db.exec(`create role anon nologin; create role authenticated nologin; create role service_role nologin bypassrls; create schema auth; create table auth.users(id uuid primary key); create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$; create schema storage; create table storage.buckets(id text primary key, name text not null unique, public boolean not null default false, file_size_limit bigint, allowed_mime_types text[]);`);
-  for (const name of readdirSync(migrationsDir).filter((item) => item.endsWith(".sql") && (withFix || !item.startsWith("20260818200000"))).sort()) await db.exec(readFileSync(resolve(migrationsDir, name), "utf8"));
+  for (const name of readdirSync(migrationsDir).filter((item) => item.endsWith(".sql") && !item.includes("002e_r10") && (withFix || !item.startsWith("20260818200000"))).sort()) await db.exec(readFileSync(resolve(migrationsDir, name), "utf8"));
   return db;
+}
+
+async function applyHardening(db: Db): Promise<void> {
+  const name = readdirSync(migrationsDir).find((item) => item.includes("002e_r10_stale_concurrency_hardening"));
+  if (name) await db.exec(readFileSync(resolve(migrationsDir, name), "utf8"));
 }
 
 async function seed(db: Db): Promise<void> {

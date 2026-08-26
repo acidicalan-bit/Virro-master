@@ -26,7 +26,7 @@ export function createPreservationVerificationService(ownerTenantId = "internal-
   if (!url || !serviceRoleKey) throw new Error("Supabase server credentials are required.");
   const client = createClient(url, serviceRoleKey, {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
-    global: { fetch: createTransientJwtRetryFetch() },
+    global: { fetch: createTransientJwtRetryFetch({ supabaseUrl: url }) },
   });
   const repositories = createTenantSupabaseRepositories(ownerTenantId);
   const storage = new SupabaseMediaObjectStore(client, "media", ownerTenantId);
