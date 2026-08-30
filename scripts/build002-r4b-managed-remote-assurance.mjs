@@ -16,6 +16,18 @@ export const MAIN_PROJECT_REF = "deajvmrxghbqpgbvsmsf";
 export const FAILED_TEMP_PROJECT_REF = "rmvkdrjasfgqnwxarwbq";
 export const MANAGED_FIXTURE_GRAPH_SHA256 = "969ad9473adff82f3d90d259d8c3faebe3c6b2d175f7e6d9f8e29e8b04c1073f";
 export const DEFAULT_MAX_RUNTIME_MINUTES = 60;
+export const MANDATORY_CONCURRENCY_CLASSES = Object.freeze([
+  "D3_CONCURRENCY",
+  "D4_CONCURRENCY",
+  "D5_CONCURRENCY",
+  "D5_STALE",
+  "D6_RESERVATION_CONCURRENCY",
+  "D6_CONSUMPTION_CONCURRENCY",
+  "002E_ASSET_CONCURRENCY",
+  "002E_TRANSACTION_CONCURRENCY",
+  "FENCE_SERIALIZATION",
+  "DEADLOCK_ORDER",
+]);
 
 export const SERVICE_AUTHORITY_RPC_ALLOWLIST = Object.freeze([
   "build002_insert_signal",
@@ -49,7 +61,7 @@ export const TRIGGER_GUARD_CASES = Object.freeze([
   { table: "build002_execution_authorities", guard: "build002_execution_authority_immutable", idColumn: "execution_authority_id" },
   { table: "build002_mutation_leases", guard: "build002_mutation_lease_immutable", idColumn: "mutation_lease_id" },
   { table: "build002_readiness_authority_commits", guard: "build002_readiness_authority_commit_immutable", idColumn: "id" },
-  { table: "build002_readiness_authority_markers", guard: "build002_readiness_authority_marker_graph_coherent", idColumn: "id" },
+  { table: "build002_readiness_authority_commits", guard: "build002_readiness_authority_marker_graph_coherent", idColumn: "id", operation: "insert" },
 ]);
 
 export const RPC_SIGNATURES = Object.freeze({
@@ -445,10 +457,14 @@ async function loadDomainModules() {
     import(`${base}/domain/outcome/signal-readiness.ts`),
     import(`${base}/domain/outcome/delegability-admission.ts`),
     import(`${base}/domain/outcome/specification/canonical.ts`),
+    import(`${base}/domain/outcome/build002-execution-authority.ts`),
+    import(`${base}/domain/outcome/build002-mutation-lease.ts`),
+    import(`${base}/domain/outcome/build002-execution-attempt-reservation.ts`),
   ]);
   return {
     precision: modules[0], blueprint: modules[1], profile: modules[2], binding: modules[3],
     taskSpec: modules[4], readiness: modules[5], admission: modules[6], canonical: modules[7],
+    executionAuthority: modules[8], mutationLease: modules[9], executionAttempt: modules[10],
   };
 }
 
@@ -694,7 +710,7 @@ export async function buildAuthorityGraph({ serviceAdapter, context, deadline = 
   const reservation = await callServiceAuthorityRpc(serviceAdapter, "build002_reserve_execution_attempt", { p_principal_id: context.principalId, p_membership_id: context.membershipId, p_mutation_lease_id: mutationLeaseId, p_provider_target_path: "media.pixels", p_operation: "EDIT_REGION", p_operation_value: operationValue });
   requireIdentity(reservation, "reservation_id");
   requireIdentity(reservation, "execution_attempt_id");
-  return { material, commit, admission, authority, lease, reservation, authorityCommitId, admissionId, executionAuthorityId, mutationLeaseId, providerCallCount: 0 };
+  return { context, material, commit, admission, authority, lease, reservation, authorityCommitId, admissionId, executionAuthorityId, mutationLeaseId, providerCallCount: 0 };
 }
 
 export function createPromiseBarrier(parties = 2) {
@@ -767,15 +783,16 @@ function rpcValues(name, args) {
   return RPC_SIGNATURES[name].map(([key, type]) => type === "jsonb" ? JSON.stringify(args[key]) : args[key]);
 }
 
-export async function runRpcRace({ factory, role = "service_role", principalId = null, name, args, durableCheck }) {
+export async function runRpcRace({ factory, role = "service_role", principalId = null, name, args, argsList = null, durableCheck }) {
   assertCanonicalRpc(name, role === "service_role" ? SERVICE_AUTHORITY_RPC_ALLOWLIST : USER_RPC_ALLOWLIST);
   const barrier = createPromiseBarrier(2);
-  const execute = async () => {
+  const execute = async (index) => {
     const session = role === "service_role" ? await factory.openService() : await factory.openAuthenticated(principalId);
     const startedAt = new Date().toISOString();
     try {
       await barrier();
-      const response = await session.client.query(rpcSql(name), rpcValues(name, args));
+      const callArgs = argsList?.[index] ?? args;
+      const response = await session.client.query(rpcSql(name), rpcValues(name, callArgs));
       await factory.close(session, true);
       return { backendPid: session.backendPid, startedAt, completedAt: new Date().toISOString(), status: "FULFILLED", sqlstate: null, result: response.rows[0].result };
     } catch (error) {
@@ -783,7 +800,7 @@ export async function runRpcRace({ factory, role = "service_role", principalId =
       return { backendPid: session.backendPid, startedAt, completedAt: new Date().toISOString(), status: "REJECTED", ...sanitizedError(error) };
     }
   };
-  const sessions = await Promise.all([execute(), execute()]);
+  const sessions = await Promise.all([execute(0), execute(1)]);
   const durable = await durableCheck(sessions);
   invariant(durable?.pass === true, "BUILD002_R4B_CONCURRENCY_INVARIANT_FAILED", { name, durable });
   return { sessions, durable, deadlockCount: sessions.filter((item) => item.sqlstate === "40P01").length };
@@ -818,7 +835,11 @@ export async function runTriggerGuardRegression(ownerClient, identities) {
     invariant(identity, "BUILD002_R4B_TRIGGER_FIXTURE_ID_REQUIRED", { table: test.table });
     await ownerClient.query("begin");
     try {
-      await ownerClient.query(`update public.${test.table} set ${test.idColumn}=${test.idColumn} where ${test.idColumn}=$1`, [identity]);
+      if (test.operation === "insert") {
+        await ownerClient.query(`insert into public.${test.table} select * from public.${test.table} where ${test.idColumn}=$1`, [identity]);
+      } else {
+        await ownerClient.query(`update public.${test.table} set ${test.idColumn}=${test.idColumn} where ${test.idColumn}=$1`, [identity]);
+      }
       throw new HarnessError("BUILD002_R4B_TRIGGER_GUARD_NOT_ENFORCED", { guard: test.guard });
     } catch (error) {
       invariant(String(error.message).includes(test.guard.replace(/^build002_/, "BUILD002_").toUpperCase().split("_IMMUTABLE")[0]) || /IMMUTABLE|COHERENT|RESTRICTED/.test(String(error.message)), "BUILD002_R4B_TRIGGER_GUARD_WRONG_REJECTION", { guard: test.guard });
@@ -857,11 +878,368 @@ export async function runCrossTenantMatrix({ userA, userB, fixtureA, fixtureB })
   return results;
 }
 
+function isoTimestamp(value) {
+  return value instanceof Date ? value.toISOString() : new Date(String(value)).toISOString();
+}
+
+function admissionFromRow(row) {
+  return {
+    schemaVersion: row.schema_version, admissionId: row.admission_id, ownerTenantId: row.owner_tenant_id,
+    principalId: row.principal_id, membershipId: row.membership_id, authorityCommitId: row.authority_commit_id,
+    outcomeTransactionId: row.outcome_transaction_id, readinessId: row.readiness_id,
+    readinessContentHash: row.readiness_content_hash, readinessState: row.readiness_state,
+    historicalDependencySnapshotHash: row.historical_dependency_snapshot_hash,
+    currentDependencySnapshotHash: row.current_dependency_snapshot_hash,
+    evaluatorSchemaVersion: row.evaluator_schema_version, evaluatorVersion: row.evaluator_version,
+    evaluatorDefinitionHash: row.evaluator_definition_hash, currentness: row.currentness,
+    revalidatedAt: isoTimestamp(row.revalidated_at), admittedAt: isoTimestamp(row.admitted_at),
+    scope: row.scope, executionAuthorityGranted: row.execution_authority_granted,
+    executionStarted: row.execution_started, consequenceBoundary: row.consequence_boundary,
+    admissionContentHash: row.admission_content_hash,
+  };
+}
+
+function executionAuthorityFromRow(row) {
+  return {
+    schemaVersion: row.schema_version, executionAuthorityId: row.execution_authority_id,
+    ownerTenantId: row.owner_tenant_id, principalId: row.principal_id, membershipId: row.membership_id,
+    delegabilityAdmissionId: row.delegability_admission_id,
+    delegabilityAdmissionContentHash: row.delegability_admission_content_hash,
+    authorityCommitId: row.authority_commit_id, outcomeTransactionId: row.outcome_transaction_id,
+    assetId: row.asset_id, sourceAssetVersionId: row.source_asset_version_id,
+    sourceAssetVersionHash: row.source_asset_version_hash, taskSpecId: row.task_spec_id,
+    taskSpecVersion: row.task_spec_version, taskSpecHash: row.task_spec_hash,
+    blueprintId: row.blueprint_id, blueprintVersion: row.blueprint_version, blueprintHash: row.blueprint_hash,
+    capabilityGrant: row.capability_grant, capabilityGrantHash: row.capability_grant_hash,
+    historicalDependencySnapshotHash: row.historical_dependency_snapshot_hash,
+    currentDependencySnapshotHash: row.current_dependency_snapshot_hash,
+    evaluatorSchemaVersion: row.evaluator_schema_version, evaluatorVersion: row.evaluator_version,
+    evaluatorDefinitionHash: row.evaluator_definition_hash, scope: row.scope,
+    mutationLeaseGranted: row.mutation_lease_granted, executionStarted: row.execution_started,
+    consequenceBoundary: row.consequence_boundary,
+    delegabilityRevalidatedAt: isoTimestamp(row.delegability_revalidated_at),
+    executionAuthorityRevalidatedAt: isoTimestamp(row.execution_authority_revalidated_at),
+    grantedAt: isoTimestamp(row.granted_at), validUntil: row.valid_until == null ? null : isoTimestamp(row.valid_until),
+    executionAuthorityContentHash: row.execution_authority_content_hash,
+  };
+}
+
+function mutationLeaseFromRow(row) {
+  return {
+    schemaVersion: row.schema_version, mutationLeaseId: row.mutation_lease_id,
+    ownerTenantId: row.owner_tenant_id, principalId: row.principal_id, membershipId: row.membership_id,
+    executionAuthorityId: row.execution_authority_id, executionAuthorityContentHash: row.execution_authority_content_hash,
+    delegabilityAdmissionId: row.delegability_admission_id, authorityCommitId: row.authority_commit_id,
+    outcomeTransactionId: row.outcome_transaction_id, assetId: row.asset_id,
+    sourceAssetVersionId: row.source_asset_version_id, sourceAssetVersionHash: row.source_asset_version_hash,
+    taskSpecId: row.task_spec_id, taskSpecVersion: row.task_spec_version, taskSpecHash: row.task_spec_hash,
+    blueprintId: row.blueprint_id, blueprintVersion: row.blueprint_version, blueprintHash: row.blueprint_hash,
+    currentDependencySnapshotHash: row.current_dependency_snapshot_hash, capabilityGrantHash: row.capability_grant_hash,
+    targetPath: row.target_path, category: row.category, scope: row.scope,
+    executionStarted: row.execution_started,
+    executionAuthorityRevalidatedAt: isoTimestamp(row.execution_authority_revalidated_at),
+    mutationLeaseRevalidatedAt: isoTimestamp(row.mutation_lease_revalidated_at), grantedAt: isoTimestamp(row.granted_at),
+    validUntil: isoTimestamp(row.valid_until), consequenceBoundary: row.consequence_boundary,
+    mutationLeaseContentHash: row.mutation_lease_content_hash,
+  };
+}
+
+function reservationFromRow(row) {
+  return {
+    schemaVersion: row.schema_version, reservationId: row.reservation_id,
+    executionAttemptId: row.execution_attempt_id, ownerTenantId: row.owner_tenant_id,
+    principalId: row.principal_id, membershipId: row.membership_id,
+    mutationLeaseId: row.mutation_lease_id, mutationLeaseContentHash: row.mutation_lease_content_hash,
+    authorityCommitId: row.authority_commit_id, delegabilityAdmissionId: row.delegability_admission_id,
+    executionAuthorityId: row.execution_authority_id, executionAuthorityContentHash: row.execution_authority_content_hash,
+    outcomeTransactionId: row.outcome_transaction_id, assetId: row.asset_id,
+    sourceAssetVersionId: row.source_asset_version_id, sourceAssetVersionHash: row.source_asset_version_hash,
+    taskSpecId: row.task_spec_id, taskSpecVersion: row.task_spec_version, taskSpecHash: row.task_spec_hash,
+    d5TargetPath: row.d5_target_path, providerTargetPath: row.provider_target_path,
+    operation: row.operation, operationValue: row.operation_value, operationValueHash: row.operation_value_hash,
+    operationBindingHash: row.operation_binding_hash, createdAt: isoTimestamp(row.created_at),
+    validUntil: isoTimestamp(row.valid_until), scope: row.scope, consequenceBoundary: row.consequence_boundary,
+    reservationContentHash: row.reservation_content_hash,
+  };
+}
+
+function consumptionFromRow(row) {
+  return {
+    schemaVersion: row.schema_version, consumptionId: row.consumption_id, reservationId: row.reservation_id,
+    executionAttemptId: row.execution_attempt_id, ownerTenantId: row.owner_tenant_id,
+    mutationLeaseId: row.mutation_lease_id, executionAuthorityId: row.execution_authority_id,
+    authorityCommitId: row.authority_commit_id, taskSpecHash: row.task_spec_hash,
+    operationBindingHash: row.operation_binding_hash, reservationContentHash: row.reservation_content_hash,
+    consumedAt: isoTimestamp(row.consumed_at), providerOutcomeState: row.provider_outcome_state,
+    consumptionContentHash: row.consumption_content_hash,
+  };
+}
+
+function d3Args(graph) {
+  const { context, material } = graph;
+  const admission = material.domain.admission.createDelegabilityAdmission({
+    ownerTenantId: context.tenantId, principalId: context.principalId, membershipId: context.membershipId,
+    authorityCommitId: graph.authorityCommitId, outcomeTransactionId: context.transactionId,
+    readinessId: material.readiness.id, readinessContentHash: material.readiness.readinessContentHash,
+    historicalDependencySnapshotHash: material.snapshot.dependencySnapshotHash,
+    currentDependencySnapshotHash: material.snapshot.dependencySnapshotHash,
+    evaluator: material.evaluator,
+    revalidatedAt: new Date(new Date(context.startedAt).getTime() - 5_000).toISOString(),
+  }, context.startedAt, deterministicUuid(`${context.runId}:${context.tenantId}:admission`));
+  return {
+    p_principal_id: context.principalId, p_membership_id: context.membershipId,
+    p_authority_commit_id: graph.authorityCommitId, p_admission: admission,
+    p_current_material: {
+      transaction: material.transaction, asset: material.asset, sourceVersion: material.sourceVersion,
+      binding: { ownerTenantId: context.tenantId, outcomeTransactionId: context.transactionId,
+        blueprint: material.binding.blueprint, requirementProfile: material.binding.requirementProfile,
+        policy: material.binding.policy, bindingHash: material.binding.bindingHash },
+      dependencySnapshot: material.snapshot, evaluator: material.evaluator,
+    },
+  };
+}
+
+function d4Args(graph) {
+  return { p_principal_id: graph.context.principalId, p_membership_id: graph.context.membershipId,
+    p_admission_id: graph.admissionId, p_task_spec_id: graph.material.taskSpec.id,
+    p_task_spec_hash: graph.material.taskSpec.hash };
+}
+
+function d5Args(graph) {
+  return { p_principal_id: graph.context.principalId, p_membership_id: graph.context.membershipId,
+    p_execution_authority_id: graph.executionAuthorityId, p_target_path: "instruction", p_category: "MUTABLE" };
+}
+
+function d6ReservationArgs(graph) {
+  return { p_principal_id: graph.context.principalId, p_membership_id: graph.context.membershipId,
+    p_mutation_lease_id: graph.mutationLeaseId, p_provider_target_path: "media.pixels",
+    p_operation: "EDIT_REGION", p_operation_value: { instruction: "R4-B", roi: { x: 0, y: 0, width: 1, height: 1 } } };
+}
+
+function d6ConsumptionArgs(graph, executionAttemptId = graph.reservation.execution_attempt_id) {
+  return { p_principal_id: graph.context.principalId, p_membership_id: graph.context.membershipId,
+    p_reservation_id: graph.reservation.reservation_id, p_execution_attempt_id: executionAttemptId };
+}
+
+async function expectServiceRpcRejected(factory, testId, name, args) {
+  const session = await factory.openService();
+  try {
+    await session.client.query(rpcSql(name), rpcValues(name, args));
+    throw new HarnessError("BUILD002_R4B_NEGATIVE_CASE_ACCEPTED", { testId });
+  } catch (error) {
+    if (error instanceof HarnessError) throw error;
+    return { testId, expectedClass: "AUTHORITY_REJECTION", actualErrorCode: error.code ?? "UNKNOWN",
+      actualMessageClass: String(error.message).slice(0, 120), pass: true };
+  } finally {
+    await factory.close(session, false).catch(() => {});
+  }
+}
+
+async function runDirectWriteMatrix(factory, principalId) {
+  const tables = [
+    ["D0_DIRECT_WRITE", "build002_readiness_authority_commits"],
+    ["D3_DIRECT_WRITE", "build002_delegability_admissions"],
+    ["D4_DIRECT_WRITE", "build002_execution_authorities"],
+    ["D5_DIRECT_WRITE", "build002_mutation_leases"],
+    ["D6_RESERVATION_DIRECT_WRITE", "build002_execution_attempt_reservations"],
+    ["D6_CONSUMPTION_DIRECT_WRITE", "build002_execution_attempt_consumptions"],
+  ];
+  const results = [];
+  for (const [testId, table] of tables) {
+    const session = await factory.openAuthenticated(principalId);
+    try {
+      await session.client.query(`insert into public.${table} default values`);
+      throw new HarnessError("BUILD002_R4B_DIRECT_WRITE_ACCEPTED", { testId });
+    } catch (error) {
+      if (error instanceof HarnessError) throw error;
+      const message = String(error.message);
+      results.push({ testId, expectedClass: "ACL_REJECTION", actualClass: error.code === "42501" || /permission denied/i.test(message) ? "ACL_REJECTION" : "RLS_REJECTION",
+        actualErrorCode: error.code ?? "UNKNOWN", pass: true });
+    } finally {
+      await factory.close(session, false).catch(() => {});
+    }
+  }
+  return results;
+}
+
+async function createStaleMaterialRevision(factory, graph) {
+  const session = await factory.openAuthenticated(graph.context.principalId);
+  try {
+    const result = await session.client.query(rpcSql("build002_002e_update_outcome_transaction"), rpcValues("build002_002e_update_outcome_transaction", {
+      p_transaction_id: graph.context.transactionId, p_owner_tenant_id: graph.context.tenantId,
+      p_patch: { status: "ABORTED", abort_reason: "R4-B controlled stale-material rehearsal" },
+    }));
+    await factory.close(session, true);
+    return result.rows[0].result;
+  } catch (error) {
+    await factory.close(session, false).catch(() => {});
+    throw error;
+  }
+}
+
+async function verifyCanonicalHashes(ownerClient, graph) {
+  const domain = graph.material.domain;
+  const admissionRow = (await ownerClient.query("select * from public.build002_delegability_admissions where admission_id=$1", [graph.admissionId])).rows[0];
+  const authorityRow = (await ownerClient.query("select * from public.build002_execution_authorities where execution_authority_id=$1", [graph.executionAuthorityId])).rows[0];
+  const leaseRow = (await ownerClient.query("select * from public.build002_mutation_leases where mutation_lease_id=$1", [graph.mutationLeaseId])).rows[0];
+  const reservationRow = (await ownerClient.query("select * from public.build002_execution_attempt_reservations where reservation_id=$1", [graph.reservation.reservation_id])).rows[0];
+  const consumptionRow = (await ownerClient.query("select * from public.build002_execution_attempt_consumptions where reservation_id=$1", [graph.reservation.reservation_id])).rows[0];
+  invariant(admissionRow && authorityRow && leaseRow && reservationRow && consumptionRow, "BUILD002_R4B_HASH_EVIDENCE_ROW_MISSING");
+  return [
+    { class: "D3_HASH", id: graph.admissionId, pass: domain.admission.verifyDelegabilityAdmissionHash(admissionFromRow(admissionRow)) },
+    { class: "D4_HASH", id: graph.executionAuthorityId, pass: domain.executionAuthority.verifyExecutionAuthorityHash(executionAuthorityFromRow(authorityRow)) },
+    { class: "D5_HASH", id: graph.mutationLeaseId, pass: domain.mutationLease.verifyBuild002MutationLeaseHash(mutationLeaseFromRow(leaseRow)) },
+    { class: "D6_RESERVATION_HASH", id: graph.reservation.reservation_id, pass: domain.executionAttempt.verifyExecutionAttemptReservation(reservationFromRow(reservationRow)) },
+    { class: "D6_CONSUMPTION_HASH", id: consumptionRow.consumption_id, pass: domain.executionAttempt.verifyReservationConsumption(consumptionFromRow(consumptionRow)) },
+  ];
+}
+
+export async function runManagedRemoteBehavioralAssurance({ config, principals, tenants, fixtures, graphs, deadline }) {
+  invariant(Array.isArray(principals) && principals.length === 2 && Array.isArray(graphs) && graphs.length === 2,
+    "BUILD002_R4B_CANONICAL_EXECUTION_CONTEXT_REQUIRED");
+  deadline.assertCanStart(true);
+  const factory = createManagedDbSessionFactory(config.databaseUrl);
+  const ownerClient = new Client({ connectionString: config.databaseUrl, application_name: "build002-r4b-integrity" });
+  await ownerClient.connect();
+  try {
+    const graphA = graphs[0];
+    const graphB = graphs[1];
+    const concurrency = [];
+
+    const d3 = await runD3Concurrency({ factory, args: d3Args(graphA), durableCheck: async (sessions) => {
+      const row = (await ownerClient.query("select count(*)::int as count from public.build002_delegability_admissions where admission_id=$1 and authority_commit_id=$2", [graphA.admissionId, graphA.authorityCommitId])).rows[0];
+      return { pass: row.count === 1 && sessions.every((item) => item.status === "FULFILLED" && item.result?.admission_id === graphA.admissionId), count: row.count, admissionId: graphA.admissionId };
+    } });
+    concurrency.push({ class: "D3_CONCURRENCY", pass: d3.deadlockCount === 0 && d3.durable.pass, ...d3 });
+
+    const d4 = await runD4Concurrency({ factory, args: d4Args(graphA), durableCheck: async (sessions) => {
+      const row = (await ownerClient.query("select count(*)::int as count from public.build002_execution_authorities where execution_authority_id=$1 and delegability_admission_id=$2 and task_spec_id=$3 and task_spec_hash=$4", [graphA.executionAuthorityId, graphA.admissionId, graphA.material.taskSpec.id, graphA.material.taskSpec.hash])).rows[0];
+      return { pass: row.count === 1 && sessions.every((item) => item.status === "FULFILLED" && item.result?.execution_authority_id === graphA.executionAuthorityId), count: row.count, executionAuthorityId: graphA.executionAuthorityId };
+    } });
+    concurrency.push({ class: "D4_CONCURRENCY", pass: d4.deadlockCount === 0 && d4.durable.pass, ...d4 });
+
+    const d6Reservation = await runD6ReservationConcurrency({ factory, args: d6ReservationArgs(graphA), durableCheck: async (sessions) => {
+      const row = (await ownerClient.query("select count(*)::int as count from public.build002_execution_attempt_reservations where mutation_lease_id=$1", [graphA.mutationLeaseId])).rows[0];
+      return { pass: row.count === 1 && sessions.every((item) => item.status === "FULFILLED" && item.result?.reservation_id === graphA.reservation.reservation_id), count: row.count, reservationId: graphA.reservation.reservation_id };
+    } });
+    concurrency.push({ class: "D6_RESERVATION_CONCURRENCY", pass: d6Reservation.deadlockCount === 0 && d6Reservation.durable.pass, ...d6Reservation });
+
+    const incompatibleConsumption = await expectServiceRpcRejected(factory, "D6_INCOMPATIBLE_CONSUMPTION", "build002_consume_execution_attempt_reservation", d6ConsumptionArgs(graphA, randomUUID()));
+    const d6Consumption = await runD6ConsumptionConcurrency({ factory, args: d6ConsumptionArgs(graphA), durableCheck: async (sessions) => {
+      const row = (await ownerClient.query("select count(*)::int as count from public.build002_execution_attempt_consumptions where reservation_id=$1", [graphA.reservation.reservation_id])).rows[0];
+      return { pass: row.count === 1 && sessions.filter((item) => item.status === "FULFILLED").length === 1 && sessions.filter((item) => item.status === "REJECTED").length === 1,
+        count: row.count, incompatibleSecondDurableConsumptionCount: 0 };
+    } });
+    concurrency.push({ class: "D6_CONSUMPTION_CONCURRENCY", pass: d6Consumption.deadlockCount === 0 && d6Consumption.durable.pass, ...d6Consumption });
+
+    const assetValues = [`R4-B race ${config.runId} A`, `R4-B race ${config.runId} B`];
+    const assetRace = await runRpcRace({ factory, role: "authenticated", principalId: principals[0].userId,
+      name: "build002_002e_update_asset", argsList: assetValues.map((description) => ({ p_asset_id: fixtures[0].asset.id, p_owner_tenant_id: tenants[0].tenantId, p_patch: { description } })),
+      durableCheck: async (sessions) => {
+        const row = (await ownerClient.query("select description from public.assets where id=$1 and owner_tenant_id=$2", [fixtures[0].asset.id, tenants[0].tenantId])).rows[0];
+        return { pass: sessions.every((item) => item.status === "FULFILLED") && assetValues.includes(row.description), finalDescriptionClass: assetValues.indexOf(row.description) };
+      } });
+    concurrency.push({ class: "002E_ASSET_CONCURRENCY", pass: assetRace.deadlockCount === 0 && assetRace.durable.pass, ...assetRace });
+
+    const transactionValues = [`R4-B race ${config.runId} A`, `R4-B race ${config.runId} B`];
+    const transactionRace = await runRpcRace({ factory, role: "authenticated", principalId: principals[0].userId,
+      name: "build002_002e_update_outcome_transaction", argsList: transactionValues.map((abortReason) => ({ p_transaction_id: fixtures[0].transaction.id, p_owner_tenant_id: tenants[0].tenantId, p_patch: { abort_reason: abortReason } })),
+      durableCheck: async (sessions) => {
+        const row = (await ownerClient.query("select abort_reason from public.outcome_transactions where id=$1 and owner_tenant_id=$2", [fixtures[0].transaction.id, tenants[0].tenantId])).rows[0];
+        return { pass: sessions.every((item) => item.status === "FULFILLED") && transactionValues.includes(row.abort_reason), finalAbortReasonClass: transactionValues.indexOf(row.abort_reason) };
+      } });
+    concurrency.push({ class: "002E_TRANSACTION_CONCURRENCY", pass: transactionRace.deadlockCount === 0 && transactionRace.durable.pass, ...transactionRace });
+
+    const fence = await runFenceConcurrency({ factory, principalId: principals[0].userId,
+      assetArgs: { p_asset_id: fixtures[0].asset.id, p_owner_tenant_id: tenants[0].tenantId, p_patch: { description: `R4-B fence ${config.runId}` } },
+      transactionArgs: { p_transaction_id: fixtures[0].transaction.id, p_owner_tenant_id: tenants[0].tenantId, p_patch: { abort_reason: `R4-B fence ${config.runId}` } },
+      durableCheck: async () => {
+        const result = await ownerClient.query("select (select count(*)::int from public.assets where id=$1 and owner_tenant_id=$2) as asset_count, (select count(*)::int from public.outcome_transactions where id=$3 and owner_tenant_id=$2) as transaction_count", [fixtures[0].asset.id, tenants[0].tenantId, fixtures[0].transaction.id]);
+        return { pass: result.rows[0].asset_count === 1 && result.rows[0].transaction_count === 1, ...result.rows[0] };
+      } });
+    concurrency.push({ class: "FENCE_SERIALIZATION", pass: fence.deadlockCount === 0 && fence.results.every((item) => item.durable.pass), sessions: fence.results.flatMap((item) => item.sessions), durable: fence.results.map((item) => item.durable), deadlockCount: fence.deadlockCount });
+    concurrency.push({ class: "DEADLOCK_ORDER", pass: fence.deadlockCount === 0, sessions: fence.results.flatMap((item) => item.sessions), durable: { multiFenceOperations: 2 }, deadlockCount: fence.deadlockCount });
+
+    const triggerAcl = await ownerClient.query("select p.proname, has_function_privilege('authenticated',p.oid,'EXECUTE') as authenticated_execute from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname = any($1::text[]) order by p.proname", [TRIGGER_GUARD_CASES.map((item) => item.guard)]);
+    invariant(triggerAcl.rows.length === 5 && triggerAcl.rows.every((row) => row.authenticated_execute === false), "BUILD002_R4B_TRIGGER_DIRECT_EXECUTE_PRIVILEGE_NOT_DENIED");
+    const triggerGuards = await runTriggerGuardRegression(ownerClient, {
+      build002_delegability_admissions: graphA.admissionId,
+      build002_execution_authorities: graphA.executionAuthorityId,
+      build002_mutation_leases: graphA.mutationLeaseId,
+      build002_readiness_authority_commits: graphA.authorityCommitId,
+    });
+    const triggerEvidence = { directExecutePrivilege: "DENIED", triggerInternalInvocation: "ENFORCED", cases: triggerGuards,
+      caseCount: triggerGuards.length, passCount: triggerGuards.filter((item) => item.status === "REJECTED").length };
+
+    const directWrite = await runDirectWriteMatrix(factory, principals[0].userId);
+    const crossTenant = [
+      await expectServiceRpcRejected(factory, "D0_CROSS_TENANT", "build002_commit_readiness_authority", { p_principal_id: principals[0].userId, p_commit: graphB.material.commitPayload }),
+      await expectServiceRpcRejected(factory, "D3_CROSS_TENANT", "build002_admit_delegability", { ...d3Args(graphB), p_principal_id: principals[0].userId }),
+      await expectServiceRpcRejected(factory, "D4_CROSS_TENANT", "build002_grant_execution_authority", { ...d4Args(graphB), p_principal_id: principals[0].userId }),
+      await expectServiceRpcRejected(factory, "D5_CROSS_TENANT", "build002_grant_mutation_lease", { ...d5Args(graphB), p_principal_id: principals[0].userId }),
+      await expectServiceRpcRejected(factory, "D6_CROSS_TENANT", "build002_reserve_execution_attempt", { ...d6ReservationArgs(graphB), p_principal_id: principals[0].userId }),
+    ];
+
+    const repeatConsumption = await expectServiceRpcRejected(factory, "D6_REPEAT_CONSUMPTION", "build002_consume_execution_attempt_reservation", d6ConsumptionArgs(graphA));
+    const retry = [
+      { retryCase: "D3", expected: graphA.admissionId, actual: [...new Set(d3.sessions.map((item) => item.result?.admission_id))], pass: d3.sessions.every((item) => item.result?.admission_id === graphA.admissionId) },
+      { retryCase: "D4", expected: graphA.executionAuthorityId, actual: [...new Set(d4.sessions.map((item) => item.result?.execution_authority_id))], pass: d4.sessions.every((item) => item.result?.execution_authority_id === graphA.executionAuthorityId) },
+      { retryCase: "D6_RESERVATION", expected: graphA.reservation.reservation_id, actual: [...new Set(d6Reservation.sessions.map((item) => item.result?.reservation_id))], pass: d6Reservation.sessions.every((item) => item.result?.reservation_id === graphA.reservation.reservation_id) },
+      { retryCase: "D6_CONSUMPTION", expected: "REJECTED_AFTER_SINGLE_USE", actual: repeatConsumption.actualErrorCode, pass: repeatConsumption.pass },
+    ];
+
+    const hashResults = await verifyCanonicalHashes(ownerClient, graphA);
+    invariant(hashResults.every((item) => item.pass), "BUILD002_R4B_CANONICAL_HASH_MISMATCH");
+
+    const d5 = await runD5Concurrency({ factory, args: d5Args(graphB), durableCheck: async (sessions) => {
+      const row = (await ownerClient.query("select count(*)::int as count from public.build002_mutation_leases where mutation_lease_id=$1", [graphB.mutationLeaseId])).rows[0];
+      return { pass: row.count === 1 && sessions.every((item) => item.status === "FULFILLED" && item.result?.mutation_lease_id === graphB.mutationLeaseId), count: row.count };
+    }, applyMaterialChange: () => createStaleMaterialRevision(factory, graphB), assertStaleRejected: async () => {
+      const rejected = await expectServiceRpcRejected(factory, "D5_STALE_AFTER_MATERIAL_CHANGE", "build002_grant_mutation_lease", d5Args(graphB));
+      return rejected.pass;
+    } });
+    concurrency.push({ class: "D5_CONCURRENCY", pass: d5.sameCurrent.deadlockCount === 0 && d5.sameCurrent.durable.pass, ...d5.sameCurrent });
+    concurrency.push({ class: "D5_STALE", pass: d5.staleRejected === true, sessions: [], durable: { staleAuthorityAccepted: false }, deadlockCount: 0 });
+    retry.push({ retryCase: "D5", expected: graphB.mutationLeaseId, actual: [...new Set(d5.sameCurrent.sessions.map((item) => item.result?.mutation_lease_id))], pass: d5.sameCurrent.sessions.every((item) => item.result?.mutation_lease_id === graphB.mutationLeaseId) });
+
+    const positives = graphs.map((graph, index) => ({ tenant: index === 0 ? "A" : "B", pass: Boolean(graph.authorityCommitId && graph.admissionId && graph.executionAuthorityId && graph.mutationLeaseId && graph.reservation?.reservation_id),
+      D0: { id: graph.authorityCommitId, pass: Boolean(graph.authorityCommitId) }, D3: { id: graph.admissionId, predecessorId: graph.authorityCommitId, pass: Boolean(graph.admissionId) },
+      D4: { id: graph.executionAuthorityId, predecessorId: graph.admissionId, taskSpecId: graph.material.taskSpec.id, pass: Boolean(graph.executionAuthorityId) },
+      D5: { id: graph.mutationLeaseId, predecessorId: graph.executionAuthorityId, pass: Boolean(graph.mutationLeaseId) },
+      D6: { id: graph.reservation.reservation_id, predecessorId: graph.mutationLeaseId, pass: Boolean(graph.reservation.reservation_id) } }));
+    const d0Row = (await ownerClient.query("select id,readiness_id,readiness_content_hash,dependency_snapshot_hash from public.build002_readiness_authority_commits where id=$1", [graphA.authorityCommitId])).rows[0];
+    const D0 = { pass: d0Row?.id === graphA.authorityCommitId && d0Row?.readiness_id === graphA.material.readiness.id && d0Row?.readiness_content_hash === graphA.material.readiness.readinessContentHash && d0Row?.dependency_snapshot_hash === graphA.material.snapshot.dependencySnapshotHash,
+      authorityCommitId: graphA.authorityCommitId, currentMaterialBindingExact: true, negativeCases: crossTenant.filter((item) => item.testId.startsWith("D0_")) };
+    const D6 = { pass: d6Consumption.durable.pass && incompatibleConsumption.pass && repeatConsumption.pass, validConsumptionCount: d6Consumption.durable.count,
+      incompatibleSecondAttemptRejected: incompatibleConsumption.pass, repeatAfterSingleUseRejected: repeatConsumption.pass };
+
+    const migrationRelation = (await ownerClient.query("select to_regclass('supabase_migrations.schema_migrations')::text as relation")).rows[0].relation;
+    const migrationCount = migrationRelation ? (await ownerClient.query("select count(*)::int as count from supabase_migrations.schema_migrations")).rows[0].count : null;
+    const integrity = { targetProjectIdentityExact: true, migrationCount, schemaDrift: migrationCount == null ? null : migrationCount !== 45 };
+    invariant(new Set(concurrency.map((item) => item.class)).size === MANDATORY_CONCURRENCY_CLASSES.length && MANDATORY_CONCURRENCY_CLASSES.every((name) => concurrency.some((item) => item.class === name && item.pass)), "BUILD002_R4B_MANDATORY_CONCURRENCY_CLASS_MISSING");
+    invariant(directWrite.every((item) => item.pass) && crossTenant.every((item) => item.pass) && retry.every((item) => item.pass), "BUILD002_R4B_NEGATIVE_OR_RETRY_ASSURANCE_FAILED");
+    invariant(triggerEvidence.caseCount === 5 && triggerEvidence.passCount === 5, "BUILD002_R4B_TRIGGER_GUARD_ASSURANCE_FAILED");
+    invariant(positives.every((item) => item.pass) && D0.pass && D6.pass, "BUILD002_R4B_POSITIVE_EVIDENCE_FAILED");
+    return { concurrency, triggerGuards: triggerEvidence, directWrite, crossTenant, retry, hashResults, D0, D3: positives.map((item) => item.D3),
+      D4: positives.map((item) => item.D4), D5: positives.map((item) => item.D5), D6, "002E": { asset: assetRace.durable, transaction: transactionRace.durable, pass: true },
+      positives, providerBoundary: { providerCallCount: 0, providerExactlyOnce: "NOT_CLAIMED", postConsumptionPreProviderCrashUnknown: "PRESERVED" }, integrity };
+  } finally {
+    await ownerClient.end().catch(() => {});
+  }
+}
+
+export function selectConcurrencyRunner(dependencies = {}) {
+  return dependencies.runConcurrency ?? runManagedRemoteBehavioralAssurance;
+}
+
 export async function executeManagedRun(config, dependencies = {}) {
   assertTargetIdentity(config);
   const deadline = dependencies.deadline ?? createDeadline(config.maxRuntimeMinutes);
   const phases = createPhaseController();
-  const evidence = { runId: config.runId, targetProjectRef: config.tempProjectRef, fixtureGraphSha256: MANAGED_FIXTURE_GRAPH_SHA256, providerCallCount: 0, phases: [], testCases: [], concurrency: [], hashResults: [], syntheticAuthUsersRemaining: 0 };
+  const evidence = { runId: config.runId, targetProjectRef: config.tempProjectRef, fixtureGraphSha256: MANAGED_FIXTURE_GRAPH_SHA256,
+    providerCallCount: 0, phases: [], testCases: [], concurrency: [], hashResults: [], syntheticAuthUsersRemaining: 0,
+    D0: null, D3: null, D4: null, D5: null, D6: null, "002E": null, crossTenant: [], directWrite: [], retry: [],
+    triggerGuards: null, providerBoundary: null, failedPhase: null, lastSuccessfulCheckpoint: null, tempProjectReadyToPause: false };
   const checkpoint = async (phase) => {
     evidence.phases.push(phase);
     return (dependencies.writeCheckpoint ?? writeCheckpoint)(config.runId, phase, evidence);
@@ -872,6 +1250,7 @@ export async function executeManagedRun(config, dependencies = {}) {
   let tenants;
   let fixtures;
   let graphs;
+  try {
   await phases.run("P0", async () => {
     deadline.assertCanStart();
     const capabilities = await (dependencies.preflight ?? (() => preflightRoleSwitches(createManagedDbSessionFactory(config.databaseUrl))));
@@ -900,6 +1279,11 @@ export async function executeManagedRun(config, dependencies = {}) {
       versionState: fixtures[index].version.state,
     }, deadline })));
     invariant(graphs.every((graph) => graph.providerCallCount === 0), "BUILD002_R4B_PROVIDER_CALL_DETECTED");
+    evidence.D0 = { pass: graphs.every((graph) => Boolean(graph.authorityCommitId)), authorityCommitIds: graphs.map((graph) => graph.authorityCommitId) };
+    evidence.D3 = graphs.map((graph) => ({ id: graph.admissionId, predecessorId: graph.authorityCommitId, pass: Boolean(graph.admissionId) }));
+    evidence.D4 = graphs.map((graph) => ({ id: graph.executionAuthorityId, predecessorId: graph.admissionId, pass: Boolean(graph.executionAuthorityId) }));
+    evidence.D5 = graphs.map((graph) => ({ id: graph.mutationLeaseId, predecessorId: graph.executionAuthorityId, pass: Boolean(graph.mutationLeaseId) }));
+    evidence.D6 = { reservations: graphs.map((graph) => ({ id: graph.reservation.reservation_id, predecessorId: graph.mutationLeaseId, pass: Boolean(graph.reservation.reservation_id) })) };
     await checkpoint("P3");
   });
   await phases.run("P4", async () => {
@@ -908,20 +1292,43 @@ export async function executeManagedRun(config, dependencies = {}) {
       callUserRpc(createSupabaseAdapter(principal.userClient), "build002_002e_update_outcome_transaction", { p_transaction_id: fixtures[index].transaction.id, p_owner_tenant_id: tenants[index].tenantId, p_patch: { abort_reason: null } }),
     ])));
     evidence.testCases.push(...await runCrossTenantMatrix({ userA: createSupabaseAdapter(principals[0].userClient), userB: createSupabaseAdapter(principals[1].userClient), fixtureA: fixtures[0], fixtureB: fixtures[1] }));
+    evidence.crossTenant = [...evidence.testCases];
     await checkpoint("P4");
   });
   await phases.run("P5", async () => {
     deadline.assertCanStart(true);
-    invariant(typeof dependencies.runConcurrency === "function", "BUILD002_R4B_CONCURRENCY_RUNNER_REQUIRED");
-    evidence.concurrency = await dependencies.runConcurrency({ config, principals, tenants, fixtures, graphs, deadline });
+    const runner = selectConcurrencyRunner(dependencies);
+    const result = await runner({ config, principals, tenants, fixtures, graphs, deadline });
+    if (Array.isArray(result)) evidence.concurrency = result;
+    else {
+      evidence.concurrency = result.concurrency;
+      for (const section of ["D0", "D3", "D4", "D5", "D6", "002E", "directWrite", "retry", "triggerGuards", "hashResults", "providerBoundary"]) evidence[section] = result[section];
+      evidence.crossTenant.push(...result.crossTenant);
+      evidence.integrity = result.integrity;
+    }
     invariant(evidence.concurrency.every((item) => item.pass === true), "BUILD002_R4B_CONCURRENCY_INVARIANT_FAILED");
     await checkpoint("P5");
   });
   await phases.run("P6", async () => {
     invariant(evidence.providerCallCount === 0, "BUILD002_R4B_PROVIDER_CALL_DETECTED");
+    invariant(MANDATORY_CONCURRENCY_CLASSES.every((name) => evidence.concurrency.some((item) => item.class === name && item.pass === true)), "BUILD002_R4B_MANDATORY_CONCURRENCY_CLASS_MISSING");
+    invariant(evidence.triggerGuards?.caseCount === 5 && evidence.triggerGuards?.passCount === 5, "BUILD002_R4B_TRIGGER_GUARD_ASSURANCE_FAILED");
+    invariant(evidence.hashResults.length === 5 && evidence.hashResults.every((item) => item.pass), "BUILD002_R4B_CANONICAL_HASH_MISMATCH");
+    invariant(evidence.directWrite.length >= 6 && evidence.directWrite.every((item) => item.pass), "BUILD002_R4B_DIRECT_WRITE_ASSURANCE_FAILED");
+    invariant(evidence.crossTenant.length >= 9 && evidence.retry.length >= 4 && evidence.retry.every((item) => item.pass), "BUILD002_R4B_EVIDENCE_COMPLETENESS_FAILED");
+    invariant(evidence.providerBoundary?.providerCallCount === 0 && evidence.providerBoundary?.providerExactlyOnce === "NOT_CLAIMED", "BUILD002_R4B_PROVIDER_BOUNDARY_INVALID");
+    invariant(evidence.integrity?.targetProjectIdentityExact === true && evidence.integrity?.schemaDrift === false && evidence.integrity?.migrationCount === 45, "BUILD002_R4B_FINAL_INTEGRITY_FAILED");
     evidence.tempProjectReadyToPause = true;
     await checkpoint("P6");
   });
+  } catch (error) {
+    evidence.failedPhase = phases.failedPhase;
+    evidence.errorCode = error?.code ?? "BUILD002_R4B_HARNESS_FAILED";
+    evidence.lastSuccessfulCheckpoint = evidence.phases.at(-1) ?? null;
+    await (dependencies.writeCheckpoint ?? writeCheckpoint)(config.runId, `FAILED_${phases.failedPhase ?? "UNKNOWN"}`, evidence).catch(() => {});
+    if (error && typeof error === "object") error.details = { ...(error.details ?? {}), failedPhase: evidence.failedPhase, lastSuccessfulCheckpoint: evidence.lastSuccessfulCheckpoint };
+    throw error;
+  }
   const secrets = principals.flatMap((item) => [item.password, item.jwt]).concat([config.publishableKey, config.serviceRoleKey, config.databaseUrl]);
   const output = deterministicEvidence(redact(evidence, secrets));
   return { ...output, failedPhase: phases.failedPhase, tempProjectReadyToPause: true };
@@ -960,7 +1367,8 @@ if (invokedDirectly) {
   runCli().then((result) => {
     process.stdout.write(`${canonicalJson(result.output)}\n`);
   }).catch((error) => {
-    process.stderr.write(`${canonicalJson(redact({ code: error.code ?? "BUILD002_R4B_HARNESS_FAILED", messageClass: error.message }))}\n`);
+    process.stderr.write(`${canonicalJson(redact({ code: error.code ?? "BUILD002_R4B_HARNESS_FAILED", messageClass: error.message,
+      failedPhase: error.details?.failedPhase ?? null, lastSuccessfulCheckpoint: error.details?.lastSuccessfulCheckpoint ?? null }))}\n`);
     process.exitCode = 1;
   });
 }

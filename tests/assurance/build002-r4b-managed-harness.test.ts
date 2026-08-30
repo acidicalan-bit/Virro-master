@@ -1,5 +1,6 @@
 // @vitest-environment node
 
+import { execFileSync } from "node:child_process";
 import { readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 
@@ -15,6 +16,16 @@ const FAILED_REF = "rmvkdrjasfgqnwxarwbq";
 const migrationsDir = resolve(process.cwd(), "supabase/migrations");
 const harnessPath = resolve(process.cwd(), "scripts/build002-r4b-managed-remote-assurance.mjs");
 const source = readFileSync(harnessPath, "utf8");
+const BASE_HARNESS_SHA = "3d2724f007681bf34094f9a1df5a4b2023867ac6";
+
+it("records the published base CLI default-runner defect authority", () => {
+  const baseSource = execFileSync("git", ["show", `${BASE_HARNESS_SHA}:scripts/build002-r4b-managed-remote-assurance.mjs`], {
+    cwd: process.cwd(),
+    encoding: "utf8",
+  });
+  expect(baseSource).toContain('invariant(typeof dependencies.runConcurrency === "function", "BUILD002_R4B_CONCURRENCY_RUNNER_REQUIRED")');
+  expect(baseSource).toContain("runCli().then");
+});
 
 function env(overrides: Record<string, string | undefined> = {}): NodeJS.ProcessEnv {
   return {
@@ -218,6 +229,36 @@ describe("BUILD002 R4-B managed harness security contract", () => {
     ];
     expect(forbidden.filter((pattern) => pattern.test(source))).toHaveLength(0);
   });
+
+  it("33 selects the published canonical runner for the direct CLI path without runConcurrency injection", () => {
+    expect(harness.selectConcurrencyRunner({})).toBe(harness.runManagedRemoteBehavioralAssurance);
+    expect(source).not.toContain('invariant(typeof dependencies.runConcurrency === "function", "BUILD002_R4B_CONCURRENCY_RUNNER_REQUIRED")');
+  });
+
+  it("34 freezes every mandatory default-runner concurrency class", () => {
+    expect(harness.MANDATORY_CONCURRENCY_CLASSES).toEqual([
+      "D3_CONCURRENCY", "D4_CONCURRENCY", "D5_CONCURRENCY", "D5_STALE",
+      "D6_RESERVATION_CONCURRENCY", "D6_CONSUMPTION_CONCURRENCY",
+      "002E_ASSET_CONCURRENCY", "002E_TRANSACTION_CONCURRENCY",
+      "FENCE_SERIALIZATION", "DEADLOCK_ORDER",
+    ]);
+  });
+
+  it("35 keeps all five trigger guards on their canonical persisted tables", () => {
+    expect(harness.TRIGGER_GUARD_CASES).toHaveLength(5);
+    expect(harness.TRIGGER_GUARD_CASES.every((item: { table: string }) => item.table !== "build002_readiness_authority_markers")).toBe(true);
+  });
+
+  it("36 wires checkpointed terminal failure evidence", () => {
+    expect(source).toContain("lastSuccessfulCheckpoint");
+    expect(source).toContain("FAILED_${phases.failedPhase ?? \"UNKNOWN\"}");
+  });
+
+  it("37 keeps provider execution outside the managed assurance harness", () => {
+    expect(source).toContain('providerExactlyOnce: "NOT_CLAIMED"');
+    expect(source).toContain('postConsumptionPreProviderCrashUnknown: "PRESERVED"');
+    expect(source).not.toMatch(/from\s+["'](?:openai|@anthropic-ai)/i);
+  });
 });
 
 type QueryResult = { rows: Array<Record<string, unknown>> };
@@ -365,27 +406,26 @@ describe.runIf(Boolean(localPgUrl))("BUILD002 R4-B local PostgreSQL 17 managed-f
       versionId: fixtureA.version.id, transactionId: fixtureA.transaction.id,
       rawRequest: fixtureA.transaction.raw_request, versionState: fixtureA.version.state,
     } });
+    const graphB = await harness.buildAuthorityGraph({ serviceAdapter, context: {
+      runId: "local-r4b-B", startedAt, principalId: userB, membershipId: tenantB.membershipId,
+      tenantId: tenantB.tenantId, projectId: fixtureB.project.id, assetId: fixtureB.asset.id,
+      versionId: fixtureB.version.id, transactionId: fixtureB.transaction.id,
+      rawRequest: fixtureB.transaction.raw_request, versionState: fixtureB.version.state,
+    } });
     expect(graphA.providerCallCount).toBe(0);
     expect(graphA.reservation.reservation_id).toEqual(expect.any(String));
     await harness.callUserRpc(userAdapterA, "build002_002e_update_asset", { p_asset_id: fixtureA.asset.id, p_owner_tenant_id: tenantA.tenantId, p_patch: { description: "local managed rehearsal" } });
     await expect(harness.callUserRpc(userAdapterA, "build002_002e_update_asset", { p_asset_id: fixtureB.asset.id, p_owner_tenant_id: tenantB.tenantId, p_patch: { description: "forbidden" } })).rejects.toThrow(/NOT_AUTHORIZED|PREAUTH|permission/i);
 
-    const factory = harness.createManagedDbSessionFactory(databaseUrl);
-    const args = {
-      p_principal_id: userA,
-      p_membership_id: tenantA.membershipId,
-      p_reservation_id: graphA.reservation.reservation_id,
-      p_execution_attempt_id: graphA.reservation.execution_attempt_id,
-    };
-    const race = await harness.runD6ConsumptionConcurrency({
-      factory,
-      args,
-      durableCheck: async () => {
-        const result = await admin.query("select count(*)::int as count from public.build002_execution_attempt_consumptions where reservation_id=$1", [graphA.reservation.reservation_id]);
-        return { pass: result.rows[0].count === 1, count: result.rows[0].count };
-      },
+    const runnerEvidence = await harness.runManagedRemoteBehavioralAssurance({
+      config: { databaseUrl, runId: "local-r4b-default-runner", tempProjectRef: TEMP_REF },
+      principals: [{ userId: userA }, { userId: userB }], tenants: [tenantA, tenantB],
+      fixtures: [fixtureA, fixtureB], graphs: [graphA, graphB], deadline: harness.createDeadline(10),
     });
-    expect(race.sessions.filter((item: { status: string }) => item.status === "FULFILLED")).toHaveLength(1);
-    expect(race.durable.count).toBe(1);
-  }, 180_000);
+    expect(runnerEvidence.concurrency.map((item: { class: string }) => item.class).sort()).toEqual([...harness.MANDATORY_CONCURRENCY_CLASSES].sort());
+    expect(runnerEvidence.concurrency.every((item: { pass: boolean }) => item.pass)).toBe(true);
+    expect(runnerEvidence.triggerGuards).toMatchObject({ caseCount: 5, passCount: 5 });
+    expect(runnerEvidence.hashResults.every((item: { pass: boolean }) => item.pass)).toBe(true);
+    expect(runnerEvidence.providerBoundary.providerCallCount).toBe(0);
+  }, 300_000);
 });
