@@ -261,6 +261,306 @@ describe("BUILD002 R4-B managed harness security contract", () => {
   });
 });
 
+type ManagedRole = "authenticated" | "service_role";
+type ManagedFailureStage = "CONNECT" | "BEGIN" | "SET_ROLE" | "SET_CLAIMS" | "ROLLBACK" | "CLOSE";
+type ManagedBehavior = {
+  failStage?: ManagedFailureStage;
+  error?: Error & { code?: string; sqlstate?: string };
+  contextMismatch?: boolean;
+};
+
+function managedError(code: string, message = code, sqlstate?: string): Error & { code: string; sqlstate?: string } {
+  return Object.assign(new Error(message), { code, ...(sqlstate ? { sqlstate } : {}) });
+}
+
+function fakeManagedClientClass(
+  behavior: Partial<Record<ManagedRole, ManagedBehavior>> = {},
+  events: string[] = [],
+) {
+  return class FakeManagedClient {
+    private readonly role: ManagedRole;
+    private principalId: string | null = null;
+
+    constructor(options: { application_name: string }) {
+      this.role = options.application_name.endsWith("authenticated") ? "authenticated" : "service_role";
+      events.push(`${this.role}:create`);
+    }
+
+    async connect(): Promise<void> {
+      events.push(`${this.role}:connect`);
+      if (behavior[this.role]?.failStage === "CONNECT") throw behavior[this.role]!.error;
+    }
+
+    async query(sql: string, values: unknown[] = []): Promise<QueryResult> {
+      const normalized = sql.toLowerCase();
+      if (normalized === "begin") {
+        events.push(`${this.role}:begin`);
+        if (behavior[this.role]?.failStage === "BEGIN") throw behavior[this.role]!.error;
+        return { rows: [] };
+      }
+      if (normalized.startsWith("set local role")) {
+        events.push(`${this.role}:set-role`);
+        if (behavior[this.role]?.failStage === "SET_ROLE") throw behavior[this.role]!.error;
+        return { rows: [] };
+      }
+      if (normalized.includes("set_config")) {
+        events.push(`${this.role}:set-claims`);
+        if (behavior[this.role]?.failStage === "SET_CLAIMS") throw behavior[this.role]!.error;
+        if (this.role === "authenticated") this.principalId = String(values[1]);
+        return { rows: [] };
+      }
+      if (normalized.includes("auth.uid()")) {
+        events.push(`${this.role}:context`);
+        return { rows: [{
+          uid: behavior[this.role]?.contextMismatch ? "00000000-0000-4000-8000-000000000000" : this.principalId,
+          role: behavior[this.role]?.contextMismatch ? "postgres" : "authenticated",
+          backend_pid: 101,
+        }] };
+      }
+      if (normalized.includes("current_user")) {
+        events.push(`${this.role}:context`);
+        return { rows: [{ role: behavior[this.role]?.contextMismatch ? "postgres" : "service_role", backend_pid: 102 }] };
+      }
+      if (normalized === "rollback") {
+        events.push(`${this.role}:rollback`);
+        if (behavior[this.role]?.failStage === "ROLLBACK") throw behavior[this.role]!.error;
+        return { rows: [] };
+      }
+      if (normalized === "commit") return { rows: [] };
+      throw new Error(`Unexpected fake query: ${sql}`);
+    }
+
+    async end(): Promise<void> {
+      events.push(`${this.role}:end`);
+      if (behavior[this.role]?.failStage === "CLOSE") throw behavior[this.role]!.error;
+    }
+  };
+}
+
+async function detailedPreflight(
+  behavior: Partial<Record<ManagedRole, ManagedBehavior>> = {},
+  events: string[] = [],
+) {
+  const databaseUrl = `postgresql://postgres.${TEMP_REF}:diagnostic-db-password@db.${TEMP_REF}.supabase.co:5432/postgres`;
+  const factory = harness.createManagedDbSessionFactory(databaseUrl, fakeManagedClientClass(behavior, events));
+  return harness.preflightRoleSwitchesDetailed(factory, "a4100000-0000-4000-8000-000000000001");
+}
+
+async function executeWithP0Failure() {
+  const diagnostics = await detailedPreflight({
+    authenticated: { failStage: "CONNECT", error: managedError("ECONNREFUSED") },
+  });
+  const checkpoints: Array<{ phase: string; evidence: Record<string, unknown> }> = [];
+  let authUsersCreated = 0;
+  const clients = {
+    service: { auth: { admin: { createUser: async () => { authUsersCreated += 1; throw new Error("P1_MUST_NOT_START"); } } } },
+    publishable: {},
+    user: () => ({}),
+  };
+  let caught: unknown;
+  try {
+    await harness.executeManagedRun(harness.loadHarnessConfig(env()), {
+      clients,
+      preflightDetailed: async () => diagnostics,
+      writeCheckpoint: async (_runId: string, phase: string, evidence: Record<string, unknown>) => {
+        checkpoints.push({ phase, evidence: structuredClone(evidence) });
+        return { path: "local", sha256: "local" };
+      },
+    });
+  } catch (error) {
+    caught = error;
+  }
+  return { authUsersCreated, caught: caught as { code?: string; details?: Record<string, unknown> }, checkpoints, diagnostics };
+}
+
+describe("BUILD002 R4-B P0 detailed diagnostic remediation", () => {
+  it("01 freezes all nine managed-session lifecycle stages", () => {
+    expect(harness.MANAGED_SESSION_STAGES).toEqual([
+      "CLIENT_CREATE", "CONNECT", "BEGIN", "SET_ROLE", "SET_CLAIMS", "CONTEXT_VALIDATE", "READY", "ROLLBACK", "CLOSE",
+    ]);
+  });
+
+  it("02 preserves authenticated TLS certificate failures", async () => {
+    const result = await detailedPreflight({ authenticated: { failStage: "CONNECT", error: managedError("SELF_SIGNED_CERT_IN_CHAIN") } });
+    expect(result.authenticated).toMatchObject({ pass: false, stageReached: "CONNECT", diagnosticCode: "AUTH_CONNECT_FAILED", error: { code: "SELF_SIGNED_CERT_IN_CHAIN", errorClass: "TLS_CONFIGURATION_FAILURE" } });
+  });
+
+  it("03 preserves authenticated ECONNREFUSED without retry", async () => {
+    const events: string[] = [];
+    const result = await detailedPreflight({ authenticated: { failStage: "CONNECT", error: managedError("ECONNREFUSED") } }, events);
+    expect(result.authenticated).toMatchObject({ stageReached: "CONNECT", error: { errorClass: "NETWORK_CONNECTIVITY_FAILURE" } });
+    expect(events.filter((event) => event === "authenticated:connect")).toHaveLength(1);
+  });
+
+  it("04 preserves authenticated ETIMEDOUT without retry", async () => {
+    const result = await detailedPreflight({ authenticated: { failStage: "CONNECT", error: managedError("ETIMEDOUT") } });
+    expect(result.authenticated).toMatchObject({ stageReached: "CONNECT", error: { errorClass: "CONNECTION_TIMEOUT" } });
+  });
+
+  it("05 classifies authenticated BEGIN failure and closes the client", async () => {
+    const events: string[] = [];
+    const result = await detailedPreflight({ authenticated: { failStage: "BEGIN", error: managedError("XX001") } }, events);
+    expect(result.authenticated).toMatchObject({ stageReached: "BEGIN", diagnosticCode: "AUTH_BEGIN_FAILED", beginSuccess: false, cleanupSuccess: true });
+    expect(events).toContain("authenticated:end");
+    expect(events).not.toContain("authenticated:rollback");
+  });
+
+  it("06 classifies authenticated SET ROLE 42501 as permission failure", async () => {
+    const result = await detailedPreflight({ authenticated: { failStage: "SET_ROLE", error: managedError("42501", "permission denied", "42501") } });
+    expect(result.authenticated).toMatchObject({ stageReached: "SET_ROLE", diagnosticCode: "AUTH_SET_ROLE_FAILED", error: { sqlstate: "42501", errorClass: "ROLE_PERMISSION_FAILURE" } });
+  });
+
+  it("07 distinguishes authenticated claim setup failure", async () => {
+    const result = await detailedPreflight({ authenticated: { failStage: "SET_CLAIMS", error: managedError("XX002") } });
+    expect(result.authenticated).toMatchObject({ stageReached: "SET_CLAIMS", diagnosticCode: "AUTH_SET_CLAIMS_FAILED", setRoleSuccess: true, claimsSet: false });
+  });
+
+  it("08 preserves authenticated UID context mismatch", async () => {
+    const result = await detailedPreflight({ authenticated: { contextMismatch: true } });
+    expect(result.authenticated).toMatchObject({ stageReached: "CONTEXT_VALIDATE", diagnosticCode: "AUTH_UID_CONTEXT_FAILED", uidContextMatch: false, error: { errorClass: "CONTEXT_VALIDATION_FAILURE" } });
+  });
+
+  it("09 preserves service-role connect failure independently", async () => {
+    const result = await detailedPreflight({ service_role: { failStage: "CONNECT", error: managedError("ENOTFOUND") } });
+    expect(result.serviceRole).toMatchObject({ stageReached: "CONNECT", diagnosticCode: "SERVICE_CONNECT_FAILED", error: { errorClass: "DNS_FAILURE" } });
+    expect(result.authRoleSwitchSupported).toBe(true);
+  });
+
+  it("10 classifies service SET ROLE 42501 as permission failure", async () => {
+    const result = await detailedPreflight({ service_role: { failStage: "SET_ROLE", error: managedError("42501", "permission denied", "42501") } });
+    expect(result.serviceRole).toMatchObject({ stageReached: "SET_ROLE", diagnosticCode: "SERVICE_SET_ROLE_FAILED", error: { sqlstate: "42501", errorClass: "ROLE_PERMISSION_FAILURE" } });
+  });
+
+  it("11 distinguishes service claim setup failure", async () => {
+    const result = await detailedPreflight({ service_role: { failStage: "SET_CLAIMS", error: managedError("XX003") } });
+    expect(result.serviceRole).toMatchObject({ stageReached: "SET_CLAIMS", diagnosticCode: "SERVICE_SET_CLAIMS_FAILED", setRoleSuccess: true, claimsSet: false });
+  });
+
+  it("12 preserves service context mismatch", async () => {
+    const result = await detailedPreflight({ service_role: { contextMismatch: true } });
+    expect(result.serviceRole).toMatchObject({ stageReached: "CONTEXT_VALIDATE", diagnosticCode: "SERVICE_CONTEXT_FAILED", contextValidated: false, error: { errorClass: "CONTEXT_VALIDATION_FAILURE" } });
+  });
+
+  it("13 records cleanup failure without replacing the establishment result", async () => {
+    const result = await detailedPreflight({ authenticated: { failStage: "ROLLBACK", error: managedError("XX004") } });
+    expect(result.authenticated).toMatchObject({ pass: false, stageReached: "ROLLBACK", diagnosticCode: "AUTH_CLEANUP_FAILED", cleanupSuccess: false, error: { errorClass: "CLEANUP_FAILURE" } });
+  });
+
+  it("14 completes detailed authenticated and service-role success", async () => {
+    const result = await detailedPreflight();
+    expect(result).toMatchObject({ authRoleSwitchSupported: true, serviceRoleSwitchSupported: true });
+    for (const item of [result.authenticated, result.serviceRole]) {
+      expect(item).toMatchObject({ pass: true, connectSuccess: true, beginSuccess: true, setRoleSuccess: true, claimsSet: true, contextValidated: true, cleanupSuccess: true });
+    }
+  });
+
+  it("15 preserves the compatible boolean preflight API on one implementation path", async () => {
+    const factory = harness.createManagedDbSessionFactory(
+      `postgresql://postgres.${TEMP_REF}:x@db.${TEMP_REF}.supabase.co:5432/postgres`,
+      fakeManagedClientClass(),
+    );
+    await expect(harness.preflightRoleSwitches(factory)).resolves.toEqual({ authRoleSwitchSupported: true, serviceRoleSwitchSupported: true });
+  });
+
+  it("16 closes a client after an early CONNECT failure without ROLLBACK", async () => {
+    const events: string[] = [];
+    const result = await detailedPreflight({ authenticated: { failStage: "CONNECT", error: managedError("ECONNREFUSED") } }, events);
+    expect(result.authenticated.cleanupSuccess).toBe(true);
+    expect(events).toContain("authenticated:end");
+    expect(events).not.toContain("authenticated:rollback");
+  });
+
+  it("17 returns detailed redacted diagnostics from CLI preflight", async () => {
+    const diagnostics = await detailedPreflight();
+    const result = await harness.runCli(["--preflight"], env(), { preflightDetailed: async () => diagnostics });
+    expect(result.output).toMatchObject({ authRoleSwitchSupported: true, serviceRoleSwitchSupported: true, authenticated: { pass: true }, serviceRole: { pass: true } });
+  });
+
+  it("18 preserves P0 root diagnostics in FAILED_P0 evidence and blocks P1", async () => {
+    const result = await executeWithP0Failure();
+    expect(result.caught).toMatchObject({ code: "BUILD002_R4B_REQUIRED_ROLE_SWITCH_UNAVAILABLE", details: { failedPhase: "P0", lastSuccessfulCheckpoint: null } });
+    expect(result.checkpoints).toHaveLength(1);
+    expect(result.checkpoints[0]).toMatchObject({ phase: "FAILED_P0", evidence: { failedPhase: "P0", lastSuccessfulCheckpoint: null, preflightDiagnostics: { authenticated: { stageReached: "CONNECT", error: { code: "ECONNREFUSED", errorClass: "NETWORK_CONNECTIVITY_FAILURE" } } } } });
+    expect(result.authUsersCreated).toBe(0);
+  });
+
+  it("19 keeps checkpoint and CLI stderr root diagnostics consistent", async () => {
+    const result = await executeWithP0Failure();
+    const checkpoint = result.checkpoints[0].evidence as { preflightDiagnostics: { authenticated: { error: { errorClass: string } } } };
+    const stderr = harness.cliFailureOutput(result.caught);
+    expect(stderr.preflightDiagnosticSummary.authenticated.errorClass).toBe(checkpoint.preflightDiagnostics.authenticated.error.errorClass);
+    expect(stderr.preflightDiagnosticSummary.authenticated).toMatchObject({ role: "authenticated", stage: "CONNECT", code: "ECONNREFUSED" });
+  });
+
+  it("20 redacts every sentinel secret from detailed diagnostics and stderr", async () => {
+    const password = "diagnostic-db-password";
+    const databaseUrl = `postgresql://postgres.${TEMP_REF}:${password}@db.${TEMP_REF}.supabase.co:5432/postgres`;
+    const jwt = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.sentinel_signature";
+    const serviceKey = "sb_secret_p0_diagnostic_sentinel";
+    const publishableKey = "sb_publishable_p0_diagnostic_sentinel";
+    const message = `${databaseUrl} ${jwt} ${serviceKey} ${publishableKey}`;
+    const factory = harness.createManagedDbSessionFactory(databaseUrl, fakeManagedClientClass({ authenticated: { failStage: "CONNECT", error: managedError("SELF_SIGNED_CERT_IN_CHAIN", message) } }));
+    const diagnostics = await harness.preflightRoleSwitchesDetailed(factory);
+    const serialized = JSON.stringify({ diagnostics, stderr: harness.cliFailureOutput(new harness.HarnessError("X", { preflightDiagnosticSummary: harness.preflightDiagnosticSummary(diagnostics) })) });
+    for (const secret of [password, databaseUrl, jwt, serviceKey, publishableKey]) expect(serialized).not.toContain(secret);
+  });
+
+  it("21 performs no automatic P0 retry", async () => {
+    const events: string[] = [];
+    await detailedPreflight({
+      authenticated: { failStage: "CONNECT", error: managedError("ECONNREFUSED") },
+      service_role: { failStage: "CONNECT", error: managedError("ETIMEDOUT") },
+    }, events);
+    expect(events.filter((event) => event.endsWith(":connect"))).toEqual(["authenticated:connect", "service_role:connect"]);
+  });
+
+  it("22 permits P0 success to transition to P1", async () => {
+    const diagnostics = await detailedPreflight();
+    let authUsersCreated = 0;
+    let failedPhase = "";
+    const clients = {
+      service: { auth: { admin: { createUser: async () => { authUsersCreated += 1; throw new Error("LOCAL_P1_REACHED"); } } } },
+      publishable: {},
+      user: () => ({}),
+    };
+    await expect(harness.executeManagedRun(harness.loadHarnessConfig(env()), {
+      clients,
+      preflightDetailed: async () => diagnostics,
+      writeCheckpoint: async (_runId: string, phase: string) => { failedPhase = phase; return { path: "local", sha256: "local" }; },
+    })).rejects.toThrow("LOCAL_P1_REACHED");
+    expect(authUsersCreated).toBeGreaterThan(0);
+    expect(failedPhase).toBe("FAILED_P1");
+  });
+
+  it("23 classifies database authentication SQLSTATE without message inference", async () => {
+    const result = await detailedPreflight({ authenticated: { failStage: "CONNECT", error: managedError("28P01", "opaque", "28P01") } });
+    expect(result.authenticated).toMatchObject({ stageReached: "CONNECT", error: { sqlstate: "28P01", errorClass: "DATABASE_AUTHENTICATION_FAILURE" } });
+  });
+
+  it("24 distinguishes service BEGIN failure and closes the client", async () => {
+    const events: string[] = [];
+    const result = await detailedPreflight({ service_role: { failStage: "BEGIN", error: managedError("XX005") } }, events);
+    expect(result.serviceRole).toMatchObject({ stageReached: "BEGIN", diagnosticCode: "SERVICE_BEGIN_FAILED", beginSuccess: false, cleanupSuccess: true });
+    expect(events).toContain("service_role:end");
+    expect(events).not.toContain("service_role:rollback");
+  });
+
+  it("25 distinguishes service cleanup failure", async () => {
+    const result = await detailedPreflight({ service_role: { failStage: "CLOSE", error: managedError("XX006") } });
+    expect(result.serviceRole).toMatchObject({ pass: false, stageReached: "CLOSE", diagnosticCode: "SERVICE_CLEANUP_FAILED", cleanupSuccess: false, error: { errorClass: "CLEANUP_FAILURE" } });
+  });
+
+  it("26 routes direct CLI failures through the sanitized diagnostic serializer", () => {
+    expect(source).toContain("canonicalJson(cliFailureOutput(error))");
+    const output = harness.cliFailureOutput(new harness.HarnessError("BUILD002_R4B_REQUIRED_ROLE_SWITCH_UNAVAILABLE", {
+      failedPhase: "P0",
+      lastSuccessfulCheckpoint: null,
+      preflightDiagnosticSummary: { authenticated: { role: "authenticated", stage: "SET_ROLE", code: "42501", sqlstate: "42501", errorClass: "ROLE_PERMISSION_FAILURE" } },
+    }));
+    expect(output).toMatchObject({ code: "BUILD002_R4B_REQUIRED_ROLE_SWITCH_UNAVAILABLE", failedPhase: "P0", preflightDiagnosticSummary: { authenticated: { errorClass: "ROLE_PERMISSION_FAILURE" } } });
+  });
+});
+
 type QueryResult = { rows: Array<Record<string, unknown>> };
 
 class LocalAdapter {

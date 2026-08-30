@@ -725,51 +725,243 @@ export function createPromiseBarrier(parties = 2) {
   };
 }
 
+export const MANAGED_SESSION_STAGES = Object.freeze([
+  "CLIENT_CREATE",
+  "CONNECT",
+  "BEGIN",
+  "SET_ROLE",
+  "SET_CLAIMS",
+  "CONTEXT_VALIDATE",
+  "READY",
+  "ROLLBACK",
+  "CLOSE",
+]);
+
+function managedSessionSecretValues(databaseUrl) {
+  const values = [databaseUrl];
+  try {
+    const parsed = new URL(databaseUrl);
+    if (parsed.password) values.push(decodeURIComponent(parsed.password));
+  } catch {
+    // Target identity validation reports malformed URLs before a remote run begins.
+  }
+  return values.filter(Boolean);
+}
+
+function normalizedSqlstate(error) {
+  const explicit = error?.sqlState ?? error?.sqlstate;
+  if (explicit) return String(explicit);
+  const code = String(error?.code ?? "");
+  return /^[0-9A-Z]{5}$/.test(code) ? code : "";
+}
+
+export function classifyManagedSessionError(error, stage) {
+  const code = String(error?.code ?? "").toUpperCase();
+  const sqlstate = normalizedSqlstate(error).toUpperCase();
+  if (stage === "CONTEXT_VALIDATE") return "CONTEXT_VALIDATION_FAILURE";
+  if (stage === "ROLLBACK" || stage === "CLOSE") return "CLEANUP_FAILURE";
+  if (stage === "SET_ROLE" && sqlstate === "42501") return "ROLE_PERMISSION_FAILURE";
+  if (sqlstate === "28P01" || code === "28P01") return "DATABASE_AUTHENTICATION_FAILURE";
+  if (["SELF_SIGNED_CERT_IN_CHAIN", "DEPTH_ZERO_SELF_SIGNED_CERT", "UNABLE_TO_VERIFY_LEAF_SIGNATURE", "CERT_HAS_EXPIRED", "ERR_TLS_CERT_ALTNAME_INVALID"].includes(code)
+    || code.startsWith("CERT_") || code.startsWith("ERR_TLS_")) return "TLS_CONFIGURATION_FAILURE";
+  if (["ENOTFOUND", "EAI_AGAIN"].includes(code)) return "DNS_FAILURE";
+  if (code === "ETIMEDOUT") return "CONNECTION_TIMEOUT";
+  if (/^(?:ECONN|ENET|EHOST|EPIPE)/.test(code)) return "NETWORK_CONNECTIVITY_FAILURE";
+  return "UNKNOWN";
+}
+
+function managedSessionDiagnosticCode(role, stage) {
+  const prefix = role === "authenticated" ? "AUTH" : "SERVICE";
+  if (stage === "CONNECT") return `${prefix}_CONNECT_FAILED`;
+  if (stage === "BEGIN") return `${prefix}_BEGIN_FAILED`;
+  if (stage === "SET_ROLE") return `${prefix}_SET_ROLE_FAILED`;
+  if (stage === "SET_CLAIMS") return `${prefix}_SET_CLAIMS_FAILED`;
+  if (stage === "CONTEXT_VALIDATE") return role === "authenticated" ? "AUTH_UID_CONTEXT_FAILED" : "SERVICE_CONTEXT_FAILED";
+  if (stage === "ROLLBACK" || stage === "CLOSE") return `${prefix}_CLEANUP_FAILED`;
+  return `${prefix}_SESSION_OPEN_FAILED`;
+}
+
+function createManagedSessionDiagnostic(role) {
+  return {
+    pass: false,
+    role,
+    stageReached: null,
+    lifecycleStages: [],
+    connectSuccess: false,
+    transactionStarted: false,
+    beginSuccess: false,
+    setRoleSuccess: false,
+    claimsSet: false,
+    contextValidated: false,
+    uidContextMatch: role === "authenticated" ? false : null,
+    cleanupSuccess: null,
+    diagnosticCode: null,
+    error: null,
+    cleanupError: null,
+  };
+}
+
+function reachManagedSessionStage(diagnostic, stage) {
+  invariant(MANAGED_SESSION_STAGES.includes(stage), "BUILD002_R4B_DB_SESSION_STAGE_INVALID", { stage });
+  diagnostic.stageReached = stage;
+  if (!diagnostic.lifecycleStages.includes(stage)) diagnostic.lifecycleStages.push(stage);
+}
+
+function sanitizedManagedSessionError(error, stage, secretValues) {
+  const underlying = sanitizedError(error, secretValues);
+  underlying.sqlstate = redactString(normalizedSqlstate(error), secretValues);
+  return { ...underlying, errorClass: classifyManagedSessionError(error, stage) };
+}
+
+function managedSessionOpenFailure(role, stage, diagnostic, error, secretValues) {
+  diagnostic.pass = false;
+  diagnostic.stageReached = stage;
+  diagnostic.diagnosticCode = managedSessionDiagnosticCode(role, stage);
+  diagnostic.error = sanitizedManagedSessionError(error, stage, secretValues);
+  return new HarnessError("BUILD002_R4B_DB_SESSION_OPEN_FAILED", { diagnostic: redact(diagnostic, secretValues) });
+}
+
 export function createManagedDbSessionFactory(databaseUrl, ClientClass = Client) {
   const target = projectRefSignalsFromDatabaseUrl(databaseUrl);
   invariant(Number(target.url.port || 5432) === 5432, "BUILD002_R4B_SESSION_MODE_DATABASE_PORT_REQUIRED");
+  const secretValues = managedSessionSecretValues(databaseUrl);
   async function open(role, principalId = null) {
     invariant(role === "authenticated" || role === "service_role", "BUILD002_R4B_DB_ROLE_INVALID");
-    const client = new ClientClass({ connectionString: databaseUrl, application_name: `build002-r4b-${role}` });
-    await client.connect();
-    await client.query("begin");
+    const diagnostic = createManagedSessionDiagnostic(role);
+    let client;
+    let primaryStage = "CLIENT_CREATE";
     try {
+      reachManagedSessionStage(diagnostic, "CLIENT_CREATE");
+      client = new ClientClass({ connectionString: databaseUrl, application_name: `build002-r4b-${role}` });
+      primaryStage = "CONNECT";
+      reachManagedSessionStage(diagnostic, primaryStage);
+      await client.connect();
+      diagnostic.connectSuccess = true;
+      primaryStage = "BEGIN";
+      reachManagedSessionStage(diagnostic, primaryStage);
+      await client.query("begin");
+      diagnostic.transactionStarted = true;
+      diagnostic.beginSuccess = true;
+      primaryStage = "SET_ROLE";
+      reachManagedSessionStage(diagnostic, primaryStage);
       if (role === "authenticated") {
         invariant(principalId, "BUILD002_R4B_REAL_AUTH_USER_ID_REQUIRED");
         await client.query("set local role authenticated");
+        diagnostic.setRoleSuccess = true;
+        primaryStage = "SET_CLAIMS";
+        reachManagedSessionStage(diagnostic, primaryStage);
         await client.query("select set_config('request.jwt.claim.role',$1,true), set_config('request.jwt.claim.sub',$2,true)", ["authenticated", principalId]);
+        diagnostic.claimsSet = true;
+        primaryStage = "CONTEXT_VALIDATE";
+        reachManagedSessionStage(diagnostic, primaryStage);
         const checked = await client.query("select auth.uid()::text as uid, current_user as role, pg_backend_pid() as backend_pid");
-        invariant(checked.rows[0].uid === principalId && checked.rows[0].role === "authenticated", "BUILD002_R4B_AUTH_SESSION_CONTEXT_INVALID");
-        return { client, backendPid: checked.rows[0].backend_pid, role, principalId };
+        diagnostic.uidContextMatch = checked.rows[0]?.uid === principalId;
+        diagnostic.contextValidated = diagnostic.uidContextMatch && checked.rows[0]?.role === "authenticated";
+        invariant(diagnostic.contextValidated, "BUILD002_R4B_AUTH_SESSION_CONTEXT_INVALID");
+        reachManagedSessionStage(diagnostic, "READY");
+        diagnostic.pass = true;
+        return { client, backendPid: checked.rows[0].backend_pid, role, principalId, diagnostic };
       }
       await client.query("set local role service_role");
+      diagnostic.setRoleSuccess = true;
+      primaryStage = "SET_CLAIMS";
+      reachManagedSessionStage(diagnostic, primaryStage);
       await client.query("select set_config('request.jwt.claim.role',$1,true)", ["service_role"]);
+      diagnostic.claimsSet = true;
+      primaryStage = "CONTEXT_VALIDATE";
+      reachManagedSessionStage(diagnostic, primaryStage);
       const checked = await client.query("select current_user as role, pg_backend_pid() as backend_pid");
-      invariant(checked.rows[0].role === "service_role", "BUILD002_R4B_SERVICE_SESSION_CONTEXT_INVALID");
-      return { client, backendPid: checked.rows[0].backend_pid, role, principalId: null };
+      diagnostic.contextValidated = checked.rows[0]?.role === "service_role";
+      invariant(diagnostic.contextValidated, "BUILD002_R4B_SERVICE_SESSION_CONTEXT_INVALID");
+      reachManagedSessionStage(diagnostic, "READY");
+      diagnostic.pass = true;
+      return { client, backendPid: checked.rows[0].backend_pid, role, principalId: null, diagnostic };
     } catch (error) {
-      await client.query("rollback").catch(() => {});
-      await client.end().catch(() => {});
-      throw error;
+      let cleanupError = null;
+      if (client && diagnostic.transactionStarted) {
+        reachManagedSessionStage(diagnostic, "ROLLBACK");
+        try { await client.query("rollback"); } catch (rollbackError) { cleanupError = { stage: "ROLLBACK", error: rollbackError }; }
+      }
+      if (client) {
+        reachManagedSessionStage(diagnostic, "CLOSE");
+        try { await client.end(); } catch (closeError) { cleanupError ??= { stage: "CLOSE", error: closeError }; }
+      }
+      diagnostic.cleanupSuccess = cleanupError === null;
+      if (cleanupError) diagnostic.cleanupError = sanitizedManagedSessionError(cleanupError.error, cleanupError.stage, secretValues);
+      throw managedSessionOpenFailure(role, primaryStage, diagnostic, error, secretValues);
     }
   }
   async function close(session, commit = false) {
-    try { await session.client.query(commit ? "commit" : "rollback"); } finally { await session.client.end(); }
+    let cleanupError = null;
+    const diagnostic = session.diagnostic ?? createManagedSessionDiagnostic(session.role);
+    if (!commit) reachManagedSessionStage(diagnostic, "ROLLBACK");
+    try { await session.client.query(commit ? "commit" : "rollback"); } catch (error) { cleanupError = { stage: commit ? "CLOSE" : "ROLLBACK", error }; }
+    reachManagedSessionStage(diagnostic, "CLOSE");
+    try { await session.client.end(); } catch (error) { cleanupError ??= { stage: "CLOSE", error }; }
+    diagnostic.cleanupSuccess = cleanupError === null;
+    if (cleanupError) {
+      diagnostic.pass = false;
+      diagnostic.stageReached = cleanupError.stage;
+      diagnostic.diagnosticCode = managedSessionDiagnosticCode(session.role, cleanupError.stage);
+      diagnostic.error = sanitizedManagedSessionError(cleanupError.error, cleanupError.stage, secretValues);
+      throw new HarnessError("BUILD002_R4B_DB_SESSION_CLEANUP_FAILED", { diagnostic: redact(diagnostic, secretValues) });
+    }
+    diagnostic.pass = true;
   }
   return Object.freeze({ openAuthenticated: (principalId) => open("authenticated", principalId), openService: () => open("service_role"), close });
 }
 
+async function probeManagedSession(role, open, factory) {
+  let session;
+  try {
+    session = await open();
+    await factory.close(session, false);
+    return redact({ ...session.diagnostic, pass: true, error: null, cleanupError: null });
+  } catch (error) {
+    const diagnostic = error?.details?.diagnostic ?? {
+      ...createManagedSessionDiagnostic(role),
+      stageReached: "CLIENT_CREATE",
+      diagnosticCode: managedSessionDiagnosticCode(role, "CLIENT_CREATE"),
+      cleanupSuccess: false,
+      error: sanitizedManagedSessionError(error, "CLIENT_CREATE", []),
+    };
+    return redact({ ...diagnostic, pass: false });
+  }
+}
+
+export async function preflightRoleSwitchesDetailed(factory, syntheticRealUserId = randomUUID()) {
+  const authenticated = await probeManagedSession("authenticated", () => factory.openAuthenticated(syntheticRealUserId), factory);
+  const serviceRole = await probeManagedSession("service_role", () => factory.openService(), factory);
+  return {
+    authRoleSwitchSupported: authenticated.pass === true,
+    serviceRoleSwitchSupported: serviceRole.pass === true,
+    authenticated,
+    serviceRole,
+  };
+}
+
 export async function preflightRoleSwitches(factory) {
-  const syntheticRealUserId = randomUUID();
-  let auth = false;
-  let service = false;
-  let authSession;
-  let serviceSession;
-  try { authSession = await factory.openAuthenticated(syntheticRealUserId); auth = true; } catch { auth = false; }
-  finally { if (authSession) await factory.close(authSession, false); }
-  try { serviceSession = await factory.openService(); service = true; } catch { service = false; }
-  finally { if (serviceSession) await factory.close(serviceSession, false); }
-  return { authRoleSwitchSupported: auth, serviceRoleSwitchSupported: service };
+  const detailed = await preflightRoleSwitchesDetailed(factory);
+  return {
+    authRoleSwitchSupported: detailed.authRoleSwitchSupported,
+    serviceRoleSwitchSupported: detailed.serviceRoleSwitchSupported,
+  };
+}
+
+export function preflightDiagnosticSummary(diagnostics) {
+  const summarize = (item, role) => ({
+    role,
+    pass: item?.pass === true,
+    stage: item?.stageReached ?? null,
+    code: item?.error?.code ?? null,
+    sqlstate: item?.error?.sqlstate ?? null,
+    errorClass: item?.error?.errorClass ?? null,
+    diagnosticCode: item?.diagnosticCode ?? null,
+  });
+  return {
+    authenticated: summarize(diagnostics?.authenticated, "authenticated"),
+    serviceRole: summarize(diagnostics?.serviceRole, "service_role"),
+  };
 }
 
 function rpcSql(name) {
@@ -1239,7 +1431,7 @@ export async function executeManagedRun(config, dependencies = {}) {
   const evidence = { runId: config.runId, targetProjectRef: config.tempProjectRef, fixtureGraphSha256: MANAGED_FIXTURE_GRAPH_SHA256,
     providerCallCount: 0, phases: [], testCases: [], concurrency: [], hashResults: [], syntheticAuthUsersRemaining: 0,
     D0: null, D3: null, D4: null, D5: null, D6: null, "002E": null, crossTenant: [], directWrite: [], retry: [],
-    triggerGuards: null, providerBoundary: null, failedPhase: null, lastSuccessfulCheckpoint: null, tempProjectReadyToPause: false };
+    triggerGuards: null, providerBoundary: null, preflightDiagnostics: null, failedPhase: null, lastSuccessfulCheckpoint: null, tempProjectReadyToPause: false };
   const checkpoint = async (phase) => {
     evidence.phases.push(phase);
     return (dependencies.writeCheckpoint ?? writeCheckpoint)(config.runId, phase, evidence);
@@ -1253,8 +1445,12 @@ export async function executeManagedRun(config, dependencies = {}) {
   try {
   await phases.run("P0", async () => {
     deadline.assertCanStart();
-    const capabilities = await (dependencies.preflight ?? (() => preflightRoleSwitches(createManagedDbSessionFactory(config.databaseUrl))));
-    invariant(capabilities.authRoleSwitchSupported && capabilities.serviceRoleSwitchSupported, "BUILD002_R4B_REQUIRED_ROLE_SWITCH_UNAVAILABLE");
+    const capabilities = await (dependencies.preflightDetailed ?? dependencies.preflight
+      ?? (() => preflightRoleSwitchesDetailed(createManagedDbSessionFactory(config.databaseUrl))))();
+    evidence.preflightDiagnostics = redact(capabilities, [config.publishableKey, config.serviceRoleKey, config.databaseUrl]);
+    invariant(capabilities.authRoleSwitchSupported && capabilities.serviceRoleSwitchSupported,
+      "BUILD002_R4B_REQUIRED_ROLE_SWITCH_UNAVAILABLE",
+      { preflightDiagnosticSummary: preflightDiagnosticSummary(evidence.preflightDiagnostics) });
     await checkpoint("P0");
   });
   await phases.run("P1", async () => {
@@ -1354,12 +1550,25 @@ export async function runCli(argv = process.argv.slice(2), env = process.env, de
   const config = loadHarnessConfig(env);
   if (modes[0] === "--plan") return { mode: "plan", output: redactedPlan(config) };
   if (modes[0] === "--preflight") {
-    const preflight = dependencies.preflight ?? (() => preflightRoleSwitches(createManagedDbSessionFactory(config.databaseUrl)));
+    const preflight = dependencies.preflightDetailed ?? dependencies.preflight
+      ?? (() => preflightRoleSwitchesDetailed(createManagedDbSessionFactory(config.databaseUrl)));
     const capabilities = await preflight();
-    invariant(capabilities.authRoleSwitchSupported && capabilities.serviceRoleSwitchSupported, "BUILD002_R4B_REQUIRED_ROLE_SWITCH_UNAVAILABLE");
+    invariant(capabilities.authRoleSwitchSupported && capabilities.serviceRoleSwitchSupported,
+      "BUILD002_R4B_REQUIRED_ROLE_SWITCH_UNAVAILABLE",
+      { preflightDiagnosticSummary: preflightDiagnosticSummary(capabilities) });
     return { mode: "preflight", output: redact({ targetProjectRef: config.tempProjectRef, ...capabilities }) };
   }
   return { mode: "execute", output: await executeManagedRun(config, dependencies) };
+}
+
+export function cliFailureOutput(error) {
+  return redact({
+    code: error?.code ?? "BUILD002_R4B_HARNESS_FAILED",
+    messageClass: error?.message,
+    failedPhase: error?.details?.failedPhase ?? null,
+    lastSuccessfulCheckpoint: error?.details?.lastSuccessfulCheckpoint ?? null,
+    preflightDiagnosticSummary: error?.details?.preflightDiagnosticSummary ?? null,
+  });
 }
 
 const invokedDirectly = process.argv[1] && pathToFileURL(resolve(process.argv[1])).href === import.meta.url;
@@ -1367,8 +1576,7 @@ if (invokedDirectly) {
   runCli().then((result) => {
     process.stdout.write(`${canonicalJson(result.output)}\n`);
   }).catch((error) => {
-    process.stderr.write(`${canonicalJson(redact({ code: error.code ?? "BUILD002_R4B_HARNESS_FAILED", messageClass: error.message,
-      failedPhase: error.details?.failedPhase ?? null, lastSuccessfulCheckpoint: error.details?.lastSuccessfulCheckpoint ?? null }))}\n`);
+    process.stderr.write(`${canonicalJson(cliFailureOutput(error))}\n`);
     process.exitCode = 1;
   });
 }
