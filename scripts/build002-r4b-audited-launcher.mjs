@@ -16,7 +16,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 export const LAUNCHER_SCHEMA_VERSION = "build002-r4b-audited-launcher-v1";
 export const CANONICAL_HARNESS_RELATIVE_PATH = "scripts/build002-r4b-managed-remote-assurance.mjs";
-export const CANONICAL_HARNESS_GIT_BLOB = "5d46f776726fb5ef9a1189d2809845c3622b005b";
+export const CANONICAL_HARNESS_GIT_BLOB = "487138d48f7bdb1a2bf916d934101404c9d97e45";
 export const CANONICAL_FIXTURE_GRAPH_SHA256 = "969ad9473adff82f3d90d259d8c3faebe3c6b2d175f7e6d9f8e29e8b04c1073f";
 export const MAX_BEHAVIORAL_CHILD_ATTEMPTS = 1;
 

@@ -85,6 +85,46 @@ export const RPC_SIGNATURES = Object.freeze({
   build002_002e_update_outcome_transaction: [["p_transaction_id", "uuid"], ["p_owner_tenant_id", "uuid"], ["p_patch", "jsonb"]],
 });
 
+function freezeInsertSpec(columns) {
+  return Object.freeze(columns.map((column) => Object.freeze(column)));
+}
+
+export const DIRECT_SERVICE_INSERT_SPECS = Object.freeze({
+  execution_runs: freezeInsertSpec([
+    ["id", "uuid"], ["owner_tenant_id", "uuid"], ["transaction_id", "uuid"], ["status", "text"],
+    ["executor", "text"], ["started_at", "timestamptz"], ["completed_at", "timestamptz"],
+    ["latency_ms", "integer"], ["cost_usd", "numeric"], ["error_message", "text"], ["metadata", "jsonb"],
+  ]),
+  candidate_assets: freezeInsertSpec([
+    ["id", "uuid"], ["owner_tenant_id", "uuid"], ["transaction_id", "uuid"], ["execution_run_id", "uuid"],
+    ["source_version_id", "uuid"], ["storage_key", "text"], ["mime_type", "text"], ["width", "integer"],
+    ["height", "integer"], ["byte_size", "integer"], ["sha256", "text"], ["roi", "jsonb"],
+    ["instruction", "text"], ["provider", "text"], ["model", "text"], ["cost_usd", "numeric"], ["committed", "boolean"],
+  ]),
+  field_outcomes: freezeInsertSpec([
+    ["id", "uuid"], ["tenant_id", "text"], ["owner_tenant_id", "uuid"], ["transaction_id", "uuid"],
+    ["source_version_id", "uuid"], ["source_sha256", "text"], ["instruction", "text"], ["roi", "jsonb"],
+    ["topology", "text"], ["task_type", "text"], ["provider", "text"], ["model", "text"],
+    ["raw_candidate_id", "uuid"], ["delivered_candidate_id", "uuid"], ["recommended_strategy", "text"],
+    ["strategy_id", "text"], ["policy_version", "text"], ["outcome_sku", "text"], ["blueprint_id", "uuid"],
+    ["blueprint_version", "integer"], ["blueprint_hash", "text"], ["blueprint_snapshot", "jsonb"],
+    ["task_spec_id", "uuid"], ["task_spec_version", "integer"], ["task_spec_hash", "text"],
+    ["task_spec_snapshot", "jsonb"], ["spec_compiler_name", "text"], ["spec_compiler_version", "text"],
+    ["machine_verification_status", "text"], ["same_spec_status", "text"], ["provider_latency_ms", "numeric"],
+    ["preservation_latency_ms", "numeric"], ["total_latency_ms", "numeric"], ["provider_cost_usd", "numeric"],
+  ]),
+  partial_intents: freezeInsertSpec([
+    ["id", "uuid"], ["owner_tenant_id", "uuid"], ["transaction_id", "uuid"], ["raw_input", "text"],
+    ["target_path", "text"], ["operation", "text"], ["desired_value", "jsonb"],
+  ]),
+  transaction_patches: freezeInsertSpec([
+    ["id", "uuid"], ["owner_tenant_id", "uuid"], ["transaction_id", "uuid"], ["partial_intent_id", "uuid"],
+    ["operation", "text"], ["target_path", "text"], ["parameters", "jsonb"],
+  ]),
+});
+
+export const DIRECT_SERVICE_INSERT_TABLE_ALLOWLIST = Object.freeze(Object.keys(DIRECT_SERVICE_INSERT_SPECS));
+
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 const REPOSITORY_ROOT = resolve(SCRIPT_DIR, "..");
 let typeScriptResolverInstalled = false;
@@ -975,6 +1015,71 @@ function rpcValues(name, args) {
   return RPC_SIGNATURES[name].map(([key, type]) => type === "jsonb" ? JSON.stringify(args[key]) : args[key]);
 }
 
+function assertDirectServiceRpc(name) {
+  const allowed = SERVICE_BOOTSTRAP_RPC_ALLOWLIST.includes(name) || SERVICE_AUTHORITY_RPC_ALLOWLIST.includes(name);
+  invariant(!name.startsWith("build002_002e_inner_") && allowed, "BUILD002_R4B_NONCANONICAL_RPC_FORBIDDEN", { name });
+}
+
+async function runDirectServiceOperation(factory, operation, secretValues) {
+  const session = await factory.openService();
+  let result;
+  try {
+    result = await operation(session.client);
+  } catch (error) {
+    let cleanupError = null;
+    try { await factory.close(session, false); } catch (failure) { cleanupError = sanitizedError(failure, secretValues); }
+    throw new HarnessError("BUILD002_R4B_DIRECT_SERVICE_OPERATION_FAILED", {
+      operationError: sanitizedError(error, secretValues),
+      cleanupError,
+    });
+  }
+  await factory.close(session, true);
+  return result;
+}
+
+export function createManagedDirectServiceAdapter(factory, { secretValues = [] } = {}) {
+  invariant(factory && typeof factory.openService === "function" && typeof factory.close === "function",
+    "BUILD002_R4B_DIRECT_SERVICE_FACTORY_REQUIRED");
+  return Object.freeze({
+    async rpc(name, args) {
+      assertDirectServiceRpc(name);
+      const signature = RPC_SIGNATURES[name];
+      invariant(Array.isArray(signature), "BUILD002_R4B_NONCANONICAL_RPC_FORBIDDEN", { name });
+      return runDirectServiceOperation(factory, async (client) => {
+        if (name === "provision_personal_tenant") {
+          const response = await client.query(
+            `select to_jsonb(t) as result from public.provision_personal_tenant(${signature.map(([, type], index) => `$${index + 1}::${type}`).join(",")}) as t`,
+            rpcValues(name, args),
+          );
+          invariant(response.rows.length === 1 && response.rows[0]?.result, "BUILD002_R4B_DIRECT_SERVICE_RPC_RETURN_INVALID", { name });
+          return [response.rows[0].result];
+        }
+        const response = await client.query(rpcSql(name), rpcValues(name, args));
+        invariant(response.rows.length === 1, "BUILD002_R4B_DIRECT_SERVICE_RPC_RETURN_INVALID", { name });
+        return response.rows[0].result;
+      }, secretValues);
+    },
+    async insert(table, row) {
+      const spec = DIRECT_SERVICE_INSERT_SPECS[table];
+      invariant(Array.isArray(spec), "BUILD002_R4B_DIRECT_SERVICE_INSERT_FORBIDDEN", { table });
+      const rowKeys = Object.keys(row);
+      invariant(rowKeys.length === spec.length && spec.every(([column]) => Object.hasOwn(row, column)),
+        "BUILD002_R4B_DIRECT_SERVICE_INSERT_SHAPE_INVALID", { table });
+      return runDirectServiceOperation(factory, async (client) => {
+        const columns = spec.map(([column]) => column);
+        const placeholders = spec.map(([, type], index) => `$${index + 1}::${type}`);
+        const values = spec.map(([column, type]) => type === "jsonb" ? JSON.stringify(row[column]) : row[column]);
+        const response = await client.query(
+          `insert into public.${table}(${columns.join(",")}) values (${placeholders.join(",")}) returning *`,
+          values,
+        );
+        invariant(response.rows.length === 1, "BUILD002_R4B_DIRECT_SERVICE_INSERT_RETURN_INVALID", { table });
+        return response.rows[0];
+      }, secretValues);
+    },
+  });
+}
+
 export async function runRpcRace({ factory, role = "service_role", principalId = null, name, args, argsList = null, durableCheck }) {
   assertCanonicalRpc(name, role === "service_role" ? SERVICE_AUTHORITY_RPC_ALLOWLIST : USER_RPC_ALLOWLIST);
   const barrier = createPromiseBarrier(2);
@@ -1431,13 +1536,16 @@ export async function executeManagedRun(config, dependencies = {}) {
   const evidence = { runId: config.runId, targetProjectRef: config.tempProjectRef, fixtureGraphSha256: MANAGED_FIXTURE_GRAPH_SHA256,
     providerCallCount: 0, phases: [], testCases: [], concurrency: [], hashResults: [], syntheticAuthUsersRemaining: 0,
     D0: null, D3: null, D4: null, D5: null, D6: null, "002E": null, crossTenant: [], directWrite: [], retry: [],
-    triggerGuards: null, providerBoundary: null, preflightDiagnostics: null, failedPhase: null, lastSuccessfulCheckpoint: null, tempProjectReadyToPause: false };
+    triggerGuards: null, providerBoundary: null, preflightDiagnostics: null, failedPhase: null, lastSuccessfulCheckpoint: null,
+    p2Bootstrap: { serviceTransport: "DIRECT_MANAGED_DB_SERVICE_ROLE", tenantBootstrapMode: "SEQUENTIAL", userResourceBootstrapMode: "SEQUENTIAL", completed: [] },
+    tempProjectReadyToPause: false };
   const checkpoint = async (phase) => {
     evidence.phases.push(phase);
     return (dependencies.writeCheckpoint ?? writeCheckpoint)(config.runId, phase, evidence);
   };
   const clients = dependencies.clients ?? createSupabaseClients(config, dependencies.fetch);
-  const service = createSupabaseAdapter(clients.service);
+  const serviceDbFactory = dependencies.serviceDbFactory ?? createManagedDbSessionFactory(config.databaseUrl);
+  const service = createManagedDirectServiceAdapter(serviceDbFactory, { secretValues: [config.databaseUrl] });
   let principals;
   let tenants;
   let fixtures;
@@ -1446,7 +1554,7 @@ export async function executeManagedRun(config, dependencies = {}) {
   await phases.run("P0", async () => {
     deadline.assertCanStart();
     const capabilities = await (dependencies.preflightDetailed ?? dependencies.preflight
-      ?? (() => preflightRoleSwitchesDetailed(createManagedDbSessionFactory(config.databaseUrl))))();
+      ?? (() => preflightRoleSwitchesDetailed(serviceDbFactory)))();
     evidence.preflightDiagnostics = redact(capabilities, [config.publishableKey, config.serviceRoleKey, config.databaseUrl]);
     invariant(capabilities.authRoleSwitchSupported && capabilities.serviceRoleSwitchSupported,
       "BUILD002_R4B_REQUIRED_ROLE_SWITCH_UNAVAILABLE",
@@ -1461,9 +1569,17 @@ export async function executeManagedRun(config, dependencies = {}) {
     await checkpoint("P1");
   });
   await phases.run("P2", async () => {
-    tenants = await Promise.all(principals.map((principal) => provisionPersonalTenant(service, principal.userId)));
+    tenants = [];
+    for (const principal of principals) {
+      tenants.push(await provisionPersonalTenant(service, principal.userId));
+      evidence.p2Bootstrap.completed.push(`${principal.label}_TENANT`);
+    }
     invariant(tenants[0].tenantId !== tenants[1].tenantId && tenants[0].membershipId !== tenants[1].membershipId, "BUILD002_R4B_TENANT_IDENTITIES_NOT_DISTINCT");
-    fixtures = await Promise.all(principals.map((principal, index) => bootstrapUserResources(createSupabaseAdapter(principal.userClient), tenants[index], principal.label)));
+    fixtures = [];
+    for (const [index, principal] of principals.entries()) {
+      fixtures.push(await bootstrapUserResources(createSupabaseAdapter(principal.userClient), tenants[index], principal.label));
+      evidence.p2Bootstrap.completed.push(`${principal.label}_RESOURCES`);
+    }
     await checkpoint("P2");
   });
   await phases.run("P3", async () => {

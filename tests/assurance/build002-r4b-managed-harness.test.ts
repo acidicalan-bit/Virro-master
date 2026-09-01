@@ -261,6 +261,256 @@ describe("BUILD002 R4-B managed harness security contract", () => {
   });
 });
 
+function directFactory(
+  query: (sql: string, values: unknown[]) => Promise<QueryResult>,
+  events: string[] = [],
+) {
+  return {
+    async openService() {
+      events.push("OPEN_SERVICE");
+      return { client: { query }, role: "service_role", diagnostic: {} };
+    },
+    async close(_session: unknown, commit = false) {
+      events.push(commit ? "COMMIT" : "ROLLBACK");
+      events.push("CLOSE");
+    },
+  };
+}
+
+function authenticatedJwt(sub: string): string {
+  return `e30.${Buffer.from(JSON.stringify({ sub, role: "authenticated" })).toString("base64url")}.unit-signature`;
+}
+
+function fakeDirectManagedClientClass(
+  events: string[],
+  operation: (sql: string, values: unknown[]) => Promise<QueryResult>,
+) {
+  return class FakeDirectManagedClient {
+    constructor() {
+      events.push("CLIENT_CREATE");
+    }
+
+    async connect(): Promise<void> {
+      events.push("CONNECT");
+    }
+
+    async query(sql: string, values: unknown[] = []): Promise<QueryResult> {
+      const normalized = sql.toLowerCase();
+      if (normalized === "begin") { events.push("BEGIN"); return { rows: [] }; }
+      if (normalized === "set local role service_role") { events.push("SET_ROLE"); return { rows: [] }; }
+      if (normalized.includes("set_config('request.jwt.claim.role'")) { events.push("SET_CLAIMS"); return { rows: [] }; }
+      if (normalized.includes("current_user")) { events.push("CONTEXT_VALIDATE"); return { rows: [{ role: "service_role", backend_pid: 404 }] }; }
+      if (normalized === "commit") { events.push("COMMIT"); return { rows: [] }; }
+      if (normalized === "rollback") { events.push("ROLLBACK"); return { rows: [] }; }
+      events.push("OPERATION");
+      return operation(sql, values);
+    }
+
+    async end(): Promise<void> {
+      events.push("CLOSE");
+    }
+  };
+}
+
+function managedP2ExecutionFixture({ failFirstProvision = false } = {}) {
+  const userIds = ["a4100000-0000-4000-8000-000000000001", "a4100000-0000-4000-8000-000000000002"];
+  const tenantIds = ["b4100000-0000-4000-8000-000000000001", "b4100000-0000-4000-8000-000000000002"];
+  const membershipIds = ["c4100000-0000-4000-8000-000000000001", "c4100000-0000-4000-8000-000000000002"];
+  const events: string[] = [];
+  const checkpoints: Array<{ phase: string; evidence: Record<string, unknown> }> = [];
+  let authAdminCalls = 0;
+  let servicePostgrestCalls = 0;
+  let provisionCalls = 0;
+
+  const labelIndex = (value: string) => value.includes("-a-") ? 0 : 1;
+  const serviceDbFactory = directFactory(async (sql, values) => {
+    if (sql.includes("provision_personal_tenant")) {
+      const index = userIds.indexOf(String(values[0]));
+      events.push(`${index === 0 ? "A" : "B"}_TENANT`);
+      provisionCalls += 1;
+      if (failFirstProvision && provisionCalls === 1) throw Object.assign(new Error("DIRECT_DB_BOOTSTRAP_FAILURE"), { code: "XX001" });
+      return { rows: [{ result: { tenant_id: tenantIds[index], membership_id: membershipIds[index], principal_id: userIds[index] } }] };
+    }
+    throw Object.assign(new Error("STOP_AFTER_P2"), { code: "LOCAL_STOP_AFTER_P2" });
+  }, events);
+
+  const userClient = (jwt: string) => {
+    const payload = JSON.parse(Buffer.from(jwt.split(".")[1], "base64url").toString("utf8"));
+    const index = userIds.indexOf(payload.sub);
+    const label = index === 0 ? "A" : "B";
+    return {
+      auth: { getUser: async () => ({ data: { user: { id: userIds[index] } }, error: null }) },
+      rpc: async (name: string) => {
+        expect(name).toBe("create_tenant_asset_with_initial_version");
+        return { data: {
+          asset: { id: `d4100000-0000-4000-8000-00000000000${index + 1}`, owner_tenant_id: tenantIds[index] },
+          version: { id: `e4100000-0000-4000-8000-00000000000${index + 1}`, owner_tenant_id: tenantIds[index], state: {} },
+        }, error: null };
+      },
+      from: (table: string) => ({
+        insert: (row: Record<string, unknown>) => ({
+          select: () => ({
+            single: async () => {
+              if (table === "projects") return { data: { id: `f4100000-0000-4000-8000-00000000000${index + 1}`, ...row }, error: null };
+              if (table === "outcome_transactions") {
+                events.push(`${label}_RESOURCES`);
+                return { data: { id: `04100000-0000-4000-8000-00000000000${index + 1}`, ...row }, error: null };
+              }
+              throw new Error(`UNEXPECTED_USER_TABLE:${table}`);
+            },
+          }),
+        }),
+      }),
+    };
+  };
+
+  const clients = {
+    service: {
+      auth: { admin: { createUser: async ({ email }: { email: string }) => {
+        authAdminCalls += 1;
+        const index = labelIndex(email);
+        return { data: { user: { id: userIds[index] } }, error: null };
+      } } },
+      rpc: async () => { servicePostgrestCalls += 1; throw Object.assign(new Error("JWT issued at future"), { code: "PGRST303" }); },
+      from: () => { servicePostgrestCalls += 1; throw Object.assign(new Error("JWT issued at future"), { code: "PGRST303" }); },
+    },
+    publishable: { auth: { signInWithPassword: async ({ email }: { email: string }) => {
+      const index = labelIndex(email);
+      return { data: { session: { access_token: authenticatedJwt(userIds[index]) } }, error: null };
+    } } },
+    user: userClient,
+  };
+
+  const execute = () => harness.executeManagedRun(harness.loadHarnessConfig(env()), {
+    clients,
+    serviceDbFactory,
+    preflightDetailed: async () => ({ authRoleSwitchSupported: true, serviceRoleSwitchSupported: true }),
+    writeCheckpoint: async (_runId: string, phase: string, evidence: Record<string, unknown>) => {
+      checkpoints.push({ phase, evidence: structuredClone(evidence) });
+      return { path: "local", sha256: "local" };
+    },
+  });
+
+  return {
+    execute,
+    events,
+    checkpoints,
+    counts: () => ({ authAdminCalls, servicePostgrestCalls, provisionCalls }),
+  };
+}
+
+describe("BUILD002 R4-B deterministic service database authority transport", () => {
+  it("executes direct P2 tenant bootstrap with the canonical argument, return shape, and commit", async () => {
+    const events: string[] = [];
+    const principalId = "a4100000-0000-4000-8000-000000000001";
+    const databaseUrl = `postgresql://postgres.${TEMP_REF}:direct-test-password@db.${TEMP_REF}.supabase.co:5432/postgres`;
+    const ClientClass = fakeDirectManagedClientClass(events, async (sql, values) => {
+      expect(sql).toBe("select to_jsonb(t) as result from public.provision_personal_tenant($1::uuid) as t");
+      expect(values).toEqual([principalId]);
+      return { rows: [{ result: { tenant_id: "tenant-a", membership_id: "membership-a", principal_id: principalId } }] };
+    });
+    const factory = harness.createManagedDbSessionFactory(databaseUrl, ClientClass);
+    const tenant = await harness.provisionPersonalTenant(harness.createManagedDirectServiceAdapter(factory), principalId);
+    expect(tenant).toEqual({ tenantId: "tenant-a", membershipId: "membership-a", principalId });
+    expect(events).toEqual([
+      "CLIENT_CREATE", "CONNECT", "BEGIN", "SET_ROLE", "SET_CLAIMS", "CONTEXT_VALIDATE", "OPERATION", "COMMIT", "CLOSE",
+    ]);
+  });
+
+  it("eliminates service PostgREST while preserving Auth Admin and authenticated user PostgREST", async () => {
+    const fixture = managedP2ExecutionFixture();
+    await expect(fixture.execute()).rejects.toMatchObject({ code: "BUILD002_R4B_DIRECT_SERVICE_OPERATION_FAILED" });
+    expect(fixture.counts()).toEqual({ authAdminCalls: 2, servicePostgrestCalls: 0, provisionCalls: 2 });
+    const p2 = fixture.checkpoints.find((item) => item.phase === "P2");
+    expect(p2?.evidence.p2Bootstrap).toEqual({
+      serviceTransport: "DIRECT_MANAGED_DB_SERVICE_ROLE",
+      tenantBootstrapMode: "SEQUENTIAL",
+      userResourceBootstrapMode: "SEQUENTIAL",
+      completed: ["A_TENANT", "B_TENANT", "A_RESOURCES", "B_RESOURCES"],
+    });
+    expect(fixture.events.filter((event) => /^(A|B)_(TENANT|RESOURCES)$/.test(event)))
+      .toEqual(["A_TENANT", "B_TENANT", "A_RESOURCES", "B_RESOURCES"]);
+  });
+
+  it("fails the phase without service PostgREST fallback when direct bootstrap fails", async () => {
+    const fixture = managedP2ExecutionFixture({ failFirstProvision: true });
+    await expect(fixture.execute()).rejects.toMatchObject({ code: "BUILD002_R4B_DIRECT_SERVICE_OPERATION_FAILED" });
+    expect(fixture.counts()).toEqual({ authAdminCalls: 2, servicePostgrestCalls: 0, provisionCalls: 1 });
+    expect(fixture.checkpoints.at(-1)).toMatchObject({ phase: "FAILED_P2", evidence: { p2Bootstrap: { completed: [] } } });
+    expect(fixture.events).toContain("ROLLBACK");
+  });
+
+  it("commits success and rolls back failure as one operation per transaction", async () => {
+    const successEvents: string[] = [];
+    const databaseUrl = `postgresql://postgres.${TEMP_REF}:direct-test-password@db.${TEMP_REF}.supabase.co:5432/postgres`;
+    const successFactory = harness.createManagedDbSessionFactory(
+      databaseUrl,
+      fakeDirectManagedClientClass(successEvents, async () => ({ rows: [{ result: "ok" }] })),
+    );
+    const success = harness.createManagedDirectServiceAdapter(successFactory);
+    await expect(success.rpc("build002_insert_dependency_snapshot", { p_snapshot: { exact: true } })).resolves.toBe("ok");
+    expect(successEvents).toContain("COMMIT");
+    expect(successEvents).not.toContain("ROLLBACK");
+
+    const failureEvents: string[] = [];
+    const failureFactory = harness.createManagedDbSessionFactory(
+      databaseUrl,
+      fakeDirectManagedClientClass(failureEvents, async () => { throw Object.assign(new Error("opaque"), { code: "XX002" }); }),
+    );
+    const failure = harness.createManagedDirectServiceAdapter(failureFactory);
+    await expect(failure.rpc("build002_insert_dependency_snapshot", { p_snapshot: { exact: true } })).rejects.toMatchObject({
+      code: "BUILD002_R4B_DIRECT_SERVICE_OPERATION_FAILED",
+      details: { operationError: { code: "XX002" } },
+    });
+    expect(failureEvents).toContain("ROLLBACK");
+    expect(failureEvents).not.toContain("COMMIT");
+    expect(failureEvents.at(-1)).toBe("CLOSE");
+  });
+
+  it("rejects unknown RPCs, inner RPCs, non-allowlisted tables, and row-shape drift", async () => {
+    const adapter = harness.createManagedDirectServiceAdapter(directFactory(async () => ({ rows: [] })));
+    await expect(adapter.rpc("build002_unknown", {})).rejects.toMatchObject({ code: "BUILD002_R4B_NONCANONICAL_RPC_FORBIDDEN" });
+    await expect(adapter.rpc("build002_002e_inner_update_asset", {})).rejects.toMatchObject({ code: "BUILD002_R4B_NONCANONICAL_RPC_FORBIDDEN" });
+    await expect(adapter.insert("auth.users", {})).rejects.toMatchObject({ code: "BUILD002_R4B_DIRECT_SERVICE_INSERT_FORBIDDEN" });
+    await expect(adapter.insert("partial_intents", { id: "drift" })).rejects.toMatchObject({ code: "BUILD002_R4B_DIRECT_SERVICE_INSERT_SHAPE_INVALID" });
+    expect(harness.DIRECT_SERVICE_INSERT_TABLE_ALLOWLIST).toEqual([
+      "execution_runs", "candidate_assets", "field_outcomes", "partial_intents", "transaction_patches",
+    ]);
+  });
+
+  it("serializes JSONB explicitly for an allowlisted parameterized insert", async () => {
+    const operationValue = { instruction: "R4-B", roi: { x: 0, y: 0, width: 1, height: 1 } };
+    let capturedSql = "";
+    let capturedValues: unknown[] = [];
+    const factory = directFactory(async (sql, values) => {
+      capturedSql = sql;
+      capturedValues = values;
+      return { rows: [{ id: values[0], desired_value: operationValue }] };
+    });
+    const adapter = harness.createManagedDirectServiceAdapter(factory);
+    await adapter.insert("partial_intents", {
+      id: "a4100000-0000-4000-8000-000000000001",
+      owner_tenant_id: "b4100000-0000-4000-8000-000000000001",
+      transaction_id: "c4100000-0000-4000-8000-000000000001",
+      raw_input: "R4-B operation",
+      target_path: "media.pixels",
+      operation: "EDIT_REGION",
+      desired_value: operationValue,
+    });
+    expect(capturedSql).toMatch(/^insert into public\.partial_intents\(.+\) values \(.+\) returning \*$/);
+    expect(capturedSql).toContain("$7::jsonb");
+    expect(capturedValues[6]).toBe(JSON.stringify(operationValue));
+  });
+
+  it("regresses PGRST303 transport selection without claiming a product pass", async () => {
+    const fixture = managedP2ExecutionFixture();
+    await expect(fixture.execute()).rejects.toMatchObject({ code: "BUILD002_R4B_DIRECT_SERVICE_OPERATION_FAILED" });
+    expect(fixture.counts().servicePostgrestCalls).toBe(0);
+    expect(fixture.checkpoints.some((item) => item.phase === "P2")).toBe(true);
+    expect(fixture.checkpoints.some((item) => item.phase === "P6")).toBe(false);
+  });
+});
+
 type ManagedRole = "authenticated" | "service_role";
 type ManagedFailureStage = "CONNECT" | "BEGIN" | "SET_ROLE" | "SET_CLAIMS" | "ROLLBACK" | "CLOSE";
 type ManagedBehavior = {

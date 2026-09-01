@@ -1,6 +1,6 @@
 // @vitest-environment node
 
-import { spawn } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import { createHash } from "node:crypto";
 import {
   mkdtempSync,
@@ -173,6 +173,12 @@ describe("BUILD002 R4-B audited launcher", () => {
     const wrongHarness = resolve(root, "wrong-harness.mjs");
     writeFileSync(wrongHarness, "export const wrong = true;\n");
     await expect(launcher.verifyHarnessBinding(wrongHarness)).rejects.toMatchObject({ code: "BUILD002_R4B_AUDITED_LAUNCHER_HARNESS_BLOB_MISMATCH" });
+    const harnessPath = resolve(process.cwd(), "scripts/build002-r4b-managed-remote-assurance.mjs");
+    await expect(launcher.verifyHarnessBinding(harnessPath)).resolves.toMatchObject({ blobSha: "487138d48f7bdb1a2bf916d934101404c9d97e45" });
+    const historicalHarness = resolve(root, "historical-harness.mjs");
+    writeFileSync(historicalHarness, execFileSync("git", ["show", "4b932714eacb3c00f13c6a337071d4823032748a:scripts/build002-r4b-managed-remote-assurance.mjs"]));
+    await expect(launcher.verifyHarnessBinding(historicalHarness)).rejects.toMatchObject({ code: "BUILD002_R4B_AUDITED_LAUNCHER_HARNESS_BLOB_MISMATCH" });
+    expect(launcher.CANONICAL_HARNESS_GIT_BLOB).not.toBe("5d46f776726fb5ef9a1189d2809845c3622b005b");
     const source = readFileSync(resolve(process.cwd(), "scripts/build002-r4b-audited-launcher.mjs"), "utf8");
     expect(source.indexOf("verifyHarnessBinding(HARNESS_PATH)")).toBeLessThan(source.indexOf("const childResult = await runChildProcess({"));
   });
